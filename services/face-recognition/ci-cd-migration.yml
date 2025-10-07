@@ -1,0 +1,81 @@
+# ✅ CI/CD Pipeline với Auto Migration
+# Chạy tự động trong quá trình deploy
+
+name: Notification Auto Migration
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build --no-restore
+
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal
+
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql version: "15"
+          postgresql db: "zentry_db"
+          postgresql user: "postgres"
+          postgresql password: "password"
+
+      - name: Wait for PostgreSQL
+        run: |
+          while ! pg_isready -h localhost -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Run Auto Migration
+        run: |
+          # Cài đặt psql client
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+          # Chạy migration script
+          chmod +x ./auto-migration.ps1
+          pwsh -File ./auto-migration.ps1 -DatabaseHost localhost -DatabaseName zentry_db -DatabaseUser postgres
+
+      - name: Verify Migration
+        run: |
+          # Verify migration thành công
+          psql -h localhost -U postgres -d zentry_db -c "
+          SELECT 
+            COUNT(*) as TotalRecords,
+            COUNT(CASE WHEN \"Type\" IS NOT NULL THEN 1 END) as RecordsWithType,
+            COUNT(CASE WHEN \"Deeplink\" IS NOT NULL THEN 1 END) as RecordsWithDeeplink
+          FROM \"Notifications\";
+          "
+
+      - name: Deploy to staging
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "Deploying to staging environment..."
+          # Thêm logic deploy staging ở đây
+
+      - name: Deploy to production
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Deploying to production environment..."
+          # Thêm logic deploy production ở đây

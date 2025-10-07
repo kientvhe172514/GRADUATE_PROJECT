@@ -1,0 +1,642 @@
+openapi: 3.0.0
+info:
+  title: User Management API
+  description: |
+    This API manages user information within the Zentry system, including their basic details, roles, and account status.
+    It provides functionalities for administrators to perform full CRUD operations on user accounts,
+    and for individual users to view and update their own profiles.
+
+    ### Key Features:
+    - **Create User (UC-User-01)**: Admin creates new user accounts (Admin, Lecturer, or Student).
+    - **View User Information (UC-User-02)**: Admin views all user details; Lecturers/Students view their own profile.
+    - **Update User Information (UC-User-03)**: Admin updates user details and roles.
+    - **Delete User (UC-User-04)**: Admin deletes user accounts, with checks for associated records.
+    - **Activate/Deactivate User (UC-User-05)**: Admin manages user account status.
+    - **Edit Personal Profile (UC-User-06)**: Users (Admin, Lecturer, Student) can update their own personal information.
+
+    The module relies on PostgreSQL for user data storage and integrates deeply with other system modules
+    like Identity, Schedule, Attendance, Reporting, Notification, and DeviceManagement.
+  version: 1.0.1 # Updated version to reflect completed paths and schemas
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local server
+  - url: https://api.zentry.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users:
+    get:
+      summary: Get a list of users (UC-User-02 - Admin View)
+      operationId: getUsers
+      tags:
+        - Users (Admin)
+      description: |
+        Retrieves a paginated and filterable list of all user accounts in the system.
+        - **Role**: Admin.
+      parameters:
+        - name: email
+          in: query
+          required: false
+          description: Optional. Filter users by partial email address (case-insensitive search).
+          schema:
+            type: string
+        - name: fullName
+          in: query
+          required: false
+          description: Optional. Filter users by partial full name (case-insensitive search).
+          schema:
+            type: string
+        - name: role
+          in: query
+          required: false
+          description: Optional. Filter users by role.
+          schema:
+            $ref: '#/components/schemas/UserRoleEnum' # Using enum
+        - name: status
+          in: query
+          required: false
+          description: Optional. Filter users by account status.
+          schema:
+            $ref: '#/components/schemas/AccountStatusEnum' # Using enum
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: A list of user accounts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new user (UC-User-01)
+      operationId: createUser
+      tags:
+        - Users (Admin)
+      description: |
+        Allows an Admin to create a new user account (Admin, Lecturer, or Student).
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. Email must be unique. Role must be valid.
+      requestBody:
+        description: User details to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '400':
+          description: Invalid input (e.g., invalid email, invalid role) or email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}:
+    get:
+      summary: Get a user by ID (UC-User-02 - Admin View)
+      operationId: getUserById
+      tags:
+        - Users (Admin)
+      description: |
+        Retrieves details of a specific user by their ID.
+        - **Role**: Admin.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to retrieve.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a user's information (UC-User-03)
+      operationId: updateUser
+      tags:
+        - Users (Admin)
+      description: |
+        Allows an Admin to update the email, full name, or role of an existing user.
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. User `id` must exist.
+          Email (if updated) must be unique. Role must be valid.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to update.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Updated user details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '400':
+          description: Invalid input (e.g., invalid email, invalid role) or email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a user (UC-User-04)
+      operationId: deleteUser
+      tags:
+        - Users (Admin)
+      description: |
+        Allows an Admin to delete a user account from the system.
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. User must exist and not have any associated records
+          (schedules, enrollments, attendance records, devices).
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to delete.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted successfully.
+        '400':
+          description: Cannot delete user with associated records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/status:
+    put:
+      summary: Activate or deactivate a user (UC-User-05)
+      operationId: updateUserStatus
+      tags:
+        - Users (Admin)
+      description: |
+        Allows an Admin to change the `Status` of a user account (Active/Inactive).
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. User `id` must exist.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to update status.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New status for the user account.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserStatusUpdateRequest'
+      responses:
+        '200':
+          description: User status updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '400':
+          description: Invalid input (e.g., invalid status).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me:
+    get:
+      summary: Get authenticated user's profile (UC-User-02 - Personal View)
+      operationId: getMyProfile
+      tags:
+        - Users (Personal)
+      description: |
+        Allows any authenticated user (Admin, Lecturer, or Student) to retrieve their own profile information.
+        - **Roles**: Admin, Lecturer, Student.
+      responses:
+        '200':
+          description: User's profile found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User profile not found (should not happen with valid token).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update authenticated user's personal profile (UC-User-06)
+      operationId: updateMyProfile
+      tags:
+        - Users (Personal)
+      description: |
+        Allows any authenticated user (Admin, Lecturer, or Student) to update their own personal information,
+        such as their full name.
+        - **Roles**: Admin, Lecturer, Student.
+      requestBody:
+        description: Updated personal profile details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+      responses:
+        '200':
+          description: User profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse' # Renamed to UserResponse
+        '400':
+          description: Invalid input (e.g., invalid full name format).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User profile not found (should not happen with valid token).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRoleEnum: # New Enum for User Roles
+      type: string
+      description: Enumeration for user roles.
+      enum:
+        - Admin
+        - Lecturer
+        - Student
+      example: Student
+
+    AccountStatusEnum: # New Enum for Account Status
+      type: string
+      description: Enumeration for account status.
+      enum:
+        - Active
+        - Inactive
+      example: Active
+
+    UserResponse: # Renamed from User for clarity as it's a response DTO
+      type: object
+      description: Represents a user account in the system.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user (Primary Key).
+          readOnly: true
+          example: 223e4567-e89b-12d3-a456-426614174001
+        email:
+          type: string
+          format: email
+          description: Unique email address of the user.
+          example: admin@zentry.edu
+        fullName:
+          type: string
+          description: Full name of the user.
+          example: Admin User
+        role:
+          $ref: '#/components/schemas/UserRoleEnum' # Using enum
+          description: Role of the user.
+          example: Admin
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum' # Using enum
+          description: Current status of the user's account.
+          default: Active
+          example: Active
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user record was created.
+          readOnly: true
+          example: "2025-06-22T07:37:00+07:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user record was last updated.
+          readOnly: true
+          nullable: true
+          example: null
+        updatedBy:
+          type: string
+          format: uuid
+          description: ID of the user (Admin) who last updated this record. Null for initial creation by system or first Admin.
+          readOnly: true
+          nullable: true
+          example: 223e4567-e89b-12d3-a456-426614174001
+        updatedByName:
+          type: string
+          description: Full name of the user (Admin) who last updated this record. (Populated via join with Users table for display)
+          readOnly: true
+          nullable: true
+          example: Admin User
+      required:
+        - id
+        - email
+        - fullName
+        - role
+        - status
+        - createdAt
+
+    UserCreateRequest:
+      type: object
+      description: Request body for creating a new user.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address for the new user. Must be unique.
+          example: new.user@zentry.edu
+        fullName:
+          type: string
+          description: Full name of the new user.
+          example: New User Account
+        role:
+          $ref: '#/components/schemas/UserRoleEnum' # Using enum
+          description: Role assigned to the new user.
+          example: Student
+      required:
+        - email
+        - fullName
+        - role
+
+    UserUpdateRequest:
+      type: object
+      description: Request body for updating an existing user's information (Admin-only).
+      properties:
+        email:
+          type: string
+          format: email
+          description: New email address for the user (optional, if changing). Must be unique if provided.
+          example: updated.user@zentry.edu
+        fullName:
+          type: string
+          description: New full name for the user (optional).
+          example: Updated User Name
+        role:
+          $ref: '#/components/schemas/UserRoleEnum' # Using enum
+          description: New role for the user (optional).
+          example: Lecturer
+      # At least one field should be present for an update operation, but OpenAPI doesn't enforce this strictly here.
+
+    UserStatusUpdateRequest:
+      type: object
+      description: Request body for updating a user's account status (Admin-only).
+      properties:
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum' # Using enum
+          description: The new status for the user's account.
+          example: Inactive
+      required:
+        - status
+
+    UserProfileUpdateRequest:
+      type: object
+      description: Request body for an authenticated user to update their own profile.
+      properties:
+        fullName:
+          type: string
+          description: The new full name for the user's profile.
+          example: Jane Doe
+        # Add other optional fields like 'phone', 'avatarUrl' if extended in the future
+      required:
+        - fullName
+
+    Error:
+      type: object
+      description: Standard error response format.
+      properties:
+        code:
+          type: string
+          description: A unique error code for the specific error.
+          example: "USER_NOT_FOUND"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "User with provided ID not found."
+      required:
+        - code
+        - message
+

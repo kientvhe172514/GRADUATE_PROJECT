@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CsvHelper" Version="33.1.0"/>
+        <PackageReference Include="EPPlus" Version="8.0.8"/>
+        <PackageReference Include="Marten" Version="8.3.3"/>
+        <PackageReference Include="MongoDB.Driver" Version="3.4.1"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="MassTransit.Abstractions" Version="8.5.1"/>
+    </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Zentry.Modules.AttendanceManagement.Application\Zentry.Modules.AttendanceManagement.Application.csproj"/>
+		<ProjectReference Include="..\Zentry.Modules.AttendanceManagement.Domain\Zentry.Modules.AttendanceManagement.Domain.csproj"/>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,123 @@
+services:
+  zentry-api:
+    user: root
+    security_opt:
+      - label=disable
+    container_name: zentry-api
+    image: zentry.api
+    build:
+      context: .
+      dockerfile: src/Zentry.API/Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # ASP.NET
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - UseMarten=true
+
+      # PostgreSQL
+      - ConnectionStrings__FaceIdConnection=${FACEID_CONNECTION}
+      - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION}
+
+      # Redis
+      - Redis__ConnectionString=${REDIS_CONNECTION}
+      # MongoDB
+      - MongoDB__ConnectionString=${MONGO_CONNECTION}
+
+      # RabbitMQ
+      - RabbitMQ__ConnectionString=${RABBITMQ_CONNECTION}
+
+      # JWT
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - Jwt__ExpirationMinutes=${JWT_EXPIRATION_MINUTES}
+
+      # Rate Limiting (hardcoded)
+      - RateLimiting__FixedWindow__PermitLimit=100
+      - RateLimiting__FixedWindow__WindowMinutes=1
+      - RateLimiting__FixedWindow__QueueLimit=10
+      - RateLimiting__SlidingWindow__PermitLimit=50
+      - RateLimiting__SlidingWindow__WindowMinutes=1
+      - RateLimiting__SlidingWindow__SegmentsPerWindow=6
+      - RateLimiting__SlidingWindow__QueueLimit=5
+      - RateLimiting__TokenBucket__TokenLimit=100
+      - RateLimiting__TokenBucket__ReplenishmentPeriodSeconds=10
+      - RateLimiting__TokenBucket__TokensPerPeriod=20
+      - RateLimiting__TokenBucket__QueueLimit=10
+      - RateLimiting__Concurrency__PermitLimit=50
+      - RateLimiting__Concurrency__QueueLimit=20
+      - RateLimiting__AuthPolicy__PermitLimit=5
+      - RateLimiting__AuthPolicy__WindowMinutes=1
+      - RateLimiting__AuthPolicy__QueueLimit=0
+      - RateLimiting__GlobalLimiter__PermitLimit=200
+      - RateLimiting__GlobalLimiter__WindowMinutes=1
+      - RateLimiting__GlobalLimiter__AutoReplenishment=true
+
+    volumes:
+      - ./src/Zentry.API:/app:Z
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server --maxmemory 500mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: Dockerfile.rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=pass
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
+  postgres-data:
+  rabbitmq-data:

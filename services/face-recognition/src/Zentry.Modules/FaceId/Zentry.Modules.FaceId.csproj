@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
+    </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\Zentry.Infrastructure\Zentry.Infrastructure.csproj"/>
+		<ProjectReference Include="..\..\Zentry.SharedKernel\Zentry.SharedKernel.csproj"/>
+		<ProjectReference Include="..\UserManagement\Zentry.Modules.UserManagement\Zentry.Modules.UserManagement.csproj"/>
+	</ItemGroup>
+
+</Project> 

@@ -1,0 +1,32 @@
+export class Employee {
+  id?: number;
+  account_id?: number;
+  employee_code: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  date_of_birth: Date;
+  gender: string;
+  national_id?: string;
+  email: string;
+  phone_number?: string;
+  personal_email?: string;
+  address?: object;
+  department_id?: number;
+  position_id?: number;
+  manager_id?: number;
+  hire_date: Date;
+  employment_type: string;
+  status: string = 'ACTIVE';
+  termination_date?: Date;
+  termination_reason?: string;
+  emergency_contact?: object;
+  onboarding_status: string = 'PENDING';
+  onboarding_completed_at?: Date;
+  profile_completion_percentage: number = 0;
+  external_refs?: object;
+  created_at?: Date;
+  updated_at?: Date;
+  created_by?: number;
+  updated_by?: number;
+}

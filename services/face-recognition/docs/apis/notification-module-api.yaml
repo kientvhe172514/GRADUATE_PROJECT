@@ -1,0 +1,419 @@
+openapi: 3.0.0
+info:
+  title: Notification Management API
+  description: |
+    This API manages the sending, storage, and retrieval of notifications within the Zentry system.
+    It supports various notification channels (in-app, push, email) and covers notifications
+    related to absence report results, class reminders, and attendance warnings.
+
+    ### Key Features:
+    - **Send Absence Report Result Notification (UC-Notify-01)**: System-triggered notification to students about their absence report status.
+    - **View User Notifications (UC-Notify-02)**: Allows students and lecturers to retrieve their personal notification list.
+    - **Mark Notifications as Read (UC-Notify-03)**: Users can mark one or more notifications as read.
+    - **Send Class Reminder Notification (UC-Notify-04)**: Automated reminders sent to lecturers before class starts.
+    - **Send Absence Threshold Warning Notification (UC-Notify-05)**: Automated warnings sent to students who exceed a certain absence threshold.
+
+    This module ensures timely and relevant communication to users, enhancing their awareness of system events.
+  version: 1.1.0 # Updated version to reflect enum and field alignment
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local server
+  - url: https://api.zentry.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /notifications/send:
+    post:
+      summary: Send a generic system notification (Internal/System Triggered)
+      operationId: sendGenericNotification
+      tags:
+        - Internal Notifications
+      description: |
+        Allows other system modules or internal processes to trigger the sending of a notification
+        to a specific user. This endpoint acts as a central gateway for all automated notifications,
+        including results of absence reports (UC-Notify-01), class reminders (UC-Notify-04),
+        and attendance warnings (UC-Notify-05).
+        The system will determine the appropriate channels (InApp, Push, Email) based on configuration
+        and user preferences.
+        - **Role**: Internal System/Service Account (authenticated via JWT).
+      requestBody:
+        description: Details of the notification to be sent.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSendRequest'
+      responses:
+        '202':
+          description: Notification request accepted for processing.
+        '400':
+          description: Invalid input (e.g., missing required fields, invalid user ID).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid (for internal service).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User ID not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error (e.g., failure to store notification, push service error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications:
+    get:
+      summary: Get a list of user's notifications (UC-Notify-02)
+      operationId: getUserNotifications
+      tags:
+        - User Notifications
+      description: |
+        Allows an authenticated user (student or lecturer) to retrieve a paginated and filterable
+        list of their personal notifications.
+        - **Roles**: Student, Lecturer.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter notifications by read status.
+          schema:
+            $ref: '#/components/schemas/NotificationReadStatusEnum' # Using new enum
+        - name: type
+          in: query
+          required: false
+          description: Filter notifications by channel type.
+          schema:
+            $ref: '#/components/schemas/NotificationTypeEnum' # Using new enum
+        - name: startDate
+          in: query
+          required: false
+          description: Filter notifications created after this date (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: Filter notifications created before this date (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: A list of notifications for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse' # Renamed to Response
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/{notificationId}/read:
+    put:
+      summary: Mark a single notification as read (UC-Notify-03)
+      operationId: markNotificationAsRead
+      tags:
+        - User Notifications
+      description: |
+        Allows an authenticated user to mark a specific notification as "Read".
+        This will update the `ReadAt` timestamp in the notification record.
+        - **Roles**: Student, Lecturer.
+        - **Prerequisites**: The `notificationId` must exist and belong to the authenticated user.
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          description: ID of the notification to mark as read.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Notification marked as read successfully.
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Notification does not belong to the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Notification not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/mark-as-read:
+    put:
+      summary: Mark multiple notifications as read (UC-Notify-03 - Bulk)
+      operationId: bulkMarkNotificationsAsRead
+      tags:
+        - User Notifications
+      description: |
+        Allows an authenticated user to mark multiple notifications as "Read" in a single request.
+        This will update the `ReadAt` timestamp for each notification record.
+        - **Roles**: Student, Lecturer.
+        - **Prerequisites**: All `notificationIds` must exist and belong to the authenticated user.
+      requestBody:
+        description: Array of notification IDs to mark as read.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notificationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: List of notification IDs to mark as read.
+                  example:
+                    - 123e4567-e89b-12d3-a456-426614174000
+                    - 323e4567-e89b-12d3-a456-426614174002
+              required:
+                - notificationIds
+      responses:
+        '204':
+          description: Notifications marked as read successfully (or ignored if already read).
+        '400':
+          description: Invalid input (e.g., empty array).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - One or more notifications do not belong to the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NotificationTypeEnum: # Based on Zentry.Modules.Notification.Domain.Enums.NotificationType
+      type: string
+      description: Enumeration for notification channels.
+      enum:
+        - Email
+        - InApp
+        - SMS
+        - Push
+      example: InApp
+
+    NotificationPriorityEnum: # Based on Zentry.Modules.Notification.Domain.Enums.NotificationPriority
+      type: string
+      description: Enumeration for notification priority levels.
+      enum:
+        - Low
+        - Normal
+        - High
+      example: High
+
+    NotificationReadStatusEnum: # Derived from Notification.ReadAt
+      type: string
+      description: Enumeration for notification read status.
+      enum:
+        - Unread
+        - Read
+      example: Unread
+
+    NotificationResponse: # Renamed from Notification for clarity as it's a response DTO
+      type: object
+      description: Represents a notification record returned in a response.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the notification.
+          readOnly: true
+          example: 123e4567-e89b-12d3-a456-426614174000
+        userId:
+          type: string
+          format: uuid
+          description: ID of the recipient user.
+          readOnly: true
+          example: 223e4567-e89b-12d3-a456-426614174001
+        title:
+          type: string
+          description: Title of the notification.
+          example: Absence Report Approved
+        content:
+          type: string
+          description: Detailed content of the notification.
+          example: Your absence report for session XYZ was approved. Your attendance has been updated.
+        type:
+          $ref: '#/components/schemas/NotificationTypeEnum' # Using enum
+          description: Type of notification channel.
+          example: Email
+        priority:
+          $ref: '#/components/schemas/NotificationPriorityEnum' # Using enum
+          description: Priority level of the notification.
+          example: High
+        status: # Derived from ReadAt
+          $ref: '#/components/schemas/NotificationReadStatusEnum'
+          description: Read status of the notification. Automatically derived from `readAt`.
+          readOnly: true # This status is derived, not explicitly set by the client
+          example: Unread
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the notification record was created.
+          readOnly: true
+          example: "2025-06-22T10:00:00Z"
+        sentAt:
+          type: string
+          format: date-time
+          description: Timestamp when the notification was sent.
+          nullable: true
+          readOnly: true # Sent by system
+          example: "2025-06-22T10:00:01Z"
+        readAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user marked the notification as read.
+          nullable: true
+          example: null
+      required:
+        - id
+        - userId
+        - title
+        - content
+        - type
+        - priority
+        - createdAt
+
+    NotificationSendRequest:
+      type: object
+      description: Request body for sending a notification (used internally by other modules).
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the recipient user.
+          example: 223e4567-e89b-12d3-a456-426614174001
+        title:
+          type: string
+          description: The title of the notification.
+          example: Absence Report Approved
+        content:
+          type: string
+          description: The detailed content of the notification.
+          example: Your absence report for session XYZ was approved. Your attendance has been updated.
+        notificationTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationTypeEnum' # Using enum
+          description: A list of desired notification channels (e.g., ["InApp", "Email"]).
+          example: ["InApp", "Email"]
+        priority:
+          $ref: '#/components/schemas/NotificationPriorityEnum' # Using enum
+          description: Priority level of the notification.
+          default: Normal
+          example: High
+        relatedEntityId:
+          type: string
+          format: uuid
+          description: Optional. ID of a related entity (e.g., Session ID, Report ID).
+          nullable: true
+          example: 523e4567-e89b-12d3-a456-426614174005
+        relatedEntityType:
+          type: string
+          description: Optional. Type of the related entity (e.g., "AttendanceReport", "Schedule").
+          nullable: true
+          example: AttendanceReport
+      required:
+        - userId
+        - title
+        - content
+        - notificationTypes
+
+    Error:
+      type: object
+      description: Standard error response format.
+      properties:
+        code:
+          type: string
+          description: A unique error code for the specific error.
+          example: "NOTIFICATION_NOT_FOUND"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "Notification with provided ID not found or does not belong to user."
+      required:
+        - code
+        - message
+

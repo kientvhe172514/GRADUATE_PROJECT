@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="EPPlus" Version="8.0.8"/>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.17"/>
+		<PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1"/>
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Zentry.Infrastructure\Zentry.Infrastructure.csproj"/>
+		<ProjectReference Include="..\..\..\Zentry.SharedKernel\Zentry.SharedKernel.csproj"/>
+	</ItemGroup>
+
+
+</Project>

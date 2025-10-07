@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Zentry.Modules.AttendanceManagement.Application\Zentry.Modules.AttendanceManagement.Application.csproj" />
+	</ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="EPPlus" Version="8.0.8" />
+    </ItemGroup>
+</Project>

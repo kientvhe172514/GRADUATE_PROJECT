@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: infrastructure
+data:
+  01-init-databases.sql: |
+    -- Create databases for each service
+    CREATE DATABASE authdb;
+    CREATE DATABASE facerecognitiondb;
+    
+    -- Create users with proper permissions
+    CREATE USER auth_user WITH PASSWORD 'auth_password';
+    CREATE USER face_user WITH PASSWORD 'face_password';
+    
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON DATABASE authdb TO auth_user;
+    GRANT ALL PRIVILEGES ON DATABASE facerecognitiondb TO face_user;
+    
+    -- Enable pgvector extension
+    \c authdb;
+    CREATE EXTENSION IF NOT EXISTS vector;
+    
+    \c facerecognitiondb;
+    CREATE EXTENSION IF NOT EXISTS vector;

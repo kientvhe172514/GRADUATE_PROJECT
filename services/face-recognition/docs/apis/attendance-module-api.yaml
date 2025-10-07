@@ -1,0 +1,926 @@
+openapi: 3.0.0
+info:
+  title: Attendance Management API
+  description: |
+    This API manages the automated attendance process within the Zentry system,
+    leveraging mobile devices as virtual BLE beacons. It covers initiating attendance sessions,
+    processing presence based on BLE signals (real-time and offline-buffered),
+    handling absence reports, and enabling manual corrections by lecturers.
+
+    ### Key Features:
+    - **Session Initiation (UC-Attendance-01)**: Lecturers can start attendance sessions based on their assigned schedules.
+    - **Real-time Scan Submission (UC-Attendance-02)**: Devices (student or lecturer) submit single processed BLE scan data for immediate attendance processing.
+    - **Offline Scan Synchronization (UC-Attendance-02 - extended)**: Devices (student or lecturer) bulk-submit buffered BLE scan data collected during offline periods.
+    - **Attendance Data Retrieval (UC-Attendance-04)**: Lecturers and Admins can view detailed attendance records for specific sessions.
+    - **Student Attendance Check (UC-Attendance-06)**: Students can check their own attendance status and successful rounds.
+    - **Student Absence Reporting (UC-Attendance-07)**: Students can report unjustified absences within a grace period.
+    - **Manual Attendance Correction (UC-Attendance-08)**: Lecturers can manually adjust attendance status based on student reports.
+
+    The module integrates with DeviceManagement for device authentication, Schedule module for session linking,
+    and Configuration for system parameters. Data flows through Redis (temporary) and MongoDB (1-day retention)
+    for processing, with core structured data in PostgreSQL.
+  version: 1.2.1 # Updated version to reflect these specific changes
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local server
+  - url: https://api.zentry.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /attendance/sessions:
+    post:
+      summary: Initiate an attendance session (UC-Attendance-01)
+      operationId: startAttendanceSession
+      tags:
+        - Attendance Sessions
+      description: |
+        Allows a lecturer to initiate an attendance session for a specific schedule.
+        The system will create a new Session record.
+        - **Role**: Lecturer.
+        - **Prerequisites**: Lecturer must be authenticated and have a valid primary device.
+          The `scheduleId` must exist and be assigned to the authenticated lecturer.
+          No active attendance session must already exist for this schedule.
+      requestBody:
+        description: Schedule ID and lecturer's device ID for which to start the attendance session.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduleId:
+                  type: string
+                  format: uuid
+                  description: The ID of the schedule to start the session for.
+                  example: i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i01
+                lecturerDeviceId:
+                  type: string
+                  format: uuid
+                  description: The ID of the lecturer's primary device initiating the session.
+                  example: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02
+              required:
+                - scheduleId
+                - lecturerDeviceId
+      responses:
+        '201':
+          description: Attendance session started successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceSessionStartResponse'
+        '400':
+          description: Invalid input, active session already exists, or invalid session time.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User is not a lecturer for this schedule or device is unauthorized/not primary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Schedule not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/scans/submit:
+    post:
+      summary: Submit single processed Bluetooth scan data (UC-Attendance-02 - Real-time)
+      operationId: submitSingleBluetoothScanData
+      tags:
+        - Attendance Data Submission
+      description: |
+        Allows a device (student or lecturer) to submit a single, real-time processed Bluetooth scan data
+        to the server for immediate temporary storage and processing. This will typically result in a new BluetoothScan record in NoSQL.
+        - **Roles**: Student, Lecturer.
+        - **Prerequisites**: User must be authenticated, have a valid primary device, and be enrolled/assigned to the related course.
+          The attendance session (`roundId`) must be active.
+      requestBody:
+        description: A single processed Bluetooth scan data object from the device.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BluetoothScanItemRequest' # Changed to Request suffix for clarity
+            example:
+              roundId: k0eebc99-9c0b-4ef8-bb6d-6bb9bd380k01
+              timestamp: "2025-07-01T09:05:00+07:00"
+              scanningDeviceId: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e03
+              rssiData: "[{\"deviceId\":\"e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02\",\"rssi\":-50},{\"deviceId\":\"e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e04\",\"rssi\":-65}]" # JSON string
+      responses:
+        '202':
+          description: Bluetooth scan data accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: ID of the created BluetoothScan record.
+                    example: 7d1ebc99-9c0b-4ef8-bb6d-6bb9bd380d12
+                  status:
+                    type: string
+                    description: Status of the scan data submission.
+                    example: Accepted
+        '400':
+          description: Invalid input (e.g., missing fields, invalid timestamp, invalid RSSI data format).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User not enrolled/assigned, unauthorized device, or session is not active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Round/Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error (e.g., Redis write failure).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/scans/sync-offline:
+    post:
+      summary: Bulk synchronize offline Bluetooth scan data (UC-Attendance-02 - Offline Sync)
+      operationId: bulkSyncOfflineBluetoothScanData
+      tags:
+        - Attendance Data Submission
+      description: |
+        Allows devices (student or lecturer) to submit multiple processed Bluetooth scan data items
+        that were buffered during offline periods. This endpoint accepts an array of scan data
+        to be processed by the server. The `timestamp` within each item is crucial for
+        correctly processing historical data for the relevant rounds.
+        Each submission will create a new BluetoothScan record in NoSQL.
+        - **Roles**: Student, Lecturer.
+        - **Prerequisites**: User must be authenticated, have a valid primary device.
+          Each scan's `roundId` must refer to an active or recently ended session within the processing window.
+      requestBody:
+        description: An array of processed Bluetooth scan data objects from the device, collected offline.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BluetoothScanItemRequest'
+            example:
+              - roundId: k0eebc99-9c0b-4ef8-bb6d-6bb9bd380k01
+                timestamp: "2025-07-01T09:05:00+07:00"
+                scanningDeviceId: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e03
+                rssiData: "[{\"deviceId\":\"e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02\",\"rssi\":-50},{\"deviceId\":\"e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e04\",\"rssi\":-65}]"
+              - roundId: k0eebc99-9c0b-4ef8-bb6d-6bb9bd380k02 # Example for a different round
+                timestamp: "2025-07-01T14:10:00+07:00"
+                scanningDeviceId: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e03
+                rssiData: "[{\"deviceId\":\"e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02\",\"rssi\":-55}]"
+      responses:
+        '202':
+          description: Bluetooth scan data accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  receivedCount:
+                    type: integer
+                    description: The number of scan records received in the bulk request.
+                    example: 3
+                  processedCount:
+                    type: integer
+                    description: The number of scan records successfully processed.
+                    example: 3
+                  failedCount:
+                    type: integer
+                    description: The number of scan records that failed processing.
+                    example: 0
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                          description: The index of the failed item in the original request array.
+                        errorMessage:
+                          type: string
+                          description: Details about the processing failure for that item.
+                    description: List of errors for individual scan items if any failed.
+        '400':
+          description: Invalid request format (e.g., empty array, invalid structure of an item).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User is not authorized to submit data for the specified rounds/devices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/sessions/{sessionId}/records: # Changed from roundId to sessionId for consistency with Session entity
+    get:
+      summary: Get attendance records for a session (UC-Attendance-04)
+      operationId: getSessionAttendanceRecords
+      tags:
+        - Attendance Records
+      description: |
+        Retrieves detailed attendance records for a specific session.
+        - **Role**: Lecturer (for their sessions), Admin (for all sessions).
+        - **Data Source**: If the session is ongoing, data might be aggregated from real-time scans. If the session has ended, data comes from persistent storage (PostgreSQL).
+      parameters:
+        - name: sessionId # Changed from roundId to sessionId
+          in: path
+          required: true
+          description: ID of the attendance session to retrieve records for.
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of attendance records for the session.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendanceRecordResponse' # Changed to Response suffix
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to view these records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found. # Changed from Round/Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/sessions/{sessionId}/my-record:
+    get:
+      summary: Get authenticated student's attendance info for a session (UC-Attendance-06)
+      operationId: getStudentSessionAttendance
+      tags:
+        - Student Attendance Check
+      description: |
+        Allows a student to check their own attendance status for a given session.
+        - **Role**: Student.
+        - **Prerequisites**: Student must be authenticated.
+          The session must be active or within the 1-hour correction period after its end time.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: ID of the attendance session to check.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Student's attendance information for the session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAttendanceSummaryResponse' # Changed to Response suffix
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Student not enrolled, or edit period expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/absence-reports: # Changed from /attendance/reports
+    post:
+      summary: Student reports absence (UC-Attendance-07)
+      operationId: reportAbsence
+      tags:
+        - Student Absence Reports
+      description: |
+        Allows a student to report an absence for a specific session (not round, as per entity) within a 1-hour grace period
+        after the session ends. This will create a UserRequest entry with specific requestType.
+        - **Role**: Student.
+        - **Prerequisites**: Session must have ended, but current time must be within `EndTime + 1 hour`.
+          The student must be marked absent for that session.
+      requestBody:
+        description: Absence report details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbsenceReportRequest'
+      responses:
+        '201':
+          description: Absence report submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenceReportResponse'
+        '400':
+          description: Invalid input, duplicate report, or student not marked absent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Report period expired or student not enrolled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found. # Changed from Round/Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/absence-reports/{reportId}/status: # Changed from /attendance/reports/{reportId}/status
+    put:
+      summary: Lecturer approves/rejects student absence report (UC-Attendance-08)
+      operationId: updateAbsenceReportStatus
+      tags:
+        - Student Absence Reports
+      description: |
+        Allows a lecturer to review and update the status of a student's absence report
+        (approve or reject). This updates the UserRequest entry.
+        - **Role**: Lecturer (must be assigned to the session's schedule related to the report).
+        - **Prerequisites**: Report must exist and be in 'Pending' status.
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          description: ID of the absence report (UserRequest) to update.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New status for the absence report.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - APPROVED # Changed to match UserRequestStatus enum
+                    - REJECTED # Changed to match UserRequestStatus enum
+                  description: The new status for the absence report.
+                  example: APPROVED
+              required:
+                - status
+      responses:
+        '200':
+          description: Absence report status updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenceReportResponse'
+        '400':
+          description: Invalid input or report not in 'PENDING' status. # Changed to PENDING
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Lecturer not assigned to session or period expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Absence report not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /attendance/sessions/{sessionId}/end:
+    post:
+      summary: End an attendance session (UC-Attendance-03)
+      operationId: endAttendanceSession
+      tags:
+        - Attendance Sessions
+      description: |
+        Allows a lecturer to end an active attendance session.
+        - **Role**: Lecturer.
+        - **Prerequisites**: Lecturer must be authenticated and assigned to the session.
+        - **Behavior**: 
+          - Ends the session and finalizes all pending rounds
+          - Sends notifications to all enrolled students about session ending early
+          - Notifications include deep link to StudentScheduleClassDetailFragment
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The ID of the session to end
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndSessionRequest'
+      responses:
+        '200':
+          description: Session ended successfully. Notifications sent to students.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndSessionResponse'
+        '400':
+          description: Invalid request or session not in active status
+        '403':
+          description: Lecturer not assigned to this session
+        '404':
+          description: Session not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Session: # New Schema for Session entity
+      type: object
+      description: Represents an attendance session, the primary container for attendance activity for a schedule.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attendance session.
+          readOnly: true
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        scheduleId:
+          type: string
+          format: uuid
+          description: ID of the associated schedule.
+          readOnly: true
+          example: i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i01
+        lecturerId: # Changed from userId in entity for clarity in API context
+          type: string
+          format: uuid
+          description: ID of the lecturer who owns this session.
+          readOnly: true
+          example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c02
+        startTime:
+          type: string
+          format: date-time
+          description: Start time of the attendance session.
+          readOnly: true
+          example: "2025-07-01T09:00:00+07:00"
+        endTime:
+          type: string
+          format: date-time
+          description: End time of the attendance session.
+          readOnly: true
+          example: "2025-07-01T10:30:00+07:00"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the session record was created.
+          readOnly: true
+          example: "2025-07-01T08:58:00+07:00"
+      required:
+        - id
+        - scheduleId
+        - lecturerId
+        - startTime
+        - endTime
+        - createdAt
+
+    Round: # Schema for Round entity
+      type: object
+      description: Represents a specific scanning round within an attendance session. BluetoothScan documents refer to this.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attendance round.
+          readOnly: true
+          example: k0eebc99-9c0b-4ef8-bb6d-6bb9bd380k01
+        sessionId: # Foreign key to Session
+          type: string
+          format: uuid
+          description: ID of the associated attendance session.
+          readOnly: true
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        deviceId: # Device that initiated the round (e.g., lecturer's device)
+          type: string
+          format: uuid
+          description: ID of the device that initiated this round.
+          readOnly: true
+          example: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02
+        startTime:
+          type: string
+          format: date-time
+          description: Start time of the attendance round.
+          readOnly: true
+          example: "2025-07-01T09:00:00+07:00"
+        endTime:
+          type: string
+          format: date-time
+          description: End time of the attendance round.
+          readOnly: true
+          example: "2025-07-01T09:15:00+07:00"
+        clientRequest:
+          type: string
+          description: Optional. Raw request or context from the client initiating this round.
+          nullable: true
+          example: "{\"bluetoothEnabled\":true,\"location\":\"classroom\"}"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the round record was created.
+          readOnly: true
+          example: "2025-07-01T08:58:00+07:00"
+      required:
+        - id
+        - sessionId
+        - deviceId
+        - startTime
+        - endTime
+        - createdAt
+
+    AttendanceSessionStartResponse:
+      type: object
+      description: Response details after successfully starting an attendance session.
+      properties:
+        sessionId: # Changed from roundId to sessionId
+          type: string
+          format: uuid
+          description: Unique identifier for the newly created attendance session.
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        scheduleId:
+          type: string
+          format: uuid
+          description: The schedule ID associated with this session.
+          example: i0eebc99-9c0b-4ef8-bb6d-6bb9bd380i01
+        startTime:
+          type: string
+          format: date-time
+          description: The start time of the session derived from the schedule.
+          example: "2025-07-01T09:00:00+07:00"
+        endTime:
+          type: string
+          format: date-time
+          description: The end time of the session derived from the schedule.
+          example: "2025-07-01T10:30:00+07:00"
+        lecturerId:
+          type: string
+          format: uuid
+          description: The ID of the lecturer who started the session.
+          example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c02
+        lecturerDeviceId:
+          type: string
+          format: uuid
+          description: The ID of the lecturer's device used for the session.
+          example: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e02
+      required:
+        - sessionId
+        - scheduleId
+        - startTime
+        - endTime
+        - lecturerId
+        - lecturerDeviceId
+
+    BluetoothScanItemRequest: # Renamed for clarity
+      type: object
+      description: A single processed Bluetooth scan data item from a device to be submitted.
+      properties:
+        roundId:
+          type: string
+          format: uuid
+          description: The ID of the attendance round this scan belongs to.
+          example: k0eebc99-9c0b-4ef8-bb6d-6bb9bd380k01
+        timestamp:
+          type: string
+          format: date-time
+          description: The timestamp when the scan data was originally collected on the client device. This is crucial for processing historical offline data.
+          example: "2025-07-01T09:05:00+07:00"
+        scanningDeviceId:
+          type: string
+          format: uuid
+          description: The ID of the device (student's or lecturer's) that performed this scan.
+          example: e0eebc99-9c0b-4ef8-bb6d-6bb9bd380e03
+        rssiData:
+          type: string # Changed to string to represent JSONB
+          description: JSON string representing the raw RSSI data for Bluetooth scan.
+      required:
+        - roundId
+        - timestamp
+        - scanningDeviceId
+        - rssiData
+
+    AttendanceRecordResponse: # Renamed for clarity
+      type: object
+      description: Represents a single attendance record for a user in a specific session.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attendance record.
+          readOnly: true
+          example: l0eebc99-9c0b-4ef8-bb6d-6bb9bd380l01
+        sessionId: # Changed from roundId
+          type: string
+          format: uuid
+          description: ID of the attendance session.
+          readOnly: true
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        userId: # Changed from studentId, consistent with AttendanceRecord entity
+          type: string
+          format: uuid
+          description: ID of the user (student or lecturer).
+          readOnly: true
+          example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03
+        status:
+          type: string
+          description: Attendance status (`Present`, `Absent`).
+          enum:
+            - Present # Matches Zentry.Modules.AttendanceManagement.Domain.Enums.AttendanceStatus
+            - Absent  # Matches Zentry.Modules.AttendanceManagement.Domain.Enums.AttendanceStatus
+          example: Present
+        isManual:
+          type: boolean
+          description: True if attendance was manually overridden.
+          example: false
+        isAbsent: # Added based on entity, derived from Status
+          type: boolean
+          description: True if the attendance status is Absent.
+          readOnly: true
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the record was created.
+          readOnly: true
+          example: "2025-07-01T09:02:00+07:00"
+        expiredAt: # Added based on entity
+          type: string
+          format: date-time
+          description: Timestamp when the record expires (for temporary records).
+          readOnly: true
+          nullable: true
+          example: "2025-07-01T10:02:00+07:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the record was last updated.
+          readOnly: true
+          nullable: true
+          example: "2025-07-01T09:02:00+07:00"
+        # Removed studentName, checkInTime, checkOutTime, reason as they are not directly in AttendanceRecord entity.
+        # If needed, they should be aggregated or retrieved from other sources.
+      required:
+        - id
+        - sessionId
+        - userId
+        - status
+        - isManual
+        - isAbsent
+        - createdAt
+        - expiredAt
+
+    StudentAttendanceSummaryResponse: # Renamed for clarity
+      type: object
+      description: Summary of a student's attendance for a specific session.
+      properties:
+        sessionId: # Changed from roundId
+          type: string
+          format: uuid
+          description: ID of the attendance session.
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        userId: # Changed from studentId
+          type: string
+          format: uuid
+          description: ID of the user (student).
+          example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03
+        currentStatus: # Changed from isPresent to more descriptive name
+          type: string
+          description: Current attendance status for this session (`Present`, `Absent`).
+          enum:
+            - Present
+            - Absent
+          example: Present
+        # successfulCheckIns and lastCheckInTime are not directly from AttendanceRecord entity,
+        # they would be derived from BluetoothScan data or other processes.
+        # Removed for strict alignment with entity structure.
+      required:
+        - sessionId
+        - userId
+        - currentStatus
+
+    AbsenceReportRequest:
+      type: object
+      description: Request body for a student to report an absence. This corresponds to creating a UserRequest.
+      properties:
+        sessionId: # Changed from roundId to sessionId
+          type: string
+          format: uuid
+          description: The ID of the session for which the student is reporting absence.
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        reason:
+          type: string
+          description: The reason for the absence.
+          example: "Doctor's appointment"
+      required:
+        - sessionId
+        - reason
+
+    AbsenceReportResponse:
+      type: object
+      description: Response body after an absence report (UserRequest) is submitted or updated.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the absence report (UserRequest).
+          example: m0eebc99-9c0b-4ef8-bb6d-6bb9bd380m01
+        requestedByUserId: # Changed from userId to match UserRequest entity
+          type: string
+          format: uuid
+          description: The ID of the user (student) who submitted the report.
+          example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c03
+        relatedEntityId: # Corresponds to sessionId in this context
+          type: string
+          format: uuid
+          description: The ID of the related entity (e.g., Session ID for absence reports).
+          example: d0eebc99-9c0b-4ef8-bb6d-6bb9bd380d01
+        requestType:
+          type: string
+          description: Type of request (e.g., 'AbsenceReport').
+          example: "AbsenceReport"
+        reason:
+          type: string
+          description: The reason for the absence.
+          example: "Doctor's appointment"
+        status:
+          type: string
+          description: Current status of the report (`PENDING`, `APPROVED`, `REJECTED`).
+          enum:
+            - PENDING # Matches Zentry.Modules.UserManagement.Domain.Enums.UserRequestStatus
+            - APPROVED
+            - REJECTED
+          example: PENDING
+        createdAt: # Renamed from reportedAt to match entity
+          type: string
+          format: date-time
+          description: Timestamp when the report (UserRequest) was created.
+          example: "2025-07-01T10:00:00+07:00"
+        processedAt: # Matches UserRequest entity
+          type: string
+          format: date-time
+          description: Timestamp when the report was processed (approved/rejected).
+          nullable: true
+          example: "2025-07-01T11:00:00+07:00"
+      required:
+        - id
+        - requestedByUserId
+        - relatedEntityId
+        - requestType
+        - reason
+        - status
+        - createdAt
+
+    Error:
+      type: object
+      description: Standard error response format.
+      properties:
+        code:
+          type: string
+          description: A unique error code for the specific error.
+          example: "SESSION_NOT_FOUND"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "Attendance session not found or already ended."
+      required:
+        - code
+        - message
+

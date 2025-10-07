@@ -1,0 +1,228 @@
+apiVersion: skaffold/v2beta26
+kind: Config
+metadata:
+  name: microservices-platform
+build:
+  artifacts:
+    - image: auth-service
+      context: services/auth
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          NODE_ENV: "production"
+      sync:
+        manual:
+          - src: "src/**/*.js"
+            dest: /app/src
+          - src: "src/**/*.ts"
+            dest: /app/src
+          - src: "package.json"
+            dest: /app
+
+    - image: zentry.api
+      context: services/face-recognition
+      docker:
+        dockerfile: src/Zentry.API/Dockerfile
+        buildArgs:
+          ASPNETCORE_ENVIRONMENT: "Production"
+      sync:
+        manual:
+          - src: "src/**/*.cs"
+            dest: /app
+          - src: "src/**/*.csproj"
+            dest: /app
+
+# Deploy chính được tách thành 2 giai đoạn
+deploy:
+  kubectl:
+    manifests:
+      # Giai đoạn 1: Tạo namespace và resource quotas trước
+      - infra/k8s/platform/namespace.yaml
+      - infra/k8s/platform/resource-quotas.yaml
+      - infra/k8s/platform/network-policies.yaml
+
+portForward:
+  - resourceType: service
+    resourceName: auth-srv
+    namespace: default
+    port: 3001
+    localPort: 3001
+  - resourceType: service
+    resourceName: face-recognition-srv
+    namespace: default
+    port: 8080
+    localPort: 8080
+  - resourceType: service
+    resourceName: postgres-srv
+    namespace: infrastructure
+    port: 5432
+    localPort: 5432
+  - resourceType: service
+    resourceName: redis-srv
+    namespace: infrastructure
+    port: 6379
+    localPort: 6379
+  - resourceType: service
+    resourceName: rabbitmq-srv
+    namespace: infrastructure
+    port: 15672
+    localPort: 15672
+  - resourceType: service
+    resourceName: mongo-srv
+    namespace: infrastructure
+    port: 27017
+    localPort: 27017
+  - resourceType: service
+    resourceName: prometheus-srv
+    namespace: monitoring
+    port: 9090
+    localPort: 9090
+  - resourceType: service
+    resourceName: grafana-srv
+    namespace: monitoring
+    port: 3030
+    localPort: 3030
+
+profiles:
+  # Profile cho development
+  - name: dev
+    build:
+      local:
+        push: false
+    portForward:
+      - resourceType: service
+        resourceName: auth-srv
+        namespace: default
+        port: 3001
+        localPort: 3001
+      - resourceType: service
+        resourceName: face-recognition-srv
+        namespace: default
+        port: 8080
+        localPort: 8080
+      - resourceType: service
+        resourceName: grafana-srv
+        namespace: monitoring
+        port: 3030
+        localPort: 3030
+
+  # Profile cho production
+  - name: prod
+    build:
+      cluster: {}
+
+  # Profile 1: Chỉ tạo namespace và platform basics
+  - name: step1-namespace
+    build:
+      artifacts: []
+    deploy:
+      kubectl:
+        manifests:
+          - infra/k8s/platform/namespace.yaml
+          - infra/k8s/platform/resource-quotas.yaml
+          - infra/k8s/platform/network-policies.yaml
+
+  # Profile 2: Deploy infrastructure sau khi namespace đã có
+  - name: step2-infra
+    build:
+      artifacts: []
+    deploy:
+      kubectl:
+        manifests:
+          # Databases
+           - infra/k8s/shared/databases/postgres/*.yaml
+           - infra/k8s/shared/databases/mongo/*.yaml
+          # # Messaging
+           - infra/k8s/shared/messaging/redis/*.yaml
+           - infra/k8s/shared/messaging/rabbitmq/*.yaml
+          # Monitoring - RBAC trước
+           - infra/k8s/shared/monitoring/prometheus-rbac.yaml
+           - infra/k8s/shared/monitoring/fluentd-rbac.yaml
+          # Monitoring - ConfigMaps
+           - infra/k8s/shared/monitoring/prometheus-configmap.yaml
+           - infra/k8s/shared/monitoring/fluentd-configmap.yaml
+           - infra/k8s/shared/monitoring/grafana/grafana-configmap.yaml
+           - infra/k8s/shared/monitoring/grafana/grafana-datasources-configmap.yaml
+          # Monitoring - Deployments
+           - infra/k8s/shared/monitoring/prometheus-depl.yaml
+           - infra/k8s/shared/monitoring/grafana/grafana-deployment.yaml
+           - infra/k8s/shared/monitoring/fluentd-daemonset.yaml
+            # Monitoring - Services
+           - infra/k8s/shared/monitoring/grafana/grafana-service.yaml
+    portForward:
+      - resourceType: service
+        resourceName: postgres-srv
+        namespace: infrastructure
+        port: 5432
+        localPort: 5432
+      - resourceType: service
+        resourceName: redis-srv
+        namespace: infrastructure
+        port: 6379
+        localPort: 6379
+      - resourceType: service
+        resourceName: rabbitmq-srv
+        namespace: infrastructure
+        port: 15672
+        localPort: 15672
+      - resourceType: service
+        resourceName: mongo-srv
+        namespace: infrastructure
+        port: 27017
+        localPort: 27017
+      - resourceType: service
+        resourceName: grafana-srv
+        namespace: monitoring
+        port: 3030
+        localPort: 3030
+      - resourceType: service
+        resourceName: prometheus-srv
+        namespace: monitoring
+        port: 9090
+        localPort: 9090
+
+  # Profile 3: Deploy services sau khi infra đã sẵn sàng
+  - name: step3-services
+    build:
+      local:
+        push: false
+      artifacts:
+      - image: auth-service
+        context: services/auth
+        docker:
+          dockerfile: Dockerfile
+      - image: zentry.api
+        context: services/face-recognition
+        docker:
+          dockerfile: src/Zentry.API/Dockerfile
+    deploy:
+      kubectl:
+        manifests:
+          # Auth service
+          - infra/k8s/services/auth/configmap.yaml
+          - infra/k8s/services/auth/secrets.yaml
+          - infra/k8s/services/auth/deployment.yaml
+          - infra/k8s/services/auth/service.yaml
+          - infra/k8s/services/auth/hpa.yaml
+          # Face recognition service
+          - infra/k8s/services/face-recognition/rbac.yaml
+          - infra/k8s/services/face-recognition/configmap.yaml
+          - infra/k8s/services/face-recognition/secrets.yaml
+          - infra/k8s/services/face-recognition/app-config.yaml
+          - infra/k8s/services/face-recognition/deployment.yaml
+          - infra/k8s/services/face-recognition/service.yaml
+          - infra/k8s/services/face-recognition/hpa.yaml
+          # Ingress cuối cùng
+          - infra/k8s/platform/ingress-srv.yaml
+    portForward:
+      - resourceType: service
+        resourceName: auth-srv
+        namespace: default
+        port: 3001
+        localPort: 3001
+      - resourceType: service
+        resourceName: face-recognition-srv
+        namespace: default
+        port: 8080
+        localPort: 8080
+

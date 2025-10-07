@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <PublishAot>false</PublishAot>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <DockerfileContext>..\..</DockerfileContext>
+        <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
+        <PackageReference Include="CsvHelper" Version="33.1.0" />
+        <PackageReference Include="EPPlus" Version="8.0.8" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.14.0" />
+        <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="9.0.7" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Polly" Version="8.6.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
+    </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Zentry.Infrastructure\Zentry.Infrastructure.csproj" />
+		<ProjectReference Include="..\Zentry.SharedKernel\Zentry.SharedKernel.csproj" />
+
+		<ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Application\Zentry.Modules.AttendanceManagement.Application.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Domain\Zentry.Modules.AttendanceManagement.Domain.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Infrastructure\Zentry.Modules.AttendanceManagement.Infrastructure.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Presentation\Zentry.Modules.AttendanceManagement.Presentation.csproj" />
+
+		<ProjectReference Include="..\Zentry.Modules\ConfigurationManagement\Zentry.Modules.ConfigurationManagement\Zentry.Modules.ConfigurationManagement.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\DeviceManagement\Zentry.Modules.DeviceManagement\Zentry.Modules.DeviceManagement.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\FaceId\Zentry.Modules.FaceId.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\NotificationService\Zentry.Modules.NotificationService\Zentry.Modules.NotificationService.csproj" />
+
+		<ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Application\Zentry.Modules.ScheduleManagement.Application.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Domain\Zentry.Modules.ScheduleManagement.Domain.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Infrastructure\Zentry.Modules.ScheduleManagement.Infrastructure.csproj" />
+		<ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Presentation\Zentry.Modules.ScheduleManagement.Presentation.csproj" />
+
+		<ProjectReference Include="..\Zentry.Modules\UserManagement\Zentry.Modules.UserManagement\Zentry.Modules.UserManagement.csproj" />
+	</ItemGroup>
+
+</Project>

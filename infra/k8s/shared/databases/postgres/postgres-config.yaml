@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: infrastructure
+  labels:
+    app: postgres
+    tier: database
+data:
+  POSTGRES_DB: "microservices_db"
+  POSTGRES_USER: "postgres"

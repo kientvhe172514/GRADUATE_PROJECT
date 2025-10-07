@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: monitoring
+  labels:
+    app: grafana
+    tier: monitoring
+data:
+  grafana.ini: |
+    # Nội dung file grafana.ini ở đây
+    [server]
+    http_port = 3030

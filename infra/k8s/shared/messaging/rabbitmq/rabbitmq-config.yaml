@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: infrastructure
+  labels:
+    app: rabbitmq
+    tier: messaging
+data:
+  enabled_plugins: |
+    [rabbitmq_management,rabbitmq_prometheus].
+  rabbitmq.conf: |
+    loopback_users.guest = false
+    default_user = admin
+    default_pass = rabbitmq123
+    management.tcp.port = 15672
+    prometheus.tcp.port = 15692
+    
+    # Simplified cluster config for single-node
+    cluster_formation.peer_discovery_backend = classic_config
+    cluster_partition_handling = autoheal

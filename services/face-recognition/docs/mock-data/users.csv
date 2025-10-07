@@ -1,0 +1,9 @@
+Email,FullName,Password,PhoneNumber,Role
+student_1@example.com,Nguyen Van A,P@ssword123,0987654321,Student
+lecturer_1@example.com,Tran Thi B,P@ssword123,0123456789,Lecturer
+admin_1@example.com,Le Van C,P@ssword123,0901234567,Admin
+student_1@example.com,Nguyen Van A - Duplicate,P@ssword123,0987654321,Student
+invalid_email_1,Nguyen Van D,P@ssword123,0987654322,User
+,Nguyen Van E,P@ssword123,0987654323,Manager
+student_2@example.com,Nguyen Van F,P@ssword123,0987654324,
+, , , ,

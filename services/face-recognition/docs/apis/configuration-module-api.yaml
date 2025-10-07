@@ -1,0 +1,1233 @@
+openapi: 3.0.0
+info:
+  title: Configuration Management API
+  description: |
+    This API manages system-wide configuration parameters for the Zentry system,
+    influencing the behavior of modules like DeviceManagement and AttendanceManagement.
+    It provides functionalities for administrators to view, create, update, and delete
+    configuration settings. The API distinguishes between **Attribute Definitions** (metadata about a configurable parameter)
+    and **Configuration Values** (the actual values for specific scopes).
+
+    ### Key Features:
+    - **Manage Configuration Definitions (UC-Config-01, UC-Config-02, UC-Config-03, UC-Config-04)**:
+      * View, create, update, and delete metadata for configuration parameters (e.g., defining 'ScanInterval' as an integer, global scope).
+    - **Manage Configuration Values**:
+      * Set, retrieve, and modify specific values for defined configuration parameters, potentially for different scopes (e.g., 'ScanInterval' = 30 for 'GLOBAL' scope, or 'AbsenceThreshold' = 0.8 for 'COURSE' scope with a specific CourseId).
+    - **Retrieve Parameter by Key (UC-Config-05)**: Allows other modules/services to fetch specific configuration values, typically at a global scope.
+    - **Manage Options for Attributes**:
+      * Define and manage predefined options for certain configuration attributes (e.g., allowed values for an 'AttendanceMethod' attribute).
+
+    This API ensures centralized and controlled management of system behaviors,
+    providing flexibility and adaptability for future system evolution.
+  version: 2.0.0 # Major version bump due to significant schema and path changes
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local server
+  - url: https://api.zentry.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /config-definitions: # Changed path for clarity
+    get:
+      summary: Get a list of all configuration attribute definitions (UC-Config-01)
+      operationId: getAttributeDefinitions
+      tags:
+        - Configuration Definitions
+      description: |
+        Retrieves a list of all system configuration parameter definitions (metadata).
+        - **Role**: Admin.
+      parameters:
+        - name: key
+          in: query
+          required: false
+          description: Optional. Filter attribute definitions by a specific key.
+          schema:
+            type: string
+        - name: scopeType
+          in: query
+          required: false
+          description: Optional. Filter attribute definitions by a specific scope type.
+          schema:
+            $ref: '#/components/schemas/ScopeTypeEnum'
+        - name: dataType
+          in: query
+          required: false
+          description: Optional. Filter attribute definitions by a specific data type.
+          schema:
+            $ref: '#/components/schemas/DataTypeEnum'
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: A list of configuration attribute definitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttributeDefinitionResponse'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new configuration attribute definition (UC-Config-02)
+      operationId: createAttributeDefinition
+      tags:
+        - Configuration Definitions
+      description: |
+        Allows an Admin to add a new system configuration attribute definition.
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. The `key` must be unique.
+      requestBody:
+        description: Configuration attribute definition details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeDefinitionCreateRequest'
+      responses:
+        '201':
+          description: Configuration attribute definition created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinitionResponse'
+        '400':
+          description: Invalid input (e.g., missing required fields, invalid enum values).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Configuration attribute key already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /config-definitions/{attributeDefinitionId}: # Changed path parameter
+    get:
+      summary: Get a specific configuration attribute definition by ID (UC-Config-01 extended)
+      operationId: getAttributeDefinitionById
+      tags:
+        - Configuration Definitions
+      description: |
+        Retrieves details of a specific configuration attribute definition by its ID.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId # Changed parameter name
+          in: path
+          required: true
+          description: ID of the configuration attribute definition to retrieve.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Configuration attribute definition found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinitionResponse'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration attribute definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update an existing configuration attribute definition (UC-Config-03)
+      operationId: updateAttributeDefinition
+      tags:
+        - Configuration Definitions
+      description: |
+        Allows an Admin to update the metadata (e.g., display name, description, unit) of an existing configuration attribute definition.
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. The `attributeDefinitionId` must exist. Key, DataType, and ScopeType cannot be changed.
+      parameters:
+        - name: attributeDefinitionId # Changed parameter name
+          in: path
+          required: true
+          description: ID of the configuration attribute definition to update.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Updated configuration attribute definition details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeDefinitionUpdateRequest'
+      responses:
+        '200':
+          description: Configuration attribute definition updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinitionResponse'
+        '400':
+          description: Invalid input (e.g., invalid data format, trying to change immutable fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration attribute definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a configuration attribute definition (UC-Config-04)
+      operationId: deleteAttributeDefinition
+      tags:
+        - Configuration Definitions
+      description: |
+        Allows an Admin to delete a configuration attribute definition from the system.
+        This operation will also delete all associated configuration values for this attribute.
+        - **Role**: Admin.
+        - **Constraint**: Cannot delete protected/system-critical configuration keys.
+      parameters:
+        - name: attributeDefinitionId # Changed parameter name
+          in: path
+          required: true
+          description: ID of the configuration attribute definition to delete.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Configuration attribute definition deleted successfully.
+        '400':
+          description: Cannot delete a protected configuration attribute definition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration attribute definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /configuration-values: # New path for managing actual configuration values
+    get:
+      summary: Get a list of all configuration values
+      operationId: getAllConfigurationValues
+      tags:
+        - Configuration Values
+      description: |
+        Retrieves a list of all specific configuration values set in the system, potentially filtered by attribute or scope.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeId
+          in: query
+          required: false
+          description: Optional. Filter by the ID of the attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: scopeType
+          in: query
+          required: false
+          description: Optional. Filter by the scope type of the configuration.
+          schema:
+            $ref: '#/components/schemas/ScopeTypeEnum'
+        - name: scopeId
+          in: query
+          required: false
+          description: Optional. Filter by the specific ID of the scope (e.g., Course ID, User ID). Requires scopeType.
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: A list of configuration values.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigurationValueDetailedResponse'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put: # Used for upserting (creating or updating) specific configuration values
+      summary: Create or update a specific configuration value
+      operationId: upsertConfigurationValue
+      tags:
+        - Configuration Values
+      description: |
+        Allows an Admin to set or update a specific configuration value for a given attribute definition and scope.
+        If a configuration for the specified attribute, scope type, and scope ID already exists, it will be updated; otherwise, a new one will be created.
+        - **Role**: Admin.
+        - **Prerequisites**: User must have Admin role. The `attributeId` must refer to an existing attribute definition.
+      requestBody:
+        description: Configuration value details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigurationValueCreateUpdateRequest'
+      responses:
+        '200':
+          description: Configuration value updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationValueDetailedResponse'
+        '201':
+          description: Configuration value created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationValueDetailedResponse'
+        '400':
+          description: Invalid input (e.g., attribute definition not found, invalid value for data type).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attribute Definition or Scope not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /configuration-values/{attributeDefinitionId}/{scopeType}/{scopeId}: # New path for specific config value
+    get:
+      summary: Get a specific configuration value by attribute definition and scope (UC-Config-05)
+      operationId: getConfigurationValueByScope
+      tags:
+        - Configuration Values
+      description: |
+        Retrieves the value of a specific configuration for a given attribute definition and scope.
+        This is suitable for direct consumption by other modules needing a specific config.
+        - **Role**: System (or any authenticated user allowed to read specific configs).
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: scopeType
+          in: path
+          required: true
+          description: Type of the scope (e.g., GLOBAL, COURSE, USER).
+          schema:
+            $ref: '#/components/schemas/ScopeTypeEnum'
+        - name: scopeId
+          in: path
+          required: true
+          description: ID of the specific scope (e.g., Course ID, User ID). Use '00000000-0000-0000-0000-000000000000' for GLOBAL scope.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Configuration value found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationValueDetailedResponse'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to access this configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration value not found for the given attribute and scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a specific configuration value
+      operationId: deleteConfigurationValueByScope
+      tags:
+        - Configuration Values
+      description: |
+        Allows an Admin to delete a specific configuration value for a given attribute definition and scope.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: scopeType
+          in: path
+          required: true
+          description: Type of the scope (e.g., GLOBAL, COURSE, USER).
+          schema:
+            $ref: '#/components/schemas/ScopeTypeEnum'
+        - name: scopeId
+          in: path
+          required: true
+          description: ID of the specific scope. Use '00000000-0000-0000-0000-000000000000' for GLOBAL scope.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Configuration value deleted successfully.
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration value not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /config-definitions/{attributeDefinitionId}/options: # New path for managing options
+    get:
+      summary: Get all options for a configuration attribute definition
+      operationId: getOptionsForAttributeDefinition
+      tags:
+        - Configuration Options
+      description: |
+        Retrieves a list of predefined options for a specific configuration attribute definition.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of options for the attribute definition.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OptionResponse'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attribute definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new option for a configuration attribute definition
+      operationId: createOptionForAttributeDefinition
+      tags:
+        - Configuration Options
+      description: |
+        Allows an Admin to create a new predefined option for a specific configuration attribute definition.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Option details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptionCreateRequest'
+      responses:
+        '201':
+          description: Option created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptionResponse'
+        '400':
+          description: Invalid input (e.g., attribute definition not found, duplicate value for attribute).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attribute definition not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Option value already exists for this attribute.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /config-definitions/{attributeDefinitionId}/options/{optionId}: # New path for specific option
+    put:
+      summary: Update an existing option for a configuration attribute definition
+      operationId: updateOptionForAttributeDefinition
+      tags:
+        - Configuration Options
+      description: |
+        Allows an Admin to update an existing predefined option for a specific configuration attribute definition.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: optionId
+          in: path
+          required: true
+          description: ID of the option to update.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Updated option details.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptionUpdateRequest'
+      responses:
+        '200':
+          description: Option updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptionResponse'
+        '400':
+          description: Invalid input (e.g., invalid data format).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attribute definition or option not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete an option for a configuration attribute definition
+      operationId: deleteOptionForAttributeDefinition
+      tags:
+        - Configuration Options
+      description: |
+        Allows an Admin to delete a predefined option for a specific configuration attribute definition.
+        - **Role**: Admin.
+      parameters:
+        - name: attributeDefinitionId
+          in: path
+          required: true
+          description: ID of the configuration attribute definition.
+          schema:
+            type: string
+            format: uuid
+        - name: optionId
+          in: path
+          required: true
+          description: ID of the option to delete.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Option deleted successfully.
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attribute definition or option not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /configurations/by-key/{key}: # This existing path is kept for backward compatibility/simplicity for consumers
+    get:
+      summary: Retrieve a configuration parameter by Key (UC-Config-05) - (Global scope assumed)
+      operationId: getConfigurationByKey
+      tags:
+        - Configuration Values (Consumption)
+      description: |
+        Allows other system modules or services to retrieve the value of a specific
+        configuration parameter by its unique key. This endpoint is optimized for
+        read-only access by internal components, typically assuming a 'GLOBAL' scope
+        if no specific scope is provided (if backend logic supports it).
+        - **Role**: System (or any authenticated user, if exposed externally for system info).
+          Assuming for internal modules, basic authentication (JWT) is sufficient.
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Unique key of the configuration attribute definition (e.g., 'ScanInterval').
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration parameter value found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationValueSimpleResponse' # Simplified response for consumption
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration parameter not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    DataTypeEnum:
+      type: string
+      description: Enumeration for data types of configuration parameters.
+      enum:
+        - String
+        - Int
+        - Boolean
+        - Decimal
+        - Date
+        - Json
+      example: String
+
+    ScopeTypeEnum:
+      type: string
+      description: Enumeration for scope types of configuration parameters.
+      enum:
+        - GLOBAL
+        - COURSE
+        - USER
+        - SESSION
+        - DEVICE
+      example: GLOBAL
+
+    AttributeDefinitionResponse: # Reflects Zentry.Modules.Configuration.Domain.Entities.AttributeDefinition
+      type: object
+      description: Represents a configuration attribute definition (metadata for a configurable parameter).
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attribute definition.
+          readOnly: true
+          example: 123e4567-e89b-12d3-a456-426614174000
+        key:
+          type: string
+          description: Unique name (key) of the configuration parameter (e.g., "ScanInterval").
+          example: ScanInterval
+        displayName:
+          type: string
+          description: Display name for the attribute.
+          example: Scan Interval
+        description:
+          type: string
+          description: A detailed description of the parameter's purpose.
+          nullable: true
+          example: "Interval for BLE signal scanning in seconds"
+        dataType:
+          $ref: '#/components/schemas/DataTypeEnum'
+          description: The data type of the configuration value.
+          example: Int
+        scopeType:
+          $ref: '#/components/schemas/ScopeTypeEnum'
+          description: The primary scope at which this attribute can be defined (e.g., GLOBAL, COURSE).
+          example: GLOBAL
+        unit:
+          type: string
+          description: Optional. Unit of measurement for the value (e.g., "seconds", "minutes", "%").
+          nullable: true
+          example: "seconds"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the attribute definition was created.
+          readOnly: true
+          example: "2025-06-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the attribute definition was last updated.
+          readOnly: true
+          nullable: true
+          example: "2025-06-21T08:00:00Z"
+      required:
+        - id
+        - key
+        - displayName
+        - dataType
+        - scopeType
+        - createdAt
+
+    AttributeDefinitionCreateRequest:
+      type: object
+      description: Request body for creating a new configuration attribute definition.
+      properties:
+        key:
+          type: string
+          description: Unique name (key) of the new configuration parameter.
+          example: MaxSessionDuration
+        displayName:
+          type: string
+          description: Display name for the attribute.
+          example: Maximum Session Duration
+        description:
+          type: string
+          description: A detailed description of the new parameter.
+          nullable: true
+          example: "Maximum duration for an attendance session in minutes"
+        dataType:
+          $ref: '#/components/schemas/DataTypeEnum'
+          description: The data type of the configuration value.
+          example: Int
+        scopeType:
+          $ref: '#/components/schemas/ScopeTypeEnum'
+          description: The primary scope at which this attribute can be defined.
+          example: SESSION
+        unit:
+          type: string
+          description: Optional. Unit of measurement for the value.
+          nullable: true
+          example: "minutes"
+      required:
+        - key
+        - displayName
+        - dataType
+        - scopeType
+
+    AttributeDefinitionUpdateRequest:
+      type: object
+      description: Request body for updating an existing configuration attribute definition.
+      properties:
+        displayName:
+          type: string
+          description: The new display name for the attribute.
+          example: BLE Scan Interval (Seconds)
+        description:
+          type: string
+          description: An updated description of the parameter.
+          nullable: true
+          example: "Revised interval for BLE signal scanning in seconds for enhanced accuracy."
+        unit:
+          type: string
+          description: Updated unit of measurement.
+          nullable: true
+          example: "seconds"
+      # No fields are strictly required for update, as any can be provided for partial update.
+
+    ConfigurationValueDetailedResponse: # Reflects Zentry.Modules.Configuration.Domain.Entities.Configuration, with joined attribute info
+      type: object
+      description: Represents a specific configuration value instance, including its attribute definition details.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for this configuration value instance.
+          readOnly: true
+          example: 123e4567-e89b-12d3-a456-42661417400a
+        attributeId:
+          type: string
+          format: uuid
+          description: ID of the associated configuration attribute definition.
+          readOnly: true
+          example: 123e4567-e89b-12d3-a456-426614174000
+        key: # From AttributeDefinition
+          type: string
+          description: Unique name (key) of the associated attribute.
+          readOnly: true
+          example: ScanInterval
+        displayName: # From AttributeDefinition
+          type: string
+          description: Display name of the associated attribute.
+          readOnly: true
+          example: Scan Interval
+        dataType: # From AttributeDefinition
+          $ref: '#/components/schemas/DataTypeEnum'
+          description: Data type of the associated attribute.
+          readOnly: true
+          example: Int
+        scopeType:
+          $ref: '#/components/schemas/ScopeTypeEnum'
+          description: The scope type of this configuration value.
+          example: GLOBAL
+        scopeId:
+          type: string
+          format: uuid
+          description: The ID of the specific scope (e.g., Course ID, User ID). For GLOBAL scope, use '00000000-0000-0000-0000-000000000000'.
+          example: 00000000-0000-0000-0000-000000000000
+        value:
+          type: string
+          description: The actual value of the configuration parameter as a string.
+          example: "30"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the configuration value was created.
+          readOnly: true
+          example: "2025-06-01T10:05:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the configuration value was last updated.
+          readOnly: true
+          nullable: true
+          example: "2025-06-21T08:10:00Z"
+      required:
+        - id
+        - attributeId
+        - key
+        - displayName
+        - dataType
+        - scopeType
+        - scopeId
+        - value
+        - createdAt
+
+    ConfigurationValueCreateUpdateRequest:
+      type: object
+      description: Request body for creating or updating a configuration value.
+      properties:
+        attributeId:
+          type: string
+          format: uuid
+          description: The ID of the configuration attribute definition this value applies to.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        scopeType:
+          $ref: '#/components/schemas/ScopeTypeEnum'
+          description: The scope type for this configuration value.
+          example: GLOBAL
+        scopeId:
+          type: string
+          format: uuid
+          description: The ID of the specific scope (e.g., Course ID, User ID). For GLOBAL scope, use '00000000-0000-0000-0000-000000000000'.
+          example: 00000000-0000-0000-0000-000000000000
+        value:
+          type: string
+          description: The new value for the configuration parameter, as a string.
+          example: "45"
+      required:
+        - attributeId
+        - scopeType
+        - scopeId
+        - value
+
+    ConfigurationValueSimpleResponse: # For GET /configurations/by-key/{key}
+      type: object
+      description: Simplified response structure for retrieving a configuration parameter's value by key.
+      properties:
+        key:
+          type: string
+          description: The unique key of the configuration parameter.
+          example: ScanInterval
+        value:
+          type: string
+          description: The value of the configuration parameter.
+          example: "30"
+      required:
+        - key
+        - value
+
+    OptionResponse: # Reflects Zentry.Modules.Configuration.Domain.Entities.Option
+      type: object
+      description: Represents a predefined option for a configuration attribute definition.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the option.
+          readOnly: true
+          example: 987e6543-e21b-32d1-b654-321098765432
+        attributeId:
+          type: string
+          format: uuid
+          description: ID of the associated configuration attribute definition.
+          readOnly: true
+          example: 123e4567-e89b-12d3-a456-426614174000
+        value:
+          type: string
+          description: The actual value of the option.
+          example: "Bluetooth"
+        displayLabel:
+          type: string
+          description: A user-friendly label for the option.
+          example: Bluetooth Scanning
+        sortOrder:
+          type: integer
+          description: Order for displaying this option in UIs.
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the option was created.
+          readOnly: true
+          example: "2025-06-10T11:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the option was last updated.
+          readOnly: true
+          nullable: true
+          example: "2025-06-15T12:00:00Z"
+      required:
+        - id
+        - attributeId
+        - value
+        - displayLabel
+        - sortOrder
+        - createdAt
+
+    OptionCreateRequest:
+      type: object
+      description: Request body for creating a new option.
+      properties:
+        value:
+          type: string
+          description: The actual value of the new option.
+          example: "WiFi"
+        displayLabel:
+          type: string
+          description: A user-friendly label for the new option.
+          example: Wi-Fi Scanning
+        sortOrder:
+          type: integer
+          description: Order for displaying this option in UIs.
+          example: 2
+      required:
+        - value
+        - displayLabel
+        - sortOrder
+
+    OptionUpdateRequest:
+      type: object
+      description: Request body for updating an existing option.
+      properties:
+        value:
+          type: string
+          description: The new actual value of the option.
+          example: "BLE_V2"
+        displayLabel:
+          type: string
+          description: A new user-friendly label for the option.
+          example: Bluetooth Low Energy (v2)
+        sortOrder:
+          type: integer
+          description: New order for displaying this option in UIs.
+          example: 1
+      # No fields are strictly required for update, as any can be provided for partial update.
+
+    Error:
+      type: object
+      description: Standard error response format.
+      properties:
+        code:
+          type: string
+          description: A unique error code for the specific error.
+          example: "CONFIG_KEY_EXISTS"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "Configuration key 'ScanInterval' already exists."
+      required:
+        - code
+        - message
+

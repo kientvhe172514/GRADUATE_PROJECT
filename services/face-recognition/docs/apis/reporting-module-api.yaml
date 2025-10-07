@@ -1,0 +1,826 @@
+openapi: 3.0.0
+info:
+  title: Reporting Module API
+  description: |
+    This API manages the generation, storage, and retrieval of attendance reports within the Zentry system.
+    It supports various report types including summary, detailed (by session or student), and absence warnings.
+    Reports are stored in MongoDB with a TTL index for automatic expiry.
+
+    ### Key Features:
+    - **Generate & View Summary Reports (UC-Report-01)**: Create and view summarized attendance reports for courses or students.
+    - **Generate & View Detailed Session Reports (UC-Report-02)**: Create and view detailed attendance reports for specific sessions (rounds).
+    - **Generate Absence Warning Reports (UC-Report-03)**: System-generated reports for students exceeding absence thresholds, often used for notifications.
+    - **View Personal Detailed Reports (UC-Report-04)**: Students can view their own detailed attendance reports.
+    - **Export Reports (UC-Report-05)**: Export generated reports in various formats (CSV, PDF).
+
+    The module integrates with Attendance, Schedule, Configuration, Identity, and Notification modules
+    to provide comprehensive attendance insights and management.
+  version: 1.0.1 # Updated version to reflect schema alignment for Report entity
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local server
+  - url: https://api.zentry.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /reports:
+    get:
+      summary: Get a list of reports (UC-Report-01, UC-Report-02, UC-Report-03, UC-Report-04 - Viewing)
+      operationId: getReports
+      tags:
+        - Reports
+      description: |
+        Retrieves a paginated and filterable list of existing attendance reports.
+        - **Roles**: Lecturer (can view reports related to their schedules/rounds), Student (can view their personal detailed reports), Admin (can view all reports).
+      parameters:
+        - name: reportType
+          in: query
+          required: false
+          description: Filter reports by type.
+          schema:
+            $ref: '#/components/schemas/ReportTypeEnum' # Using enum
+        - name: reportScopeType # New parameter for filtering by scope type
+          in: query
+          required: false
+          description: Optional. Filter reports by a specific scope type (e.g., 'COURSE', 'STUDENT').
+          schema:
+            $ref: '#/components/schemas/ReportScopeTypeEnum'
+        - name: scopeId # New parameter for filtering by scope ID
+          in: query
+          required: false
+          description: Optional. Filter reports by a specific scope ID (e.g., ScheduleId, StudentId, SessionId/RoundId). Requires `reportScopeType`.
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          required: false
+          description: Filter reports created or covering data from after this date (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: Filter reports created or covering data up to before this date (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination (starts from 1).
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: A list of attendance reports matching the criteria.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReportResponse' # Renamed to ReportResponse
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to view these reports.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/{reportId}:
+    get:
+      summary: Get a specific report by ID
+      operationId: getReportById
+      tags:
+        - Reports
+      description: |
+        Retrieves a single attendance report by its unique ID.
+        - **Roles**: Lecturer (for their schedules/rounds), Student (for their personal reports), Admin (for any report).
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          description: MongoDB ObjectId of the report to retrieve.
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Report found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse' # Renamed to ReportResponse
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to view this report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Report not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/summary:
+    post:
+      summary: Generate and save a summary attendance report (UC-Report-01)
+      operationId: generateSummaryReport
+      tags:
+        - Reports - Generation
+      description: |
+        Allows a lecturer or Admin to generate and save a summary attendance report
+        for a specific course (`scopeType: COURSE`, `scopeId: courseId`) or student (`scopeType: STUDENT`, `scopeId: studentId`) within a time range.
+        - **Roles**: Lecturer (for their schedules), Admin (for any).
+      requestBody:
+        description: Criteria for generating the summary report.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummaryReportGenerateRequest'
+      responses:
+        '201':
+          description: Summary report generated and saved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse' # Renamed to ReportResponse
+        '400':
+          description: Invalid input or missing required filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to generate this report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Schedule or Student not found, or no data for criteria.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/detailed/session:
+    post:
+      summary: Generate and save a detailed session attendance report (UC-Report-02)
+      operationId: generateDetailedSessionReport
+      tags:
+        - Reports - Generation
+      description: |
+        Allows a lecturer to generate and save a detailed attendance report for a specific session (`scopeType: SESSION`, `scopeId: sessionId`).
+        - **Role**: Lecturer (must be assigned to the session's schedule).
+      requestBody:
+        description: Criteria for generating the detailed session report.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetailedSessionReportGenerateRequest'
+      responses:
+        '201':
+          description: Detailed session report generated and saved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse' # Renamed to ReportResponse
+        '400':
+          description: Invalid input or missing `sessionId`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User is not the lecturer for this session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found or no data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/warning:
+    post:
+      summary: Generate and save an absence warning report (UC-Report-03 - System/Admin Triggered)
+      operationId: generateWarningReport
+      tags:
+        - Reports - Generation
+      description: |
+        Allows the system or an Admin to manually trigger the generation and saving of an absence warning report
+        for students who exceed the `AbsenceWarningThreshold`. This report provides data for email notifications.
+        Can be generated for a specific schedule (`scopeType: COURSE`, `scopeId: scheduleId`) or student (`scopeType: STUDENT`, `scopeId: studentId`).
+        - **Roles**: Admin (or internal system service account).
+        - **Note**: This is typically an automated process (UC-Report-03) that feeds into the Notification module.
+      requestBody:
+        description: Criteria for generating the warning report.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarningReportGenerateRequest'
+      responses:
+        '201':
+          description: Warning report generated and saved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse' # Renamed to ReportResponse
+        '400':
+          description: Invalid input or missing required filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have Admin role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No students found matching criteria or no data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reports/export:
+    post:
+      summary: Export an attendance report (UC-Report-05)
+      operationId: exportReport
+      tags:
+        - Reports - Export
+      description: |
+        Allows a lecturer or Admin to export an existing report or generate a new one on-the-fly
+        and export it in specified format (CSV or PDF).
+        - **Roles**: Lecturer (for their schedules/reports), Admin (for any report).
+      requestBody:
+        description: Details for the report to be exported.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportExportRequest'
+      responses:
+        '200':
+          description: Report exported successfully. Returns the file content.
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary # For file download
+            application/pdf:
+              schema:
+                type: string
+                format: binary # For file download
+        '400':
+          description: Invalid input or unsupported format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Authentication token missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User does not have permission to export this report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Report not found or no data to generate report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error (e.g., file generation failure).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ReportTypeEnum: # New Enum for report types
+      type: string
+      description: Enumeration for report types.
+      enum:
+        - Summary
+        - Detailed
+        - Warning
+      example: Summary
+
+    ReportScopeTypeEnum: # New Enum for report scope types
+      type: string
+      description: Enumeration for report scope types.
+      enum:
+        - GLOBAL # Reports spanning the entire system
+        - COURSE # Reports specific to a course (ScheduleId)
+        - STUDENT # Reports specific to a student (StudentId)
+        - SESSION # Reports specific to a session (RoundId)
+      example: COURSE
+
+    ReportExportFormatEnum: # New Enum for export formats
+      type: string
+      description: Enumeration for report export formats.
+      enum:
+        - CSV
+        - PDF
+      example: CSV
+
+    ReportResponse: # Renamed from Report for clarity as it's a response DTO
+      type: object
+      description: Represents a stored attendance report in MongoDB.
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId for the report.
+          readOnly: true
+          example: 507f1f77bcf86cd799439011
+        reportType:
+          $ref: '#/components/schemas/ReportTypeEnum' # Using enum
+          description: Type of the report.
+          example: Summary
+        reportScopeType: # New field: Scope type of the report
+          $ref: '#/components/schemas/ReportScopeTypeEnum'
+          description: The type of scope this report applies to (e.g., COURSE, STUDENT, SESSION).
+          example: COURSE
+        scopeId: # New field: ID related to the scope (e.g., ScheduleId, StudentId, SessionId/RoundId)
+          type: string
+          format: uuid
+          description: The ID corresponding to the `reportScopeType` (e.g., ScheduleId for COURSE scope, StudentId for STUDENT scope, SessionId/RoundId for SESSION scope). Null if `reportScopeType` is GLOBAL.
+          nullable: true
+          example: 823e4567-e89b-12d3-a456-426614174005
+        reportName: # Added for better identification in UI
+          type: string
+          description: A generated or user-defined name for the report.
+          example: "Summary Report for CS101 - Q2 2025"
+          nullable: true
+        data:
+          type: object
+          description: The actual report data, structure varies by ReportType.
+          oneOf:
+            - $ref: '#/components/schemas/SummaryReportData'
+            - $ref: '#/components/schemas/DetailedReportData'
+            - $ref: '#/components/schemas/WarningReportData'
+        generatedAt: # Renamed from createdAt for clarity
+          type: string
+          format: date-time
+          description: Timestamp when the report was generated.
+          readOnly: true
+          example: "2025-06-22T12:00:00Z"
+        generatedByUserId: # Renamed from createdBy for clarity and consistency
+          type: string
+          format: uuid
+          description: User ID (Lecturer/Admin) who generated the report, or null for system-generated.
+          nullable: true
+          readOnly: true
+          example: 423e4567-e89b-12d3-a456-426614174003
+        expiresAt: # Renamed from expiredAt for consistency with common API naming
+          type: string
+          format: date-time
+          description: Timestamp when the report will be automatically deleted by MongoDB's TTL index (e.g., 30 days later).
+          readOnly: true
+          example: "2025-07-22T12:00:00Z"
+      required:
+        - _id
+        - reportType
+        - reportScopeType
+        - data
+        - generatedAt
+        - expiresAt
+
+    # --- Report Data Schemas (nested under Report.data) ---
+    SummaryReportData:
+      type: array
+      description: Data structure for a Summary Report, providing attendance overview per student.
+      items:
+        type: object
+        properties:
+          studentId:
+            type: string
+            format: uuid
+            description: ID of the student.
+            example: 223e4567-e89b-12d3-a456-426614174001
+          fullName:
+            type: string
+            description: Full name of the student.
+            example: John Doe
+          presentCount:
+            type: integer
+            description: Number of sessions the student was marked present.
+            example: 10
+          absentCount:
+            type: integer
+            description: Number of sessions the student was marked absent.
+            example: 2
+          sessions:
+            type: array
+            items:
+              type: object
+              properties:
+                sessionId: # Changed from roundId to sessionId for consistency
+                  type: string
+                  format: uuid
+                  description: ID of the attendance session.
+                  example: 823e4567-e89b-12d3-a456-426614174004
+                timestamp:
+                  type: string
+                  format: date-time
+                  description: Timestamp of the session (e.g., StartTime).
+                  example: "2025-06-21T07:05:00Z"
+                isAbsent:
+                  type: boolean
+                  description: True if student was absent in this session.
+                  example: false
+              required:
+                - sessionId
+                - timestamp
+                - isAbsent
+            description: List of sessions included in the summary for this student.
+        required:
+          - studentId
+          - fullName
+          - presentCount
+          - absentCount
+          - sessions
+      example:
+        - studentId: 223e4567-e89b-12d3-a456-426614174001
+          fullName: John Doe
+          presentCount: 10
+          absentCount: 2
+          sessions:
+            - sessionId: 823e4567-e89b-12d3-a456-426614174004
+              timestamp: "2025-06-21T07:05:00Z"
+              isAbsent: false
+            - sessionId: 923e4567-e89b-12d3-a456-426614174006
+              timestamp: "2025-06-22T07:05:00Z"
+              isAbsent: true
+
+    DetailedReportData:
+      type: array
+      description: Data structure for a Detailed Report, providing specific attendance records.
+      items:
+        type: object
+        properties:
+          sessionId: # Changed from roundId to sessionId for consistency
+            type: string
+            format: uuid
+            description: ID of the attendance session.
+            example: 823e4567-e89b-12d3-a456-426614174004
+          timestamp:
+            type: string
+            format: date-time
+            description: Timestamp of the attendance event within the session.
+            example: "2025-06-21T07:05:00Z"
+          isAbsent:
+            type: boolean
+            description: True if student was marked absent for this specific attendance record.
+            example: false
+          studentId:
+            type: string
+            format: uuid
+            description: ID of the student.
+            example: 223e4567-e89b-12d3-a456-426614174001
+          fullName:
+            type: string
+            description: Full name of the student.
+            example: John Doe
+          presenceCount: # Renamed from roundCount for clarity (count of detections)
+            type: integer
+            description: Number of successful BLE signals recorded for this student in this session.
+            example: 5
+          courseName:
+            type: string
+            description: Name of the course (relevant for student's personal detailed report).
+            nullable: true
+            example: CS101
+          startTime:
+            type: string
+            format: date-time
+            description: Start time of the class session (relevant for student's personal detailed report).
+            nullable: true
+            example: "2025-06-21T07:00:00Z"
+          endTime:
+            type: string
+            format: date-time
+            description: End time of the class session (relevant for student's personal detailed report).
+            nullable: true
+            example: "2025-06-21T09:00:00Z"
+        required:
+          - sessionId
+          - timestamp
+          - isAbsent
+          - studentId
+          - fullName
+          - presenceCount
+      example:
+        - sessionId: 823e4567-e89b-12d3-a456-426614174004
+          timestamp: "2025-06-21T07:05:00Z"
+          isAbsent: false
+          studentId: 223e4567-e89b-12d3-a456-426614174001
+          fullName: John Doe
+          presenceCount: 5
+          courseName: CS101
+          startTime: "2025-06-21T07:00:00Z"
+          endTime: "2025-06-21T09:00:00Z"
+
+    WarningReportData:
+      type: object
+      description: Data structure for an Absence Warning Report.
+      properties:
+        studentId:
+          type: string
+          format: uuid
+          description: ID of the student who triggered the warning.
+          example: 223e4567-e89b-12d3-a456-426614174001
+        fullName:
+          type: string
+          description: Full name of the student.
+          example: John Doe
+        absentCount:
+          type: integer
+          description: Total number of absences for the student.
+          example: 3
+        presentCount:
+          type: integer
+          description: Total number of presences for the student.
+          example: 5
+        threshold:
+          type: number # Changed from integer to number for potential decimal thresholds
+          format: float # Explicitly float for percentage, if applicable
+          description: The configured absence warning threshold that was exceeded (e.g., count or percentage).
+          example: 3
+        sessions:
+          type: array
+          items:
+            type: object
+            properties:
+              sessionId: # Changed from roundId to sessionId for consistency
+                type: string
+                format: uuid
+                description: ID of the attendance session.
+                example: 923e4567-e89b-12d3-a456-426614174006
+              timestamp:
+                type: string
+                format: date-time
+                description: Timestamp of the session (e.g., StartTime).
+                example: "2025-06-22T07:05:00Z"
+              isAbsent:
+                type: boolean
+                description: True if student was absent in this session.
+                example: true
+            required:
+              - sessionId
+              - timestamp
+              - isAbsent
+          description: List of sessions where absence contributed to the warning.
+      required:
+        - studentId
+        - fullName
+        - absentCount
+        - presentCount
+        - threshold
+        - sessions
+      example:
+        studentId: 223e4567-e89b-12d3-a456-426614174001
+        fullName: John Doe
+        absentCount: 3
+        presentCount: 5
+        threshold: 3
+        sessions:
+          - sessionId: 923e4567-e89b-12d3-a456-426614174006
+            timestamp: "2025-06-22T07:05:00Z"
+            isAbsent: true
+
+    # --- Request Schemas for Report Generation ---
+    SummaryReportGenerateRequest:
+      type: object
+      description: Request body for generating a summary attendance report.
+      properties:
+        scopeType: # Added for explicit scope
+          $ref: '#/components/schemas/ReportScopeTypeEnum'
+          description: The scope type for this report generation (e.g., COURSE, STUDENT, GLOBAL).
+          example: COURSE
+        scopeId: # Added for explicit scope
+          type: string
+          format: uuid
+          description: The ID corresponding to the `scopeType` (e.g., ScheduleId for COURSE, StudentId for STUDENT). Use '00000000-0000-0000-0000-000000000000' for GLOBAL scope.
+          nullable: true
+          example: 823e4567-e89b-12d3-a456-426614174005
+        startDate:
+          type: string
+          format: date-time
+          description: Optional. Start date for the report's data range (inclusive).
+          nullable: true
+          example: "2025-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Optional. End date for the report's data range (inclusive).
+          nullable: true
+          example: "2025-06-30T23:59:59Z"
+      required:
+        - scopeType
+        # scopeId is conditionally required based on scopeType, handled by backend validation.
+
+    DetailedSessionReportGenerateRequest:
+      type: object
+      description: Request body for generating a detailed attendance report for a session.
+      properties:
+        sessionId: # Changed from roundId for consistency
+          type: string
+          format: uuid
+          description: The ID of the specific attendance session to generate the detailed report for.
+          example: 823e4567-e89b-12d3-a456-426614174004
+      required:
+        - sessionId
+
+    WarningReportGenerateRequest:
+      type: object
+      description: Request body for generating an absence warning report.
+      properties:
+        scopeType: # Added for explicit scope
+          $ref: '#/components/schemas/ReportScopeTypeEnum'
+          description: The scope type for this warning report generation (e.g., COURSE, STUDENT, GLOBAL).
+          example: STUDENT
+        scopeId: # Added for explicit scope
+          type: string
+          format: uuid
+          description: The ID corresponding to the `scopeType` (e.g., ScheduleId for COURSE, StudentId for STUDENT). Use '00000000-0000-0000-0000-000000000000' for GLOBAL scope.
+          nullable: true
+          example: 223e4567-e89b-12d3-a456-426614174001
+        startDate:
+          type: string
+          format: date-time
+          description: Optional. Start date for checking absence data (inclusive).
+          nullable: true
+          example: "2025-05-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Optional. End date for checking absence data (inclusive).
+          nullable: true
+          example: "2025-06-30T23:59:59Z"
+      required:
+        - scopeType
+      # scopeId is conditionally required based on scopeType, handled by backend validation.
+
+    ReportExportRequest:
+      type: object
+      description: Request body for exporting an attendance report.
+      properties:
+        reportId:
+          type: string
+          description: Optional. ID of an *existing* report to export. If provided, other generation filters (`reportType`, `scopeType`, `scopeId`, `startDate`, `endDate`) are ignored.
+          nullable: true
+          example: 507f1f77bcf86cd799439011
+        reportType:
+          $ref: '#/components/schemas/ReportTypeEnum'
+          description: Required if `reportId` is *not* provided. Type of report to generate on-the-fly for export.
+          nullable: true
+          example: Summary
+        scopeType: # Added for on-the-fly generation for export
+          $ref: '#/components/schemas/ReportScopeTypeEnum'
+          description: Required if `reportId` is *not* provided. The scope type for report generation (e.g., COURSE, STUDENT, GLOBAL).
+          nullable: true
+          example: COURSE
+        scopeId: # Added for on-the-fly generation for export
+          type: string
+          format: uuid
+          description: Required if `reportId` is *not* provided. The ID corresponding to the `scopeType`. Use '00000000-0000-0000-0000-000000000000' for GLOBAL scope.
+          nullable: true
+          example: 823e4567-e89b-12d3-a456-426614174005
+        startDate:
+          type: string
+          format: date-time
+          description: Optional. Start date for filtering data when generating a new report for export.
+          nullable: true
+          example: "2025-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Optional. End date for filtering data when generating a new report for export.
+          nullable: true
+          example: "2025-06-30T23:59:59Z"
+        format:
+          $ref: '#/components/schemas/ReportExportFormatEnum' # Using enum
+          description: Desired output format for the report.
+          example: CSV
+      required:
+        - format
+        # Complex conditional requirements for reportId OR (reportType + scopeType (+ scopeId)) are best handled by backend validation.
+
+    Error:
+      type: object
+      description: Standard error response format.
+      properties:
+        code:
+          type: string
+          description: A unique error code for the specific error.
+          example: "REPORT_NOT_FOUND"
+        message:
+          type: string
+          description: A human-readable message describing the error.
+          example: "Report with provided ID not found or no data for criteria."
+      required:
+        - code
+        - message
+

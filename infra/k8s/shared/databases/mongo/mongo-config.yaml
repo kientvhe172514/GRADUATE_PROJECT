@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+  namespace: infrastructure
+  labels:
+    app: mongo
+    tier: database
+data:
+  MONGO_INITDB_DATABASE: "microservices_mongo"
