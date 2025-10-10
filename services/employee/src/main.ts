@@ -18,7 +18,7 @@ async function bootstrap() {
     transport: Transport.RMQ,
     options: {
       urls: [configService.getOrThrow('RABBITMQ_URL')] as string[],  // Fix: Explicit as string[]
-      queue: configService.getOrThrow('RABBITMQ_EMPLOYEE_QUEUE') as string,  // Listen employee_queue for back events
+      queue: configService.getOrThrow('RABBITMQ_EMPLOYEE_QUEUE') as string,  
       queueOptions: {
         durable: true,
       },

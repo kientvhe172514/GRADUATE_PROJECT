@@ -2,13 +2,12 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-
 import { EmployeeController } from '../presentation/controllers/employee.controller';
 import { AccountCreatedListener } from '../presentation/event-listeners/account-created.listener';  // Add
 import { CreateEmployeeUseCase } from './use-cases/create-employee.use-case';
 import { PostgresEmployeeRepository } from '../infrastructure/persistence/repositories/postgres-employee.repository';
 import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-event.publisher';
-import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';  // Giữ nhưng không dùng logic subscribe
+import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';  
 import { AccountCreatedHandler } from './handlers/account-created.handler';
 import { EmployeeSchema } from '../infrastructure/persistence/typeorm/employee.schema';
 import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from './tokens';
@@ -38,11 +37,11 @@ import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from './tokens';
       },
     ]),
   ],
-  controllers: [EmployeeController, AccountCreatedListener],  // Add listener
+  controllers: [EmployeeController, AccountCreatedListener],  
   providers: [
     CreateEmployeeUseCase,
     AccountCreatedHandler,
-    RabbitMQEventSubscriber,  // Giữ để config nếu cần
+    RabbitMQEventSubscriber,  
     {
       provide: EMPLOYEE_REPOSITORY,
       useClass: PostgresEmployeeRepository,

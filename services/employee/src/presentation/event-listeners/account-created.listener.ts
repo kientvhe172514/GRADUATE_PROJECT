@@ -8,6 +8,12 @@ export class AccountCreatedListener {
 
   @EventPattern('account_created')
   async handleAccountCreated(event: any): Promise<void> {
-    await this.handler.handle(event);
+    console.log('Received account_created event:', event);  // THÊM LOG NÀY ĐỂ DEBUG
+    try {
+      await this.handler.handle(event);
+      console.log('Handled account_created successfully');  // Log sau khi handle OK
+    } catch (error) {
+      console.error('Error handling account_created:', error);  // Log nếu có lỗi trong handler
+    }
   }
 }

@@ -30,7 +30,7 @@ export class CreateEmployeeUseCase {
     Object.assign(employee, dto);
     employee.full_name = `${dto.first_name} ${dto.last_name}`;
 
-    const savedEmployee = await this.employeeRepository.create(employee);  // SỬA: Pass Employee (port updated below)
+    const savedEmployee = await this.employeeRepository.create(employee); 
 
     const eventDto = new EmployeeCreatedEventDto(savedEmployee);
     this.eventPublisher.publish('employee_created', eventDto);
