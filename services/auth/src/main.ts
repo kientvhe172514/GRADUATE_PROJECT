@@ -32,7 +32,6 @@ async function bootstrap() {
     .setTitle('IAM API')
     .setDescription('Auth Service API')
     .setVersion('1.0')
-    .addTag('accounts')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);

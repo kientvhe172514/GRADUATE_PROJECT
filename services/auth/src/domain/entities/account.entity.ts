@@ -1,11 +1,12 @@
+import { AccountType, AccountRole } from '../value-objects/account-type.vo';
+import { AccountStatus } from '../value-objects/account-status.vo';
+
 export class Account {
   id?: number;
   email: string;
   password_hash: string;
-  account_type: string = 'EMPLOYEE';
-  role: string = 'EMPLOYEE';
-  
-  // Denormalized from Employee Service
+  account_type: AccountType = AccountType.EMPLOYEE;
+  role: AccountRole = AccountRole.EMPLOYEE;
   employee_id?: number;
   employee_code?: string;
   full_name?: string;
@@ -21,9 +22,7 @@ export class Account {
   // Sync tracking
   data_synced_at?: Date;
   sync_version: number = 1;
-  
-  // Account status
-  status: string = 'ACTIVE';
+  status: AccountStatus = AccountStatus.ACTIVE;
   failed_login_attempts: number = 0;
   locked_until?: Date;
   last_login_at?: Date;

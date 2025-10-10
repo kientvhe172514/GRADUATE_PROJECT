@@ -1,6 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { LoginRequestDto } from '../../application/dto/login-request.dto';
+import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';

@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { Account } from '../../domain/entities/account.entity';
+import { AccountFactory } from '../../domain/factories/account.factory';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
@@ -34,17 +35,18 @@ export class CreateAccountUseCase {
     const tempPass = randomBytes(16).toString('hex');
     const tempPasswordHash = await this.hashing.hash(tempPass);
 
-    // Create account with temporary password
-    const account = new Account();
-    account.email = dto.email;
-    account.password_hash = tempPasswordHash; // This will be the temporary password initially
-    account.employee_id = dto.employee_id;
-    account.employee_code = dto.employee_code;
-    account.full_name = dto.full_name;
-    account.department_id = dto.department_id;
-    account.department_name = dto.department_name;
-    account.position_id = dto.position_id;
-    account.position_name = dto.position_name;
+    // Create account using Factory Pattern
+    const account = AccountFactory.createEmployeeAccount({
+      email: dto.email,
+      password_hash: tempPasswordHash,
+      employee_id: dto.employee_id,
+      employee_code: dto.employee_code,
+      full_name: dto.full_name,
+      department_id: dto.department_id,
+      department_name: dto.department_name,
+      position_id: dto.position_id,
+      position_name: dto.position_name,
+    });
 
     const savedAccount = await this.accountRepo.create(account);
 
@@ -64,6 +66,7 @@ export class CreateAccountUseCase {
     backEvent.account_id = savedAccount.id!;
     backEvent.employee_id = dto.employee_id;
     backEvent.temp_password = tempPass;
+    console.log('Publishing account_created with data:', backEvent);
     this.publisher.publish('account_created', backEvent);
 
     return savedAccount;

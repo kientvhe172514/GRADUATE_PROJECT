@@ -1,5 +1,5 @@
 import { Injectable, Inject, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
-import { LoginRequestDto } from '../dto/login-request.dto';
+import { LoginRequestDto } from '../../presentation/dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
