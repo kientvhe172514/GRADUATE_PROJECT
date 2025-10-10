@@ -1,29 +1,68 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { LoginRequestDto } from '../dto/login-request.dto';  // OK: Path '../dto'
-import { LoginResponseDto } from '../dto/login-response.dto';  // OK
+import { Controller, Post, Body, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { LoginRequestDto } from '../../application/dto/login-request.dto';
+import { LoginResponseDto } from '../dto/login-response.dto';
+import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
-import { CreateAccountDto } from '../../application/dto/create-account.dto';  // SỬA: Import đúng DTO cho register
+import { LoginUseCase } from '../../application/use-cases/login.use-case';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
+import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
+import { CreateAccountDto } from '../../application/dto/create-account.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
 
-@ApiTags('accounts')
-@Controller('accounts')
+@ApiTags('auth')
+@Controller('auth')
 export class AccountController {
-  constructor(private createAccountUseCase: CreateAccountUseCase) {}
+  constructor(
+    private createAccountUseCase: CreateAccountUseCase,
+    private loginUseCase: LoginUseCase,
+    private refreshTokenUseCase: RefreshTokenUseCase,
+    private logoutUseCase: LogoutUseCase,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login' })
+  @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
-  async login(@Body() loginDto: LoginRequestDto): Promise<LoginResponseDto> {
-    // Implement full login (findByEmail, compare hash, generate tokens)
-    // Placeholder
-    return { access_token: 'jwt.token', refresh_token: 'refresh.token', user: { id: 1, email: 'test', full_name: 'Test', role: 'EMPLOYEE' } };
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async login(@Body() loginDto: LoginRequestDto, @Req() req: any): Promise<LoginResponseDto> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
   }
 
-  @Post('register')  // SỬA: Use CreateAccountDto for register (internal)
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, type: RefreshTokenResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
+  async refresh(@Body() refreshDto: RefreshTokenRequestDto, @Req() req: any): Promise<RefreshTokenResponseDto> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return await this.refreshTokenUseCase.execute(refreshDto, ipAddress, userAgent);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'User logout' })
+  @ApiResponse({ status: 200, type: LogoutResponseDto })
+  async logout(
+    @Body() logoutDto: LogoutRequestDto,
+    @CurrentUser() user: any,
+    @Req() req: any
+  ): Promise<LogoutResponseDto> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return await this.logoutUseCase.execute(logoutDto, user.id, ipAddress, userAgent);
+  }
+
+  @Post('register')  // Internal endpoint for employee service
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new account (internal from employee event)' })
-  async register(@Body() dto: CreateAccountDto): Promise<void> {  // SỬA: DTO CreateAccountDto
+  async register(@Body() dto: CreateAccountDto): Promise<void> {
     await this.createAccountUseCase.execute(dto);
   }
 }
