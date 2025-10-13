@@ -1,53 +1,313 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🔔 Notification Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> Microservice xử lý thông báo đa kênh cho hệ thống Zentry HR System
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=flat&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Tính năng
 
-## Project setup
+### ✅ Core Features
+- 📬 **Multi-channel notifications**: Email, Push, SMS, In-App
+- 🔥 **Firebase Cloud Messaging**: Push notifications cho mobile & web
+- 📧 **Email notifications**: Via SMTP (Nodemailer)
+- 📱 **Push token management**: Device registration & management
+- ⚙️ **User preferences**: Per-user notification settings
+- 🌙 **Do Not Disturb mode**: Time-based notification filtering
+- 📝 **Template-based notifications**: Reusable notification templates
+- 📅 **Scheduled notifications**: One-time & recurring (future)
+- 🔄 **Event-driven**: Listen to events from other services via RabbitMQ
 
+### 🏗️ Architecture
+- ✨ **Clean Architecture**: Domain → Application → Infrastructure → Presentation
+- 🎯 **SOLID Principles**: Maintainable & testable code
+- 🔌 **Dependency Inversion**: Easy to swap implementations
+- 🧪 **Highly testable**: Mocked dependencies via ports/interfaces
+
+---
+
+## 📋 Requirements
+
+- **Node.js** 20+
+- **PostgreSQL** 14+
+- **RabbitMQ** 3.12+
+- **Firebase Project** (for push notifications)
+
+---
+
+## ⚡ Quick Start
+
+### 1. Install Dependencies
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
-
+### 2. Setup Environment
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-## Run tests
+### 3. Setup Database
+```bash
+# Start PostgreSQL
+docker run --name postgres-notification \
+  -e POSTGRES_DB=notification_db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 -d postgres:14
+
+# Run init script
+psql -U postgres -d notification_db -f database/init.sql
+```
+
+### 4. Setup Firebase
+1. Create Firebase project
+2. Download service account key
+3. Save to `config/firebase-service-account.json`
+4. See [FIREBASE_SETUP.md](./docs/FIREBASE_SETUP.md) for details
+
+### 5. Start Service
+```bash
+# Development
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
+```
+
+**Service runs on:** `http://localhost:3004`
+
+📚 **[Full Quick Start Guide →](./QUICKSTART.md)**
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [API Documentation](./docs/API.md) | Complete REST API reference with examples |
+| [Architecture Guide](./docs/ARCHITECTURE.md) | Clean Architecture & SOLID principles explained |
+| [Firebase Setup](./docs/FIREBASE_SETUP.md) | Step-by-step Firebase integration guide |
+| [Project Structure](./PROJECT_STRUCTURE.md) | Complete file tree & dependency flow |
+| [Quick Start](./QUICKSTART.md) | Fast local setup with Docker |
+
+---
+
+## 🎯 API Endpoints
+
+### 📬 Notifications
+- `POST /api/notifications` - Send notification
+- `GET /api/notifications/user/:userId` - Get user notifications
+- `PATCH /api/notifications/:id/read` - Mark as read
+- `DELETE /api/notifications/:id` - Delete notification
+
+### ⚙️ Preferences
+- `GET /api/preferences/:userId` - Get preferences
+- `PUT /api/preferences/:userId` - Update preferences
+
+### 📱 Push Tokens
+- `POST /api/push-tokens` - Register device token
+- `DELETE /api/push-tokens/:token` - Unregister token
+
+### 💚 Health Check
+- `GET /health` - Service health status
+
+📖 **[Full API Documentation →](./docs/API.md)**
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Presentation Layer                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Notification│  │ Preferences │  │ Push Tokens │         │
+│  │ Controller  │  │ Controller  │  │ Controller  │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+└─────────┼─────────────────┼─────────────────┼───────────────┘
+          │                 │                 │
+┌─────────┼─────────────────┼─────────────────┼───────────────┐
+│         ▼                 ▼                 ▼                │
+│                    Application Layer                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Send      │  │    Get      │  │   Update    │         │
+│  │ Notification│  │Notifications│  │ Preferences │         │
+│  │  Use Case   │  │  Use Case   │  │  Use Case   │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+└─────────┼─────────────────┼─────────────────┼───────────────┘
+          │                 │                 │
+┌─────────┼─────────────────┼─────────────────┼───────────────┐
+│         ▼                 ▼                 ▼                │
+│                   Infrastructure Layer                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │  PostgreSQL │  │   Firebase  │  │   RabbitMQ  │         │
+│  │ Repositories│  │ Push Service│  │   Consumer  │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+└─────────┼─────────────────┼─────────────────┼───────────────┘
+          │                 │                 │
+┌─────────┼─────────────────┼─────────────────┼───────────────┐
+│         ▼                 ▼                 ▼                │
+│                       Domain Layer                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Notification│  │  Preference │  │ Push Token  │         │
+│  │   Entity    │  │   Entity    │  │   Entity    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Principles:**
+- ✅ **Dependency Rule**: Dependencies point inward (Presentation → Application → Domain)
+- ✅ **Single Responsibility**: Each use case does one thing
+- ✅ **Dependency Inversion**: Depend on abstractions (ports), not concretions
+- ✅ **Interface Segregation**: Small, focused interfaces
+- ✅ **Open/Closed**: Extend behavior without modifying existing code
+
+🔗 **[Detailed Architecture Guide →](./docs/ARCHITECTURE.md)**
+
+---
+
+## 🔄 Event-Driven Integration
+
+Service listens to events from other microservices via RabbitMQ:
+
+| Source Service | Event | Action |
+|---------------|-------|--------|
+| **Attendance** | `attendance.checked-in` | Send check-in confirmation |
+| **Attendance** | `attendance.late` | Send late arrival alert |
+| **Leave** | `leave.approved` | Send approval notification |
+| **Leave** | `leave.rejected` | Send rejection notification |
+| **Face Recognition** | `face.verification-failed` | Send verification failure alert |
+| **Auth** | `auth.password-changed` | Send password change confirmation |
+| **Employee** | `employee.created` | Send welcome notification |
+
+**RabbitMQ Configuration:**
+- **Exchange**: `microservices-events` (topic)
+- **Queue**: `notification-service-queue`
+- **Routing Keys**: `attendance.*`, `leave.*`, `face.*`, `auth.*`, `employee.*`
+
+---
+
+## 🧪 Testing
 
 ```bash
-# unit tests
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+---
+
+## 🐳 Docker Deployment
+
+### Build Image
+```bash
+docker build -t notification-service:latest .
+```
+
+### Run Container
+```bash
+docker run -d \
+  --name notification-service \
+  -p 3004:3004 \
+  -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notification_db \
+  -e RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672 \
+  notification-service:latest
+```
+
+### Docker Compose
+```bash
+docker-compose up -d
+```
+
+---
+
+## 🔐 Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PORT` | Service port | `3004` |
+| `DATABASE_HOST` | PostgreSQL host | `localhost` |
+| `DATABASE_PORT` | PostgreSQL port | `5432` |
+| `DATABASE_USER` | Database user | `postgres` |
+| `DATABASE_PASSWORD` | Database password | `postgres` |
+| `DATABASE_NAME` | Database name | `notification_db` |
+| `RABBITMQ_URL` | RabbitMQ connection URL | `amqp://guest:guest@localhost:5672` |
+| `RABBITMQ_EXCHANGE` | RabbitMQ exchange name | `microservices-events` |
+| `RABBITMQ_QUEUE` | RabbitMQ queue name | `notification-service-queue` |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase credentials path | `config/firebase-service-account.json` |
+| `SMTP_HOST` | Email SMTP host | `smtp.gmail.com` |
+| `SMTP_PORT` | Email SMTP port | `587` |
+| `SMTP_USER` | Email SMTP user | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | Email SMTP password | `your-app-password` |
+| `JWT_SECRET` | JWT verification secret | `your-jwt-secret` |
+
+---
+
+## 📊 Database Schema
+
+![Database Schema](https://via.placeholder.com/800x400?text=See+database/init.sql+for+complete+schema)
+
+**Core Tables:**
+- `notifications` - Main notification records
+- `notification_preferences` - Per-user preferences
+- `notification_templates` - Reusable templates
+- `push_notification_tokens` - FCM device tokens
+- `notification_delivery_logs` - Delivery status tracking
+- `scheduled_notifications` - Future/recurring notifications
+
+📄 **[View Schema →](./database/init.sql)**
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
+
+---
+
+## 📝 License
+
+This project is part of Zentry HR System - Graduate Project
+
+---
+
+## 👨‍💻 Maintainer
+
+**Graduate Project Team**  
+Semester 9 - 2024
+
+---
+
+## 🔗 Related Services
+
+- [Auth Service](../auth) - Authentication & authorization
+- [Employee Service](../employee) - Employee management
+- [Attendance Service](../attendance) - Attendance tracking
+- [Leave Service](../leave) - Leave management
+- [Face Recognition Service](../face-recognition) - Biometric verification
+- [Reporting Service](../reporting) - Analytics & reports
+
+---
+
+**Made with ❤️ using Clean Architecture & SOLID Principles**
+
 $ npm run test
 
 # e2e tests
