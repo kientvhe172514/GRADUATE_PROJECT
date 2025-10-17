@@ -133,3 +133,72 @@ export const ErrorMessages: Record<ErrorCodes, string> = {
   [ErrorCodes.RESOURCE_ALREADY_IN_USE]: 'Resource already in use',
   [ErrorCodes.QUOTA_EXCEEDED]: 'Quota exceeded',
 };
+
+// Default HTTP status code mapping per error code
+export const ErrorStatusCode: Record<ErrorCodes, number> = {
+  // General errors
+  [ErrorCodes.INTERNAL_SERVER_ERROR]: 500,
+  [ErrorCodes.VALIDATION_ERROR]: 400,
+  [ErrorCodes.UNAUTHORIZED]: 401,
+  [ErrorCodes.FORBIDDEN]: 403,
+  [ErrorCodes.NOT_FOUND]: 404,
+  [ErrorCodes.CONFLICT]: 409,
+  [ErrorCodes.BAD_REQUEST]: 400,
+
+  // Auth service errors
+  [ErrorCodes.ACCOUNT_ALREADY_EXISTS]: 409,
+  [ErrorCodes.ACCOUNT_NOT_FOUND]: 404,
+  [ErrorCodes.INVALID_CREDENTIALS]: 401,
+  [ErrorCodes.ACCOUNT_LOCKED]: 423, // Locked
+  [ErrorCodes.ACCOUNT_INACTIVE]: 403,
+  [ErrorCodes.TOKEN_EXPIRED]: 401,
+  [ErrorCodes.TOKEN_INVALID]: 400,
+  [ErrorCodes.PASSWORD_TOO_WEAK]: 400,
+  [ErrorCodes.TEMPORARY_PASSWORD_EXPIRED]: 400,
+  [ErrorCodes.TOO_MANY_LOGIN_ATTEMPTS]: 429,
+
+  // Employee service errors
+  [ErrorCodes.EMPLOYEE_ALREADY_EXISTS]: 409,
+  [ErrorCodes.EMPLOYEE_NOT_FOUND]: 404,
+  [ErrorCodes.EMPLOYEE_CODE_ALREADY_EXISTS]: 409,
+  [ErrorCodes.EMPLOYEE_EMAIL_ALREADY_EXISTS]: 409,
+  [ErrorCodes.DEPARTMENT_NOT_FOUND]: 404,
+  [ErrorCodes.POSITION_NOT_FOUND]: 404,
+  [ErrorCodes.MANAGER_NOT_FOUND]: 404,
+  [ErrorCodes.CONTRACT_NOT_FOUND]: 404,
+  [ErrorCodes.CONTRACT_ALREADY_EXISTS]: 409,
+  [ErrorCodes.INVALID_HIRE_DATE]: 400,
+  [ErrorCodes.INVALID_TERMINATION_DATE]: 400,
+
+  // Notification service errors
+  [ErrorCodes.NOTIFICATION_NOT_FOUND]: 404,
+  [ErrorCodes.NOTIFICATION_TEMPLATE_NOT_FOUND]: 404,
+  [ErrorCodes.INVALID_NOTIFICATION_CHANNEL]: 400,
+  [ErrorCodes.PUSH_TOKEN_INVALID]: 400,
+  [ErrorCodes.EMAIL_SERVICE_UNAVAILABLE]: 503,
+  [ErrorCodes.SMS_SERVICE_UNAVAILABLE]: 503,
+  [ErrorCodes.PUSH_SERVICE_UNAVAILABLE]: 503,
+
+  // Database errors
+  [ErrorCodes.DATABASE_CONNECTION_ERROR]: 503,
+  [ErrorCodes.DATABASE_QUERY_ERROR]: 500,
+  [ErrorCodes.DATABASE_CONSTRAINT_VIOLATION]: 400,
+  [ErrorCodes.DATABASE_TRANSACTION_ERROR]: 500,
+
+  // External service errors
+  [ErrorCodes.EXTERNAL_SERVICE_UNAVAILABLE]: 503,
+  [ErrorCodes.EXTERNAL_SERVICE_TIMEOUT]: 504,
+  [ErrorCodes.EXTERNAL_SERVICE_ERROR]: 502,
+
+  // File upload errors
+  [ErrorCodes.FILE_TOO_LARGE]: 413,
+  [ErrorCodes.INVALID_FILE_TYPE]: 400,
+  [ErrorCodes.FILE_UPLOAD_FAILED]: 500,
+  [ErrorCodes.FILE_NOT_FOUND]: 404,
+
+  // Business logic errors
+  [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
+  [ErrorCodes.OPERATION_NOT_ALLOWED]: 400,
+  [ErrorCodes.RESOURCE_ALREADY_IN_USE]: 409,
+  [ErrorCodes.QUOTA_EXCEEDED]: 429,
+};
