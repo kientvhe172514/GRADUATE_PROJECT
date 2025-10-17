@@ -1,6 +1,6 @@
 export class AuditLogs {
   id?: number;
-  account_id?: number;
+  account_id?: number | null;
   action: string;
   
   // Context
@@ -16,8 +16,8 @@ export class AuditLogs {
   
   created_at?: Date;
 
-  constructor(data: Partial<AuditLogs>) {
-    Object.assign(this, data);
+  constructor(data?: Partial<AuditLogs>) {
+    if (data) Object.assign(this, data);
     this.created_at = this.created_at || new Date();
   }
 
@@ -29,7 +29,7 @@ export class AuditLogs {
     metadata?: Record<string, any>
   ): AuditLogs {
     return new AuditLogs({
-      account_id: accountId!,
+      account_id: accountId ?? null,
       action,
       ip_address: ipAddress,
       user_agent: userAgent,
@@ -47,7 +47,7 @@ export class AuditLogs {
     metadata?: Record<string, any>
   ): AuditLogs {
     return new AuditLogs({
-      account_id: accountId!,
+      account_id: accountId ?? null,
       action,
       ip_address: ipAddress,
       user_agent: userAgent,

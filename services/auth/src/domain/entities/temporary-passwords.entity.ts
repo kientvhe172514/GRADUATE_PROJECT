@@ -7,8 +7,8 @@ export class TemporaryPasswords {
   must_change_password: boolean = true;
   created_at?: Date;
 
-  constructor(data: Partial<TemporaryPasswords>) {
-    Object.assign(this, data);
+  constructor(data?: Partial<TemporaryPasswords>) {
+    if (data) Object.assign(this, data);
     this.created_at = this.created_at || new Date();
   }
 

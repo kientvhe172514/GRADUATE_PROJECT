@@ -6,7 +6,7 @@ import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { ACCOUNT_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
-import { ApiResponseDto } from './../../../../shared/src/common/dto/api-response.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 export class ForgotPasswordRequestDto {
   email: string;

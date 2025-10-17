@@ -3,7 +3,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
+import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
@@ -19,6 +21,7 @@ export class AccountController {
     private loginUseCase: LoginUseCase,
     private refreshTokenUseCase: RefreshTokenUseCase,
     private logoutUseCase: LogoutUseCase,
+    private updateAccountUseCase: UpdateAccountUseCase,
   ) {}
 
   @Post('login')
@@ -26,7 +29,7 @@ export class AccountController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginRequestDto, @Req() req: any): Promise<LoginResponseDto> {
+  async login(@Body() loginDto: LoginRequestDto, @Req() req: any): Promise<ApiResponseDto<LoginResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
     return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
@@ -37,7 +40,7 @@ export class AccountController {
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, type: RefreshTokenResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(@Body() refreshDto: RefreshTokenRequestDto, @Req() req: any): Promise<RefreshTokenResponseDto> {
+  async refresh(@Body() refreshDto: RefreshTokenRequestDto, @Req() req: any): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
     return await this.refreshTokenUseCase.execute(refreshDto, ipAddress, userAgent);
@@ -53,7 +56,7 @@ export class AccountController {
     @Body() logoutDto: LogoutRequestDto,
     @CurrentUser() user: any,
     @Req() req: any
-  ): Promise<LogoutResponseDto> {
+  ): Promise<ApiResponseDto<LogoutResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
     return await this.logoutUseCase.execute(logoutDto, user.id, ipAddress, userAgent);
@@ -62,7 +65,15 @@ export class AccountController {
   @Post('register')  // Internal endpoint for employee service
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new account (internal from employee event)' })
-  async register(@Body() dto: CreateAccountDto): Promise<void> {
-    await this.createAccountUseCase.execute(dto);
+  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
+    return this.createAccountUseCase.execute(dto);
+  }
+
+  @Post('update/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update account' })
+  async update(@Body() dto: UpdateAccountDto, @Req() req: any): Promise<ApiResponseDto<any>> {
+    const id = Number(req.params.id);
+    return this.updateAccountUseCase.execute(id, dto);
   }
 }

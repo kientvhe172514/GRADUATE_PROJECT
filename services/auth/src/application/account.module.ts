@@ -9,6 +9,7 @@ import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
+import { UpdateAccountUseCase } from './use-cases/update-account.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
@@ -56,6 +57,7 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    UpdateAccountUseCase,
     ChangePasswordUseCase,
     EmployeeCreatedHandler,
     RabbitMQEventSubscriber,

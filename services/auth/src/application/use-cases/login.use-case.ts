@@ -1,6 +1,7 @@
-import { Injectable, Inject, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LoginRequestDto } from '../../presentation/dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -40,7 +41,7 @@ export class LoginUseCase {
     private auditLogsRepo: AuditLogsRepositoryPort,
   ) {}
 
-  async execute(loginDto: LoginRequestDto, ipAddress?: string, userAgent?: string): Promise<LoginResponseDto> {
+  async execute(loginDto: LoginRequestDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LoginResponseDto>> {
     const account = await this.accountRepo.findByEmail(loginDto.email);
     
     if (!account) {
@@ -92,7 +93,7 @@ export class LoginUseCase {
     // Publish event
     this.publisher.publish('user_logged_in', new UserLoggedInEvent(account));
 
-    return {
+    return ApiResponseDto.success({
       access_token: accessToken,
       refresh_token: refreshToken,
       user: {
@@ -101,7 +102,7 @@ export class LoginUseCase {
         full_name: account.full_name || '',
         role: account.role,
       },
-    };
+    }, 'Login successful');
   }
 
   private async handleFailedLogin(account: Account): Promise<void> {

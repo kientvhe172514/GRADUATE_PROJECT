@@ -9,11 +9,11 @@ export class BusinessException extends HttpException {
     errorCode: ErrorCodes,
     message?: string,
     statusCode?: HttpStatus | number,
-    errorDetails?: string
+    errorDetails?: string,
   ) {
     const httpStatus = (statusCode as number) ?? ErrorStatusCode[errorCode] ?? HttpStatus.BAD_REQUEST;
     const errorMessage = message || ErrorMessages[errorCode] || 'Unknown error occurred';
-    
+
     super(
       {
         status: 'ERROR',
@@ -23,10 +23,12 @@ export class BusinessException extends HttpException {
         errorDetails,
         timestamp: new Date().toISOString(),
       },
-      httpStatus
+      httpStatus,
     );
 
     this.errorCode = errorCode;
     this.errorDetails = errorDetails;
   }
 }
+
+

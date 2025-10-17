@@ -1,4 +1,4 @@
-import { Injectable, Inject, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Account } from '../../domain/entities/account.entity';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -12,6 +12,9 @@ import {
   AUDIT_LOGS_REPOSITORY
 } from '../tokens';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 
 export class ChangePasswordDto {
   account_id: number;
@@ -38,18 +41,18 @@ export class ChangePasswordUseCase {
     private auditLogsRepo: AuditLogsRepositoryPort,
   ) {}
 
-  async changePassword(dto: ChangePasswordDto, ipAddress?: string, userAgent?: string): Promise<void> {
+  async changePassword(dto: ChangePasswordDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<null>> {
     const account = await this.accountRepo.findById(dto.account_id);
     if (!account) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Account not found');
-      throw new UnauthorizedException('Account not found');
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
     // Verify current password
     const isCurrentPasswordValid = await this.hashing.compare(dto.current_password, account.password_hash);
     if (!isCurrentPasswordValid) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid current password');
-      throw new UnauthorizedException('Invalid current password');
+      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS);
     }
 
     // Hash new password
@@ -63,33 +66,34 @@ export class ChangePasswordUseCase {
 
     // Log successful password change
     await this.logPasswordChangeSuccess(dto.account_id, ipAddress, userAgent);
+    return ApiResponseDto.success(null, 'Password changed');
   }
 
-  async changeTemporaryPassword(dto: ChangeTemporaryPasswordDto, ipAddress?: string, userAgent?: string): Promise<void> {
+  async changeTemporaryPassword(dto: ChangeTemporaryPasswordDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<null>> {
     const account = await this.accountRepo.findById(dto.account_id);
     if (!account) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Account not found');
-      throw new UnauthorizedException('Account not found');
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
     // Find active temporary password
     const tempPassword = await this.tempPasswordsRepo.findActiveByAccountId(dto.account_id);
     if (!tempPassword) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'No active temporary password');
-      throw new BadRequestException('No active temporary password found');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'No active temporary password found');
     }
 
     // Verify temporary password
     const isTempPasswordValid = await this.hashing.compare(dto.temporary_password, tempPassword.temp_password_hash);
     if (!isTempPasswordValid) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid temporary password');
-      throw new UnauthorizedException('Invalid temporary password');
+      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS);
     }
 
     // Check if temporary password is expired
     if (tempPassword.expires_at < new Date()) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Temporary password expired');
-      throw new BadRequestException('Temporary password has expired');
+      throw new BusinessException(ErrorCodes.TEMPORARY_PASSWORD_EXPIRED);
     }
 
     // Hash new password
@@ -103,6 +107,7 @@ export class ChangePasswordUseCase {
 
     // Log successful password change
     await this.logPasswordChangeSuccess(dto.account_id, ipAddress, userAgent, 'Temporary password changed');
+    return ApiResponseDto.success(null, 'Temporary password changed');
   }
 
   private async logPasswordChangeSuccess(

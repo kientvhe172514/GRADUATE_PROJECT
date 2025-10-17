@@ -1,9 +1,13 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { ACCOUNT_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { AccountUpdatedEventDto } from '../dto/account-updated.event.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { UpdateAccountResponseDto } from '../dto/update-account-response.dto';
 
 export interface UpdateAccountDto {
   email?: string;
@@ -29,17 +33,17 @@ export class UpdateAccountUseCase {
     private eventPublisher: EventPublisherPort,
   ) {}
 
-  async execute(id: number, dto: UpdateAccountDto): Promise<Account> {
+  async execute(id: number, dto: UpdateAccountDto): Promise<ApiResponseDto<UpdateAccountResponseDto>> {
     const existingAccount = await this.accountRepository.findById(id);
     if (!existingAccount) {
-      throw new NotFoundException('Account not found');
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
     // Check for duplicate email if email is being updated
     if (dto.email && dto.email !== existingAccount.email) {
       const emailExists = await this.accountRepository.findByEmail(dto.email);
       if (emailExists) {
-        throw new Error('Account email already exists');
+        throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account email already exists', 409);
       }
     }
 
@@ -54,6 +58,19 @@ export class UpdateAccountUseCase {
     const eventDto = new AccountUpdatedEventDto(updatedAccount);
     this.eventPublisher.publish('account_updated', eventDto);
 
-    return updatedAccount;
+    const resp: UpdateAccountResponseDto = {
+      id: updatedAccount.id!,
+      email: updatedAccount.email,
+      full_name: updatedAccount.full_name,
+      role: updatedAccount.role,
+      status: updatedAccount.status,
+      department_id: updatedAccount.department_id,
+      department_name: updatedAccount.department_name,
+      position_id: updatedAccount.position_id,
+      position_name: updatedAccount.position_name,
+      sync_version: updatedAccount.sync_version,
+      updated_at: updatedAccount.updated_at!,
+    };
+    return ApiResponseDto.success(resp, 'Account updated');
   }
 }

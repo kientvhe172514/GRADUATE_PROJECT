@@ -3,6 +3,9 @@ import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountFactory } from '../../domain/factories/account.factory';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
@@ -25,10 +28,10 @@ export class CreateAccountUseCase {
     private publisher: EventPublisherPort,
   ) {}
 
-  async execute(dto: CreateAccountDto): Promise<Account> {
+  async execute(dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
     const existing = await this.accountRepo.findByEmail(dto.email);
     if (existing) {
-      throw new Error('Account already exists');
+      throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS);
     }
 
     // Generate temporary password
@@ -69,6 +72,6 @@ export class CreateAccountUseCase {
     console.log('Publishing account_created with data:', backEvent);
     this.publisher.publish('account_created', backEvent);
 
-    return savedAccount;
+    return ApiResponseDto.success({ id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 'Account created', 201, undefined, 'ACCOUNT_CREATED');
   }
 }

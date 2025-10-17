@@ -3,9 +3,9 @@ import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.r
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, ACCOUNT_REPOSITORY } from '../tokens';
-import { BusinessException } from './../../../../shared/src/common/exceptions/business.exception';
-import { ErrorCodes } from './../../../../shared/src/common/enums/error-codes.enum';
-import { ApiResponseDto } from './../../../../shared/src/common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 export class ResetPasswordRequestDto {
   email: string;

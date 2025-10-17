@@ -16,8 +16,8 @@ export class RefreshTokens {
   
   created_at?: Date;
 
-  constructor(data: Partial<RefreshTokens>) {
-    Object.assign(this, data);
+  constructor(data?: Partial<RefreshTokens>) {
+    if (data) Object.assign(this, data);
     this.created_at = this.created_at || new Date();
   }
 
