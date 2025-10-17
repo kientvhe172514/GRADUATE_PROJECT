@@ -11,4 +11,6 @@ export interface AccountRepositoryPort {
   lockAccount(id: number, lockedUntil: Date): Promise<void>;
   unlockAccount(id: number): Promise<void>;
   updatePassword(id: number, passwordHash: string): Promise<void>;
+  update(account: Account): Promise<Account>;
+  findByEmployeeId(employeeId: number): Promise<Account | null>;
 }
