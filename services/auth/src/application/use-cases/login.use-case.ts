@@ -2,6 +2,8 @@ import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LoginRequestDto } from '../../presentation/dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -62,6 +64,13 @@ export class LoginUseCase {
       await this.handleFailedLogin(account);
       await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Invalid password');
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check if user is using temporary password "1"
+    const isTemporaryPassword = await this.hashing.compare('1', account.password_hash);
+    if (isTemporaryPassword) {
+      // User is using temporary password, require password change
+      throw new BusinessException(ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE);
     }
 
     // Reset failed attempts and unlock account if needed

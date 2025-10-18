@@ -48,6 +48,17 @@ export class ChangePasswordUseCase {
       throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
+    // Validate input parameters
+    if (!dto.current_password || !dto.new_password) {
+      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Missing password fields');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Current password and new password are required');
+    }
+
+    if (!account.password_hash) {
+      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Account has no password hash');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Account password hash not found');
+    }
+
     // Verify current password
     const isCurrentPasswordValid = await this.hashing.compare(dto.current_password, account.password_hash);
     if (!isCurrentPasswordValid) {
@@ -57,6 +68,12 @@ export class ChangePasswordUseCase {
 
     // Hash new password
     const newPasswordHash = await this.hashing.hash(dto.new_password);
+
+    // Validate account_id
+    if (!dto.account_id || dto.account_id <= 0) {
+      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid account ID');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Invalid account ID');
+    }
 
     // Update account password
     await this.accountRepo.updatePassword(dto.account_id, newPasswordHash);
@@ -76,34 +93,31 @@ export class ChangePasswordUseCase {
       throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
-    // Find active temporary password
-    const tempPassword = await this.tempPasswordsRepo.findActiveByAccountId(dto.account_id);
-    if (!tempPassword) {
-      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'No active temporary password');
-      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'No active temporary password found');
+    // Verify that current password is temporary password "1"
+    const isTemporaryPassword = await this.hashing.compare('1', account.password_hash);
+    if (!isTemporaryPassword) {
+      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Not using temporary password');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Account is not using temporary password');
     }
 
-    // Verify temporary password
-    const isTempPasswordValid = await this.hashing.compare(dto.temporary_password, tempPassword.temp_password_hash);
-    if (!isTempPasswordValid) {
+    // Verify provided temporary password
+    const isProvidedPasswordValid = await this.hashing.compare(dto.temporary_password, account.password_hash);
+    if (!isProvidedPasswordValid) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid temporary password');
       throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS);
-    }
-
-    // Check if temporary password is expired
-    if (tempPassword.expires_at < new Date()) {
-      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Temporary password expired');
-      throw new BusinessException(ErrorCodes.TEMPORARY_PASSWORD_EXPIRED);
     }
 
     // Hash new password
     const newPasswordHash = await this.hashing.hash(dto.new_password);
 
+    // Validate account_id
+    if (!dto.account_id || dto.account_id <= 0) {
+      await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid account ID');
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Invalid account ID');
+    }
+
     // Update account password
     await this.accountRepo.updatePassword(dto.account_id, newPasswordHash);
-
-    // Mark temporary password as used
-    await this.tempPasswordsRepo.markAsUsed(tempPassword.id!);
 
     // Log successful password change
     await this.logPasswordChangeSuccess(dto.account_id, ipAddress, userAgent, 'Temporary password changed');

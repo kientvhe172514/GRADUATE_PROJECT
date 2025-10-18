@@ -4,6 +4,8 @@ import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
 import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
@@ -73,7 +75,7 @@ export class AccountController {
   @Post('register')  // Internal endpoint for employee service
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new account (internal from employee event)' })
-  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string }>> {
+  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
     return this.createAccountUseCase.execute(dto);
   }
 
@@ -105,6 +107,22 @@ export class AccountController {
     @CurrentUser() user: any,
     @Req() req: any,
   ): Promise<ApiResponseDto<null>> {
+    console.log('Controller: changeMyPassword called');
+    console.log('Controller: user object:', user);
+    console.log('Controller: request.user:', req.user);
+    
+    // Validate required fields
+    if (!body.current_password || !body.new_password) {
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Missing required fields: current_password, new_password');
+    }
+
+    if (!user || !user.id) {
+      console.log('Controller: User validation failed', { user, hasId: !!user?.id });
+      throw new BusinessException(ErrorCodes.UNAUTHORIZED, 'User not authenticated');
+    }
+
+    console.log('Controller: User validated successfully', { userId: user.id, email: user.email });
+
     const dto: ChangePasswordDto = {
       account_id: user.id,
       current_password: body.current_password,
@@ -127,5 +145,37 @@ export class AccountController {
   @ApiOperation({ summary: 'Reset password with token' })
   async resetPassword(@Body() body: ResetPasswordRequestDto): Promise<ApiResponseDto<null>> {
     return this.resetPasswordUseCase.execute(body);
+  }
+
+  @Post('change-temporary-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change temporary password to permanent password' })
+  @ApiBody({ 
+    schema: { 
+      properties: { 
+        account_id: { type: 'number' }, 
+        temporary_password: { type: 'string' }, 
+        new_password: { type: 'string' } 
+      }, 
+      required: ['account_id', 'temporary_password', 'new_password'] 
+    } 
+  })
+  async changeTemporaryPassword(
+    @Body() body: { account_id: number; temporary_password: string; new_password: string },
+    @Req() req: any,
+  ): Promise<ApiResponseDto<null>> {
+    // Validate required fields
+    if (!body.account_id || !body.temporary_password || !body.new_password) {
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Missing required fields: account_id, temporary_password, new_password');
+    }
+
+    const dto = {
+      account_id: Number(body.account_id),
+      temporary_password: body.temporary_password,
+      new_password: body.new_password,
+    };
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.changePasswordUseCase.changeTemporaryPassword(dto, ipAddress, userAgent);
   }
 }

@@ -16,6 +16,7 @@ export enum ErrorCodes {
   TOKEN_INVALID = 'TOKEN_INVALID',
   PASSWORD_TOO_WEAK = 'PASSWORD_TOO_WEAK',
   TEMPORARY_PASSWORD_EXPIRED = 'TEMPORARY_PASSWORD_EXPIRED',
+  TEMPORARY_PASSWORD_MUST_CHANGE = 'TEMPORARY_PASSWORD_MUST_CHANGE',
   TOO_MANY_LOGIN_ATTEMPTS = 'TOO_MANY_LOGIN_ATTEMPTS',
 }
 
@@ -37,6 +38,7 @@ export const ErrorMessages: Record<ErrorCodes, string> = {
   [ErrorCodes.TOKEN_INVALID]: 'Invalid token',
   [ErrorCodes.PASSWORD_TOO_WEAK]: 'Password is too weak',
   [ErrorCodes.TEMPORARY_PASSWORD_EXPIRED]: 'Temporary password has expired',
+  [ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE]: 'You must change your temporary password before continuing',
   [ErrorCodes.TOO_MANY_LOGIN_ATTEMPTS]: 'Too many login attempts',
 };
 
@@ -58,6 +60,7 @@ export const ErrorStatusCode: Record<ErrorCodes, number> = {
   [ErrorCodes.TOKEN_INVALID]: 400,
   [ErrorCodes.PASSWORD_TOO_WEAK]: 400,
   [ErrorCodes.TEMPORARY_PASSWORD_EXPIRED]: 400,
+  [ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE]: 403,
   [ErrorCodes.TOO_MANY_LOGIN_ATTEMPTS]: 429,
 };
 
