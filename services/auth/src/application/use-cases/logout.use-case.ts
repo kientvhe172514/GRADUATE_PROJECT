@@ -1,6 +1,7 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LogoutRequestDto } from '../dto/auth.dto';
 import { LogoutResponseDto } from '../dto/auth.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 import { RefreshTokensRepositoryPort } from '../ports/refresh-tokens.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { JwtServicePort } from '../ports/jwt.service.port';
@@ -26,7 +27,7 @@ export class LogoutUseCase {
     private auditLogsRepo: AuditLogsRepositoryPort,
   ) {}
 
-  async execute(logoutDto: LogoutRequestDto, accountId?: number, ipAddress?: string, userAgent?: string): Promise<LogoutResponseDto> {
+  async execute(logoutDto: LogoutRequestDto, accountId?: number, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LogoutResponseDto>> {
     if (logoutDto.refresh_token) {
       // Revoke specific refresh token
       await this.revokeRefreshToken(logoutDto.refresh_token, accountId, ipAddress, userAgent);
@@ -39,9 +40,7 @@ export class LogoutUseCase {
       throw new UnauthorizedException('No refresh token or account ID provided');
     }
 
-    return {
-      message: 'Logged out successfully',
-    };
+    return ApiResponseDto.success({ message: 'Logged out successfully' }, 'Logout successful');
   }
 
   private async revokeRefreshToken(refreshToken: string, accountId?: number, ipAddress?: string, userAgent?: string): Promise<void> {

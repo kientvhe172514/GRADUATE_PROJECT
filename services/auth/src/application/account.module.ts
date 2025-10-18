@@ -8,7 +8,11 @@ import { EmployeeCreatedListener } from '../presentation/event-listeners/employe
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
+import { GetAccountUseCase } from './use-cases/get-account.use-case';
+import { ForgotPasswordUseCase } from './use-cases/forgot-password.use-case';
+import { ResetPasswordUseCase } from './use-cases/reset-password.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
+import { UpdateAccountUseCase } from './use-cases/update-account.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
@@ -48,6 +52,25 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
         },
         inject: [ConfigService],
       },
+      {
+        name: 'NOTIFICATION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
+          const notificationQueue = configService.getOrThrow<string>('RABBITMQ_NOTIFICATION_QUEUE') as string;
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl] as string[],
+              queue: notificationQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [AccountController, EmployeeCreatedListener],  // Add listener
@@ -56,7 +79,11 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    UpdateAccountUseCase,
     ChangePasswordUseCase,
+    GetAccountUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
     EmployeeCreatedHandler,
     RabbitMQEventSubscriber,
     {

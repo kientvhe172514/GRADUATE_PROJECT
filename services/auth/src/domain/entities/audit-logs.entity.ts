@@ -15,4 +15,45 @@ export class AuditLogs {
   metadata?: Record<string, any>;
   
   created_at?: Date;
+
+  constructor(data?: Partial<AuditLogs>) {
+    if (data) Object.assign(this, data);
+    this.created_at = this.created_at || new Date();
+  }
+
+  static createSuccessLog(
+    accountId: number | null,
+    action: string,
+    ipAddress?: string,
+    userAgent?: string,
+    metadata?: Record<string, any>
+  ): AuditLogs {
+    return new AuditLogs({
+      account_id: accountId ?? null,
+      action,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      success: true,
+      metadata,
+    });
+  }
+
+  static createFailureLog(
+    accountId: number | null,
+    action: string,
+    errorMessage: string,
+    ipAddress?: string,
+    userAgent?: string,
+    metadata?: Record<string, any>
+  ): AuditLogs {
+    return new AuditLogs({
+      account_id: accountId ?? null,
+      action,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      success: false,
+      error_message: errorMessage,
+      metadata,
+    });
+  }
 }

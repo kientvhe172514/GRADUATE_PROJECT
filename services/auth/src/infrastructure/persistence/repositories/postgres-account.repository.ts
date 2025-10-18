@@ -67,4 +67,15 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   async updatePassword(id: number, passwordHash: string): Promise<void> {
     await this.repository.update(id, { password_hash: passwordHash });
   }
+
+  async update(account: Account): Promise<Account> {
+    const entity = AccountMapper.toPersistence(account);
+    const saved = await this.repository.save(entity);
+    return AccountMapper.toDomain(saved);
+  }
+
+  async findByEmployeeId(employeeId: number): Promise<Account | null> {
+    const entity = await this.repository.findOne({ where: { employee_id: employeeId } as any });
+    return entity ? AccountMapper.toDomain(entity) : null;
+  }
 }

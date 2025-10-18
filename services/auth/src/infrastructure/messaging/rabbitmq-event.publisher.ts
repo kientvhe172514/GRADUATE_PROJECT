@@ -4,9 +4,17 @@ import { EventPublisherPort } from '../../application/ports/event.publisher.port
 
 @Injectable()
 export class RabbitMQEventPublisher implements EventPublisherPort {
-  constructor(@Inject('EMPLOYEE_SERVICE') private client: ClientProxy) {}
+  constructor(
+    @Inject('EMPLOYEE_SERVICE') private employeeClient: ClientProxy,
+    @Inject('NOTIFICATION_SERVICE') private notificationClient: ClientProxy,
+  ) {}
 
   publish(pattern: string, data: any): void {
-    this.client.emit(pattern, data);
+    if (pattern.startsWith('auth.password-')) {
+      this.notificationClient.emit(pattern, data);
+      return;
+    }
+    // default route to employee service for legacy events
+    this.employeeClient.emit(pattern, data);
   }
 }
