@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { AccountController } from '../presentation/controllers/account.controller';
+import { AdminController } from '../presentation/controllers/admin.controller';
 import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';  // Add
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
@@ -13,6 +14,10 @@ import { ForgotPasswordUseCase } from './use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase } from './use-cases/reset-password.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { UpdateAccountUseCase } from './use-cases/update-account.use-case';
+import { ListAccountsUseCase } from './use-cases/admin/list-accounts.use-case';
+import { GetAccountDetailUseCase } from './use-cases/admin/get-account-detail.use-case';
+import { UpdateAccountStatusUseCase } from './use-cases/admin/update-account-status.use-case';
+import { ListAuditLogsUseCase } from './use-cases/admin/list-audit-logs.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
@@ -73,7 +78,7 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
       },
     ]),
   ],
-  controllers: [AccountController, EmployeeCreatedListener],  // Add listener
+  controllers: [AccountController, AdminController, EmployeeCreatedListener],  // Add AdminController
   providers: [
     CreateAccountUseCase,
     LoginUseCase,
@@ -84,6 +89,10 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     GetAccountUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,
+    ListAccountsUseCase,
+    GetAccountDetailUseCase,
+    UpdateAccountStatusUseCase,
+    ListAuditLogsUseCase,
     EmployeeCreatedHandler,
     RabbitMQEventSubscriber,
     {
