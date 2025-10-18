@@ -1,73 +1,86 @@
-import { NotificationType } from '../enums/notification-type.enum';
-import { ChannelType } from '../value-objects/delivery-channel.vo';
-
 export enum ScheduleType {
-  ONE_TIME = 'ONE_TIME',
+  ONCE = 'ONCE',
   RECURRING = 'RECURRING',
 }
 
 export enum RecipientType {
   INDIVIDUAL = 'INDIVIDUAL',
   DEPARTMENT = 'DEPARTMENT',
-  ALL = 'ALL',
+  ALL_EMPLOYEES = 'ALL_EMPLOYEES',
 }
 
-export enum ScheduleStatus {
+export enum ScheduledNotificationStatus {
   ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
+  PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
 export class ScheduledNotification {
   id?: number;
-  scheduleType: ScheduleType;
-  recipientType: RecipientType;
-  recipientIds?: number[];
+  
+  schedule_type: ScheduleType;
+  
+  recipient_type: RecipientType;
+  recipient_ids?: number[];
+  
   title: string;
   message: string;
-  notificationType: NotificationType;
-  channels: ChannelType[];
-  scheduledAt?: Date;
-  cronExpression?: string;
-  timezone: string;
-  status: ScheduleStatus;
-  lastRunAt?: Date;
-  nextRunAt?: Date;
-  createdBy: number;
-  createdAt: Date;
-  updatedAt: Date;
+  notification_type: string;
+  channels: string[];
+  
+  scheduled_at?: Date;
+  cron_expression?: string;
+  timezone: string = 'Asia/Ho_Chi_Minh';
+  
+  status: ScheduledNotificationStatus = ScheduledNotificationStatus.ACTIVE;
+  last_run_at?: Date;
+  next_run_at?: Date;
+  
+  created_by: number;
+  created_at?: Date;
+  updated_at?: Date;
 
   constructor(data: Partial<ScheduledNotification>) {
     Object.assign(this, data);
-    this.timezone = this.timezone || 'Asia/Ho_Chi_Minh';
-    this.status = this.status || ScheduleStatus.ACTIVE;
-    this.createdAt = this.createdAt || new Date();
-    this.updatedAt = this.updatedAt || new Date();
+    this.created_at = this.created_at || new Date();
+    this.updated_at = this.updated_at || new Date();
   }
 
-  shouldRun(): boolean {
-    if (this.status !== ScheduleStatus.ACTIVE) return false;
-    if (!this.nextRunAt) return false;
-    return new Date() >= this.nextRunAt;
+  isActive(): boolean {
+    return this.status === ScheduledNotificationStatus.ACTIVE;
   }
 
-  markAsRun(nextRun?: Date): void {
-    this.lastRunAt = new Date();
-    this.nextRunAt = nextRun;
-    this.updatedAt = new Date();
-
-    if (this.scheduleType === ScheduleType.ONE_TIME && !nextRun) {
-      this.status = ScheduleStatus.COMPLETED;
-    }
+  isRecurring(): boolean {
+    return this.schedule_type === ScheduleType.RECURRING;
   }
 
-  activate(): void {
-    this.status = ScheduleStatus.ACTIVE;
-    this.updatedAt = new Date();
+  isDue(): boolean {
+    if (!this.next_run_at) return false;
+    return new Date() >= this.next_run_at;
   }
 
-  deactivate(): void {
-    this.status = ScheduleStatus.INACTIVE;
-    this.updatedAt = new Date();
+  markAsRun(): void {
+    this.last_run_at = new Date();
+    this.updateTimestamp();
+  }
+
+  pause(): void {
+    this.status = ScheduledNotificationStatus.PAUSED;
+    this.updateTimestamp();
+  }
+
+  resume(): void {
+    this.status = ScheduledNotificationStatus.ACTIVE;
+    this.updateTimestamp();
+  }
+
+  cancel(): void {
+    this.status = ScheduledNotificationStatus.CANCELLED;
+    this.updateTimestamp();
+  }
+
+  private updateTimestamp(): void {
+    this.updated_at = new Date();
   }
 }

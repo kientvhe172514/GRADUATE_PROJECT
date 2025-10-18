@@ -3,12 +3,13 @@ import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountFactory } from '../../domain/factories/account.factory';
-import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
-import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, TEMPORARY_PASSWORDS_REPOSITORY } from '../tokens';
+import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
 import { UserRegisteredEvent } from '../../domain/events/user-registered.event';
 import { AccountCreatedEventDto } from '../dto/account-created.event.dto';
 
@@ -17,22 +18,20 @@ export class CreateAccountUseCase {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private accountRepo: AccountRepositoryPort,
-    @Inject(TEMPORARY_PASSWORDS_REPOSITORY)
-    private tempPasswordsRepo: TemporaryPasswordsRepositoryPort,
     @Inject(HASHING_SERVICE)
     private hashing: HashingServicePort,
     @Inject(EVENT_PUBLISHER)
     private publisher: EventPublisherPort,
   ) {}
 
-  async execute(dto: CreateAccountDto): Promise<Account> {
+  async execute(dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
     const existing = await this.accountRepo.findByEmail(dto.email);
     if (existing) {
-      throw new Error('Account already exists');
+      throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS);
     }
 
-    // Generate temporary password
-    const tempPass = randomBytes(16).toString('hex');
+    // Use temporary password "1"
+    const tempPass = '1';
     const tempPasswordHash = await this.hashing.hash(tempPass);
 
     // Create account using Factory Pattern
@@ -50,18 +49,6 @@ export class CreateAccountUseCase {
 
     const savedAccount = await this.accountRepo.create(account);
 
-    // Create temporary password record
-    const tempPassword = new TemporaryPasswords();
-    tempPassword.account_id = savedAccount.id!;
-    tempPassword.temp_password_hash = tempPasswordHash;
-    tempPassword.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    tempPassword.must_change_password = true;
-
-    await this.tempPasswordsRepo.create(tempPassword);
-
-    // Publish events
-    this.publisher.publish('user_registered', new UserRegisteredEvent(savedAccount));
-
     const backEvent = new AccountCreatedEventDto();
     backEvent.account_id = savedAccount.id!;
     backEvent.employee_id = dto.employee_id;
@@ -69,6 +56,6 @@ export class CreateAccountUseCase {
     console.log('Publishing account_created with data:', backEvent);
     this.publisher.publish('account_created', backEvent);
 
-    return savedAccount;
+    return ApiResponseDto.success({ id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 'Account created with temporary password', 201, undefined, 'ACCOUNT_CREATED');
   }
 }

@@ -1,31 +1,25 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { Employee } from '../../domain/entities/employee.entity';
 
 export class EmployeeUpdatedEventDto {
-  @ApiProperty()
-  id: number;
-
-  @ApiProperty()
+  employee_id: number;
+  account_id?: number;
   employee_code: string;
-
-  @ApiProperty()
   full_name: string;
-
-  @ApiProperty()
   email: string;
-
-  @ApiProperty()
-  updated_fields: string[];
-
-  @ApiProperty()
+  department_id?: number;
+  position_id?: number;
+  status: string;
   updated_at: Date;
 
-  constructor(employee: Employee, updatedFields: string[]) {
-    this.id = employee.id!;
+  constructor(employee: Employee) {
+    this.employee_id = employee.id!;
+    this.account_id = employee.account_id;
     this.employee_code = employee.employee_code;
     this.full_name = employee.full_name;
     this.email = employee.email;
-    this.updated_fields = updatedFields;
-    this.updated_at = employee.updated_at || new Date();
+    this.department_id = employee.department_id;
+    this.position_id = employee.position_id;
+    this.status = employee.status;
+    this.updated_at = employee.updated_at!;
   }
 }

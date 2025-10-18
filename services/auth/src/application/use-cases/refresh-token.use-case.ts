@@ -1,6 +1,7 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { RefreshTokenRequestDto } from '../dto/auth.dto';
 import { RefreshTokenResponseDto } from '../dto/auth.dto';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -32,7 +33,7 @@ export class RefreshTokenUseCase {
     private auditLogsRepo: AuditLogsRepositoryPort,
   ) {}
 
-  async execute(refreshTokenDto: RefreshTokenRequestDto, ipAddress?: string, userAgent?: string): Promise<RefreshTokenResponseDto> {
+  async execute(refreshTokenDto: RefreshTokenRequestDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
     // Verify the refresh token
     let payload;
     try {
@@ -97,10 +98,10 @@ export class RefreshTokenUseCase {
     // Log successful refresh
     await this.logSuccessfulRefresh(account.id!, ipAddress, userAgent);
 
-    return {
+    return ApiResponseDto.success({
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
-    };
+    }, 'Token refreshed');
   }
 
   private async logFailedRefresh(
