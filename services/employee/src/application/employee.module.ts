@@ -5,6 +5,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EmployeeController } from '../presentation/controllers/employee.controller';
 import { AccountCreatedListener } from '../presentation/event-listeners/account-created.listener';  // Add
 import { CreateEmployeeUseCase } from './use-cases/create-employee.use-case';
+import { GetEmployeeDetailUseCase } from './use-cases/get-employee-detail.use-case';
+import { UpdateEmployeeUseCase } from './use-cases/update-employee.use-case';
 import { PostgresEmployeeRepository } from '../infrastructure/persistence/repositories/postgres-employee.repository';
 import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-event.publisher';
 import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';  
@@ -40,6 +42,8 @@ import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from './tokens';
   controllers: [EmployeeController, AccountCreatedListener],  
   providers: [
     CreateEmployeeUseCase,
+    GetEmployeeDetailUseCase,
+    UpdateEmployeeUseCase,
     AccountCreatedHandler,
     RabbitMQEventSubscriber,  
     {
