@@ -71,4 +71,47 @@ export class PostgresAuditLogsRepository implements AuditLogsRepositoryPort {
     
     return result.affected || 0;
   }
+
+  async findWithPagination(criteria: any): Promise<{ logs: AuditLogs[]; total: number }> {
+    const queryBuilder = this.repository.createQueryBuilder('audit_log');
+
+    // Apply filters
+    if (criteria.account_id) {
+      queryBuilder.andWhere('audit_log.account_id = :account_id', { account_id: criteria.account_id });
+    }
+    
+    if (criteria.action) {
+      queryBuilder.andWhere('audit_log.action = :action', { action: criteria.action });
+    }
+    
+    if (criteria.success !== undefined) {
+      queryBuilder.andWhere('audit_log.success = :success', { success: criteria.success });
+    }
+
+    // Apply date filters
+    if (criteria.start_date) {
+      queryBuilder.andWhere('audit_log.created_at >= :start_date', { start_date: criteria.start_date });
+    }
+    
+    if (criteria.end_date) {
+      queryBuilder.andWhere('audit_log.created_at <= :end_date', { end_date: criteria.end_date });
+    }
+
+    // Apply sorting
+    const sortBy = criteria.sortBy || 'created_at';
+    const sortOrder = criteria.sortOrder || 'DESC';
+    queryBuilder.orderBy(`audit_log.${sortBy}`, sortOrder);
+
+    // Apply pagination
+    queryBuilder.skip(criteria.offset || 0).take(criteria.limit || 10);
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Get logs
+    const entities = await queryBuilder.getMany();
+    const logs = entities.map(AuditLogsMapper.toDomain);
+
+    return { logs, total };
+  }
 }

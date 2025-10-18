@@ -7,4 +7,5 @@ export interface AuditLogsRepositoryPort {
   findByDateRange(startDate: Date, endDate: Date, limit?: number): Promise<AuditLogs[]>;
   findByAccountAndAction(accountId: number, action: string, limit?: number): Promise<AuditLogs[]>;
   deleteOldLogs(olderThanDays: number): Promise<number>;
+  findWithPagination(criteria: any): Promise<{ logs: AuditLogs[]; total: number }>;
 }
