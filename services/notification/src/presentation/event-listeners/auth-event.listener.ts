@@ -67,7 +67,8 @@ export class AuthEventListener {
     console.log('📬 [AuthEventListener] Received auth.password-reset-requested:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.account_id,
+        recipientEmail: event.email,
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.URGENT,
         title: '🔑 Password Reset Request',
@@ -75,8 +76,8 @@ export class AuthEventListener {
         channels: [ChannelType.EMAIL],
         metadata: {
           eventType: 'auth.password-reset-requested',
-          resetToken: event.resetToken,
-          expiresAt: event.expiresAt,
+          resetToken: event.reset_token,
+          expiresAt: event.expires_at,
         },
       };
 

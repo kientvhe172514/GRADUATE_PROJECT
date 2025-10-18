@@ -46,8 +46,8 @@ export class NodemailerEmailService implements EmailServicePort {
     isHtml: boolean = false,
   ): Promise<void> {
     if (!this.transporter) {
-      this.logger.error('Email transporter not initialized');
-      return;
+      this.logger.error('Email transporter not initialized - SMTP is not configured');
+      throw new Error('SMTP not configured');
     }
 
     this.logger.log(`Sending email to ${to}`);

@@ -67,4 +67,66 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   async updatePassword(id: number, passwordHash: string): Promise<void> {
     await this.repository.update(id, { password_hash: passwordHash });
   }
+
+  async update(account: Account): Promise<Account> {
+    const entity = AccountMapper.toPersistence(account);
+    const saved = await this.repository.save(entity);
+    return AccountMapper.toDomain(saved);
+  }
+
+  async findByEmployeeId(employeeId: number): Promise<Account | null> {
+    const entity = await this.repository.findOne({ where: { employee_id: employeeId } as any });
+    return entity ? AccountMapper.toDomain(entity) : null;
+  }
+
+  async updateStatus(id: number, status: string): Promise<Account> {
+    await this.repository.update(id, { status });
+    const updatedEntity = await this.repository.findOne({ where: { id } });
+    if (!updatedEntity) {
+      throw new Error('Account not found after update');
+    }
+    return AccountMapper.toDomain(updatedEntity);
+  }
+
+  async findWithPagination(criteria: any): Promise<{ accounts: Account[]; total: number }> {
+    const queryBuilder = this.repository.createQueryBuilder('account');
+
+    // Apply filters
+    if (criteria.status) {
+      queryBuilder.andWhere('account.status = :status', { status: criteria.status });
+    }
+    
+    if (criteria.role) {
+      queryBuilder.andWhere('account.role = :role', { role: criteria.role });
+    }
+    
+    if (criteria.department_id) {
+      queryBuilder.andWhere('account.department_id = :department_id', { department_id: criteria.department_id });
+    }
+
+    // Apply search
+    if (criteria.search) {
+      queryBuilder.andWhere(
+        '(account.email ILIKE :search OR account.full_name ILIKE :search)',
+        { search: `%${criteria.search}%` }
+      );
+    }
+
+    // Apply sorting
+    const sortBy = criteria.sortBy || 'created_at';
+    const sortOrder = criteria.sortOrder || 'DESC';
+    queryBuilder.orderBy(`account.${sortBy}`, sortOrder);
+
+    // Apply pagination
+    queryBuilder.skip(criteria.offset || 0).take(criteria.limit || 10);
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Get accounts
+    const entities = await queryBuilder.getMany();
+    const accounts = entities.map(AccountMapper.toDomain);
+
+    return { accounts, total };
+  }
 }
