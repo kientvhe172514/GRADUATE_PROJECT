@@ -26,6 +26,7 @@ spec:
   - host: microservices.local
     http:
       paths:
+      # Auth Service
       - path: /api/v1/auth(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -33,6 +34,8 @@ spec:
             name: auth-srv
             port:
               number: 3001
+      
+      # Face Recognition Service
       - path: /api/v1/face(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -40,6 +43,51 @@ spec:
             name: face-recognition-srv
             port:
               number: 8080
+      
+      # Attendance Service
+      - path: /api/v1/attendance(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: attendance-srv
+            port:
+              number: 3002
+      
+      # Employee Service
+      - path: /api/v1/employee(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: employee-srv
+            port:
+              number: 3003
+      
+      # Leave Service
+      - path: /api/v1/leave(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: leave-srv
+            port:
+              number: 3004
+      
+      # Notification Service
+      - path: /api/v1/notification(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: notification-srv
+            port:
+              number: 3005
+      
+      # Reporting Service
+      - path: /api/v1/reporting(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: reporting-srv
+            port:
+              number: 3006
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

@@ -1,0 +1,25 @@
+# ============================================
+# Notification Service - Service
+# ============================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-srv
+  namespace: default
+  labels:
+    app: notification
+    tier: application
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - port: 3005
+    targetPort: 3005
+    protocol: TCP
+    name: http
+  selector:
+    app: notification

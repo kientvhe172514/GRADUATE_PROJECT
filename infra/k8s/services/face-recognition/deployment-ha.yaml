@@ -1,0 +1,298 @@
+# ============================================
+# Face-Recognition Service - Production Deployment
+# ============================================
+# HA-ready với anti-affinity, PDB, proper resources
+# Instance ID cho RabbitMQ multi-pod support
+# ============================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: face-recognition-depl
+  namespace: default
+  labels:
+    app: face-recognition
+    tier: api
+    version: v1
+spec:
+  replicas: 1  # Start with 1 pod, HPA will scale based on load
+  
+  selector:
+    matchLabels:
+      app: face-recognition
+      tier: api
+  
+  # ===== ROLLING UPDATE STRATEGY =====
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Tạo tối đa 1 pod mới trước khi kill old
+      maxUnavailable: 0  # Không kill pod cũ cho đến khi pod mới ready
+  
+  template:
+    metadata:
+      labels:
+        app: face-recognition
+        tier: api
+        version: v1
+      annotations:
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        # Force pod restart on config change
+        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+    
+    spec:
+      serviceAccountName: face-recognition-sa
+      
+      # ===== ANTI-AFFINITY: Phân tán pods across nodes =====
+      affinity:
+        podAntiAffinity:
+          # Required: Không cho 2 pods cùng node
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - face-recognition
+            topologyKey: kubernetes.io/hostname
+          
+          # Preferred: Ưu tiên phân tán across zones
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - face-recognition
+              topologyKey: topology.kubernetes.io/zone
+      
+      # ===== SECURITY CONTEXT =====
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # ===== INIT CONTAINER: Wait for dependencies =====
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z postgres-srv.infrastructure.svc.cluster.local 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 5
+          done
+          echo "PostgreSQL is ready!"
+      
+      - name: wait-for-rabbitmq
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z rabbitmq-srv.infrastructure.svc.cluster.local 5672; do
+            echo "Waiting for RabbitMQ..."
+            sleep 5
+          done
+          echo "RabbitMQ is ready!"
+      
+      containers:
+      - name: face-recognition
+        image: zentry.api
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8081
+          name: metrics
+          protocol: TCP
+        
+        env:
+        # ===== POD IDENTITY (For RabbitMQ Instance ID) =====
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        
+        # ===== APPLICATION CONFIG =====
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+          value: "true"
+        
+        # ===== FEATURE FLAGS =====
+        - name: ENABLE_SWAGGER
+          value: "false"  # Disable in production
+        - name: ENABLE_DETAILED_ERRORS
+          value: "false"
+        
+        # Load from ConfigMap & Secret
+        envFrom:
+        - configMapRef:
+            name: face-recognition-config
+        - secretRef:
+            name: face-recognition-secrets
+        
+        # ===== VOLUME MOUNTS =====
+        volumeMounts:
+        - name: appsettings
+          mountPath: /app/appsettings.Production.json
+          subPath: appsettings.Production.json
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/cache
+        
+        # ===== RESOURCE LIMITS (OPTIMIZED) =====
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+            ephemeral-storage: "500Mi"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
+        
+        # ===== HEALTH CHECKS =====
+        startupProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 12  # 2 minutes total
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        
+        # ===== SECURITY =====
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      
+      # ===== VOLUMES =====
+      volumes:
+      - name: appsettings
+        configMap:
+          name: face-recognition-app-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: cache
+        emptyDir:
+          sizeLimit: 2Gi
+      
+      # ===== DNS & NETWORK =====
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60  # Graceful shutdown time
+      
+      # ===== NODE SELECTION (Optional) =====
+      # nodeSelector:
+      #   workload-type: api
+      # tolerations:
+      # - key: "api-workload"
+      #   operator: "Equal"
+      #   value: "true"
+      #   effect: "NoSchedule"
+
+---
+# ===== POD DISRUPTION BUDGET =====
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: face-recognition-pdb
+  namespace: default
+  labels:
+    app: face-recognition
+spec:
+  minAvailable: 1  # Ít nhất 1 pod available (vì start with 1 replica)
+  selector:
+    matchLabels:
+      app: face-recognition
+      tier: api
+
+---
+# ===== SERVICE =====
+apiVersion: v1
+kind: Service
+metadata:
+  name: face-recognition-srv
+  namespace: default
+  labels:
+    app: face-recognition
+    tier: api
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP  # Sticky sessions
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  selector:
+    app: face-recognition
+    tier: api

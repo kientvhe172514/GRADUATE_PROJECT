@@ -1,0 +1,25 @@
+# ============================================
+# Attendance Service - Service
+# ============================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: attendance-srv
+  namespace: default
+  labels:
+    app: attendance
+    tier: application
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+    name: http
+  selector:
+    app: attendance

@@ -1,0 +1,25 @@
+# ============================================
+# Reporting Service - Service
+# ============================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-srv
+  namespace: default
+  labels:
+    app: reporting
+    tier: application
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - port: 3006
+    targetPort: 3006
+    protocol: TCP
+    name: http
+  selector:
+    app: reporting

@@ -1,16 +1,20 @@
+# ============================================
+# Notification Service - HPA
+# ============================================
+
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: face-recognition-hpa
+  name: notification-hpa
   namespace: default
   labels:
-    app: face-recognition
-    tier: api
+    app: notification
+    tier: application
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: face-recognition-depl
+    name: notification-depl
   minReplicas: 1
   maxReplicas: 5
   metrics:
@@ -33,9 +37,14 @@ spec:
       - type: Pods
         value: 2
         periodSeconds: 60
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Max
     scaleDown:
       stabilizationWindowSeconds: 300
       policies:
       - type: Pods
         value: 1
         periodSeconds: 120
+      selectPolicy: Min

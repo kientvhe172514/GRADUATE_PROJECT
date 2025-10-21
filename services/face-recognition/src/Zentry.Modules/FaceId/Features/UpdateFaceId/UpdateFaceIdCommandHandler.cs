@@ -47,10 +47,11 @@ public class UpdateFaceIdCommandHandler : ICommandHandler<UpdateFaceIdCommand, U
             // Update embedding in database (now accepts float[] directly)
             await _faceIdRepository.UpdateAsync(command.UserId, command.EmbeddingArray, cancellationToken);
 
-            // Update user's face ID status (to update the LastUpdated timestamp)
-            var updateFaceIdCommand =
-                new UserManagement.Features.UpdateFaceId.UpdateFaceIdCommand(command.UserId, true);
-            await _mediator.Send(updateFaceIdCommand, cancellationToken);
+            // ❌ COMMENT: Update user's face ID status - Service auth/employee riêng xử lý
+            // TODO: Gọi API sang service auth/employee để update LastUpdated timestamp qua HTTP/RabbitMQ
+            // var updateFaceIdCommand =
+            //     new UserManagement.Features.UpdateFaceId.UpdateFaceIdCommand(command.UserId, true);
+            // await _mediator.Send(updateFaceIdCommand, cancellationToken);
 
             return new UpdateFaceIdResponse
             {

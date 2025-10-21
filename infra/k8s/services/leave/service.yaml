@@ -1,0 +1,25 @@
+# ============================================
+# Leave Service - Service
+# ============================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: leave-srv
+  namespace: default
+  labels:
+    app: leave
+    tier: application
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - port: 3004
+    targetPort: 3004
+    protocol: TCP
+    name: http
+  selector:
+    app: leave

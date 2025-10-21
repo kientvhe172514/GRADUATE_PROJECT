@@ -1,0 +1,220 @@
+# ============================================
+# PostgreSQL Primary Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-primary-config
+  namespace: infrastructure
+  labels:
+    app: postgres
+    role: primary
+data:
+  postgresql.conf: |
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    superuser_reserved_connections = 3
+    
+    # Memory Settings
+    shared_buffers = 512MB
+    effective_cache_size = 1536MB
+    maintenance_work_mem = 128MB
+    work_mem = 16MB
+    
+    # WAL Settings (for replication)
+    wal_level = replica
+    max_wal_senders = 10
+    max_replication_slots = 10
+    wal_keep_size = 1GB
+    hot_standby = on
+    
+    # Logging
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Performance
+    shared_preload_libraries = 'pg_stat_statements'
+    track_activities = on
+    track_counts = on
+    track_io_timing = on
+    track_functions = all
+    
+    # Autovacuum
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 1min
+    
+    # Query Planning
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    host    all             all             0.0.0.0/0               md5
+    host    replication     replicator      0.0.0.0/0               md5
+
+---
+# ============================================
+# PostgreSQL Replica Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-replica-config
+  namespace: infrastructure
+  labels:
+    app: postgres
+    role: replica
+data:
+  postgresql.conf: |
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    superuser_reserved_connections = 3
+    
+    # Memory Settings
+    shared_buffers = 512MB
+    effective_cache_size = 1536MB
+    maintenance_work_mem = 128MB
+    work_mem = 16MB
+    
+    # WAL Settings
+    wal_level = replica
+    hot_standby = on
+    hot_standby_feedback = on
+    max_standby_streaming_delay = 30s
+    
+    # Logging
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Performance
+    shared_preload_libraries = 'pg_stat_statements'
+    track_activities = on
+    track_counts = on
+    track_io_timing = on
+    track_functions = all
+    
+    # Query Planning
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    host    all             all             0.0.0.0/0               md5
+
+---
+# ============================================
+# PostgreSQL Init Scripts
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: infrastructure
+  labels:
+    app: postgres
+data:
+  01-create-replication-user.sh: |
+    #!/bin/bash
+    set -e
+    
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        -- Create replication user
+        CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD '${REPLICATOR_PASSWORD}';
+        
+        -- Create extension for monitoring
+        CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        
+        -- Create application databases
+        CREATE DATABASE face_recognition_db;
+        CREATE DATABASE auth_db;
+        CREATE DATABASE attendance_db;
+        CREATE DATABASE employee_db;
+        CREATE DATABASE leave_db;
+        CREATE DATABASE notification_db;
+        CREATE DATABASE reporting_db;
+        
+        -- Grant privileges
+        GRANT ALL PRIVILEGES ON DATABASE face_recognition_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE auth_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE attendance_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE employee_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE leave_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE notification_db TO ${POSTGRES_USER};
+        GRANT ALL PRIVILEGES ON DATABASE reporting_db TO ${POSTGRES_USER};
+    EOSQL
+
+---
+# ============================================
+# PgBouncer Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: infrastructure
+  labels:
+    app: pgbouncer
+data:
+  pgbouncer.ini: |
+    [databases]
+    * = host=postgres-primary-0.postgres-primary-headless.infrastructure.svc.cluster.local port=5432
+    
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 5432
+    auth_type = md5
+    auth_file = /etc/pgbouncer/userlist.txt
+    admin_users = postgres
+    stats_users = postgres
+    
+    # Connection Pooling
+    pool_mode = transaction
+    max_client_conn = 1000
+    default_pool_size = 25
+    reserve_pool_size = 5
+    reserve_pool_timeout = 5
+    max_db_connections = 100
+    max_user_connections = 100
+    
+    # Timeouts
+    server_idle_timeout = 600
+    server_connect_timeout = 15
+    server_login_retry = 15
+    query_timeout = 0
+    query_wait_timeout = 120
+    client_idle_timeout = 0
+    client_login_timeout = 60
+    
+    # Logging
+    log_connections = 1
+    log_disconnections = 1
+    log_pooler_errors = 1
+    
+    # Performance
+    ignore_startup_parameters = extra_float_digits
+    application_name_add_host = 1
