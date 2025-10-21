@@ -9,7 +9,7 @@ import { CreatePositionDto } from '../../application/dto/create-position.dto';
 import { UpdatePositionDto } from '../../application/dto/update-position.dto';
 import { PositionResponseDto } from '../../application/dto/position-response.dto';
 import { PositionListResponseDto } from '../../application/dto/position-list-response.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('positions')
 @Controller('positions')

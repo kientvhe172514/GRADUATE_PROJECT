@@ -2,8 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PositionRepositoryPort } from '../ports/position.repository.port';
 import { Position } from '../../domain/entities/position.entity';
 import { CreatePositionDto } from '../dto/create-position.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { POSITION_REPOSITORY } from '../tokens';
 
 @Injectable()
@@ -17,8 +16,9 @@ export class CreatePositionUseCase {
     if (existingPosition) {
       throw new BusinessException(
         ErrorCodes.POSITION_CODE_ALREADY_EXISTS,
-        `Position with code ${createPositionDto.position_code} already exists`,
+        'Position code already exists',
         400,
+        `Position with code ${createPositionDto.position_code} already exists`,
       );
     }
 

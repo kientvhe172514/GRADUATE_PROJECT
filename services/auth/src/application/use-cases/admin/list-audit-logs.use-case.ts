@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ApiResponseDto } from '../../../common/dto/api-response.dto';
-import { BusinessException } from '../../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { AuditLogsRepositoryPort } from '../../ports/audit-logs.repository.port';
 import { AUDIT_LOGS_REPOSITORY } from '../../tokens';
 import { 
