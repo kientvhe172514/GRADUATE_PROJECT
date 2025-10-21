@@ -6,7 +6,7 @@ import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { ACCOUNT_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 export class ForgotPasswordRequestDto {
   email: string;
@@ -45,7 +45,7 @@ export class ForgotPasswordUseCase {
     await this.tempRepo.create(temp);
 
     // Publish event to Notification service to send email
-    await this.publisher.publish('auth.password_reset_requested', {
+    await this.publisher.publish('auth.password-reset-requested', {
       account_id: account.id,
       email: account.email,
       full_name: account.full_name,

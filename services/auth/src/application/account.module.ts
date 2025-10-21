@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { JwtModule } from '@nestjs/jwt';
 
 import { AccountController } from '../presentation/controllers/account.controller';
 import { AdminController } from '../presentation/controllers/admin.controller';
@@ -37,6 +38,14 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
 @Module({
   imports: [
     TypeOrmModule.forFeature([AccountSchema, RefreshTokensSchema, AuditLogsSchema, TemporaryPasswordsSchema]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET', 'secretKey'),
+        signOptions: { expiresIn: '60m' },
+      }),
+      inject: [ConfigService],
+    }),
     ClientsModule.registerAsync([
       {
         name: 'EMPLOYEE_SERVICE',

@@ -12,9 +12,7 @@ import {
   AUDIT_LOGS_REPOSITORY
 } from '../tokens';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 
 export class ChangePasswordDto {
   account_id: number;
@@ -45,7 +43,7 @@ export class ChangePasswordUseCase {
     const account = await this.accountRepo.findById(dto.account_id);
     if (!account) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Account not found');
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
 
     // Validate input parameters
@@ -63,7 +61,7 @@ export class ChangePasswordUseCase {
     const isCurrentPasswordValid = await this.hashing.compare(dto.current_password, account.password_hash);
     if (!isCurrentPasswordValid) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid current password');
-      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS);
+      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS, 'Invalid credentials');
     }
 
     // Hash new password
@@ -90,7 +88,7 @@ export class ChangePasswordUseCase {
     const account = await this.accountRepo.findById(dto.account_id);
     if (!account) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Account not found');
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
 
     // Verify that current password is temporary password "1"
@@ -104,7 +102,7 @@ export class ChangePasswordUseCase {
     const isProvidedPasswordValid = await this.hashing.compare(dto.temporary_password, account.password_hash);
     if (!isProvidedPasswordValid) {
       await this.logPasswordChangeFailure(dto.account_id, ipAddress, userAgent, 'Invalid temporary password');
-      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS);
+      throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS, 'Invalid credentials');
     }
 
     // Hash new password

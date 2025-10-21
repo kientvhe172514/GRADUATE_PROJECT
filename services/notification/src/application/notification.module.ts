@@ -121,7 +121,7 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: PUSH_NOTIFICATION_SERVICE,
       useFactory: (configService: ConfigService, pushTokenRepo: PushTokenRepositoryPort) => {
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'fasle' || 
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
                        !configService.get('FIREBASE_PROJECT_ID');
         return useMock 
           ? new MockPushService() 
@@ -143,7 +143,7 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: SMS_SERVICE,
       useFactory: (configService: ConfigService) => {
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'fasle' || 
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
                        !configService.get('TWILIO_ACCOUNT_SID');
         return useMock 
           ? new MockSmsService() 

@@ -1,8 +1,10 @@
-import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NotificationRepositoryPort } from '../ports/notification.repository.port';
 import { EventPublisherPort } from '../ports/event-publisher.port';
 import { NOTIFICATION_REPOSITORY, EVENT_PUBLISHER } from './send-notification.use-case';
 import { NotificationReadEvent } from '../../domain/events/notification-read.event';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { ErrorCodes } from '../../common/enums/error-codes.enum';
 
 @Injectable()
 export class MarkNotificationAsReadUseCase {
@@ -21,11 +23,11 @@ export class MarkNotificationAsReadUseCase {
     const notification = await this.notificationRepo.findById(notificationId);
 
     if (!notification) {
-      throw new NotFoundException('Notification not found');
+      throw new BusinessException(ErrorCodes.NOTIFICATION_NOT_FOUND, 'Notification not found', 404);
     }
 
     if (notification.recipientId !== userId) {
-      throw new NotFoundException('Notification not found');
+      throw new BusinessException(ErrorCodes.NOTIFICATION_NOT_FOUND, 'Notification not found', 404);
     }
 
     if (!notification.isRead) {

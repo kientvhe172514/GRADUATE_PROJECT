@@ -3,9 +3,7 @@ import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountFactory } from '../../domain/factories/account.factory';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
@@ -27,7 +25,7 @@ export class CreateAccountUseCase {
   async execute(dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
     const existing = await this.accountRepo.findByEmail(dto.email);
     if (existing) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS);
+      throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account already exists');
     }
 
     // Use temporary password "1"
