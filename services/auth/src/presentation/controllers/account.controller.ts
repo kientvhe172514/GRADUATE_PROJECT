@@ -144,6 +144,15 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token' })
   async resetPassword(@Body() body: ResetPasswordRequestDto): Promise<ApiResponseDto<null>> {
+    console.log('🔍 AccountController - Received body:', JSON.stringify(body, null, 2));
+    console.log('🔍 AccountController - Body fields:', {
+      email: body?.email,
+      reset_token: body?.reset_token,
+      new_password: body?.new_password,
+      hasEmail: !!body?.email,
+      hasResetToken: !!body?.reset_token,
+      hasNewPassword: !!body?.new_password
+    });
     return this.resetPasswordUseCase.execute(body);
   }
 
