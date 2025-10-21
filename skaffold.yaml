@@ -146,19 +146,28 @@ profiles:
           # RabbitMQ HA cluster
           - infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
           
-          # ===== MONITORING =====
+          # ===== MONITORING STACK (Optimized for Test/Dev) =====
           # RBAC
           - infra/k8s/shared/monitoring/prometheus-rbac.yaml
           - infra/k8s/shared/monitoring/fluentd-rbac.yaml
+          # PersistentVolumeClaims (NEW - Professional!)
+          - infra/k8s/shared/monitoring/prometheus-pvc.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-pvc.yaml
+          # Secrets (NEW - Security!)
+          - infra/k8s/shared/monitoring/grafana/grafana-secret.yaml
           # ConfigMaps
           - infra/k8s/shared/monitoring/prometheus-configmap.yaml
           - infra/k8s/shared/monitoring/fluentd-configmap.yaml
           - infra/k8s/shared/monitoring/grafana/grafana-configmap.yaml
           - infra/k8s/shared/monitoring/grafana/grafana-datasources-configmap.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-dashboards-configmap.yaml
+          # AlertManager (NEW - Professional!)
+          - infra/k8s/shared/monitoring/alertmanager-configmap.yaml
+          - infra/k8s/shared/monitoring/alertmanager-depl.yaml
           # Deployments
           - infra/k8s/shared/monitoring/prometheus-depl.yaml
           - infra/k8s/shared/monitoring/grafana/grafana-deployment.yaml
-          - infra/k8s/shared/monitoring/fluentd-daemonset.yaml
+          # - infra/k8s/shared/monitoring/fluentd-daemonset.yaml  # DISABLED for test/dev (use kubectl logs)
           # Services
           - infra/k8s/shared/monitoring/grafana/grafana-service.yaml
           
