@@ -31,6 +31,24 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
     return entity ? EmployeeMapper.toDomain(entity) : null;
   }
 
+  async findById(id: number): Promise<Employee | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? EmployeeMapper.toDomain(entity) : null;
+  }
+
+  async update(id: number, employee: Partial<Employee>): Promise<Employee> {
+    const existingEntity = await this.repository.findOne({ where: { id } });
+    if (!existingEntity) {
+      throw new Error('Employee not found');
+    }
+
+    const updateEntity = EmployeeMapper.toPersistence(employee as Employee);
+    await this.repository.update(id, { ...updateEntity, updated_at: new Date() });
+    
+    const updatedEntity = await this.repository.findOne({ where: { id } });
+    return EmployeeMapper.toDomain(updatedEntity!);
+  }
+
   async updateAccountId(id: number, accountId: number): Promise<void> {
     await this.repository.update(id, { account_id: accountId });
   }

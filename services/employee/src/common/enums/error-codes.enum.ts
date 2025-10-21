@@ -13,6 +13,7 @@ export enum ErrorCodes {
   EMPLOYEE_EMAIL_ALREADY_EXISTS = 'EMPLOYEE_EMAIL_ALREADY_EXISTS',
   DEPARTMENT_NOT_FOUND = 'DEPARTMENT_NOT_FOUND',
   POSITION_NOT_FOUND = 'POSITION_NOT_FOUND',
+  POSITION_CODE_ALREADY_EXISTS = 'POSITION_CODE_ALREADY_EXISTS',
   MANAGER_NOT_FOUND = 'MANAGER_NOT_FOUND',
 }
 
@@ -31,6 +32,7 @@ export const ErrorMessages: Record<ErrorCodes, string> = {
   [ErrorCodes.EMPLOYEE_EMAIL_ALREADY_EXISTS]: 'Employee email already exists',
   [ErrorCodes.DEPARTMENT_NOT_FOUND]: 'Department not found',
   [ErrorCodes.POSITION_NOT_FOUND]: 'Position not found',
+  [ErrorCodes.POSITION_CODE_ALREADY_EXISTS]: 'Position code already exists',
   [ErrorCodes.MANAGER_NOT_FOUND]: 'Manager not found',
 };
 
@@ -49,6 +51,7 @@ export const ErrorStatusCode: Record<ErrorCodes, number> = {
   [ErrorCodes.EMPLOYEE_EMAIL_ALREADY_EXISTS]: 409,
   [ErrorCodes.DEPARTMENT_NOT_FOUND]: 404,
   [ErrorCodes.POSITION_NOT_FOUND]: 404,
+  [ErrorCodes.POSITION_CODE_ALREADY_EXISTS]: 409,
   [ErrorCodes.MANAGER_NOT_FOUND]: 404,
 };
 
