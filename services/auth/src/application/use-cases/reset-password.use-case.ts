@@ -3,9 +3,7 @@ import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.r
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, ACCOUNT_REPOSITORY } from '../tokens';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException, ErrorCodes, ApiResponseDto } from '@graduate-project/shared-common';
 
 export class ResetPasswordRequestDto {
   email: string;
@@ -36,7 +34,7 @@ export class ResetPasswordUseCase {
     const temp = await this.tempRepo.findActiveByAccountId(account.id!);
     if (!temp) {
       throw new BusinessException(
-        ErrorCodes.TOKEN_INVALID,
+        ErrorCodes.INVALID_TOKEN,
         'Invalid or expired reset token',
       );
     }
