@@ -46,7 +46,9 @@ data:
     
     # ===== CONNECTION & CHANNEL LIMITS =====
     channel_max = 2048
-    num_acceptors.tcp = 10
+    num_acceptors.tcp = 30
+    connection_max = 2000
+    channel_max_per_connection = 100
     
     # ===== HEARTBEAT & TIMEOUTS =====
     heartbeat = 60

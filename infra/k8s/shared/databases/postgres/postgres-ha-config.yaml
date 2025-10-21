@@ -15,7 +15,7 @@ data:
     # Connection Settings
     listen_addresses = '*'
     port = 5432
-    max_connections = 200
+    max_connections = 500
     superuser_reserved_connections = 3
     
     # Memory Settings
@@ -194,12 +194,12 @@ data:
     
     # Connection Pooling
     pool_mode = transaction
-    max_client_conn = 1000
-    default_pool_size = 25
-    reserve_pool_size = 5
+    max_client_conn = 2000
+    default_pool_size = 50
+    reserve_pool_size = 10
     reserve_pool_timeout = 5
-    max_db_connections = 100
-    max_user_connections = 100
+    max_db_connections = 400
+    max_user_connections = 400
     
     # Timeouts
     server_idle_timeout = 600

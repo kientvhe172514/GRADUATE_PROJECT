@@ -14,7 +14,16 @@
 - ✅ **Unified on PostgreSQL** (all 7 services)
 - ✅ **Cleaned duplicate files** (6 files removed)
 - ✅ **Optimized network policies** (68 lines removed)
-- ✅ **2.0GB total RAM** (down from 2.5GB, 87.5% from original 16GB!)
+- ✅ **Increased connection limits** (support 35 pods scaling)
+- ✅ **2.1GB total RAM** (down from 2.5GB, 86.8% from original 16GB!)
+
+### Connection Limits Fixed (IMPORTANT!)
+- **PostgreSQL**: max_connections 200 → **500** (for 35 pods)
+- **PgBouncer**: max_db_connections 100 → **400**
+- **Redis**: Added maxclients = **5000**
+- **RabbitMQ**: num_acceptors 10 → **30**
+
+**Why?** When HPA scales to 5 replicas × 7 services = 35 pods, old limits caused "connection refused" errors on pods 11+.
 
 ### Service Updates
 - **Notification Service**: MongoDB → PostgreSQL

@@ -49,6 +49,9 @@ data:
     # requirepass set via command line
     # masterauth set via command line
     
+    # Client Connections
+    maxclients 5000
+    
     # Memory Management
     maxmemory 768mb
     maxmemory-policy allkeys-lru
