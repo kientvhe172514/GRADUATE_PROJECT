@@ -77,7 +77,7 @@ export class UpdateEmployeeUseCase {
     const updatedEmployee = await this.employeeRepository.update(id, updateData);
 
     // Publish update event
-    const eventDto = new EmployeeUpdatedEventDto(updatedEmployee, Object.keys(dto));
+    const eventDto = new EmployeeUpdatedEventDto(updatedEmployee);
     this.eventPublisher.publish('employee_updated', eventDto);
 
     return updatedEmployee;
