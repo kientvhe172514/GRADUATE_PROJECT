@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PositionRepositoryPort } from '../ports/position.repository.port';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { POSITION_REPOSITORY } from '../tokens';
 
 @Injectable()
@@ -15,8 +14,9 @@ export class DeletePositionUseCase {
     if (!existingPosition) {
       throw new BusinessException(
         ErrorCodes.POSITION_NOT_FOUND,
-        `Position with id ${id} not found`,
+        'Position not found',
         404,
+        `Position with id ${id} not found`,
       );
     }
 
