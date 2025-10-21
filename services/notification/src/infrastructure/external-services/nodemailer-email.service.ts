@@ -17,14 +17,14 @@ export class NodemailerEmailService implements EmailServicePort {
     const portRaw = this.configService.get<string>('SMTP_PORT') ?? '587';
     const secureRaw = this.configService.get<string>('SMTP_SECURE') ?? 'false';
     const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
+    const pass = this.configService.get<string>('SMTP_PASSWORD');
 
     const port = Number.parseInt(String(portRaw), 10);
     const secure = String(secureRaw).toLowerCase() === 'true';
 
     if (!host || !user || !pass) {
       this.logger.warn(
-        `SMTP configuration not complete. Email notifications will not work. host=${host ? '✅' : '❌'}, user=${user ? '✅' : '❌'}`,
+        `SMTP configuration not complete. Email notifications will not work. host=${host ? '✅' : '❌'}, user=${user ? '✅' : '❌'}, pass=${pass ? '✅' : '❌'}`,
       );
       return;
     }
@@ -57,7 +57,9 @@ export class NodemailerEmailService implements EmailServicePort {
 
     this.logger.log(`Sending email to ${to}`);
 
-    const from = this.configService.get<string>('SMTP_FROM') || 'noreply@zentry.com';
+    const fromEmail = this.configService.get<string>('SMTP_FROM_EMAIL') || 'noreply@zentry.com';
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Zentry HR System';
+    const from = `"${fromName}" <${fromEmail}>`;
 
     try {
       const mail: nodemailer.SendMailOptions = {

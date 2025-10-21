@@ -4,21 +4,17 @@ import {
   Get,
   Put,
   Req,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateNotificationPreferenceUseCase } from '../../application/use-cases/update-notification-preference.use-case';
 import { GetNotificationPreferencesUseCase } from '../../application/use-cases/get-notification-preferences.use-case';
 import { UpdateNotificationPreferenceDto } from '../../application/dtos/update-notification-preference.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 @ApiTags('preferences')
-@ApiBearerAuth()
 @Controller('notification-preferences')
-@UseGuards(JwtAuthGuard)
 export class NotificationPreferenceController {
   constructor(
     private readonly updatePreferenceUseCase: UpdateNotificationPreferenceUseCase,

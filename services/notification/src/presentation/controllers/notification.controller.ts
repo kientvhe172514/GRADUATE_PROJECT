@@ -7,14 +7,13 @@ import {
   Put,
   Query,
   Req,
-  UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
   ParseBoolPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.use-case';
@@ -22,13 +21,12 @@ import { MarkAllNotificationsAsReadUseCase } from '../../application/use-cases/m
 import { SendNotificationDto } from '../../application/dtos/send-notification.dto';
 import { SendNotificationFromTemplateDto } from '../../application/dtos/send-notification-from-template.dto';
 import { SendNotificationFromTemplateUseCase } from '../../application/use-cases/send-notification-from-template.use-case';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
+// NOTE: Notification Service is an internal service, authentication is handled by API Gateway/Auth Service
+// No JWT validation needed here - trust requests from internal network
 @ApiTags('notifications')
-@ApiBearerAuth()
 @Controller('notifications')
-@UseGuards(JwtAuthGuard)
 export class NotificationController {
   constructor(
     private readonly sendNotificationUseCase: SendNotificationUseCase,

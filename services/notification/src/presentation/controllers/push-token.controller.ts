@@ -4,24 +4,20 @@ import {
   Post,
   Delete,
   Req,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterPushTokenUseCase } from '../../application/use-cases/register-push-token.use-case';
 import { UnregisterPushTokenUseCase } from '../../application/use-cases/unregister-push-token.use-case';
 import {
   RegisterPushTokenDto,
   UnregisterPushTokenDto,
 } from '../../application/dtos/push-token.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 @ApiTags('push-tokens')
-@ApiBearerAuth()
 @Controller('push-tokens')
-@UseGuards(JwtAuthGuard)
 export class PushTokenController {
   constructor(
     private readonly registerTokenUseCase: RegisterPushTokenUseCase,
