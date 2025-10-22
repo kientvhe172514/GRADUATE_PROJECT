@@ -16,9 +16,9 @@ import { TerminateEmployeeDto } from '../../application/dto/employee/terminate-e
 import { UpdateOnboardingStepDto } from '../../application/dto/onboarding/update-onboarding-step.dto';
 import { Employee } from '../../domain/entities/employee.entity';
 import { EmployeeOnboardingStep } from '../../domain/entities/employee-onboarding-step.entity';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
 import { CreateEmployeeResponseDto } from '../../application/dto/employee/create-employee-response.dto';
 import { CreateEmployeeDto } from '../../application/dto/employee/create-employee.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('employees')
 @Controller('employees')

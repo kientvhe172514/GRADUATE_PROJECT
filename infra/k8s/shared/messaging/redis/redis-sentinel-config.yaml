@@ -1,0 +1,241 @@
+# ============================================
+# Redis Master Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-master-config
+  namespace: infrastructure
+  labels:
+    app: redis
+    role: master
+data:
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Snapshotting (RDB)
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # Replication (Master)
+    repl-diskless-sync yes
+    repl-diskless-sync-delay 5
+    repl-diskless-load disabled
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+    
+    # Security
+    protected-mode yes
+    # requirepass set via command line
+    # masterauth set via command line
+    
+    # Client Connections
+    maxclients 5000
+    
+    # Memory Management
+    maxmemory 768mb
+    maxmemory-policy allkeys-lru
+    maxmemory-samples 5
+    
+    # Append Only File (AOF)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    
+    # Slow Log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Latency Monitor
+    latency-monitor-threshold 100
+    
+    # Event Notification
+    notify-keyspace-events ""
+    
+    # Advanced Config
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+    stream-node-max-bytes 4096
+    stream-node-max-entries 100
+    activerehashing yes
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    hz 10
+    dynamic-hz yes
+    aof-rewrite-incremental-fsync yes
+    rdb-save-incremental-fsync yes
+
+---
+# ============================================
+# Redis Replica Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-replica-config
+  namespace: infrastructure
+  labels:
+    app: redis
+    role: replica
+data:
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Snapshotting (RDB)
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # Replication (Replica)
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync yes
+    repl-diskless-sync-delay 5
+    repl-diskless-load disabled
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+    min-replicas-to-write 1
+    min-replicas-max-lag 10
+    
+    # Security
+    protected-mode yes
+    # requirepass set via command line
+    # masterauth set via command line
+    
+    # Memory Management
+    maxmemory 768mb
+    maxmemory-policy allkeys-lru
+    maxmemory-samples 5
+    
+    # Append Only File (AOF)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    
+    # Slow Log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Latency Monitor
+    latency-monitor-threshold 100
+    
+    # Event Notification
+    notify-keyspace-events ""
+    
+    # Advanced Config
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+    stream-node-max-bytes 4096
+    stream-node-max-entries 100
+    activerehashing yes
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    hz 10
+    dynamic-hz yes
+    aof-rewrite-incremental-fsync yes
+    rdb-save-incremental-fsync yes
+
+---
+# ============================================
+# Redis Sentinel Configuration
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-sentinel-config
+  namespace: infrastructure
+  labels:
+    app: redis-sentinel
+data:
+  sentinel.conf: |
+    # Bind to all interfaces
+    bind 0.0.0.0
+    port 26379
+    
+    # Sentinel monitoring
+    sentinel monitor mymaster redis-master-0.redis-master-headless.infrastructure.svc.cluster.local 6379 2
+    sentinel auth-pass mymaster ${REDIS_PASSWORD}
+    
+    # Failover configuration
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel parallel-syncs mymaster 1
+    sentinel failover-timeout mymaster 10000
+    
+    # Notification scripts (optional)
+    # sentinel notification-script mymaster /path/to/notification.sh
+    # sentinel client-reconfig-script mymaster /path/to/reconfig.sh
+    
+    # Sentinel logging
+    loglevel notice
+    logfile ""
+    
+    # Sentinel working directory
+    dir /data
+    
+    # Resolve DNS hostnames
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes

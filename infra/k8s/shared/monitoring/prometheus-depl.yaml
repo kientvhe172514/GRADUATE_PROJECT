@@ -26,9 +26,13 @@ spec:
           - '--storage.tsdb.path=/prometheus/'
           - '--web.console.libraries=/etc/prometheus/console_libraries'
           - '--web.console.templates=/etc/prometheus/consoles'
-          - '--storage.tsdb.retention.time=30d'
+          - '--storage.tsdb.retention.time=7d'  # Optimized for test/dev (was 30d)
+          - '--storage.tsdb.retention.size=5GB'  # Add size limit
           - '--web.enable-lifecycle'
           - '--web.enable-admin-api'
+          - '--web.external-url=http://prometheus.monitoring.svc:9090'
+          # CONNECT TO ALERTMANAGER FOR FIRING ALERTS
+          - '--alertmanager.url=http://alertmanager-srv.monitoring.svc:9093'
         ports:
         - containerPort: 9090
           name: prometheus
@@ -39,11 +43,11 @@ spec:
           mountPath: /prometheus/
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
+            memory: "128Mi"  # Optimized for test/dev (was 512Mi)
+            cpu: "50m"       # Optimized for test/dev (was 250m)
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "256Mi"  # Optimized for test/dev (was 1Gi)
+            cpu: "200m"      # Optimized for test/dev (was 500m)
         readinessProbe:
           httpGet:
             path: /-/ready
@@ -63,7 +67,8 @@ spec:
         configMap:
           name: prometheus-config
       - name: prometheus-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: prometheus-storage  # USE PVC FOR PERSISTENCE! (was emptyDir)
 
 ---
 apiVersion: v1

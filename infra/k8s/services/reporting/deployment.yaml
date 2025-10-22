@@ -1,0 +1,177 @@
+# ============================================
+# Reporting Service - HA Deployment (Optimized)
+# ============================================
+# Sử dụng PostgreSQL cho analytics/reporting data
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-depl
+  namespace: default
+  labels:
+    app: reporting
+    tier: application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: reporting
+        tier: application
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3006"
+    spec:
+      serviceAccountName: reporting-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z pgbouncer-srv.infrastructure 5432; do sleep 5; done']
+      - name: wait-for-postgres-replica
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z postgres-replica-srv.infrastructure 5432; do sleep 5; done']
+      containers:
+      - name: reporting
+        image: reporting-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3006
+          name: http
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3006"
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USERNAME):$(POSTGRES_PASSWORD)@pgbouncer-srv.infrastructure:5432/reporting_db"
+        - name: POSTGRES_READ_URL
+          value: "postgresql://$(POSTGRES_USERNAME):$(POSTGRES_PASSWORD)@postgres-replica-srv.infrastructure:5432/reporting_db"
+        envFrom:
+        - configMapRef:
+            name: reporting-config
+        - secretRef:
+            name: reporting-secrets
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3006
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3006
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3006
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-srv
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3006
+    targetPort: 3006
+  selector:
+    app: reporting
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reporting-sa
+  namespace: default
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: reporting-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reporting-depl
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 85
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-config
+  namespace: default
+data:
+  MONGODB_HOST: "mongodb-srv.infrastructure"
+  MONGODB_PORT: "27017"
+  MONGODB_DATABASE: "reporting_db"
+  POSTGRES_READ_HOST: "postgres-replica-srv.infrastructure"
+  POSTGRES_READ_PORT: "5432"
+  REDIS_HOST: "redis-master-srv.infrastructure"
+  REDIS_PORT: "6379"

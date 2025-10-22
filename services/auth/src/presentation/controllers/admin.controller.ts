@@ -1,8 +1,6 @@
 import { Controller, Get, Put, Body, Param, Query, HttpCode, HttpStatus, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { ListAccountsUseCase } from '../../application/use-cases/admin/list-accounts.use-case';
@@ -113,7 +111,7 @@ export class AdminController {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
-    return this.updateAccountStatusUseCase.execute(accountId, body, user.id, ipAddress, userAgent);
+    return this.updateAccountStatusUseCase.execute(accountId, body, user.sub, ipAddress, userAgent);
   }
 
   @Get('audit-logs')

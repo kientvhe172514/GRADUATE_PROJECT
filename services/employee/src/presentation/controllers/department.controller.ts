@@ -4,12 +4,12 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateDepartmentDto } from '../../application/dto/department/create-department.dto';
 import { UpdateDepartmentDto } from '../../application/dto/department/update-department.dto';
 import { DepartmentDetailDto } from '../../application/dto/department/department-detail.dto';
-import { ApiResponseDto, ResponseStatus } from '../../common/dto/api-response.dto';
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department.use-case';
 import { UpdateDepartmentUseCase } from '../../application/use-cases/update-department.use-case';
 import { GetDepartmentDetailUseCase } from '../../application/use-cases/get-department-detail.use-case';
 import { GetDepartmentsUseCase } from '../../application/use-cases/get-departments.use-case';
 import { DeleteDepartmentUseCase } from '../../application/use-cases/delete-department.use-case';
+import { ApiResponseDto, ResponseStatus } from '@graduate-project/shared-common';
 
 @ApiTags('departments')
 @Controller('departments')

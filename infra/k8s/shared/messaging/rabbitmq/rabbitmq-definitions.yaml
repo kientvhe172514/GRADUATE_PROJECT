@@ -1,0 +1,209 @@
+# ============================================
+# RabbitMQ Definitions - Queues, Exchanges, Policies
+# ============================================
+# Pre-configure exchanges, queues, policies for services
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: infrastructure
+  labels:
+    app: rabbitmq
+data:
+  definitions.json: |
+    {
+      "rabbit_version": "3.13",
+      "rabbitmq_version": "3.13",
+      "product_name": "RabbitMQ",
+      "users": [
+        {
+          "name": "admin",
+          "password_hash": "...",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": ["administrator"]
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/"
+        }
+      ],
+      "permissions": [
+        {
+          "user": "admin",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "topic_permissions": [],
+      "parameters": [],
+      "global_parameters": [
+        {
+          "name": "cluster_name",
+          "value": "hr-attendance-cluster"
+        }
+      ],
+      "policies": [
+        {
+          "vhost": "/",
+          "name": "ha-all-queues",
+          "pattern": ".*",
+          "apply-to": "queues",
+          "definition": {
+            "ha-mode": "exactly",
+            "ha-params": 3,
+            "ha-sync-mode": "automatic",
+            "ha-promote-on-shutdown": "when-synced",
+            "ha-promote-on-failure": "when-synced"
+          },
+          "priority": 0
+        },
+        {
+          "vhost": "/",
+          "name": "quorum-queue-default",
+          "pattern": "^(?!amq\\.).*",
+          "apply-to": "queues",
+          "definition": {
+            "queue-type": "quorum",
+            "delivery-limit": 3
+          },
+          "priority": 1
+        },
+        {
+          "vhost": "/",
+          "name": "message-ttl-30days",
+          "pattern": ".*",
+          "apply-to": "queues",
+          "definition": {
+            "message-ttl": 2592000000,
+            "max-length": 100000
+          },
+          "priority": 0
+        }
+      ],
+      "queues": [
+        {
+          "name": "face_verification_queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum",
+            "x-delivery-limit": 3
+          }
+        },
+        {
+          "name": "attendance_processing_queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        },
+        {
+          "name": "notification_queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        },
+        {
+          "name": "heartbeat_queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        },
+        {
+          "name": "health_check_queue",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "quorum"
+          }
+        }
+      ],
+      "exchanges": [
+        {
+          "name": "face_verification_exchange",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "attendance_exchange",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "notification_exchange",
+          "vhost": "/",
+          "type": "fanout",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "cache_invalidation_exchange",
+          "vhost": "/",
+          "type": "fanout",
+          "durable": false,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "dlx_exchange",
+          "vhost": "/",
+          "type": "fanout",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ],
+      "bindings": [
+        {
+          "source": "face_verification_exchange",
+          "vhost": "/",
+          "destination": "face_verification_queue",
+          "destination_type": "queue",
+          "routing_key": "verify",
+          "arguments": {}
+        },
+        {
+          "source": "attendance_exchange",
+          "vhost": "/",
+          "destination": "attendance_processing_queue",
+          "destination_type": "queue",
+          "routing_key": "attendance.*",
+          "arguments": {}
+        },
+        {
+          "source": "notification_exchange",
+          "vhost": "/",
+          "destination": "notification_queue",
+          "destination_type": "queue",
+          "routing_key": "",
+          "arguments": {}
+        }
+      ]
+    }

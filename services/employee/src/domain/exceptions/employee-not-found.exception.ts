@@ -1,5 +1,5 @@
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException } from '@graduate-project/shared-common';
+import { ErrorCodes } from '@graduate-project/shared-common';
 
 export class EmployeeNotFoundException extends BusinessException {
   constructor(id: number) {

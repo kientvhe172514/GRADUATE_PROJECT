@@ -1,0 +1,27 @@
+# ============================================
+# Notification Service - ConfigMap
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-config
+  namespace: default
+  labels:
+    app: notification
+    tier: application
+data:
+  # PostgreSQL Configuration
+  POSTGRES_HOST: "pgbouncer-srv.infrastructure"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: "notification_db"
+  
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: "rabbitmq-srv.infrastructure"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_EXCHANGE: "notification_exchange"
+  RABBITMQ_QUEUE: "notification_queue"
+  
+  # Service Configuration
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"

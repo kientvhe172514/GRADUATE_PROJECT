@@ -1,15 +1,22 @@
 import { Inject, Injectable, HttpStatus } from '@nestjs/common';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, ACCOUNT_REPOSITORY } from '../tokens';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { BusinessException, ErrorCodes, ApiResponseDto } from '@graduate-project/shared-common';
 
 export class ResetPasswordRequestDto {
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @IsNotEmpty()
   reset_token: string;
+
+  @IsString()
+  @IsNotEmpty()
   new_password: string;
 }
 
@@ -25,6 +32,22 @@ export class ResetPasswordUseCase {
   ) {}
 
   async execute(dto: ResetPasswordRequestDto): Promise<ApiResponseDto<null>> {
+    console.log('🔍 ResetPasswordUseCase - Received DTO:', JSON.stringify(dto, null, 2));
+    console.log('🔍 ResetPasswordUseCase - DTO fields:', {
+      email: dto?.email,
+      reset_token: dto?.reset_token,
+      new_password: dto?.new_password,
+      hasEmail: !!dto?.email,
+      hasResetToken: !!dto?.reset_token,
+      hasNewPassword: !!dto?.new_password
+    });
+    
+    if (!dto?.email || !dto?.reset_token || !dto?.new_password) {
+      throw new BusinessException(
+        ErrorCodes.BAD_REQUEST,
+        'Missing required fields: email, reset_token, new_password',
+      );
+    }
     const account = await this.accountRepo.findByEmail(dto.email);
     if (!account) {
       throw new BusinessException(
@@ -36,7 +59,7 @@ export class ResetPasswordUseCase {
     const temp = await this.tempRepo.findActiveByAccountId(account.id!);
     if (!temp) {
       throw new BusinessException(
-        ErrorCodes.TOKEN_INVALID,
+        ErrorCodes.INVALID_TOKEN,
         'Invalid or expired reset token',
       );
     }

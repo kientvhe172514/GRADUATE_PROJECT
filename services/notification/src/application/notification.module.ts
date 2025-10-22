@@ -121,7 +121,8 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: PUSH_NOTIFICATION_SERVICE,
       useFactory: (configService: ConfigService, pushTokenRepo: PushTokenRepositoryPort) => {
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
+        // Always use mock for push notifications (Firebase not configured)
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'false' || 
                        !configService.get('FIREBASE_PROJECT_ID');
         return useMock 
           ? new MockPushService() 
@@ -132,8 +133,8 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: EMAIL_SERVICE,
       useFactory: (configService: ConfigService) => {
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
-                       !configService.get('SMTP_HOST');
+        const useMock = !configService.get('SMTP_HOST') ||
+                       !configService.get('SMTP_PASSWORD');
         return useMock 
           ? new MockEmailService() 
           : new NodemailerEmailService(configService);
@@ -143,7 +144,8 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: SMS_SERVICE,
       useFactory: (configService: ConfigService) => {
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
+        // Always use mock for SMS (Twilio not configured)
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'false' || 
                        !configService.get('TWILIO_ACCOUNT_SID');
         return useMock 
           ? new MockSmsService() 

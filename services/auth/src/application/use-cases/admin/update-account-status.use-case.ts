@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ApiResponseDto } from '../../../common/dto/api-response.dto';
-import { BusinessException } from '../../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../../ports/account.repository.port';
 import { AuditLogsRepositoryPort } from '../../ports/audit-logs.repository.port';
 import { ACCOUNT_REPOSITORY, AUDIT_LOGS_REPOSITORY } from '../../tokens';
@@ -47,7 +45,7 @@ export class UpdateAccountStatusUseCase {
       // Get account
       const account = await this.accountRepo.findById(accountId);
       if (!account) {
-        throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+        throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, "Account not found");
       }
 
       console.log('UpdateAccountStatus: Current account status:', account.status);

@@ -3,8 +3,8 @@ import { OnboardingStepRepositoryPort } from '../ports/onboarding-step.repositor
 import { ONBOARDING_STEP_REPOSITORY } from '../tokens';
 import { UpdateOnboardingStepDto } from '../dto/onboarding/update-onboarding-step.dto';
 import { EmployeeOnboardingStep, OnboardingStepStatus } from '../../domain/entities/employee-onboarding-step.entity';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException } from '@graduate-project/shared-common';
+import { ErrorCodes } from '@graduate-project/shared-common';
 
 @Injectable()
 export class UpdateOnboardingStepUseCase {

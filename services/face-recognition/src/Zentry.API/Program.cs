@@ -13,23 +13,40 @@ using Polly;
 using Zentry.Infrastructure;
 using Zentry.Infrastructure.Messaging.HealthCheck;
 using Zentry.Infrastructure.Messaging.Heartbeat;
-using Zentry.Modules.AttendanceManagement.Application;
-using Zentry.Modules.AttendanceManagement.Infrastructure;
-using Zentry.Modules.AttendanceManagement.Infrastructure.Persistence;
-using Zentry.Modules.ConfigurationManagement;
-using Zentry.Modules.ConfigurationManagement.Persistence;
-using Zentry.Modules.DeviceManagement;
-using Zentry.Modules.DeviceManagement.Persistence;
+// ===== KHÔNG CẦN: Attendance Management ❌ =====
+// Lý do: Đã có service attendance riêng (NestJS)
+// using Zentry.Modules.AttendanceManagement.Application;
+// using Zentry.Modules.AttendanceManagement.Infrastructure;
+// using Zentry.Modules.AttendanceManagement.Infrastructure.Persistence;
+
+// ===== KHÔNG CẦN: Configuration Management ❌ =====
+// using Zentry.Modules.ConfigurationManagement;
+// using Zentry.Modules.ConfigurationManagement.Persistence;
+
+// ===== KHÔNG CẦN: Device Management ❌ =====
+// Lý do: Có service riêng quản lý BLE Beacons
+// using Zentry.Modules.DeviceManagement;
+// using Zentry.Modules.DeviceManagement.Persistence;
+
+// ===== CẦN THIẾT: Face ID ✅ (MODULE DUY NHẤT) =====
 using Zentry.Modules.FaceId;
 using Zentry.Modules.FaceId.Persistence;
-using Zentry.Modules.NotificationService;
-using Zentry.Modules.NotificationService.Hubs;
-using Zentry.Modules.NotificationService.Persistence;
-using Zentry.Modules.ScheduleManagement.Application;
-using Zentry.Modules.ScheduleManagement.Infrastructure;
-using Zentry.Modules.ScheduleManagement.Infrastructure.Persistence;
-using Zentry.Modules.UserManagement;
-using Zentry.Modules.UserManagement.Persistence.DbContext;
+
+// ===== KHÔNG CẦN: Notification Service ❌ =====
+// Lý do: Đã có service notification riêng (NestJS)
+// using Zentry.Modules.NotificationService;
+// using Zentry.Modules.NotificationService.Hubs;
+// using Zentry.Modules.NotificationService.Persistence;
+
+// ===== KHÔNG CẦN: Schedule Management ❌ =====
+// using Zentry.Modules.ScheduleManagement.Application;
+// using Zentry.Modules.ScheduleManagement.Infrastructure;
+// using Zentry.Modules.ScheduleManagement.Infrastructure.Persistence;
+
+// ===== KHÔNG CẦN: User Management ❌ =====
+// Lý do: Đã có service auth/employee riêng (NestJS)
+// using Zentry.Modules.UserManagement;
+// using Zentry.Modules.UserManagement.Persistence.DbContext;
 using Zentry.SharedKernel.Abstractions.Models;
 using Zentry.SharedKernel.Constants.Response;
 using Zentry.SharedKernel.Helpers;
@@ -186,9 +203,10 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddHeartbeatConsumer();
     x.AddHealthCheckConsumer();
-    x.AddAttendanceMassTransitConsumers();
-    x.AddUserMassTransitConsumers();
-    x.AddNotificationMassTransitConsumers();
+    // ❌ Service riêng xử lý attendance, user, notification
+    // x.AddAttendanceMassTransitConsumers();
+    // x.AddUserMassTransitConsumers();
+    // x.AddNotificationMassTransitConsumers();
 
 
     x.UsingRabbitMq((context, cfg) =>
@@ -240,25 +258,32 @@ builder.Services.AddMassTransit(x =>
         });
         cfg.ConfigureHeartbeatEndpoint(context);
         cfg.ConfigureHealthCheckEndpoint(context);
-        cfg.ConfigureAttendanceReceiveEndpoints(context);
-        cfg.ConfigureUserReceiveEndpoints(context);
-        cfg.ConfigureNotificationReceiveEndpoints(context);
+        // ❌ Service riêng xử lý
+        // cfg.ConfigureAttendanceReceiveEndpoints(context);
+        // cfg.ConfigureUserReceiveEndpoints(context);
+        // cfg.ConfigureNotificationReceiveEndpoints(context);
     });
 });
 
 builder.Services.AddHostedService<RabbitMqWarmupService>();
 builder.Services.AddMemoryCache();
-// --- Đăng ký các module ---
+
+// ===== ĐĂNG KÝ MODULE DUY NHẤT - CHỈ FACE ID =====
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddUserInfrastructure(builder.Configuration);
-builder.Services.AddScheduleInfrastructure(builder.Configuration);
-builder.Services.AddScheduleApplication();
-builder.Services.AddConfigurationInfrastructure(builder.Configuration);
-builder.Services.AddDeviceInfrastructure(builder.Configuration);
-builder.Services.AddAttendanceInfrastructure(builder.Configuration);
-builder.Services.AddAttendanceApplication();
-builder.Services.AddNotificationModule(builder.Configuration);
+
+// ❌ TẤT CẢ MODULES KHÁC ĐÃ CÓ SERVICE RIÊNG XỬ LÝ
+// builder.Services.AddUserInfrastructure(builder.Configuration);
+// builder.Services.AddScheduleInfrastructure(builder.Configuration);
+// builder.Services.AddScheduleApplication();
+// builder.Services.AddConfigurationInfrastructure(builder.Configuration);
+// builder.Services.AddDeviceInfrastructure(builder.Configuration);
+// builder.Services.AddAttendanceInfrastructure(builder.Configuration);
+// builder.Services.AddAttendanceApplication();
+// builder.Services.AddNotificationModule(builder.Configuration);
+
+// ✅ FACE ID - MODULE DUY NHẤT (Xác thực khuôn mặt)
 builder.Services.AddFaceIdInfrastructure(builder.Configuration);
+
 ValidateConfiguration(builder.Configuration);
 
 var app = builder.Build();
@@ -285,7 +310,8 @@ app.UseAuthorization();
 // ✅ Thêm Device Validation Middleware - sử dụng factory pattern
 // app.UseDeviceValidationMiddleware();
 app.MapControllers();
-app.MapHub<NotificationHub>("/notificationHub");
+// ❌ NotificationHub - Service notification riêng xử lý
+// app.MapHub<NotificationHub>("/notificationHub");
 
 // Cấu hình lại Health Checks
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
@@ -335,15 +361,19 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
                     retryCount, timeSpan.TotalSeconds);
             });
 
+    // ===== DATABASE CONTEXT DUY NHẤT - CHỈ FACE ID =====
     var migrations = new[]
     {
-        (typeof(AttendanceDbContext), "AttendanceDbContext"),
-        (typeof(ScheduleDbContext), "ScheduleDbContext"),
-        (typeof(DeviceDbContext), "DeviceManagementDbContext"),
-        (typeof(ConfigurationDbContext), "ConfigurationDbContext"),
-        (typeof(UserDbContext), "UserDbContext"),
-        (typeof(FaceIdDbContext), "FaceIdDbContext"),
-        (typeof(NotificationDbContext), "NotificationDbContext")
+        // ❌ TẤT CẢ CONTEXTS KHÁC ĐÃ CÓ SERVICE RIÊNG XỬ LÝ
+        // (typeof(AttendanceDbContext), "AttendanceDbContext"),
+        // (typeof(ScheduleDbContext), "ScheduleDbContext"),
+        // (typeof(DeviceDbContext), "DeviceManagementDbContext"),
+        // (typeof(ConfigurationDbContext), "ConfigurationDbContext"),
+        // (typeof(UserDbContext), "UserDbContext"),
+        // (typeof(NotificationDbContext), "NotificationDbContext")
+        
+        // ✅ FACE ID - CONTEXT DUY NHẤT
+        (typeof(FaceIdDbContext), "FaceIdDbContext")
     };
 
     foreach (var (contextType, contextName) in migrations)
@@ -385,15 +415,16 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
             }
         });
 
-        // Seed data
-        if (contextType == typeof(ConfigurationDbContext))
-            await retryPolicy.ExecuteAsync(async () =>
-            {
-                var configContext = serviceProvider.GetRequiredService<ConfigurationDbContext>();
-                logger.LogInformation("Seeding data for ConfigurationDbContext...");
-                await ConfigurationDbContext.SeedDataAsync(configContext, logger);
-                logger.LogInformation("ConfigurationDbContext data seeded successfully.");
-            });
+        // ===== SEED DATA =====
+        // ❌ ConfigurationDbContext - KHÔNG CẦN nữa
+        // if (contextType == typeof(ConfigurationDbContext))
+        //     await retryPolicy.ExecuteAsync(async () =>
+        //     {
+        //         var configContext = serviceProvider.GetRequiredService<ConfigurationDbContext>();
+        //         logger.LogInformation("Seeding data for ConfigurationDbContext...");
+        //         await ConfigurationDbContext.SeedDataAsync(configContext, logger);
+        //         logger.LogInformation("ConfigurationDbContext data seeded successfully.");
+        //     });
     }
 }
 

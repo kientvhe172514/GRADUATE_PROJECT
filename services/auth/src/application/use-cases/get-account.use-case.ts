@@ -1,9 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { ACCOUNT_REPOSITORY } from '../tokens';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { GetAccountResponseDto } from '../dto/get-account-response.dto';
 
 @Injectable()
@@ -16,7 +14,7 @@ export class GetAccountUseCase {
   async execute(id: number): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findById(id);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
     const dto: GetAccountResponseDto = {
       id: account.id!,
@@ -32,7 +30,7 @@ export class GetAccountUseCase {
   async executeByEmail(email: string): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findByEmail(email);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
     const dto: GetAccountResponseDto = {
       id: account.id!,
@@ -48,7 +46,7 @@ export class GetAccountUseCase {
   async executeByEmployeeId(employeeId: number): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findByEmployeeId(employeeId);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
     const dto: GetAccountResponseDto = {
       id: account.id!,

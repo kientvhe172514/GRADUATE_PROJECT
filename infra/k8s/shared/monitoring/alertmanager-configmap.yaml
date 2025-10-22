@@ -1,0 +1,101 @@
+# AlertManager Configuration
+# NOTE: Replace YOUR_SLACK_WEBHOOK_URL with actual webhook before deploying!
+# Create webhook at: https://api.slack.com/messaging/webhooks
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    tier: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      # TODO: Add your Slack webhook URL here
+      # slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+    
+    # Route tree for alerts
+    route:
+      receiver: 'default-receiver'
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s        # Wait 10s before sending first alert
+      group_interval: 10s    # Wait 10s before sending updates
+      repeat_interval: 12h   # Resend alerts every 12h if not resolved
+      
+      # Child routes for specific severity levels
+      routes:
+        - match:
+            severity: critical
+          receiver: 'slack-critical'
+          continue: true  # Also send to default
+        
+        - match:
+            severity: warning
+          receiver: 'slack-warnings'
+        
+        - match:
+            severity: info
+          receiver: 'slack-info'
+    
+    # Receivers configuration
+    receivers:
+      # Default receiver (fallback)
+      - name: 'default-receiver'
+        # TODO: Uncomment and configure when Slack webhook ready
+        # slack_configs:
+        #   - channel: '#devops-alerts'
+        #     title: '{{ .GroupLabels.alertname }}'
+        #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        #     send_resolved: true
+      
+      # Critical alerts (e.g., service down, database full)
+      - name: 'slack-critical'
+        # TODO: Uncomment and configure when Slack webhook ready
+        # slack_configs:
+        #   - channel: '#devops-critical'
+        #     title: '🔴 CRITICAL: {{ .GroupLabels.alertname }}'
+        #     text: |
+        #       *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+        #       *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+        #       *Severity:* {{ .CommonLabels.severity }}
+        #     color: 'danger'
+        #     send_resolved: true
+      
+      # Warning alerts (e.g., high CPU, connections near limit)
+      - name: 'slack-warnings'
+        # TODO: Uncomment and configure when Slack webhook ready
+        # slack_configs:
+        #   - channel: '#devops-warnings'
+        #     title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        #     text: |
+        #       *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+        #       *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+        #     color: 'warning'
+        #     send_resolved: true
+      
+      # Info alerts (e.g., backup completed, deployment successful)
+      - name: 'slack-info'
+        # TODO: Uncomment and configure when Slack webhook ready
+        # slack_configs:
+        #   - channel: '#devops-info'
+        #     title: 'ℹ️ INFO: {{ .GroupLabels.alertname }}'
+        #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        #     send_resolved: true
+    
+    # Inhibition rules (prevent alert spam)
+    inhibit_rules:
+      # If service is down, don't alert about high latency
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['service']
+      
+      # If node is down, don't alert about pods on that node
+      - source_match:
+          alertname: 'NodeDown'
+        target_match_re:
+          alertname: 'Pod.*'
+        equal: ['node']

@@ -23,20 +23,32 @@ spec:
         ports:
         - containerPort: 3030
         env:
-          - name: GF_SECURITY_ADMIN_PASSWORD
-            value: "admin123"
           - name: GF_SECURITY_ADMIN_USER
-            value: "admin"
+            valueFrom:
+              secretKeyRef:
+                name: grafana-admin
+                key: admin-user
+          - name: GF_SECURITY_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: grafana-admin
+                key: admin-password
           - name: GF_SERVER_HTTP_PORT
             value: "3030"
-        # THÊM RESOURCES ĐỂ ĐẬP ỨNG QUOTA
+          - name: GF_AUTH_ANONYMOUS_ENABLED
+            value: "false"  # Disable anonymous access (security!)
+          - name: GF_AUTH_BASIC_ENABLED
+            value: "true"
+          - name: GF_SECURITY_ALLOW_EMBEDDING
+            value: "false"  # Prevent clickjacking
+        # OPTIMIZED RESOURCES FOR TEST/DEV
         resources:
           requests:
-            cpu: 250m
-            memory: 512Mi
+            cpu: 50m       # Optimized for test/dev (was 250m)
+            memory: 64Mi   # Optimized for test/dev (was 512Mi)
           limits:
-            cpu: 500m
-            memory: 1Gi
+            cpu: 200m      # Optimized for test/dev (was 500m)
+            memory: 128Mi  # Optimized for test/dev (was 1Gi)
         # THÊM HEALTH CHECKS
         readinessProbe:
           httpGet:
@@ -55,15 +67,26 @@ spec:
           mountPath: /var/lib/grafana
         - name: grafana-datasources
           mountPath: /etc/grafana/provisioning/datasources
+        - name: grafana-dashboard-providers
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: grafana-dashboards
+          mountPath: /var/lib/grafana/dashboards
         - name: grafana-config
           mountPath: /etc/grafana/grafana.ini
           subPath: grafana.ini
       volumes:
       - name: grafana-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: grafana-storage  # USE PVC FOR PERSISTENCE! (was emptyDir)
       - name: grafana-datasources
         configMap:
           name: grafana-datasources
+      - name: grafana-dashboard-providers
+        configMap:
+          name: grafana-dashboard-providers
+      - name: grafana-dashboards
+        configMap:
+          name: grafana-dashboards
       - name: grafana-config
         configMap:
           name: grafana-config

@@ -8,14 +8,60 @@ metadata:
     tier: messaging
 data:
   enabled_plugins: |
-    [rabbitmq_management,rabbitmq_prometheus].
+    [
+      rabbitmq_management,
+      rabbitmq_prometheus,
+      rabbitmq_peer_discovery_k8s,
+      rabbitmq_shovel,
+      rabbitmq_shovel_management
+    ].
+  
   rabbitmq.conf: |
+    # ============================================
+    # RabbitMQ HA Cluster Configuration
+    # ============================================
+    
+    # ===== NETWORKING =====
     loopback_users.guest = false
-    default_user = admin
-    default_pass = rabbitmq123
+    listeners.tcp.default = 5672
     management.tcp.port = 15672
     prometheus.tcp.port = 15692
     
-    # Simplified cluster config for single-node
-    cluster_formation.peer_discovery_backend = classic_config
+    # ===== CLUSTER CONFIGURATION =====
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_formation.node_cleanup.interval = 30
+    cluster_formation.node_cleanup.only_log_warning = true
     cluster_partition_handling = autoheal
+    
+    # ===== QUORUM QUEUES (Default) =====
+    # Quorum queues cho HA - data replicated across nodes
+    default_queue_type = quorum
+    
+    # ===== MEMORY & DISK =====
+    vm_memory_high_watermark.relative = 0.7
+    vm_memory_high_watermark_paging_ratio = 0.85
+    disk_free_limit.absolute = 2GB
+    
+    # ===== CONNECTION & CHANNEL LIMITS =====
+    channel_max = 2048
+    num_acceptors.tcp = 30
+    connection_max = 2000
+    channel_max_per_connection = 100
+    
+    # ===== HEARTBEAT & TIMEOUTS =====
+    heartbeat = 60
+    handshake_timeout = 30000
+    
+    # ===== PERFORMANCE TUNING =====
+    collect_statistics = coarse
+    collect_statistics_interval = 10000
+    
+    # ===== LOGGING =====
+    log.console = true
+    log.console.level = info
+    log.file.level = info
+    
+    # ===== MANAGEMENT UI =====
+    management.load_definitions = /etc/rabbitmq/definitions.json

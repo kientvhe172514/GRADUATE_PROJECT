@@ -1,0 +1,135 @@
+{
+  "sendNotification_Email": {
+    "recipientId": 1,
+    "recipientEmail": "test@example.com",
+    "recipientName": "John Doe",
+    "title": "Test Email Notification",
+    "message": "This is a test email notification message. Your account has been updated successfully.",
+    "notificationType": "SYSTEM_ANNOUNCEMENT",
+    "priority": "NORMAL",
+    "channels": ["EMAIL"],
+    "relatedEntityType": "user",
+    "relatedEntityId": 1,
+    "metadata": {
+      "source": "manual_test",
+      "testMode": true
+    }
+  },
+
+  "sendNotification_MultiChannel": {
+    "recipientId": 1,
+    "recipientEmail": "test@example.com",
+    "recipientName": "Jane Smith",
+    "title": "Leave Request Approved",
+    "message": "Your leave request from 2025-11-01 to 2025-11-05 has been approved by your manager.",
+    "notificationType": "LEAVE_REQUEST_APPROVED",
+    "priority": "HIGH",
+    "channels": ["EMAIL", "PUSH", "IN_APP"],
+    "relatedEntityType": "leave_request",
+    "relatedEntityId": 123,
+    "relatedData": {
+      "leaveType": "ANNUAL",
+      "startDate": "2025-11-01",
+      "endDate": "2025-11-05",
+      "approvedBy": "Manager Name"
+    }
+  },
+
+  "sendNotification_Urgent": {
+    "recipientId": 2,
+    "recipientEmail": "employee@example.com",
+    "recipientName": "Bob Johnson",
+    "title": "URGENT: Attendance Late Warning",
+    "message": "You have been late 3 times this week. Please ensure punctuality to avoid disciplinary action.",
+    "notificationType": "ATTENDANCE_LATE_WARNING",
+    "priority": "URGENT",
+    "channels": ["EMAIL", "SMS", "PUSH"],
+    "relatedEntityType": "attendance",
+    "relatedEntityId": 456,
+    "metadata": {
+      "lateCount": 3,
+      "week": "2025-W43"
+    }
+  },
+
+  "sendNotification_PasswordReset": {
+    "recipientId": 3,
+    "recipientEmail": "user@example.com",
+    "recipientName": "Alice Williams",
+    "title": "Password Reset Request",
+    "message": "A password reset has been requested for your account. If this wasn't you, please contact support immediately.",
+    "notificationType": "PASSWORD_RESET",
+    "priority": "HIGH",
+    "channels": ["EMAIL"],
+    "relatedEntityType": "user",
+    "relatedEntityId": 3,
+    "metadata": {
+      "resetToken": "abc123xyz",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0"
+    },
+    "expiresAt": "2025-10-22T18:43:00.000Z"
+  },
+
+  "sendNotification_Birthday": {
+    "recipientId": 4,
+    "recipientEmail": "happy@example.com",
+    "recipientName": "Charlie Brown",
+    "title": "🎉 Happy Birthday!",
+    "message": "Wishing you a wonderful birthday filled with joy and happiness. The entire team wishes you all the best!",
+    "notificationType": "EMPLOYEE_BIRTHDAY",
+    "priority": "LOW",
+    "channels": ["EMAIL", "IN_APP"],
+    "relatedEntityType": "employee",
+    "relatedEntityId": 4,
+    "metadata": {
+      "birthDate": "1990-10-21",
+      "yearsWithCompany": 5
+    }
+  },
+
+  "sendNotification_SystemMaintenance": {
+    "recipientId": 1,
+    "recipientEmail": "admin@example.com",
+    "recipientName": "System Admin",
+    "title": "Scheduled System Maintenance",
+    "message": "The system will undergo maintenance on October 25, 2025 from 2:00 AM to 4:00 AM. Services will be temporarily unavailable.",
+    "notificationType": "SYSTEM_MAINTENANCE",
+    "priority": "MEDIUM",
+    "channels": ["EMAIL", "IN_APP", "PUSH"],
+    "relatedEntityType": "system",
+    "relatedEntityId": 0,
+    "relatedData": {
+      "maintenanceWindow": {
+        "start": "2025-10-25T02:00:00Z",
+        "end": "2025-10-25T04:00:00Z"
+      },
+      "affectedServices": ["attendance", "leave", "reporting"]
+    }
+  },
+
+  "sendNotification_FaceVerification": {
+    "recipientId": 5,
+    "recipientEmail": "security@example.com",
+    "recipientName": "David Lee",
+    "title": "Face Verification Required",
+    "message": "Please complete face verification to check-in for today's attendance.",
+    "notificationType": "FACE_VERIFICATION_REQUEST",
+    "priority": "NORMAL",
+    "channels": ["PUSH", "IN_APP"],
+    "relatedEntityType": "attendance",
+    "relatedEntityId": 789,
+    "metadata": {
+      "checkInTime": "2025-10-21T09:00:00Z",
+      "location": "Office Main Entrance"
+    },
+    "expiresAt": "2025-10-21T23:59:59.000Z"
+  },
+
+  "sendNotification_MinimalRequired": {
+    "recipientId": 1,
+    "title": "Simple Notification",
+    "message": "This is a minimal notification with only required fields.",
+    "notificationType": "SYSTEM_ANNOUNCEMENT"
+  }
+}

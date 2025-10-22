@@ -1,4 +1,5 @@
 import { Controller } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { SendNotificationDto } from '../../application/dtos/send-notification.dto';
@@ -10,6 +11,7 @@ import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
 export class AuthEventListener {
   constructor(
     private readonly sendNotificationUseCase: SendNotificationUseCase,
+    private readonly configService: ConfigService,
   ) {}
 
   @EventPattern('auth.user-registered')
@@ -66,23 +68,50 @@ export class AuthEventListener {
   async handlePasswordResetRequested(@Payload() event: any): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.password-reset-requested:', event);
     try {
+      // Debug log để kiểm tra email
+      console.log('📧 [AuthEventListener] Sending reset email to:', event.email);
+      console.log('📧 [AuthEventListener] Account ID:', event.account_id);
+      console.log('📧 [AuthEventListener] Reset token:', event.reset_token);
+
       const dto: SendNotificationDto = {
         recipientId: event.account_id,
-        recipientEmail: event.email,
+        recipientEmail: event.email, // Đảm bảo email đúng
+        recipientName: event.full_name || 'User',
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.URGENT,
         title: '🔑 Password Reset Request',
-        message: `A password reset has been requested for your account. If you didn't request this, please ignore this message or contact support.`,
+        message: [
+          `Hello ${event.full_name || 'User'},`,
+          '',
+          'A password reset has been requested for your account.',
+          '',
+          'Please use the following information to reset your password:',
+          '',
+          `📧 Email: ${event.email}`,
+          `🔑 Reset Token: ${event.reset_token}`,
+          `⏰ Valid until: ${new Date(event.expires_at).toLocaleString()}`,
+          '',
+          'To reset your password, please:',
+          '1. Go to the password reset page',
+          '2. Enter your email and the reset token above',
+          '3. Enter your new password',
+          '',
+          'If you didn\'t request this, please ignore this email and contact support if needed.',
+          '',
+          'Best regards,',
+          'Zentry HR System'
+        ].join('\n'),
         channels: [ChannelType.EMAIL],
         metadata: {
           eventType: 'auth.password-reset-requested',
           resetToken: event.reset_token,
           expiresAt: event.expires_at,
+          email: event.email,
         },
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Password reset request notification sent successfully');
+      console.log('✅ [AuthEventListener] Password reset request notification sent successfully to:', event.email);
     } catch (error) {
       console.error('❌ [AuthEventListener] Error handling auth.password-reset-requested:', error);
     }

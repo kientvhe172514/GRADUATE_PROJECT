@@ -1,0 +1,16 @@
+# Prometheus PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-storage
+  namespace: monitoring
+  labels:
+    app: prometheus
+    tier: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # 10GB for test/dev, increase to 50GB for production
+  storageClassName: local-path  # K3s default, change if using different storage class

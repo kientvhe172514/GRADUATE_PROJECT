@@ -1,0 +1,21 @@
+# ============================================
+# Leave Service - ConfigMap
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: leave-config
+  namespace: default
+  labels:
+    app: leave
+    tier: application
+data:
+  # Database Configuration
+  POSTGRES_HOST: "pgbouncer-srv.infrastructure"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: "leave_db"
+  
+  # Service Configuration
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"

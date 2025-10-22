@@ -4,8 +4,8 @@ import { DepartmentRepositoryPort } from '../ports/department.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { DEPARTMENT_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { DepartmentNotFoundException } from '../../domain/exceptions/department-not-found.exception';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException } from '@graduate-project/shared-common';
+import { ErrorCodes } from '@graduate-project/shared-common';
 import { DepartmentDetailDto } from '../dto/department/department-detail.dto';
 
 @Injectable()
@@ -27,7 +27,11 @@ export class UpdateDepartmentUseCase {
     if (dto.department_code && dto.department_code !== existingDepartment.department_code) {
       const departmentWithCode = await this.departmentRepository.findByCode(dto.department_code);
       if (departmentWithCode) {
-        throw new BusinessException(ErrorCodes.DEPARTMENT_CODE_ALREADY_EXISTS);
+        throw new BusinessException(
+          ErrorCodes.DEPARTMENT_CODE_ALREADY_EXISTS,
+          'Department code already exists',
+          400
+        );
       }
     }
 

@@ -1,7 +1,7 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LogoutRequestDto } from '../dto/auth.dto';
 import { LogoutResponseDto } from '../dto/auth.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 import { RefreshTokensRepositoryPort } from '../ports/refresh-tokens.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { JwtServicePort } from '../ports/jwt.service.port';

@@ -1,0 +1,16 @@
+# Grafana PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: monitoring
+  labels:
+    app: grafana
+    tier: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # 5GB for dashboards, increase to 10GB for production
+  storageClassName: local-path  # K3s default, change if using different storage class

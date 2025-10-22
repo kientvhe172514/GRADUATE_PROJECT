@@ -4,9 +4,7 @@ import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { ACCOUNT_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { AccountUpdatedEventDto } from '../dto/account-updated.event.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { UpdateAccountResponseDto } from '../dto/update-account-response.dto';
 
 export interface UpdateAccountDto {
@@ -36,7 +34,7 @@ export class UpdateAccountUseCase {
   async execute(id: number, dto: UpdateAccountDto): Promise<ApiResponseDto<UpdateAccountResponseDto>> {
     const existingAccount = await this.accountRepository.findById(id);
     if (!existingAccount) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND);
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
 
     // Check for duplicate email if email is being updated

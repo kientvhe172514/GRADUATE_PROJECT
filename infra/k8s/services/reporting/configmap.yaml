@@ -1,0 +1,25 @@
+# ============================================
+# Reporting Service - ConfigMap
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-config
+  namespace: default
+  labels:
+    app: reporting
+    tier: application
+data:
+  # PostgreSQL Configuration (Primary)
+  POSTGRES_HOST: "pgbouncer-srv.infrastructure"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: "reporting_db"
+  
+  # PostgreSQL Configuration (Read Replica for Analytics)
+  POSTGRES_REPLICA_HOST: "postgres-replica-srv.infrastructure"
+  POSTGRES_REPLICA_PORT: "5432"
+  
+  # Service Configuration
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"

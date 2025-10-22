@@ -14,17 +14,22 @@ export class NodemailerEmailService implements EmailServicePort {
 
   private initializeTransporter(): void {
     const host = this.configService.get<string>('SMTP_HOST');
-    const port = this.configService.get<number>('SMTP_PORT', 587);
-    const secure = this.configService.get<boolean>('SMTP_SECURE', false);
+    const portRaw = this.configService.get<string>('SMTP_PORT') ?? '587';
+    const secureRaw = this.configService.get<string>('SMTP_SECURE') ?? 'false';
     const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
+    const pass = this.configService.get<string>('SMTP_PASSWORD');
+
+    const port = Number.parseInt(String(portRaw), 10);
+    const secure = String(secureRaw).toLowerCase() === 'true';
 
     if (!host || !user || !pass) {
       this.logger.warn(
-        'SMTP configuration not complete. Email notifications will not work.',
+        `SMTP configuration not complete. Email notifications will not work. host=${host ? '✅' : '❌'}, user=${user ? '✅' : '❌'}, pass=${pass ? '✅' : '❌'}`,
       );
       return;
     }
+
+    this.logger.log(`Initializing SMTP transporter: host=${host}, port=${port}, secure=${secure}`);
 
     this.transporter = nodemailer.createTransport({
       host,
@@ -52,18 +57,20 @@ export class NodemailerEmailService implements EmailServicePort {
 
     this.logger.log(`Sending email to ${to}`);
 
-    const from = this.configService.get<string>(
-      'SMTP_FROM',
-      'noreply@zentry.com',
-    );
+    const fromEmail = this.configService.get<string>('SMTP_FROM_EMAIL') || 'noreply@zentry.com';
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Zentry HR System';
+    const from = `"${fromName}" <${fromEmail}>`;
 
     try {
-      const info = await this.transporter.sendMail({
+      const mail: nodemailer.SendMailOptions = {
         from,
         to,
         subject,
         [isHtml ? 'html' : 'text']: body,
-      });
+      } as any;
+
+      this.logger.debug(`Email payload: from=${from}, to=${to}, subject=${subject}`);
+      const info = await this.transporter.sendMail(mail);
 
       this.logger.log(`Email sent successfully: ${info.messageId}`);
     } catch (error) {

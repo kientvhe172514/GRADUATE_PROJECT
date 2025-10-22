@@ -3,9 +3,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
 import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
@@ -16,8 +16,7 @@ import { GetAccountUseCase } from '../../application/use-cases/get-account.use-c
 import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
 import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
+// JwtAuthGuard & CurrentUser are imported from shared-common
 
 @ApiTags('auth')
 @Controller('auth')
@@ -69,7 +68,7 @@ export class AccountController {
   ): Promise<ApiResponseDto<LogoutResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return await this.logoutUseCase.execute(logoutDto, user.id, ipAddress, userAgent);
+    return await this.logoutUseCase.execute(logoutDto, user.sub, ipAddress, userAgent);
   }
 
   @Post('register')  // Internal endpoint for employee service
@@ -93,7 +92,8 @@ export class AccountController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current account profile' })
   async me(@CurrentUser() user: any): Promise<ApiResponseDto<any>> {
-    return this.getAccountUseCase.execute(user.id);
+    console.log('🔍 [AccountController] JWT payload:', user);
+    return this.getAccountUseCase.execute(user.sub);
   }
 
   @Put('me/password')
@@ -116,15 +116,15 @@ export class AccountController {
       throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Missing required fields: current_password, new_password');
     }
 
-    if (!user || !user.id) {
-      console.log('Controller: User validation failed', { user, hasId: !!user?.id });
+    if (!user || !user.sub) {
+      console.log('Controller: User validation failed', { user, hasSub: !!user?.sub });
       throw new BusinessException(ErrorCodes.UNAUTHORIZED, 'User not authenticated');
     }
 
-    console.log('Controller: User validated successfully', { userId: user.id, email: user.email });
+    console.log('Controller: User validated successfully', { userId: user.sub, email: user.email });
 
     const dto: ChangePasswordDto = {
-      account_id: user.id,
+      account_id: user.sub,
       current_password: body.current_password,
       new_password: body.new_password,
     };
@@ -144,6 +144,15 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token' })
   async resetPassword(@Body() body: ResetPasswordRequestDto): Promise<ApiResponseDto<null>> {
+    console.log('🔍 AccountController - Received body:', JSON.stringify(body, null, 2));
+    console.log('🔍 AccountController - Body fields:', {
+      email: body?.email,
+      reset_token: body?.reset_token,
+      new_password: body?.new_password,
+      hasEmail: !!body?.email,
+      hasResetToken: !!body?.reset_token,
+      hasNewPassword: !!body?.new_password
+    });
     return this.resetPasswordUseCase.execute(body);
   }
 

@@ -4,21 +4,20 @@ import {
   Post,
   Delete,
   Req,
-  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterPushTokenUseCase } from '../../application/use-cases/register-push-token.use-case';
 import { UnregisterPushTokenUseCase } from '../../application/use-cases/unregister-push-token.use-case';
 import {
   RegisterPushTokenDto,
   UnregisterPushTokenDto,
 } from '../../application/dtos/push-token.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 @ApiTags('push-tokens')
-@ApiBearerAuth()
 @Controller('push-tokens')
-@UseGuards(JwtAuthGuard)
 export class PushTokenController {
   constructor(
     private readonly registerTokenUseCase: RegisterPushTokenUseCase,
@@ -26,32 +25,27 @@ export class PushTokenController {
   ) {}
 
   @Post('register')
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a push notification token' })
   @ApiResponse({ status: 201, description: 'Push token registered successfully' })
-  async registerToken(@Body() dto: RegisterPushTokenDto, @Req() req: any) {
+  async registerToken(@Body() dto: RegisterPushTokenDto, @Req() req: any): Promise<ApiResponseDto<any>> {
     const userId = req.user.id;
     const token = await this.registerTokenUseCase.execute(userId, dto);
 
-    return {
-      success: true,
-      message: 'Push token registered successfully',
-      data: token,
-    };
+    return ApiResponseDto.success(token, 'Push token registered successfully', 201);
   }
 
   @Delete('unregister')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unregister a push notification token' })
   @ApiResponse({ status: 200, description: 'Push token unregistered successfully' })
   async unregisterToken(
     @Body() dto: UnregisterPushTokenDto,
     @Req() req: any,
-  ) {
+  ): Promise<ApiResponseDto<null>> {
     const userId = req.user.id;
     await this.unregisterTokenUseCase.execute(userId, dto);
 
-    return {
-      success: true,
-      message: 'Push token unregistered successfully',
-    };
+    return ApiResponseDto.success(null, 'Push token unregistered successfully');
   }
 }

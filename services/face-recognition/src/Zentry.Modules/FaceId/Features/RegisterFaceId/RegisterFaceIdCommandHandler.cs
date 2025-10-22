@@ -1,6 +1,7 @@
 using MediatR;
 using Zentry.Modules.FaceId.Interfaces;
-using Zentry.Modules.UserManagement.Features.UpdateFaceId;
+// ❌ COMMENT: UserManagement đã có service riêng xử lý
+// using Zentry.Modules.UserManagement.Features.UpdateFaceId;
 using Zentry.SharedKernel.Abstractions.Application;
 
 namespace Zentry.Modules.FaceId.Features.RegisterFaceId;
@@ -32,9 +33,10 @@ public class RegisterFaceIdCommandHandler : ICommandHandler<RegisterFaceIdComman
             // Save embedding to database (now accepts float[] directly)
             await _faceIdRepository.CreateAsync(command.UserId, command.EmbeddingArray, cancellationToken);
 
-            // Update user's face ID status
-            var updateFaceIdCommand = new UpdateFaceIdCommand(command.UserId, true);
-            await _mediator.Send(updateFaceIdCommand, cancellationToken);
+            // ❌ COMMENT: Update user's face ID status - Service auth/employee riêng xử lý
+            // TODO: Gọi API sang service auth/employee để update face status qua HTTP/RabbitMQ
+            // var updateFaceIdCommand = new UpdateFaceIdCommand(command.UserId, true);
+            // await _mediator.Send(updateFaceIdCommand, cancellationToken);
 
             return new RegisterFaceIdResponse
             {

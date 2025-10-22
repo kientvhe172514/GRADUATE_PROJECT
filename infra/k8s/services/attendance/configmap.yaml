@@ -1,0 +1,31 @@
+# ============================================
+# Attendance Service - ConfigMap
+# ============================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: attendance-config
+  namespace: default
+  labels:
+    app: attendance
+    tier: application
+data:
+  # Database Configuration
+  POSTGRES_HOST: "pgbouncer-srv.infrastructure"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: "attendance_db"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis-master-srv.infrastructure"
+  REDIS_PORT: "6379"
+  
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: "rabbitmq-srv.infrastructure"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_EXCHANGE: "attendance_exchange"
+  RABBITMQ_QUEUE: "attendance_queue"
+  
+  # Service Configuration
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"

@@ -68,11 +68,6 @@ portForward:
     port: 15672
     localPort: 15672
   - resourceType: service
-    resourceName: mongo-srv
-    namespace: infrastructure
-    port: 27017
-    localPort: 27017
-  - resourceType: service
     resourceName: prometheus-srv
     namespace: monitoring
     port: 9090
@@ -129,26 +124,58 @@ profiles:
     deploy:
       kubectl:
         manifests:
-          # Databases
-           - infra/k8s/shared/databases/postgres/*.yaml
-           - infra/k8s/shared/databases/mongo/*.yaml
-          # # Messaging
-           - infra/k8s/shared/messaging/redis/*.yaml
-           - infra/k8s/shared/messaging/rabbitmq/*.yaml
-          # Monitoring - RBAC trước
-           - infra/k8s/shared/monitoring/prometheus-rbac.yaml
-           - infra/k8s/shared/monitoring/fluentd-rbac.yaml
-          # Monitoring - ConfigMaps
-           - infra/k8s/shared/monitoring/prometheus-configmap.yaml
-           - infra/k8s/shared/monitoring/fluentd-configmap.yaml
-           - infra/k8s/shared/monitoring/grafana/grafana-configmap.yaml
-           - infra/k8s/shared/monitoring/grafana/grafana-datasources-configmap.yaml
-          # Monitoring - Deployments
-           - infra/k8s/shared/monitoring/prometheus-depl.yaml
-           - infra/k8s/shared/monitoring/grafana/grafana-deployment.yaml
-           - infra/k8s/shared/monitoring/fluentd-daemonset.yaml
-            # Monitoring - Services
-           - infra/k8s/shared/monitoring/grafana/grafana-service.yaml
+          # ===== SECRETS (Deploy đầu tiên) =====
+          - infra/k8s/shared/databases/postgres/postgres-secret.yaml
+          - infra/k8s/shared/messaging/redis/redis-secret.yaml
+          - infra/k8s/shared/messaging/rabbitmq/rabbitmq-secret.yaml
+          
+          # ===== CONFIGMAPS =====
+          # PostgreSQL configs
+          - infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
+          # Redis configs
+          - infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
+          # RabbitMQ configs
+          - infra/k8s/shared/messaging/rabbitmq/rabbitmq-config.yaml
+          - infra/k8s/shared/messaging/rabbitmq/rabbitmq-definitions.yaml
+          
+          # ===== STATEFULSETS & STORAGE =====
+          # PostgreSQL HA cluster
+          - infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
+          # Redis Sentinel cluster
+          - infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
+          # RabbitMQ HA cluster
+          - infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
+          
+          # ===== MONITORING STACK (Optimized for Test/Dev) =====
+          # RBAC
+          - infra/k8s/shared/monitoring/prometheus-rbac.yaml
+          - infra/k8s/shared/monitoring/fluentd-rbac.yaml
+          # PersistentVolumeClaims (NEW - Professional!)
+          - infra/k8s/shared/monitoring/prometheus-pvc.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-pvc.yaml
+          # Secrets (NEW - Security!)
+          - infra/k8s/shared/monitoring/grafana/grafana-secret.yaml
+          # ConfigMaps
+          - infra/k8s/shared/monitoring/prometheus-configmap.yaml
+          - infra/k8s/shared/monitoring/fluentd-configmap.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-configmap.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-datasources-configmap.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-dashboards-configmap.yaml
+          # AlertManager (NEW - Professional!)
+          - infra/k8s/shared/monitoring/alertmanager-configmap.yaml
+          - infra/k8s/shared/monitoring/alertmanager-depl.yaml
+          # Deployments
+          - infra/k8s/shared/monitoring/prometheus-depl.yaml
+          - infra/k8s/shared/monitoring/grafana/grafana-deployment.yaml
+          # - infra/k8s/shared/monitoring/fluentd-daemonset.yaml  # DISABLED for test/dev (use kubectl logs)
+          # Services
+          - infra/k8s/shared/monitoring/grafana/grafana-service.yaml
+          
+          # ===== BACKUP & DR =====
+          - infra/k8s/platform/backup-cronjobs.yaml
+          
+          # ===== NETWORK POLICIES =====
+          - infra/k8s/platform/network-policies-hardened.yaml
     portForward:
       - resourceType: service
         resourceName: postgres-srv
@@ -165,11 +192,6 @@ profiles:
         namespace: infrastructure
         port: 15672
         localPort: 15672
-      - resourceType: service
-        resourceName: mongo-srv
-        namespace: infrastructure
-        port: 27017
-        localPort: 27017
       - resourceType: service
         resourceName: grafana-srv
         namespace: monitoring
@@ -198,21 +220,58 @@ profiles:
     deploy:
       kubectl:
         manifests:
-          # Auth service
+          # ===== AUTH SERVICE (HA) =====
           - infra/k8s/services/auth/configmap.yaml
           - infra/k8s/services/auth/secrets.yaml
-          - infra/k8s/services/auth/deployment.yaml
-          - infra/k8s/services/auth/service.yaml
-          - infra/k8s/services/auth/hpa.yaml
-          # Face recognition service
-          - infra/k8s/services/face-recognition/rbac.yaml
+          - infra/k8s/services/auth/deployment-ha.yaml
+          
+          # ===== FACE RECOGNITION SERVICE (HA) =====
+          - infra/k8s/services/face-recognition/serviceaccount.yaml
           - infra/k8s/services/face-recognition/configmap.yaml
           - infra/k8s/services/face-recognition/secrets.yaml
-          - infra/k8s/services/face-recognition/app-config.yaml
-          - infra/k8s/services/face-recognition/deployment.yaml
-          - infra/k8s/services/face-recognition/service.yaml
-          - infra/k8s/services/face-recognition/hpa.yaml
-          # Ingress cuối cùng
+          - infra/k8s/services/face-recognition/deployment-ha.yaml
+          
+          # ===== ATTENDANCE SERVICE =====
+          - infra/k8s/services/attendance/serviceaccount.yaml
+          - infra/k8s/services/attendance/configmap.yaml
+          - infra/k8s/services/attendance/secrets.yaml
+          - infra/k8s/services/attendance/deployment.yaml
+          - infra/k8s/services/attendance/service.yaml
+          - infra/k8s/services/attendance/hpa.yaml
+          
+          # ===== EMPLOYEE SERVICE =====
+          - infra/k8s/services/employee/serviceaccount.yaml
+          - infra/k8s/services/employee/configmap.yaml
+          - infra/k8s/services/employee/secrets.yaml
+          - infra/k8s/services/employee/deployment.yaml
+          - infra/k8s/services/employee/service.yaml
+          - infra/k8s/services/employee/hpa.yaml
+          
+          # ===== LEAVE SERVICE =====
+          - infra/k8s/services/leave/serviceaccount.yaml
+          - infra/k8s/services/leave/configmap.yaml
+          - infra/k8s/services/leave/secrets.yaml
+          - infra/k8s/services/leave/deployment.yaml
+          - infra/k8s/services/leave/service.yaml
+          - infra/k8s/services/leave/hpa.yaml
+          
+          # ===== NOTIFICATION SERVICE =====
+          - infra/k8s/services/notification/serviceaccount.yaml
+          - infra/k8s/services/notification/configmap.yaml
+          - infra/k8s/services/notification/secrets.yaml
+          - infra/k8s/services/notification/deployment.yaml
+          - infra/k8s/services/notification/service.yaml
+          - infra/k8s/services/notification/hpa.yaml
+          
+          # ===== REPORTING SERVICE =====
+          - infra/k8s/services/reporting/serviceaccount.yaml
+          - infra/k8s/services/reporting/configmap.yaml
+          - infra/k8s/services/reporting/secrets.yaml
+          - infra/k8s/services/reporting/deployment.yaml
+          - infra/k8s/services/reporting/service.yaml
+          - infra/k8s/services/reporting/hpa.yaml
+          
+          # ===== INGRESS (Deploy cuối cùng) =====
           - infra/k8s/platform/ingress-srv.yaml
     portForward:
       - resourceType: service
@@ -225,4 +284,29 @@ profiles:
         namespace: default
         port: 8080
         localPort: 8080
+      - resourceType: service
+        resourceName: attendance-srv
+        namespace: default
+        port: 3002
+        localPort: 3002
+      - resourceType: service
+        resourceName: employee-srv
+        namespace: default
+        port: 3003
+        localPort: 3003
+      - resourceType: service
+        resourceName: leave-srv
+        namespace: default
+        port: 3004
+        localPort: 3004
+      - resourceType: service
+        resourceName: notification-srv
+        namespace: default
+        port: 3005
+        localPort: 3005
+      - resourceType: service
+        resourceName: reporting-srv
+        namespace: default
+        port: 3006
+        localPort: 3006
 
