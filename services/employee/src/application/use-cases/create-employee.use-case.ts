@@ -1,14 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
-import { CreateEmployeeResponseDto } from '../dto/create-employee-response.dto';
+import { CreateEmployeeResponseDto } from '../dto/employee/create-employee-response.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ErrorCodes } from '../../common/enums/error-codes.enum';
-import { CreateEmployeeDto } from '../dto/create-employee.dto';
+import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
 import { Employee } from '../../domain/entities/employee.entity';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
-import { EmployeeCreatedEventDto } from '../dto/employee-created.event.dto';
+import { EmployeeCreatedEventDto } from '../dto/employee/employee-created.event.dto';
 
 @Injectable()
 export class CreateEmployeeUseCase {

@@ -4,6 +4,7 @@ export class Department {
   department_name: string;
   description?: string;
   parent_department_id?: number;
+  parent?: Department;
   level: number = 1;
   path?: string;
   manager_id?: number;
@@ -14,4 +15,11 @@ export class Department {
   status: string = 'ACTIVE';
   created_at?: Date;
   updated_at?: Date;
+
+  constructor(partial: Partial<Department>) {
+    Object.assign(this, partial);
+    this.level = this.level || 1;
+    this.office_radius_meters = this.office_radius_meters || 100;
+    this.status = this.status || 'ACTIVE';
+  }
 }

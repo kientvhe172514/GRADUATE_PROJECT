@@ -1,12 +1,12 @@
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ErrorCodes } from '../../common/enums/error-codes.enum';
 
-export class EmployeeNotFoundException extends BusinessException {
+export class DepartmentNotFoundException extends BusinessException {
   constructor(id: number) {
     super(
-      ErrorCodes.EMPLOYEE_NOT_FOUND,
-      `Employee with id ${id} not found`
+      ErrorCodes.DEPARTMENT_NOT_FOUND,
+      `Department with id ${id} not found`
     );
-    this.name = 'EmployeeNotFoundException';
+    this.name = 'DepartmentNotFoundException';
   }
 }
