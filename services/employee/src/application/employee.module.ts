@@ -8,6 +8,7 @@ import { AccountCreatedListener } from '../presentation/event-listeners/account-
 import { CreateEmployeeUseCase } from './use-cases/create-employee.use-case';
 import { GetEmployeeDetailUseCase } from './use-cases/get-employee-detail.use-case';
 import { UpdateEmployeeUseCase } from './use-cases/update-employee.use-case';
+import { AssignRoleUseCase } from './use-cases/assign-role.use-case';
 import { GetAllPositionsUseCase } from './use-cases/get-all-positions.use-case';
 import { GetPositionByIdUseCase } from './use-cases/get-position-by-id.use-case';
 import { CreatePositionUseCase } from './use-cases/create-position.use-case';
@@ -52,6 +53,7 @@ import { EMPLOYEE_REPOSITORY, POSITION_REPOSITORY, EVENT_PUBLISHER } from './tok
     CreateEmployeeUseCase,
     GetEmployeeDetailUseCase,
     UpdateEmployeeUseCase,
+  AssignRoleUseCase,
     GetAllPositionsUseCase,
     GetPositionByIdUseCase,
     CreatePositionUseCase,
