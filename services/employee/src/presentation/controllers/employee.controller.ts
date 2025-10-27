@@ -6,11 +6,8 @@ import { CreateEmployeeUseCase } from '../../application/use-cases/create-employ
 import { GetEmployeeDetailUseCase } from '../../application/use-cases/get-employee-detail.use-case';
 import { UpdateEmployeeUseCase } from '../../application/use-cases/update-employee.use-case';
 import { AssignRoleUseCase } from '../../application/use-cases/assign-role.use-case';
-import { CreateEmployeeDto } from '../../application/dto/create-employee.dto';
-import { UpdateEmployeeDto } from '../../application/dto/update-employee.dto';
 import { AssignDepartmentDto } from '../../application/dto/assign-department.dto';
 import { AssignRoleDto } from '../../application/dto/assign-role.dto';
-import { EmployeeDetailDto } from '../../application/dto/employee-detail.dto';
 import { GetEmployeesUseCase } from '../../application/use-cases/get-employees.use-case';
 import { TerminateEmployeeUseCase } from '../../application/use-cases/terminate-employee.use-case';
 import { GetOnboardingStepsUseCase } from '../../application/use-cases/get-onboarding-steps.use-case';
