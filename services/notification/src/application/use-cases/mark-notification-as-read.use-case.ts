@@ -3,8 +3,7 @@ import { NotificationRepositoryPort } from '../ports/notification.repository.por
 import { EventPublisherPort } from '../ports/event-publisher.port';
 import { NOTIFICATION_REPOSITORY, EVENT_PUBLISHER } from './send-notification.use-case';
 import { NotificationReadEvent } from '../../domain/events/notification-read.event';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { ErrorCodes } from '../../common/enums/error-codes.enum';
+import { BusinessException } from '@graduate-project/shared-common';import { ErrorCodes } from '../../common/enums/error-codes.enum';
 
 @Injectable()
 export class MarkNotificationAsReadUseCase {

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Employee } from '../../domain/entities/employee.entity';
+import { Employee } from 'domain/entities/employee.entity';
 
 export class EmployeeCreatedEventDto {
   @ApiProperty()

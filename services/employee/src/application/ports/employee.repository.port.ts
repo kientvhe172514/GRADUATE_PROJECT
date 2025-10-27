@@ -1,5 +1,6 @@
 import { Employee } from '../../domain/entities/employee.entity';
-import { CreateEmployeeDto } from '../dto/create-employee.dto';
+import { CreateEmployeeDto } from '../dto/employee/create-employee.dto';
+import { ListEmployeeDto } from '../dto/employee/list-employee.dto';
 
 export interface EmployeeRepositoryPort {
   create(employee: Employee): Promise<Employee>;  
@@ -9,4 +10,5 @@ export interface EmployeeRepositoryPort {
   update(id: number, employee: Partial<Employee>): Promise<Employee>;
   updateAccountId(id: number, accountId: number): Promise<void>;
   updateOnboardingStatus(id: number, status: string): Promise<void>;
+  findAll(filters?: ListEmployeeDto): Promise<Employee[]>;
 }

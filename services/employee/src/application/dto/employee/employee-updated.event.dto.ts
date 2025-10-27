@@ -1,4 +1,4 @@
-import { Employee } from '../../domain/entities/employee.entity';
+import { Employee } from 'domain/entities/employee.entity';
 
 export class EmployeeUpdatedEventDto {
   employee_id: number;

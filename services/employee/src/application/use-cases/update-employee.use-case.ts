@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Inject } from '@nestjs/common';
-import { UpdateEmployeeDto } from '../dto/update-employee.dto';
+import { UpdateEmployeeDto } from '../dto/employee/update-employee.dto';
 import { Employee } from '../../domain/entities/employee.entity';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { EmployeeNotFoundException } from '../../domain/exceptions/employee-not-found.exception';
-import { EmployeeUpdatedEventDto } from '../dto/employee-updated.event.dto';
+import { EmployeeUpdatedEventDto } from '../dto/employee/employee-updated.event.dto';
 
 @Injectable()
 export class UpdateEmployeeUseCase {
@@ -31,7 +33,6 @@ export class UpdateEmployeeUseCase {
       }
     }
 
-    // Prepare update data - tách biệt convert dates
     const updateData: Partial<Employee> = {
       updated_by: updatedBy,
     };

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { EmployeeSchema } from '../typeorm/employee.schema';
 import { EmployeeRepositoryPort } from '../../../application/ports/employee.repository.port';
 import { Employee } from '../../../domain/entities/employee.entity';
-import { CreateEmployeeDto } from '../../../application/dto/create-employee.dto';
 import { EmployeeEntity } from '../entities/employee.entity';
 import { EmployeeMapper } from '../mappers/employee.mapper';
+import { ListEmployeeDto } from '../../../application/dto/employee/list-employee.dto';
 
 @Injectable()
 export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
@@ -55,5 +55,30 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
 
   async updateOnboardingStatus(id: number, status: string): Promise<void> {
     await this.repository.update(id, { onboarding_status: status });
+  }
+
+  async findAll(filters?: ListEmployeeDto): Promise<Employee[]> {
+    const whereClause: any = {};
+    
+    if (filters?.department_id) {
+      whereClause.department_id = filters.department_id;
+    }
+    
+    if (filters?.status) {
+      whereClause.status = filters.status;
+    }
+    
+    if (filters?.search) {
+      whereClause.full_name = Like(`%${filters.search}%`);
+    }
+
+    const employees = await this.repository.find({
+      where: whereClause,
+      order: {
+        created_at: 'DESC',
+      },
+    });
+
+    return employees.map(employee => EmployeeMapper.toDomain(employee));
   }
 }

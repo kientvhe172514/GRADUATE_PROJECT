@@ -21,49 +21,80 @@ import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-ev
 import { AccountCreatedHandler } from './handlers/account-created.handler';
 import { EmployeeSchema } from '../infrastructure/persistence/typeorm/employee.schema';
 import { PositionSchema } from '../infrastructure/persistence/typeorm/position.schema';
-import { EMPLOYEE_REPOSITORY, POSITION_REPOSITORY, EVENT_PUBLISHER } from './tokens';
+import { DepartmentSchema } from '../infrastructure/persistence/typeorm/department.schema';
+import { EmployeeOnboardingStepSchema } from '../infrastructure/persistence/typeorm/employee-onboarding-step.schema';
+import { EMPLOYEE_REPOSITORY, POSITION_REPOSITORY, EVENT_PUBLISHER, DEPARTMENT_REPOSITORY, ONBOARDING_STEP_REPOSITORY } from './tokens';
+import { DepartmentController } from '../presentation/controllers/department.controller';
+import { GetEmployeesUseCase } from './use-cases/get-employees.use-case';
+import { TerminateEmployeeUseCase } from './use-cases/terminate-employee.use-case';
+import { GetOnboardingStepsUseCase } from './use-cases/get-onboarding-steps.use-case';
+import { UpdateOnboardingStepUseCase } from './use-cases/update-onboarding-step.use-case';
+import { CreateDepartmentUseCase } from './use-cases/create-department.use-case';
+import { UpdateDepartmentUseCase } from './use-cases/update-department.use-case';
+import { GetDepartmentDetailUseCase } from './use-cases/get-department-detail.use-case';
+import { PostgresDepartmentRepository } from '../infrastructure/persistence/repositories/postgres-department.repository';
+import { PostgresOnboardingStepRepository } from '../infrastructure/persistence/repositories/postgres-onboarding-step.repository';
+import { DeleteDepartmentUseCase } from './use-cases/delete-department.use-case';
+import { GetDepartmentsUseCase } from './use-cases/get-departments.use-case';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EmployeeSchema, PositionSchema]),
+  TypeOrmModule.forFeature([EmployeeSchema, PositionSchema, DepartmentSchema, EmployeeOnboardingStepSchema]),
     ClientsModule.registerAsync([
       {
         name: 'IAM_SERVICE',
         imports: [ConfigModule],
-        useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.get<string>('RABBITMQ_URL')!;
-          const iamQueue = configService.get<string>('RABBITMQ_IAM_QUEUE')!;
-          return {
-            transport: Transport.RMQ,
-            options: {
-              urls: [rabbitmqUrl],
-              queue: iamQueue,
-              queueOptions: {
-                durable: true,
-              },
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL')!],
+            queue: configService.get<string>('RABBITMQ_IAM_QUEUE')!,
+            queueOptions: {
+              durable: true,
             },
-          };
-        },
+          },
+        }),
         inject: [ConfigService],
       },
     ]),
   ],
-  controllers: [EmployeeController, PositionController, AccountCreatedListener],  
+  controllers: [EmployeeController, DepartmentController, PositionController, AccountCreatedListener],  
   providers: [
+    // Use cases
     CreateEmployeeUseCase,
     GetEmployeeDetailUseCase,
     UpdateEmployeeUseCase,
-  AssignRoleUseCase,
+    GetEmployeesUseCase,
+    TerminateEmployeeUseCase,
+    GetOnboardingStepsUseCase,
+    UpdateOnboardingStepUseCase,
+    CreateDepartmentUseCase,
+    UpdateDepartmentUseCase,
+    GetDepartmentDetailUseCase,
+    GetDepartmentsUseCase,
+    DeleteDepartmentUseCase,
     GetAllPositionsUseCase,
     GetPositionByIdUseCase,
     CreatePositionUseCase,
     UpdatePositionUseCase,
     DeletePositionUseCase,
     AccountCreatedHandler,
-    RabbitMQEventSubscriber,  
+
+    // Infrastructure
+    RabbitMQEventSubscriber,
+    
+    // Repository providers
     {
       provide: EMPLOYEE_REPOSITORY,
       useClass: PostgresEmployeeRepository,
+    },
+    {
+      provide: DEPARTMENT_REPOSITORY,
+      useClass: PostgresDepartmentRepository,
+    },
+    {
+      provide: ONBOARDING_STEP_REPOSITORY,
+      useClass: PostgresOnboardingStepRepository,
     },
     {
       provide: POSITION_REPOSITORY,
