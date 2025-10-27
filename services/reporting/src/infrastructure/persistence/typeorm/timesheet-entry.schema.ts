@@ -1,0 +1,46 @@
+import { EntitySchema } from 'typeorm';
+import { TimesheetEntryEntity } from '../../../domain/entities/timesheet-entry.entity';
+
+export const TimesheetEntrySchema = new EntitySchema<TimesheetEntryEntity>({
+  name: 'TimesheetEntry',
+  tableName: 'timesheet_entries',
+  columns: {
+    id: { type: 'bigint', primary: true, generated: true },
+    employee_id: { type: 'bigint' },
+    employee_code: { type: 'varchar', length: 50 },
+    employee_name: { type: 'varchar', length: 255 },
+    department_id: { type: 'int' },
+    department_name: { type: 'varchar', length: 255 },
+    position_name: { type: 'varchar', length: 255, nullable: true },
+    entry_date: { type: 'date' },
+    year: { type: 'int' },
+    month: { type: 'int' },
+    week: { type: 'int' },
+    day_of_week: { type: 'int' },
+    scheduled_hours: { type: 'decimal', precision: 5, scale: 2, default: 0 },
+    work_hours: { type: 'decimal', precision: 5, scale: 2, default: 0 },
+    overtime_hours: { type: 'decimal', precision: 5, scale: 2, default: 0 },
+    leave_hours: { type: 'decimal', precision: 5, scale: 2, default: 0 },
+    absent_hours: { type: 'decimal', precision: 5, scale: 2, default: 0 },
+    status: { type: 'varchar', length: 20 },
+    late_minutes: { type: 'int', default: 0 },
+    early_leave_minutes: { type: 'int', default: 0 },
+    has_violation: { type: 'boolean', default: false },
+    check_in_time: { type: 'timestamptz', nullable: true },
+    check_out_time: { type: 'timestamptz', nullable: true },
+    beacon_validated: { type: 'boolean', default: false },
+    gps_validated: { type: 'boolean', default: false },
+    face_verified: { type: 'boolean', default: false },
+    presence_verified: { type: 'boolean', default: false },
+    synced_at: { type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' },
+  },
+  indices: [
+    { columns: ['entry_date'] },
+    { columns: ['department_id', 'entry_date'] },
+    { columns: ['year', 'month'] },
+    { columns: ['status'] },
+  ],
+  uniques: [
+    { columns: ['employee_id', 'entry_date'] },
+  ],
+});

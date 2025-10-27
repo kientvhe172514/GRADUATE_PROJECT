@@ -1,0 +1,36 @@
+import { EntitySchema } from 'typeorm';
+import { LeaveTypeEntity } from '../../../domain/entities/leave-type.entity';
+
+export const LeaveTypeSchema = new EntitySchema<LeaveTypeEntity>({
+  name: 'LeaveType',
+  tableName: 'leave_types',
+  columns: {
+    id: { type: 'int', primary: true, generated: true },
+    leave_type_code: { type: 'varchar', length: 20, unique: true },
+    leave_type_name: { type: 'varchar', length: 255 },
+    description: { type: 'text', nullable: true },
+    is_paid: { type: 'boolean', default: true },
+    requires_approval: { type: 'boolean', default: true },
+    requires_document: { type: 'boolean', default: false },
+    deducts_from_balance: { type: 'boolean', default: true },
+    max_days_per_year: { type: 'decimal', precision: 5, scale: 2, nullable: true },
+    max_consecutive_days: { type: 'int', nullable: true },
+    min_notice_days: { type: 'int', default: 0 },
+    exclude_holidays: { type: 'boolean', default: true },
+    exclude_weekends: { type: 'boolean', default: true },
+    allow_carry_over: { type: 'boolean', default: false },
+    max_carry_over_days: { type: 'decimal', precision: 5, scale: 2, nullable: true },
+    carry_over_expiry_months: { type: 'int', default: 3 },
+    is_prorated: { type: 'boolean', default: true },
+    proration_basis: { type: 'varchar', length: 20, default: 'MONTHLY' },
+    is_accrued: { type: 'boolean', default: false },
+    accrual_rate: { type: 'decimal', precision: 5, scale: 2, nullable: true },
+    accrual_start_month: { type: 'int', default: 0 },
+    color_hex: { type: 'varchar', length: 7, default: '#3B82F6' },
+    icon: { type: 'varchar', length: 50, nullable: true },
+    sort_order: { type: 'int', default: 0 },
+    status: { type: 'varchar', length: 20, default: 'ACTIVE' },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
+  },
+});

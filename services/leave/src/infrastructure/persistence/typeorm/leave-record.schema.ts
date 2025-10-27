@@ -1,0 +1,42 @@
+import { EntitySchema } from 'typeorm';
+import { LeaveRecordEntity } from '../../../domain/entities/leave-record.entity';
+
+export const LeaveRecordSchema = new EntitySchema<LeaveRecordEntity>({
+  name: 'LeaveRecord',
+  tableName: 'leave_records',
+  columns: {
+    id: { type: 'int', primary: true, generated: true },
+    employee_id: { type: 'bigint' },
+    employee_code: { type: 'varchar', length: 50 },
+    department_id: { type: 'int' },
+    leave_type_id: { type: 'int' },
+    start_date: { type: 'date' },
+    end_date: { type: 'date' },
+    total_calendar_days: { type: 'int' },
+    total_working_days: { type: 'decimal', precision: 5, scale: 2 },
+    total_leave_days: { type: 'decimal', precision: 5, scale: 2 },
+    is_half_day_start: { type: 'boolean', default: false },
+    is_half_day_end: { type: 'boolean', default: false },
+    reason: { type: 'text' },
+    supporting_document_url: { type: 'varchar', length: 500, nullable: true },
+    status: { type: 'varchar', length: 20, default: 'PENDING' },
+    requested_at: { type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' },
+    approval_level: { type: 'int', default: 1 },
+    current_approver_id: { type: 'bigint', nullable: true },
+    approved_by: { type: 'bigint', nullable: true },
+    approved_at: { type: 'timestamp', nullable: true },
+    rejection_reason: { type: 'text', nullable: true },
+    cancelled_at: { type: 'timestamp', nullable: true },
+    cancellation_reason: { type: 'text', nullable: true },
+    metadata: { type: 'jsonb', nullable: true },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
+  },
+  indices: [
+    { columns: ['employee_id'] },
+    { columns: ['status'] },
+    { columns: ['start_date', 'end_date'] },
+    { columns: ['leave_type_id'] },
+    { columns: ['requested_at'] },
+  ],
+});
