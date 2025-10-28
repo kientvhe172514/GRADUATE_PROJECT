@@ -82,7 +82,7 @@ export class LoginUseCase {
     }
 
     // Generate tokens
-    const accessToken = this.jwtService.generateAccessToken(account);
+    const accessToken = await this.jwtService.generateAccessToken(account);
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
     // Create refresh token record

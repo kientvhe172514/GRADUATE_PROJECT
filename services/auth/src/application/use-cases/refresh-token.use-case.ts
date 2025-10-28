@@ -82,7 +82,7 @@ export class RefreshTokenUseCase {
     await this.refreshTokensRepo.updateLastUsed(refreshTokenRecord.id!);
 
     // Generate new tokens
-    const newAccessToken = this.jwtService.generateAccessToken(account);
+    const newAccessToken = await this.jwtService.generateAccessToken(account);
     const newRefreshToken = this.jwtService.generateRefreshToken(account);
 
     // Revoke old refresh token and create new one

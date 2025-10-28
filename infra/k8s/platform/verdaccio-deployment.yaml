@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verdaccio-config
+  namespace: infrastructure
+data:
+  config.yaml: |
+    storage: /verdaccio/storage
+    auth:
+      htpasswd:
+        file: /verdaccio/htpasswd
+    uplinks:
+      npmjs:
+        url: https://registry.npmjs.org/
+    packages:
+      '@graduate-project/*':
+        access: $all
+        publish: $authenticated
+        proxy: npmjs
+      '**':
+        access: $all
+        publish: $authenticated
+        proxy: npmjs
+    server:
+      keepAliveTimeout: 60
+    middlewares:
+      audit:
+        enabled: true
+    logs:
+      - { type: stdout, format: pretty, level: http }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: verdaccio-secret
+  namespace: infrastructure
+type: Opaque
+stringData:
+  htpasswd: |
+    admin:$apr1$xyz$AbCdEfGhIjKlMnOpQrStUv
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verdaccio
+  namespace: infrastructure
+  labels:
+    app: verdaccio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verdaccio
+  template:
+    metadata:
+      labels:
+        app: verdaccio
+    spec:
+      containers:
+      - name: verdaccio
+        image: verdaccio/verdaccio:5.28
+        ports:
+        - containerPort: 4873
+          name: http
+        volumeMounts:
+        - name: config
+          mountPath: /verdaccio/conf
+        - name: storage
+          mountPath: /verdaccio/storage
+        - name: htpasswd
+          mountPath: /verdaccio/htpasswd
+          subPath: htpasswd
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /-/ping
+            port: 4873
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /-/ping
+            port: 4873
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: verdaccio-config
+      - name: storage
+        emptyDir: {}
+      - name: htpasswd
+        secret:
+          secretName: verdaccio-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verdaccio-srv
+  namespace: infrastructure
+  labels:
+    app: verdaccio
+spec:
+  type: ClusterIP
+  selector:
+    app: verdaccio
+  ports:
+  - port: 4873
+    targetPort: 4873
+    protocol: TCP
+    name: http

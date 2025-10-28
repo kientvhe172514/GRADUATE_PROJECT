@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+
+# Development
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+test
+*.test.ts
+*.spec.ts
+
+# Documentation
+*.md
+!README.md
+
+# Config
+.prettierrc
+.eslintrc.js
+eslint.config.mjs
+jest.config.js
+tsconfig.spec.json
+
+# OS
+.DS_Store
+Thumbs.db

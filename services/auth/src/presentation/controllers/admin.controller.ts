@@ -20,10 +20,11 @@ import {
   ListAuditLogsRequestDto, 
   ListAuditLogsResponseDto 
 } from '../../application/dto/admin/list-audit-logs.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('admin')
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 @ApiBearerAuth()
 export class AdminController {
   constructor(

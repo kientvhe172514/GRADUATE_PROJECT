@@ -1,0 +1,57 @@
+{
+  "name": "graduate-project-root",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.3",
+  "description": "Root workspace for Graduate Project microservices",
+  "workspaces": [
+    "services/*"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^9.8.0",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
+    "@types/jest": "^30.0.0",
+    "@types/node": "20.19.9",
+    "eslint": "^9.8.0",
+    "eslint-config-prettier": "^10.0.0",
+    "jest": "^30.0.2",
+    "jest-environment-node": "^30.0.2",
+    "jest-util": "^30.0.2",
+    "jsonc-eslint-parser": "^2.1.0",
+    "prettier": "^2.6.2",
+    "ts-jest": "^29.4.0",
+    "ts-node": "10.9.1",
+    "tslib": "^2.3.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.40.0"
+  },
+  "scripts": {
+    "install:all": "pnpm install",
+    "build:shared": "pnpm --filter @graduate-project/shared-common build",
+    "publish:shared": "pnpm --filter @graduate-project/shared-common publish --no-git-checks",
+    "build:auth": "pnpm --filter auth build",
+    "build:notif": "pnpm --filter @hr-system/notification build",
+    "build:employee": "pnpm --filter employee build",
+    "build:attendance": "pnpm --filter attendance build",
+    "build:leave": "pnpm --filter leave build",
+    "build:reporting": "pnpm --filter reporting build",
+    "start:auth": "pnpm --filter auth start:dev",
+    "start:notif": "pnpm --filter @hr-system/notification start:dev",
+    "start:employee": "pnpm --filter employee start:dev",
+    "start:attendance": "pnpm --filter attendance start:dev",
+    "start:leave": "pnpm --filter leave start:dev",
+    "start:reporting": "pnpm --filter reporting start:dev",
+    "clean:all": "pnpm --parallel --filter './services/*' clean",
+    "lint:all": "pnpm --parallel --filter './services/*' lint"
+  },
+  "overrides": {
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/swagger": "^11.2.0"
+  },
+  "dependencies": {}
+}

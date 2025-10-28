@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import { ApiResponseDto, BusinessException, ErrorCodes, Public } from '@graduate-project/shared-common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
@@ -16,7 +16,7 @@ import { GetAccountUseCase } from '../../application/use-cases/get-account.use-c
 import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
 import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
-// JwtAuthGuard & CurrentUser are imported from shared-common
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -33,6 +33,7 @@ export class AccountController {
     private resetPasswordUseCase: ResetPasswordUseCase,
   ) {}
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
@@ -44,6 +45,7 @@ export class AccountController {
     return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
@@ -71,6 +73,7 @@ export class AccountController {
     return await this.logoutUseCase.execute(logoutDto, user.sub, ipAddress, userAgent);
   }
 
+  @Public()
   @Post('register')  // Internal endpoint for employee service
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new account (internal from employee event)' })
@@ -78,6 +81,7 @@ export class AccountController {
     return this.createAccountUseCase.execute(dto);
   }
 
+  @Public()
   @Post('update/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update account' })
@@ -133,6 +137,7 @@ export class AccountController {
     return this.changePasswordUseCase.changePassword(dto, ipAddress, userAgent);
   }
 
+  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate forgot password flow' })
@@ -140,6 +145,7 @@ export class AccountController {
     return this.forgotPasswordUseCase.execute(body);
   }
 
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token' })
@@ -156,6 +162,7 @@ export class AccountController {
     return this.resetPasswordUseCase.execute(body);
   }
 
+  @Public()
   @Post('change-temporary-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change temporary password to permanent password' })

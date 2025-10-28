@@ -1,15 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginResponseDto } from '../../presentation/dto/login-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { JwtServicePort } from '../../application/ports/jwt.service.port';
+import { RoleRepositoryPort } from '../../application/ports/role.repository.port';
+import { ROLE_REPOSITORY } from '../../application/tokens';
 
 @Injectable()
 export class JwtServiceImpl implements JwtServicePort {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @Inject(ROLE_REPOSITORY)
+    private roleRepository: RoleRepositoryPort,
+  ) {}
 
-  generateAccessToken(account: Account): string {
-    const payload = { sub: account.id, email: account.email, role: account.role };
+  async generateAccessToken(account: Account): Promise<string> {
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role);
+    const payload = {
+      sub: account.id,
+      email: account.email,
+      role: account.role,
+      permissions: permissions
+    };
     return this.jwtService.sign(payload, { expiresIn: '15m' }); // 15 minutes
   }
 
@@ -30,8 +42,14 @@ export class JwtServiceImpl implements JwtServicePort {
   }
 
   // Legacy method for backward compatibility
-  generateTokens(account: Account): LoginResponseDto {
-    const payload = { sub: account.id, email: account.email, role: account.role };
+  async generateTokens(account: Account): Promise<LoginResponseDto> {
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role);
+    const payload = {
+      sub: account.id,
+      email: account.email,
+      role: account.role,
+      permissions: permissions
+    };
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
       refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
