@@ -48,7 +48,8 @@ data:
     channel_max = 2048
     num_acceptors.tcp = 30
     connection_max = 2000
-    channel_max_per_connection = 100
+    # FIX: Removed channel_max_per_connection (not a valid setting in RabbitMQ)
+    # Use consumer_max_per_channel if you need to limit consumers per channel
     
     # ===== HEARTBEAT & TIMEOUTS =====
     heartbeat = 60
