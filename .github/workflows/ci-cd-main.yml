@@ -462,6 +462,13 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             cd ~/GRADUATE_PROJECT
+            
+            # Reset any local changes to avoid merge conflicts
+            echo "🔄 Resetting local changes..."
+            git reset --hard HEAD
+            git clean -fd
+            
+            # Pull latest code
             git pull origin main
             
             # Replace Docker Hub username placeholder in ALL service deployment files
