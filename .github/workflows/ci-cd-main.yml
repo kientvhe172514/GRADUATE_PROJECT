@@ -337,37 +337,46 @@ jobs:
             # CREATE INFRASTRUCTURE SECRETS (An toàn)
             # ============================================
             
-            # Postgres Secret
+            # Postgres Secret - FIX: Thêm đầy đủ database names
             kubectl create secret generic postgres-secret \
-              --from-literal=postgres-user='${{ secrets.POSTGRES_USER }}' \
-              --from-literal=postgres-password='${{ secrets.POSTGRES_PASSWORD }}' \
-              --from-literal=postgres-db='postgres' \
+              --from-literal=POSTGRES_HOST='${{ secrets.POSTGRES_HOST }}' \
+              --from-literal=POSTGRES_PORT='${{ secrets.POSTGRES_PORT }}' \
+              --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
+              --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+              --from-literal=POSTGRES_DB='postgres' \
+              --from-literal=POSTGRES_DB_IAM='${{ secrets.POSTGRES_DB_IAM }}' \
+              --from-literal=POSTGRES_DB_ATTENDANCE='${{ secrets.POSTGRES_DB_ATTENDANCE }}' \
+              --from-literal=POSTGRES_DB_EMPLOYEE='${{ secrets.POSTGRES_DB_EMPLOYEE }}' \
+              --from-literal=POSTGRES_DB_LEAVE='${{ secrets.POSTGRES_DB_LEAVE }}' \
+              --from-literal=POSTGRES_DB_NOTIFICATION='${{ secrets.POSTGRES_DB_NOTIFICATION }}' \
+              --from-literal=POSTGRES_DB_REPORTING='${{ secrets.POSTGRES_DB_REPORTING }}' \
+              --from-literal=POSTGRES_DB_ZENTRY='${{ secrets.POSTGRES_DB_ZENTRY }}' \
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            # MongoDB Secret
+            # MongoDB Secret - FIX: Dùng keys chuẩn của MongoDB image
             kubectl create secret generic mongodb-secret \
+              --from-literal=MONGO_INITDB_ROOT_USERNAME='${{ secrets.MONGODB_USERNAME }}' \
+              --from-literal=MONGO_INITDB_ROOT_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
+              --from-literal=MONGO_INITDB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
               --from-literal=MONGODB_HOST='${{ secrets.MONGODB_HOST }}' \
               --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
-              --from-literal=MONGODB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
-              --from-literal=MONGODB_USERNAME='${{ secrets.MONGODB_USERNAME }}' \
-              --from-literal=MONGODB_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            # RabbitMQ Secret
+            # RabbitMQ Secret - FIX: Dùng keys chuẩn của RabbitMQ image
             kubectl create secret generic rabbitmq-secret \
+              --from-literal=RABBITMQ_DEFAULT_USER='${{ secrets.RABBITMQ_USERNAME }}' \
+              --from-literal=RABBITMQ_DEFAULT_PASS='${{ secrets.RABBITMQ_PASSWORD }}' \
               --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
-              --from-literal=RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
-              --from-literal=RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
               --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
             # Redis Secret
             kubectl create secret generic redis-secret \
-              --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
+              --from-literal=REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
@@ -477,7 +486,7 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             # Apply deployment
-            kubectl apply -f infra/k8s/services/auth/
+            kubectl apply -f infra/k8s/services/auth/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
@@ -503,7 +512,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/attendance/
+            kubectl apply -f infra/k8s/services/attendance/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/attendance-depl -n graduate-project --timeout=5m
@@ -529,7 +538,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/employee/
+            kubectl apply -f infra/k8s/services/employee/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
@@ -555,7 +564,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/leave/
+            kubectl apply -f infra/k8s/services/leave/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/leave-depl -n graduate-project --timeout=5m
@@ -581,7 +590,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/notification/
+            kubectl apply -f infra/k8s/services/notification/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/notification-depl -n graduate-project --timeout=5m
@@ -607,7 +616,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/reporting/
+            kubectl apply -f infra/k8s/services/reporting/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/reporting-depl -n graduate-project --timeout=5m
@@ -632,7 +641,7 @@ jobs:
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            kubectl apply -f infra/k8s/services/face-recognition/
+            kubectl apply -f infra/k8s/services/face-recognition/ -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/face-recognition-depl -n graduate-project --timeout=5m

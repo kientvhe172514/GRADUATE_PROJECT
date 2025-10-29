@@ -31,10 +31,17 @@ spec:
           name: management
         - containerPort: 15692
           name: prometheus
-        envFrom:
-        - secretRef:
-            name: rabbitmq-secret
         env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_USER
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_PASS
         - name: RABBITMQ_NODENAME
           value: "rabbit@localhost"
         volumeMounts:

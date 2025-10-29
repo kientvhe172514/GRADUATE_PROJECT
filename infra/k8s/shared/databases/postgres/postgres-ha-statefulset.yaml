@@ -45,14 +45,17 @@ spec:
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-user
+              key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-password
+              key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
-          value: "postgres"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         - name: POSTGRES_INITDB_ARGS
