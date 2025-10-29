@@ -88,11 +88,11 @@ spec:
   policyTypes:
   - Ingress
   ingress:
-  # Allow from default namespace (app services)
+  # Allow from graduate-project namespace (app services like auth, attendance, etc.)
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 5432

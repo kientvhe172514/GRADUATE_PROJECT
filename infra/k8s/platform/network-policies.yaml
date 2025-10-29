@@ -24,10 +24,10 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
   - from: []
     ports:
     - protocol: TCP
@@ -38,7 +38,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
   - to: []
     ports:
     - protocol: TCP
@@ -65,9 +65,9 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     - namespaceSelector:
         matchLabels:
-          name: monitoring
+          kubernetes.io/metadata.name: monitoring
   egress:
   - to: []
