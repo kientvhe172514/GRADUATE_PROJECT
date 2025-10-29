@@ -1,0 +1,41 @@
+name: [32mInfrastructure Deploy[0m
+
+on:
+  push:
+    paths:
+      - 'infra/k8s/platform/**'
+      - 'infra/k8s/shared/**'
+      - 'infra/k8s/**.yaml'
+  workflow_dispatch:
+
+jobs:
+  deploy-infrastructure:
+    name: [34mDeploy Infrastructure (K8s)[0m
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy K8s Infrastructure
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd ~/GRADUATE_PROJECT
+            git pull origin main
+            kubectl apply -f infra/k8s/platform/
+            kubectl apply -f infra/k8s/shared/
+            echo "\n=== StatefulSets in graduate-project namespace ==="
+            kubectl get statefulset -n graduate-project || echo "No StatefulSet found."
+            echo "\n=== PVCs in graduate-project namespace ==="
+            kubectl get pvc -n graduate-project || echo "No PVC found."
+            echo "\n=== PVs in graduate-project namespace ==="
+            kubectl get pv || echo "No PV found."
+            echo "\n=== WARNING: Nếu chưa dùng StatefulSet cho database, hãy chuyển sang StatefulSet để tránh mất dữ liệu khi update! ==="
+          EOF

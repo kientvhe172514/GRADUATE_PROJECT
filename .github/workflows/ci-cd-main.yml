@@ -118,8 +118,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -331,7 +329,9 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Setup infrastructure secrets and deploy
-        if: needs.detect-changes.outputs.infra == 'true'
+        if: |
+          needs.detect-changes.outputs.infra == 'true' ||
+          github.event.inputs.service == 'all'
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e

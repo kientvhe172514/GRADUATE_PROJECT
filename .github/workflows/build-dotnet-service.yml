@@ -40,7 +40,7 @@ jobs:
 
       - name: Restore dependencies
         working-directory: ${{ inputs.service-path }}
-        run: dotnet restore
+        run: dotnet restore Zentry.sln
 
       - name: Build
         working-directory: ${{ inputs.service-path }}
