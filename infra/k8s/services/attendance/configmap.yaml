@@ -8,7 +8,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: attendance-config
-  namespace: default
+  namespace: graduate-project
   labels:
     app: attendance
     tier: application

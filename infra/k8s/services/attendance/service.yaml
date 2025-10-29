@@ -6,7 +6,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: attendance-srv
-  namespace: default
+  namespace: graduate-project
   labels:
     app: attendance
     tier: application

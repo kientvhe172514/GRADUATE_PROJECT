@@ -6,7 +6,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: reporting-hpa
-  namespace: default
+  namespace: graduate-project
   labels:
     app: reporting
     tier: application

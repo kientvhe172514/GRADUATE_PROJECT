@@ -8,7 +8,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: auth-depl
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
     service: auth
@@ -236,7 +236,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: auth-pdb
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
 spec:
@@ -252,7 +252,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: auth-sa
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
 automountServiceAccountToken: true
@@ -262,7 +262,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: auth-role
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
 rules:
@@ -279,7 +279,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: auth-rolebinding
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
 roleRef:
@@ -289,7 +289,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: auth-sa
-  namespace: default
+  namespace: graduate-project
 
 ---
 # ===== SERVICE =====
@@ -297,7 +297,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: auth-srv
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
     service: auth
@@ -328,7 +328,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: auth-hpa
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
 spec:

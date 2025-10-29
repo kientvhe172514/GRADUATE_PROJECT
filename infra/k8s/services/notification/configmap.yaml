@@ -6,7 +6,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: notification-config
-  namespace: default
+  namespace: graduate-project
   labels:
     app: notification
     tier: application

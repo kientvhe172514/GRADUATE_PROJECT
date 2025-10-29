@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: auth-config
-  namespace: default
+  namespace: graduate-project
   labels:
     app: auth
     service: auth

@@ -6,7 +6,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: notification-srv
-  namespace: default
+  namespace: graduate-project
   labels:
     app: notification
     tier: application

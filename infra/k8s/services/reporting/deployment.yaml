@@ -7,7 +7,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: reporting-depl
-  namespace: default
+  namespace: graduate-project
   labels:
     app: reporting
     tier: application
@@ -111,7 +111,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: reporting-srv
-  namespace: default
+  namespace: graduate-project
 spec:
   type: ClusterIP
   ports:
@@ -125,14 +125,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: reporting-sa
-  namespace: default
+  namespace: graduate-project
 
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: reporting-hpa
-  namespace: default
+  namespace: graduate-project
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -166,7 +166,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: reporting-config
-  namespace: default
+  namespace: graduate-project
 data:
   MONGODB_HOST: "mongodb-srv.infrastructure"
   MONGODB_PORT: "27017"

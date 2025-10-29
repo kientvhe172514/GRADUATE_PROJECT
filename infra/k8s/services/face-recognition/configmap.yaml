@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: face-recognition-config
-  namespace: default
+  namespace: graduate-project
   labels:
     app: face-recognition
     tier: api
