@@ -256,10 +256,27 @@ spec:
         - sh
         - -c
         - |
+          set -e
           mkdir -p /etc/pgbouncer
-          cp -r /etc/pgbouncer-readonly/* /etc/pgbouncer/
+          
+          # Copy pgbouncer.ini from ConfigMap
+          if [ -f /etc/pgbouncer-readonly/pgbouncer.ini ]; then
+            cp /etc/pgbouncer-readonly/pgbouncer.ini /etc/pgbouncer/
+            echo "Copied pgbouncer.ini"
+          else
+            echo "ERROR: pgbouncer.ini not found in ConfigMap"
+            exit 1
+          fi
+          
+          # Create empty userlist.txt (will be managed by pgbouncer)
+          touch /etc/pgbouncer/userlist.txt
+          
+          # Set permissions
           chmod -R 777 /etc/pgbouncer
-          chown -R 999:999 /etc/pgbouncer
+          chown -R 999:999 /etc/pgbouncer 2>/dev/null || true
+          
+          echo "Init container completed successfully"
+          ls -la /etc/pgbouncer
         volumeMounts:
         - name: pgbouncer-config-readonly
           mountPath: /etc/pgbouncer-readonly
@@ -275,7 +292,7 @@ spec:
       
       containers:
       - name: pgbouncer
-        image: edoburu/pgbouncer:latest  # FIX: Changed from pgbouncer/pgbouncer:1.21.0
+        image: edoburu/pgbouncer:1.21.0
         ports:
         - containerPort: 5432
           name: pgbouncer
