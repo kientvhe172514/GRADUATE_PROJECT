@@ -109,7 +109,15 @@ jobs:
   build-shared:
     name: 📦 Build Shared Common
     needs: detect-changes
-    if: needs.detect-changes.outputs.shared == 'true'
+    if: |
+      needs.detect-changes.outputs.shared == 'true' ||
+      needs.detect-changes.outputs.auth == 'true' ||
+      needs.detect-changes.outputs.attendance == 'true' ||
+      needs.detect-changes.outputs.employee == 'true' ||
+      needs.detect-changes.outputs.leave == 'true' ||
+      needs.detect-changes.outputs.notification == 'true' ||
+      needs.detect-changes.outputs.reporting == 'true' ||
+      github.event.inputs.service != ''
     runs-on: ubuntu-latest
     
     steps:
@@ -414,12 +422,16 @@ jobs:
             
             # Deploy infrastructure
             kubectl apply -f infra/k8s/platform/
-            kubectl apply -f infra/k8s/shared/
+            kubectl apply -f infra/k8s/shared/databases/postgres/
+            kubectl apply -f infra/k8s/shared/databases/mongodb/
+            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/
+            kubectl apply -f infra/k8s/shared/messaging/redis/
             
             echo "✅ Infrastructure secrets and deployments updated"
-            echo "📊 Checking StatefulSets and PVCs..."
-            kubectl get statefulset -n graduate-project || echo "⚠️ No StatefulSet found - consider using StatefulSet for databases!"
-            kubectl get pvc -n graduate-project || echo "No PVC found"
+            echo "📊 Checking infrastructure pods..."
+            kubectl get pods -n infrastructure
+            kubectl get statefulset -n infrastructure || echo "⚠️ No StatefulSet found"
+            kubectl get pvc -n infrastructure || echo "No PVC found"
           EOF
 
   # ==========================================

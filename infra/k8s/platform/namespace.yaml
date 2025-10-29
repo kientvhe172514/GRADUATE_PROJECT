@@ -16,3 +16,13 @@ metadata:
     name: infrastructure
     tier: platform
     environment: production
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: graduate-project
+  labels:
+    name: graduate-project
+    tier: application
+    environment: production
