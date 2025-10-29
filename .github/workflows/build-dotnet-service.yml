@@ -44,11 +44,11 @@ jobs:
 
       - name: Build
         working-directory: ${{ inputs.service-path }}
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build Zentry.sln --no-restore --configuration Release
 
       - name: Run tests
         working-directory: ${{ inputs.service-path }}
-        run: dotnet test --no-build --configuration Release --verbosity normal || echo "⚠️ Tests skipped or failed"
+        run: dotnet test Zentry.sln --no-build --configuration Release --verbosity normal || echo "⚠️ Tests skipped or failed"
         continue-on-error: true
 
       - name: Set up Docker Buildx

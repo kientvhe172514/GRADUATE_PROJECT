@@ -284,30 +284,14 @@ jobs:
     secrets: inherit
 
   # ==========================================
-  # JOB 10: DEPLOY TO AWS EC2
+  # JOB 10: DEPLOY INFRASTRUCTURE (RUN FIRST)
   # ==========================================
-  deploy-to-ec2:
-    name: 🚀 Deploy to AWS EC2
-    needs: 
-      - detect-changes
-      - build-auth
-      - build-face-recognition
-      - build-attendance
-      - build-employee
-      - build-leave
-      - build-notification
-      - build-reporting
+  deploy-infrastructure:
+    name: 🏗️ Deploy Infrastructure First
+    needs: detect-changes
     if: |
-      always() &&
-      (needs.detect-changes.outputs.auth == 'true' ||
-       needs.detect-changes.outputs.face-recognition == 'true' ||
-       needs.detect-changes.outputs.attendance == 'true' ||
-       needs.detect-changes.outputs.employee == 'true' ||
-       needs.detect-changes.outputs.leave == 'true' ||
-       needs.detect-changes.outputs.notification == 'true' ||
-       needs.detect-changes.outputs.reporting == 'true' ||
-       needs.detect-changes.outputs.infra == 'true' ||
-       github.event.inputs.service != '')
+      needs.detect-changes.outputs.infra == 'true' ||
+      github.event.inputs.service == 'all'
     runs-on: ubuntu-latest
     
     steps:
@@ -329,9 +313,6 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Setup infrastructure secrets and deploy
-        if: |
-          needs.detect-changes.outputs.infra == 'true' ||
-          github.event.inputs.service == 'all'
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
@@ -427,8 +408,49 @@ jobs:
             kubectl apply -f infra/k8s/platform/
             kubectl apply -f infra/k8s/shared/
             
-            echo "✅ Infrastructure secrets (14 secrets total) and deployments updated"
+            echo "✅ Infrastructure secrets and deployments updated"
+            echo "📊 Checking StatefulSets and PVCs..."
+            kubectl get statefulset -n graduate-project || echo "⚠️ No StatefulSet found - consider using StatefulSet for databases!"
+            kubectl get pvc -n graduate-project || echo "No PVC found"
           EOF
+
+  # ==========================================
+  # JOB 11: DEPLOY SERVICES TO AWS EC2 (RUN AFTER INFRASTRUCTURE)
+  # ==========================================
+  deploy-services:
+    name: 🚀 Deploy Services to EC2
+    needs: 
+      - detect-changes
+      - deploy-infrastructure
+      - build-auth
+      - build-face-recognition
+      - build-attendance
+      - build-employee
+      - build-leave
+      - build-notification
+      - build-reporting
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.auth == 'true' ||
+       needs.detect-changes.outputs.face-recognition == 'true' ||
+       needs.detect-changes.outputs.attendance == 'true' ||
+       needs.detect-changes.outputs.employee == 'true' ||
+       needs.detect-changes.outputs.leave == 'true' ||
+       needs.detect-changes.outputs.notification == 'true' ||
+       needs.detect-changes.outputs.reporting == 'true' ||
+       github.event.inputs.service != '')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy Auth Service
         if: |
@@ -705,11 +727,13 @@ jobs:
           EOF
 
   # ==========================================
-  # JOB 11: NOTIFY DEPLOYMENT STATUS
+  # JOB 12: NOTIFY DEPLOYMENT STATUS
   # ==========================================
   notify:
     name: 📢 Notify Deployment Status
-    needs: deploy-to-ec2
+    needs: 
+      - deploy-infrastructure
+      - deploy-services
     if: always()
     runs-on: ubuntu-latest
     
@@ -726,7 +750,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Deployment Status:* ${{ needs.deploy-to-ec2.result }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}"
+                    "text": "*Infrastructure:* ${{ needs.deploy-infrastructure.result }}\n*Services:* ${{ needs.deploy-services.result }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}"
                   }
                 }
               ]
