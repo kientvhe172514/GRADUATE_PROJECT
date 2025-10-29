@@ -44,8 +44,8 @@ spec:
         command: ['sh', '-c', 'until nc -z postgres-replica-srv.infrastructure 5432; do sleep 5; done']
       containers:
       - name: reporting
-        image: reporting-service:latest
-        imagePullPolicy: IfNotPresent
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        imagePullPolicy: Always
         ports:
         - containerPort: 3006
           name: http
@@ -175,5 +175,6 @@ data:
   POSTGRES_READ_PORT: "5432"
   REDIS_HOST: "redis-master-srv.infrastructure"
   REDIS_PORT: "6379"
+
 
 

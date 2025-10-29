@@ -40,8 +40,8 @@ spec:
         command: ['sh', '-c', 'until nc -z pgbouncer-srv.infrastructure 5432; do sleep 5; done']
       containers:
       - name: leave
-        image: leave-service:latest
-        imagePullPolicy: IfNotPresent
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        imagePullPolicy: Always
         ports:
         - containerPort: 3004
           name: http
@@ -169,5 +169,6 @@ data:
   REDIS_PORT: "6379"
   RABBITMQ_HOST: "rabbitmq-srv.infrastructure"
   RABBITMQ_PORT: "5672"
+
 
 

@@ -115,8 +115,8 @@ spec:
       
       containers:
       - name: auth
-        image: auth-service:latest
-        imagePullPolicy: IfNotPresent
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        imagePullPolicy: Always
         
         ports:
         - containerPort: 3001
@@ -371,4 +371,5 @@ spec:
       target:
         type: Utilization
         averageUtilization: 90
+
 

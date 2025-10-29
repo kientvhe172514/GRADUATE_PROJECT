@@ -107,8 +107,8 @@ spec:
       
       containers:
       - name: face-recognition
-        image: zentry.api
-        imagePullPolicy: IfNotPresent
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-face-recognition:latest
+        imagePullPolicy: Always
         
         ports:
         - containerPort: 8080

@@ -470,6 +470,20 @@ jobs:
             echo "https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com" > ~/.git-credentials
           EOF
 
+      - name: Prepare deployment files
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd ~/GRADUATE_PROJECT
+            git pull origin main
+            
+            # Replace Docker Hub username placeholder in ALL service deployment files
+            echo "🔄 Replacing DOCKERHUB_USERNAME_PLACEHOLDER with actual username..."
+            find infra/k8s/services/ -name "*.yaml" -type f -exec sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" {} \;
+            
+            echo "✅ Deployment files prepared"
+          EOF
+
       - name: Deploy Auth Service
         if: |
           needs.detect-changes.outputs.auth == 'true' ||
@@ -504,10 +518,10 @@ jobs:
             # Apply/Update K8s deployment
             kubectl apply -f infra/k8s/services/auth/
             
-            # Update deployment image
+            # Update deployment image to specific commit SHA
             kubectl set image deployment/auth-depl auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:${{ github.sha }} -n graduate-project
             
-            # Restart to pick up new secrets
+            # Restart to pick up new secrets and image
             kubectl rollout restart deployment/auth-depl -n graduate-project
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
             

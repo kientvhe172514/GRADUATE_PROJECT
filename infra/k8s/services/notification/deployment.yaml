@@ -44,8 +44,8 @@ spec:
         command: ['sh', '-c', 'until nc -z rabbitmq-srv.infrastructure 5672; do sleep 5; done']
       containers:
       - name: notification
-        image: notification-service:latest
-        imagePullPolicy: IfNotPresent
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        imagePullPolicy: Always
         ports:
         - containerPort: 3005
           name: http
@@ -174,5 +174,6 @@ data:
   RABBITMQ_PORT: "5672"
   REDIS_HOST: "redis-master-srv.infrastructure"
   REDIS_PORT: "6379"
+
 
 
