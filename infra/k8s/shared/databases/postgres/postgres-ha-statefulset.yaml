@@ -292,7 +292,8 @@ spec:
       
       containers:
       - name: pgbouncer
-        image: edoburu/pgbouncer:1.21.0
+        image: bitnami/pgbouncer:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5432
           name: pgbouncer
