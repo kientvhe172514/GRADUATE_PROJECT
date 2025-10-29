@@ -138,10 +138,6 @@ spec:
               name: rabbitmq-secret
               key: erlang-cookie
         
-        # ===== CLUSTER FORMATION =====
-        - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
-          value: "-rabbit cluster_formation [{peer_discovery_backend,rabbit_peer_discovery_k8s},{k8s,{service_name,\"$(K8S_SERVICE_NAME)\"},{k8s_namespace,\"$(POD_NAMESPACE)\"},{k8s_address_type,hostname}]"
-        
         # ===== CREDENTIALS =====
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:

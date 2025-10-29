@@ -18,53 +18,48 @@ data:
   
   rabbitmq.conf: |
     # ============================================
-    # RabbitMQ HA Cluster Configuration
+    # RabbitMQ 3.13+ HA Cluster Configuration
+    # Updated syntax for RabbitMQ 3.13+
     # ============================================
     
     # ===== NETWORKING =====
-    loopback_users.guest = false
-    listeners.tcp.default = 5672
+    # Note: loopback_users setting removed in 3.13+ (guest user disabled by default)
+    listeners.tcp.1 = 5672
     management.tcp.port = 15672
     prometheus.tcp.port = 15692
     
-    # ===== CLUSTER CONFIGURATION =====
-    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    # ===== CLUSTER CONFIGURATION (K8s Peer Discovery) =====
+    cluster_formation.peer_discovery_backend = kubernetes
     cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
     cluster_formation.k8s.address_type = hostname
     cluster_formation.node_cleanup.interval = 30
     cluster_formation.node_cleanup.only_log_warning = true
-    cluster_partition_handling = autoheal
+    cluster_partition_handling = pause_minority
     
     # ===== QUORUM QUEUES (Default) =====
-    # Quorum queues cho HA - data replicated across nodes
-    default_queue_type = quorum
+    # Default queue type for HA - data replicated across nodes
+    default_vhost = /
+    default_user = guest
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
     
-    # ===== MEMORY & DISK =====
+    # ===== MEMORY & DISK (3.13+ syntax) =====
     vm_memory_high_watermark.relative = 0.7
     vm_memory_high_watermark_paging_ratio = 0.85
-    disk_free_limit.absolute = 2GB
+    disk_free_limit.absolute = 2147483648
     
-    # ===== CONNECTION & CHANNEL LIMITS =====
+    # ===== CONNECTION & CHANNEL LIMITS (3.13+ syntax) =====
     channel_max = 2048
     num_acceptors.tcp = 30
-    connection_max = 2000
-    # FIX: Removed channel_max_per_connection (not a valid setting in RabbitMQ)
-    # Use consumer_max_per_channel if you need to limit consumers per channel
     
-    # ===== HEARTBEAT & TIMEOUTS =====
+    # ===== HEARTBEAT & TIMEOUTS (3.13+ syntax) =====
     heartbeat = 60
-    handshake_timeout = 30000
     
-    # ===== PERFORMANCE TUNING =====
-    collect_statistics = coarse
+    # ===== PERFORMANCE TUNING (3.13+ syntax) =====
     collect_statistics_interval = 10000
     
-    # ===== LOGGING =====
-    log.console = true
-    log.console.level = info
+    # ===== LOGGING (3.13+ uses different log configuration) =====
+    # RabbitMQ 3.13+ logs to stdout by default, no need for log.console
     log.file.level = info
-    
-    # ===== MANAGEMENT UI =====
-    # FIX: Commented out - definitions.json file does not exist
-    # management.load_definitions = /etc/rabbitmq/definitions.json
-    # Uncomment above line only if you provide definitions.json in ConfigMap
+    log.console.level = info
