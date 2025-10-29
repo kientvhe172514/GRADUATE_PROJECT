@@ -138,16 +138,7 @@ spec:
         fsGroup: 999
         runAsUser: 999
         runAsNonRoot: true
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - postgres
-            topologyKey: kubernetes.io/hostname
+      # Anti-affinity removed for single-node setup
       initContainers:
       - name: init-replica
         image: postgres:16-alpine
@@ -257,7 +248,7 @@ spec:
     spec:
       containers:
       - name: pgbouncer
-        image: pgbouncer/pgbouncer:1.21.0
+        image: pgbouncer/pgbouncer:1.21
         ports:
         - containerPort: 5432
           name: pgbouncer
@@ -268,12 +259,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-user
+              key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-password
+              key: POSTGRES_PASSWORD
         - name: POOL_MODE
           value: "transaction"
         - name: MAX_CLIENT_CONN

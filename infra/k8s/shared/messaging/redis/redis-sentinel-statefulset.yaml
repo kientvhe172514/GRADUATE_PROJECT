@@ -129,16 +129,7 @@ spec:
         fsGroup: 1000
         runAsUser: 1000
         runAsNonRoot: true
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - redis
-            topologyKey: kubernetes.io/hostname
+      # Anti-affinity removed for single-node setup
       containers:
       - name: redis
         image: redis:7.2-alpine
@@ -235,16 +226,7 @@ spec:
         fsGroup: 1000
         runAsUser: 1000
         runAsNonRoot: true
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - redis-sentinel
-            topologyKey: kubernetes.io/hostname
+      # Anti-affinity removed for single-node setup
       containers:
       - name: sentinel
         image: redis:7.2-alpine

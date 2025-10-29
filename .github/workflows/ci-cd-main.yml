@@ -374,9 +374,12 @@ jobs:
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            # Redis Secret
+            # Redis Secret - FIX: Thêm cả 2 keys (in hoa và in thường) để tương thích
             kubectl create secret generic redis-secret \
               --from-literal=REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
+              --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
+              --from-literal=REDIS_HOST='${{ secrets.REDIS_HOST }}' \
+              --from-literal=REDIS_PORT='${{ secrets.REDIS_PORT }}' \
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
