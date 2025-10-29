@@ -512,7 +512,7 @@ jobs:
             git pull origin main
             
             # Tạo secret bằng cách an toàn (không dùng cat heredoc)
-            kubectl create secret generic auth-secret \
+            kubectl create secret generic auth-secrets \
               --from-literal=.env='${{ secrets.AUTH_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -539,7 +539,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic attendance-secret \
+            kubectl create secret generic attendance-secrets \
               --from-literal=.env='${{ secrets.ATTENDANCE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -565,7 +565,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic employee-secret \
+            kubectl create secret generic employee-secrets \
               --from-literal=.env='${{ secrets.EMPLOYEE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -591,7 +591,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic leave-secret \
+            kubectl create secret generic leave-secrets \
               --from-literal=.env='${{ secrets.LEAVE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -617,7 +617,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic notification-secret \
+            kubectl create secret generic notification-secrets \
               --from-literal=.env='${{ secrets.NOTIFICATION_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -643,7 +643,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic reporting-secret \
+            kubectl create secret generic reporting-secrets \
               --from-literal=.env='${{ secrets.REPORTING_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
@@ -668,7 +668,7 @@ jobs:
             git pull origin main
             
             # Tạo secret an toàn
-            kubectl create secret generic face-recognition-secret \
+            kubectl create secret generic face-recognition-secrets \
               --from-literal=.env='${{ secrets.FACE_RECOGNITION_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
