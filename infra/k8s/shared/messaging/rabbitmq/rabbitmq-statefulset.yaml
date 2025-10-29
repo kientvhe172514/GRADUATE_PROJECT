@@ -46,7 +46,7 @@ metadata:
     tier: messaging
 spec:
   serviceName: rabbitmq-headless
-  replicas: 2  # 2-node cluster cho cost optimization
+  replicas: 1  # 2-node cluster cho cost optimization
   selector:
     matchLabels:
       app: rabbitmq
