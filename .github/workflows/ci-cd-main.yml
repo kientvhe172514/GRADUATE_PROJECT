@@ -408,6 +408,21 @@ jobs:
             # Cleanup temp files
             rm /tmp/postgres-secret.yaml /tmp/mongodb-secret.yaml /tmp/rabbitmq-secret.yaml /tmp/redis-secret.yaml
             
+            # ============================================
+            # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
+            # ============================================
+            echo "🗑️  Cleaning up old infrastructure..."
+            kubectl delete deployment --all -n infrastructure --ignore-not-found=true
+            kubectl delete statefulset --all -n infrastructure --ignore-not-found=true
+            kubectl delete pod --all -n infrastructure --force --grace-period=0 --ignore-not-found=true
+            
+            echo "⏳ Waiting for cleanup to complete..."
+            sleep 10
+            
+            # ============================================
+            # DEPLOY INFRASTRUCTURE MỚI
+            # ============================================
+            echo "🚀 Deploying fresh infrastructure..."
             # Deploy infrastructure
             kubectl apply -f infra/k8s/platform/
             kubectl apply -f infra/k8s/shared/databases/postgres/
@@ -415,25 +430,11 @@ jobs:
             kubectl apply -f infra/k8s/shared/messaging/rabbitmq/
             kubectl apply -f infra/k8s/shared/messaging/redis/
             
-            # Restart infrastructure deployments to pick up new secrets
-            echo "🔄 Restarting infrastructure deployments..."
-            kubectl rollout restart deployment/postgres-depl -n infrastructure || echo "postgres-depl not found"
-            kubectl rollout restart deployment/mongodb-depl -n infrastructure || echo "mongodb-depl not found"
-            kubectl rollout restart deployment/rabbitmq-depl -n infrastructure || echo "rabbitmq-depl not found"
-            kubectl rollout restart deployment/redis-depl -n infrastructure || echo "redis-depl not found"
-            kubectl rollout restart deployment/pgbouncer -n infrastructure || echo "pgbouncer not found"
-            
-            # Restart StatefulSets to pick up new secrets
-            kubectl rollout restart statefulset/postgres-primary -n infrastructure || echo "postgres-primary not found"
-            kubectl rollout restart statefulset/redis-master -n infrastructure || echo "redis-master not found"
-            kubectl rollout restart statefulset/redis-replica -n infrastructure || echo "redis-replica not found"
-            kubectl rollout restart statefulset/redis-sentinel -n infrastructure || echo "redis-sentinel not found"
-            
             echo "⏳ Waiting for infrastructure to be ready..."
-            kubectl rollout status deployment/postgres-depl -n infrastructure --timeout=2m || echo "postgres-depl timeout"
-            kubectl rollout status deployment/mongodb-depl -n infrastructure --timeout=2m || echo "mongodb-depl timeout"
-            kubectl rollout status deployment/rabbitmq-depl -n infrastructure --timeout=2m || echo "rabbitmq-depl timeout"
-            kubectl rollout status deployment/redis-depl -n infrastructure --timeout=2m || echo "redis-depl timeout"
+            kubectl wait --for=condition=ready pod -l app=postgres-depl -n infrastructure --timeout=3m || echo "⚠️ postgres-depl not ready"
+            kubectl wait --for=condition=ready pod -l app=mongodb -n infrastructure --timeout=3m || echo "⚠️ mongodb not ready"
+            kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=3m || echo "⚠️ rabbitmq not ready"
+            kubectl wait --for=condition=ready pod -l app=redis -n infrastructure --timeout=3m || echo "⚠️ redis not ready"
             
             echo "✅ Infrastructure secrets and deployments updated"
             echo "📊 Checking infrastructure pods..."
