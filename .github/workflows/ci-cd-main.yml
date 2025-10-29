@@ -337,12 +337,13 @@ jobs:
             # CREATE INFRASTRUCTURE SECRETS (An toàn)
             # ============================================
             
-            # Postgres Secret - FIX: Thêm đầy đủ database names
+            # Postgres Secret - FIX: Thêm đầy đủ database names + replicator password
             kubectl create secret generic postgres-secret \
               --from-literal=POSTGRES_HOST='${{ secrets.POSTGRES_HOST }}' \
               --from-literal=POSTGRES_PORT='${{ secrets.POSTGRES_PORT }}' \
               --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
               --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+              --from-literal=replicator-password='${{ secrets.POSTGRES_PASSWORD }}' \
               --from-literal=POSTGRES_DB='postgres' \
               --from-literal=POSTGRES_DB_IAM='${{ secrets.POSTGRES_DB_IAM }}' \
               --from-literal=POSTGRES_DB_ATTENDANCE='${{ secrets.POSTGRES_DB_ATTENDANCE }}' \
@@ -364,10 +365,11 @@ jobs:
               -n infrastructure \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            # RabbitMQ Secret - FIX: Dùng keys chuẩn của RabbitMQ image
+            # RabbitMQ Secret - FIX: Dùng keys chuẩn của RabbitMQ image + thêm erlang-cookie
             kubectl create secret generic rabbitmq-secret \
               --from-literal=RABBITMQ_DEFAULT_USER='${{ secrets.RABBITMQ_USERNAME }}' \
               --from-literal=RABBITMQ_DEFAULT_PASS='${{ secrets.RABBITMQ_PASSWORD }}' \
+              --from-literal=erlang-cookie='$(openssl rand -base64 32)' \
               --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
               --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \

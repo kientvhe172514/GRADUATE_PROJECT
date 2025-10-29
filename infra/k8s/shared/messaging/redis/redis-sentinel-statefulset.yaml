@@ -97,6 +97,7 @@ spec:
       name: redis-data
     spec:
       accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path  # FIX: Added storageClassName
       resources:
         requests:
           storage: 5Gi
@@ -197,6 +198,7 @@ spec:
       name: redis-data
     spec:
       accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path  # FIX: Added storageClassName
       resources:
         requests:
           storage: 5Gi
@@ -227,13 +229,38 @@ spec:
         runAsUser: 1000
         runAsNonRoot: true
       # Anti-affinity removed for single-node setup
+      # Init container to copy config to writable volume
+      initContainers:
+      - name: config-init
+        image: redis:7.2-alpine
+        command:
+        - sh
+        - -c
+        - |
+          cp /tmp/sentinel-readonly/sentinel.conf /data/sentinel.conf
+          # Replace ${REDIS_PASSWORD} with actual password
+          sed -i "s/\${REDIS_PASSWORD}/$REDIS_PASSWORD/g" /data/sentinel.conf
+          # FIX: Set explicit permissions for redis user
+          chown 1000:1000 /data/sentinel.conf
+          chmod 644 /data/sentinel.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-password
+        volumeMounts:
+        - name: sentinel-config-readonly
+          mountPath: /tmp/sentinel-readonly
+        - name: sentinel-data
+          mountPath: /data
       containers:
       - name: sentinel
         image: redis:7.2-alpine
         command:
         - redis-sentinel
         args:
-        - /etc/redis/sentinel.conf
+        - /data/sentinel.conf
         ports:
         - containerPort: 26379
           name: sentinel
@@ -244,8 +271,6 @@ spec:
               name: redis-secret
               key: redis-password
         volumeMounts:
-        - name: sentinel-config
-          mountPath: /etc/redis
         - name: sentinel-data
           mountPath: /data
         resources:
@@ -278,7 +303,7 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
       volumes:
-      - name: sentinel-config
+      - name: sentinel-config-readonly
         configMap:
           name: redis-sentinel-config
   volumeClaimTemplates:
@@ -286,6 +311,7 @@ spec:
       name: sentinel-data
     spec:
       accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path  # FIX: Added storageClassName
       resources:
         requests:
           storage: 1Gi

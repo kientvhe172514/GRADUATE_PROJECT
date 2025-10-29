@@ -223,7 +223,7 @@ spec:
     spec:
       accessModes: 
       - ReadWriteOnce
-      storageClassName: standard  # Thay bằng storage class của cluster
+      storageClassName: local-path  # FIX: Changed from standard to local-path
       resources:
         requests:
           storage: 10Gi  # 10GB cho mỗi node

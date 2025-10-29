@@ -106,6 +106,7 @@ spec:
       name: postgres-data
     spec:
       accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path  # FIX: Added storageClassName
       resources:
         requests:
           storage: 10Gi
@@ -174,12 +175,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-user
+              key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: postgres-password
+              key: POSTGRES_PASSWORD
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         volumeMounts:
@@ -223,6 +224,7 @@ spec:
       name: postgres-data
     spec:
       accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path  # FIX: Added storageClassName
       resources:
         requests:
           storage: 10Gi
@@ -248,7 +250,7 @@ spec:
     spec:
       containers:
       - name: pgbouncer
-        image: pgbouncer/pgbouncer:1.21
+        image: pgbouncer/pgbouncer:1.21.0
         ports:
         - containerPort: 5432
           name: pgbouncer
