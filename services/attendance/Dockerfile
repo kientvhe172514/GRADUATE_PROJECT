@@ -6,7 +6,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.3 --activate
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* .npmrc ./
+COPY package.json pnpm-lock.yaml* .npmrc* ./
 
 # Install dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod
@@ -19,7 +19,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.3 --activate
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* .npmrc ./
+COPY package.json pnpm-lock.yaml* .npmrc* ./
 
 # Install all dependencies (including dev)
 RUN pnpm install --frozen-lockfile

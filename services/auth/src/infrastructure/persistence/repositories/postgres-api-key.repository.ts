@@ -41,7 +41,7 @@ export class PostgresApiKeyRepository implements ApiKeyRepositoryPort {
   }
 
   async findByKey(key: string): Promise<any | null> {
-    return await this.repository.findOne({ where: { key } });
+    return await this.repository.findOne({ where: { key_hash: key } });
   }
 
   async create(apiKeyData: any): Promise<any> {
@@ -60,19 +60,18 @@ export class PostgresApiKeyRepository implements ApiKeyRepositoryPort {
 
   async regenerate(id: number, newKey: string): Promise<any> {
     await this.repository.update(id, {
-      key: newKey,
+      key_hash: newKey,
       last_rotated_at: new Date(),
-    });
+    } as any);
     return await this.findById(id);
   }
 
   async rotate(id: number, newKey: string): Promise<any> {
     const apiKey = await this.findById(id);
     await this.repository.update(id, {
-      previous_key: apiKey.key,
-      key: newKey,
+      key_hash: newKey,
       last_rotated_at: new Date(),
-    });
+    } as any);
     return await this.findById(id);
   }
 

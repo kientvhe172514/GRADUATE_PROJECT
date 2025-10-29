@@ -155,21 +155,4 @@ export class ApiKeyController {
       warning: 'Old key will be revoked in 7 days. Update your services to use the new key.',
     };
   }
-
-  @Get(':id/usage-stats')
-  @Permissions('api_key.read')
-  async getApiKeyUsageStats(@Param('id') id: number) {
-    // TODO: Implement get usage statistics
-    // Return: usage_count, last_used_at, last_used_ip
-    // Optionally: hourly/daily usage stats from audit logs
-    return {
-      message: 'Get API key usage stats',
-      data: {
-        id,
-        usage_count: 12345,
-        last_used_at: new Date().toISOString(),
-        last_used_ip: '192.168.1.100',
-      },
-    };
-  }
 }
