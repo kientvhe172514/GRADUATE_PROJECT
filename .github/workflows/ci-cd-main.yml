@@ -403,10 +403,11 @@ jobs:
             kubectl apply -f infra/k8s/shared/messaging/redis/
             
             echo "⏳ Waiting for infrastructure to be ready..."
-            kubectl wait --for=condition=ready pod -l app=postgres-depl -n infrastructure --timeout=3m || echo "⚠️ postgres-depl not ready"
-            kubectl wait --for=condition=ready pod -l app=mongodb -n infrastructure --timeout=3m || echo "⚠️ mongodb not ready"
-            kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=3m || echo "⚠️ rabbitmq not ready"
-            kubectl wait --for=condition=ready pod -l app=redis -n infrastructure --timeout=3m || echo "⚠️ redis not ready"
+            # Wait for at least 1 pod of each service to be ready
+            kubectl wait --for=condition=ready pod -l app=postgres -n infrastructure --timeout=5m || echo "⚠️ Postgres not ready"
+            kubectl wait --for=condition=ready pod -l app=mongodb -n infrastructure --timeout=5m || echo "⚠️ MongoDB not ready"
+            kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
+            kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
             
             echo "✅ Infrastructure secrets and deployments updated"
             echo "📊 Checking infrastructure pods..."
