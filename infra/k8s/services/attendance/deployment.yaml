@@ -133,10 +133,10 @@ spec:
         
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: "64Mi"
+            cpu: "50m"
           limits:
-            memory: "256Mi"
+            memory: "128Mi"
             cpu: "300m"
         
         startupProbe:
@@ -184,3 +184,5 @@ spec:
       - name: cache
         emptyDir:
           sizeLimit: 256Mi
+
+

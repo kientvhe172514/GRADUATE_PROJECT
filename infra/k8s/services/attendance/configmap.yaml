@@ -1,6 +1,8 @@
 # ============================================
 # Attendance Service - ConfigMap
 # ============================================
+# MATCH với .env.example của attendance service
+# ============================================
 
 apiVersion: v1
 kind: ConfigMap
@@ -11,21 +13,18 @@ metadata:
     app: attendance
     tier: application
 data:
-  # Database Configuration
-  POSTGRES_HOST: "pgbouncer-srv.infrastructure"
-  POSTGRES_PORT: "5432"
-  POSTGRES_DATABASE: "attendance_db"
-  
-  # Redis Configuration
-  REDIS_HOST: "redis-master-srv.infrastructure"
-  REDIS_PORT: "6379"
-  
-  # RabbitMQ Configuration
-  RABBITMQ_HOST: "rabbitmq-srv.infrastructure"
-  RABBITMQ_PORT: "5672"
-  RABBITMQ_EXCHANGE: "attendance_exchange"
-  RABBITMQ_QUEUE: "attendance_queue"
-  
-  # Service Configuration
-  LOG_LEVEL: "info"
+  # Application - MATCH .env.example
+  APP_PORT: "3004"
   NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # Attendance Settings - MATCH .env.example
+  CHECK_IN_GRACE_PERIOD_MINUTES: "15"
+  CHECK_OUT_GRACE_PERIOD_MINUTES: "15"
+  BEACON_DETECTION_RADIUS_METERS: "100"
+  GPS_ACCURACY_THRESHOLD_METERS: "50"
+  FACE_RECOGNITION_CONFIDENCE_THRESHOLD: "0.85"
+  
+  # Pagination - MATCH .env.example
+  DEFAULT_PAGE_SIZE: "10"
+  MAX_PAGE_SIZE: "100"

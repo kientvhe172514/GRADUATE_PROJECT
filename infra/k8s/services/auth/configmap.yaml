@@ -8,21 +8,12 @@ metadata:
     service: auth
     tier: application
 data:
+  # Application Settings - MATCH .env.example
   NODE_ENV: "production"
+  APP_PORT: "3001"
   PORT: "3001"
   LOG_LEVEL: "info"
   API_VERSION: "v1"
-  
-  # Service Discovery
-  POSTGRES_HOST: "postgres-srv.infrastructure.svc.cluster.local"
-  POSTGRES_PORT: "5432"
-  POSTGRES_DB: "authdb"
-  
-  REDIS_HOST: "redis-srv.infrastructure.svc.cluster.local"
-  REDIS_PORT: "6379"
-  
-  RABBITMQ_HOST: "rabbitmq-srv.infrastructure.svc.cluster.local"
-  RABBITMQ_PORT: "5672"
   
   # Application Settings
   SESSION_TIMEOUT: "3600"

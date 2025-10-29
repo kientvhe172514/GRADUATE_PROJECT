@@ -163,16 +163,16 @@ spec:
         - name: cache
           mountPath: /app/.cache
         
-        # ===== RESOURCES (OPTIMIZED) =====
+        # ===== RESOURCES (OPTIMIZED FOR GRADUATION PROJECT) =====
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
-            ephemeral-storage: "256Mi"
+            memory: "64Mi"
+            cpu: "50m"
+            ephemeral-storage: "128Mi"
           limits:
-            memory: "256Mi"
-            cpu: "300m"
-            ephemeral-storage: "512Mi"
+            memory: "128Mi"
+            cpu: "150m"
+            ephemeral-storage: "256Mi"
         
         # ===== HEALTH CHECKS =====
         startupProbe:
@@ -338,7 +338,7 @@ spec:
     name: auth-depl
   
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 2
   
   behavior:
     scaleUp:
@@ -371,3 +371,4 @@ spec:
       target:
         type: Utilization
         averageUtilization: 90
+

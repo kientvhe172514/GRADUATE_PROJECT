@@ -1,0 +1,20 @@
+# ============================================
+# MongoDB - Service
+# ============================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-srv
+  namespace: infrastructure
+  labels:
+    app: mongodb
+    tier: database
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017
+  type: ClusterIP

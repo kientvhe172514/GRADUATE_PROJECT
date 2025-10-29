@@ -1,0 +1,521 @@
+name: 🚀 Smart CI/CD Pipeline - AWS EC2
+
+on:
+  push:
+    branches: [main, develop, Kiên]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Force deploy specific service'
+        required: false
+        type: choice
+        options:
+          - all
+          - auth
+          - face-recognition
+          - attendance
+          - employee
+          - leave
+          - notification
+          - reporting
+
+env:
+  AWS_REGION: ap-southeast-1
+  REGISTRY: ghcr.io
+  REGISTRY_USERNAME: ${{ github.actor }}
+
+jobs:
+  # ==========================================
+  # JOB 1: DETECT CHANGES
+  # ==========================================
+  detect-changes:
+    name: 🔍 Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      face-recognition: ${{ steps.filter.outputs.face-recognition }}
+      attendance: ${{ steps.filter.outputs.attendance }}
+      employee: ${{ steps.filter.outputs.employee }}
+      leave: ${{ steps.filter.outputs.leave }}
+      notification: ${{ steps.filter.outputs.notification }}
+      reporting: ${{ steps.filter.outputs.reporting }}
+      infra: ${{ steps.filter.outputs.infra }}
+      shared: ${{ steps.filter.outputs.shared }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth:
+              - 'services/auth/**'
+              - 'infra/k8s/services/auth/**'
+            face-recognition:
+              - 'services/face-recognition/**'
+              - 'infra/k8s/services/face-recognition/**'
+            attendance:
+              - 'services/attendance/**'
+              - 'infra/k8s/services/attendance/**'
+            employee:
+              - 'services/employee/**'
+              - 'infra/k8s/services/employee/**'
+            leave:
+              - 'services/leave/**'
+              - 'infra/k8s/services/leave/**'
+            notification:
+              - 'services/notification/**'
+              - 'infra/k8s/services/notification/**'
+            reporting:
+              - 'services/reporting/**'
+              - 'infra/k8s/services/reporting/**'
+            infra:
+              - 'infra/k8s/platform/**'
+              - 'infra/k8s/shared/**'
+            shared:
+              - 'services/shared-common/**'
+              - 'pnpm-lock.yaml'
+              - 'package.json'
+
+      - name: Print detected changes
+        run: |
+          echo "🔍 Changed Services:"
+          echo "Auth: ${{ steps.filter.outputs.auth }}"
+          echo "Face Recognition: ${{ steps.filter.outputs.face-recognition }}"
+          echo "Attendance: ${{ steps.filter.outputs.attendance }}"
+          echo "Employee: ${{ steps.filter.outputs.employee }}"
+          echo "Leave: ${{ steps.filter.outputs.leave }}"
+          echo "Notification: ${{ steps.filter.outputs.notification }}"
+          echo "Reporting: ${{ steps.filter.outputs.reporting }}"
+          echo "Infrastructure: ${{ steps.filter.outputs.infra }}"
+          echo "Shared: ${{ steps.filter.outputs.shared }}"
+
+  # ==========================================
+  # JOB 2: BUILD SHARED COMMON (IF CHANGED)
+  # ==========================================
+  build-shared:
+    name: 📦 Build Shared Common
+    needs: detect-changes
+    if: needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared-common
+        run: pnpm --filter @graduate-project/shared-common build
+
+      - name: Cache shared build
+        uses: actions/cache@v4
+        with:
+          path: services/shared-common/dist
+          key: shared-build-${{ github.sha }}
+
+  # ==========================================
+  # JOB 3: BUILD & PUSH AUTH SERVICE
+  # ==========================================
+  build-auth:
+    name: 🔐 Build Auth Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.auth == 'true' || 
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'auth')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: auth
+      service-path: services/auth
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 4: BUILD & PUSH FACE RECOGNITION
+  # ==========================================
+  build-face-recognition:
+    name: 👤 Build Face Recognition Service
+    needs: [detect-changes]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.face-recognition == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'face-recognition')
+    uses: ./.github/workflows/build-dotnet-service.yml
+    with:
+      service-name: face-recognition
+      service-path: services/face-recognition
+      dockerfile: src/Zentry.API/Dockerfile
+      build-args: |
+        ASPNETCORE_ENVIRONMENT=Production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 5: BUILD & PUSH ATTENDANCE SERVICE
+  # ==========================================
+  build-attendance:
+    name: ⏰ Build Attendance Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.attendance == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'attendance')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: attendance
+      service-path: services/attendance
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 6: BUILD & PUSH EMPLOYEE SERVICE
+  # ==========================================
+  build-employee:
+    name: 👥 Build Employee Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.employee == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'employee')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: employee
+      service-path: services/employee
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 7: BUILD & PUSH LEAVE SERVICE
+  # ==========================================
+  build-leave:
+    name: 🏖️ Build Leave Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.leave == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'leave')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: leave
+      service-path: services/leave
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 8: BUILD & PUSH NOTIFICATION SERVICE
+  # ==========================================
+  build-notification:
+    name: 🔔 Build Notification Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.notification == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'notification')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: notification
+      service-path: services/notification
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 9: BUILD & PUSH REPORTING SERVICE
+  # ==========================================
+  build-reporting:
+    name: 📊 Build Reporting Service
+    needs: [detect-changes, build-shared]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.reporting == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service == 'all' ||
+       github.event.inputs.service == 'reporting')
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: reporting
+      service-path: services/reporting
+      dockerfile: Dockerfile
+      build-args: |
+        NODE_ENV=production
+    secrets: inherit
+
+  # ==========================================
+  # JOB 10: DEPLOY TO AWS EC2
+  # ==========================================
+  deploy-to-ec2:
+    name: 🚀 Deploy to AWS EC2
+    needs: 
+      - detect-changes
+      - build-auth
+      - build-face-recognition
+      - build-attendance
+      - build-employee
+      - build-leave
+      - build-notification
+      - build-reporting
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.auth == 'true' ||
+       needs.detect-changes.outputs.face-recognition == 'true' ||
+       needs.detect-changes.outputs.attendance == 'true' ||
+       needs.detect-changes.outputs.employee == 'true' ||
+       needs.detect-changes.outputs.leave == 'true' ||
+       needs.detect-changes.outputs.notification == 'true' ||
+       needs.detect-changes.outputs.reporting == 'true' ||
+       needs.detect-changes.outputs.infra == 'true' ||
+       github.event.inputs.service != '')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Generate and apply Kubernetes secrets
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project/scripts
+            
+            # Export secrets from GitHub to environment
+            export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
+            export MONGODB_USERNAME="${{ secrets.MONGODB_USERNAME }}"
+            export MONGODB_PASSWORD="${{ secrets.MONGODB_PASSWORD }}"
+            export RABBITMQ_USERNAME="${{ secrets.RABBITMQ_USERNAME }}"
+            export RABBITMQ_PASSWORD="${{ secrets.RABBITMQ_PASSWORD }}"
+            export REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}"
+            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+            
+            # Optional external service secrets
+            export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+            export FIREBASE_PRIVATE_KEY="${{ secrets.FIREBASE_PRIVATE_KEY }}"
+            export FIREBASE_CLIENT_EMAIL="${{ secrets.FIREBASE_CLIENT_EMAIL }}"
+            export SMTP_HOST="${{ secrets.SMTP_HOST }}"
+            export SMTP_PORT="${{ secrets.SMTP_PORT }}"
+            export SMTP_USER="${{ secrets.SMTP_USER }}"
+            export SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}"
+            export TWILIO_ACCOUNT_SID="${{ secrets.TWILIO_ACCOUNT_SID }}"
+            export TWILIO_AUTH_TOKEN="${{ secrets.TWILIO_AUTH_TOKEN }}"
+            export TWILIO_PHONE_NUMBER="${{ secrets.TWILIO_PHONE_NUMBER }}"
+            
+            # Generate secrets from templates
+            ./generate-secrets.sh
+            
+            echo "✅ Secrets generated and applied"
+          EOF
+
+      - name: Deploy infrastructure changes
+        if: needs.detect-changes.outputs.infra == 'true'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl apply -f infra/k8s/platform/
+            kubectl apply -f infra/k8s/shared/
+            echo "✅ Infrastructure updated"
+          EOF
+
+      - name: Deploy Auth Service
+        if: |
+          needs.detect-changes.outputs.auth == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'auth'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/auth-depl auth=ghcr.io/${{ github.repository_owner }}/graduate-project/auth-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/auth-depl -n default --timeout=5m
+            echo "✅ Auth service deployed"
+          EOF
+
+      - name: Deploy Face Recognition Service
+        if: |
+          needs.detect-changes.outputs.face-recognition == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'face-recognition'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/face-recognition-depl face-recognition=ghcr.io/${{ github.repository_owner }}/graduate-project/face-recognition-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/face-recognition-depl -n default --timeout=5m
+            echo "✅ Face Recognition service deployed"
+          EOF
+
+      - name: Deploy Attendance Service
+        if: |
+          needs.detect-changes.outputs.attendance == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'attendance'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/attendance-depl attendance=ghcr.io/${{ github.repository_owner }}/graduate-project/attendance-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/attendance-depl -n default --timeout=5m
+            echo "✅ Attendance service deployed"
+          EOF
+
+      - name: Deploy Employee Service
+        if: |
+          needs.detect-changes.outputs.employee == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'employee'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/employee-depl employee=ghcr.io/${{ github.repository_owner }}/graduate-project/employee-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/employee-depl -n default --timeout=5m
+            echo "✅ Employee service deployed"
+          EOF
+
+      - name: Deploy Leave Service
+        if: |
+          needs.detect-changes.outputs.leave == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'leave'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/leave-depl leave=ghcr.io/${{ github.repository_owner }}/graduate-project/leave-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/leave-depl -n default --timeout=5m
+            echo "✅ Leave service deployed"
+          EOF
+
+      - name: Deploy Notification Service
+        if: |
+          needs.detect-changes.outputs.notification == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'notification'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/notification-depl notification=ghcr.io/${{ github.repository_owner }}/graduate-project/notification-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/notification-depl -n default --timeout=5m
+            echo "✅ Notification service deployed"
+          EOF
+
+      - name: Deploy Reporting Service
+        if: |
+          needs.detect-changes.outputs.reporting == 'true' ||
+          needs.detect-changes.outputs.shared == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'reporting'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd /home/ubuntu/graduate-project
+            git pull origin main
+            kubectl set image deployment/reporting-depl reporting=ghcr.io/${{ github.repository_owner }}/graduate-project/reporting-service:${{ github.sha }} -n default
+            kubectl rollout status deployment/reporting-depl -n default --timeout=5m
+            echo "✅ Reporting service deployed"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "📊 Deployment Status:"
+            kubectl get pods -n default
+            kubectl get svc -n default
+          EOF
+
+  # ==========================================
+  # JOB 11: NOTIFY DEPLOYMENT STATUS
+  # ==========================================
+  notify:
+    name: 📢 Notify Deployment Status
+    needs: deploy-to-ec2
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Slack notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 Deployment to AWS EC2",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment Status:* ${{ needs.deploy-to-ec2.result }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

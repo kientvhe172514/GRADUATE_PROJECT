@@ -5,21 +5,69 @@ metadata:
   namespace: infrastructure
 data:
   01-init-databases.sql: |
-    -- Create databases for each service
-    CREATE DATABASE authdb;
-    CREATE DATABASE facerecognitiondb;
+    -- ============================================
+    -- PostgreSQL Database Initialization
+    -- ============================================
+    -- Tạo tất cả databases cho các microservices
+    -- ============================================
     
-    -- Create users with proper permissions
-    CREATE USER auth_user WITH PASSWORD 'auth_password';
-    CREATE USER face_user WITH PASSWORD 'face_password';
+    -- Auth Service Database
+    CREATE DATABASE "IAM";
     
-    -- Grant permissions
-    GRANT ALL PRIVILEGES ON DATABASE authdb TO auth_user;
-    GRANT ALL PRIVILEGES ON DATABASE facerecognitiondb TO face_user;
+    -- Attendance Service Database
+    CREATE DATABASE attendance_db;
     
-    -- Enable pgvector extension
-    \c authdb;
-    CREATE EXTENSION IF NOT EXISTS vector;
+    -- Employee Service Database
+    CREATE DATABASE employee_db;
     
-    \c facerecognitiondb;
+    -- Leave Service Database
+    CREATE DATABASE leave_db;
+    
+    -- Notification Service Database
+    CREATE DATABASE notification_db;
+    
+    -- Reporting Service Database
+    CREATE DATABASE reporting_db;
+    
+    -- Face Recognition Service Database
+    CREATE DATABASE zentry;
+    
+    -- ============================================
+    -- Enable Extensions for all databases
+    -- ============================================
+    
+    -- IAM Database (Auth)
+    \c "IAM";
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Attendance Database
+    \c attendance_db;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Employee Database
+    \c employee_db;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Leave Database
+    \c leave_db;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Notification Database
+    \c notification_db;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Reporting Database
+    \c reporting_db;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    
+    -- Face Recognition Database (with pgvector for AI)
+    \c zentry;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
     CREATE EXTENSION IF NOT EXISTS vector;

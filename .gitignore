@@ -1,6 +1,36 @@
 # .gitignore cho dự án NestJS Microservices (Employee + IAM)
 
-# Dependencies
+# ============================================
+# 🔐 KUBERNETES SECRETS - NEVER COMMIT!
+# ============================================
+**/secrets.yaml
+!**/secrets.yaml.template
+*-secrets.yaml
+!*-secrets.yaml.template
+
+# ============================================
+# 🔑 SENSITIVE CONFIGURATION
+# ============================================
+**/appsettings.Production.json
+**/firebase-adminsdk-*.json
+**/*-service-account.json
+
+# ============================================
+# 🔒 CI/CD SECRETS
+# ============================================
+.secrets/
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa*
+*.ppk
+
+# ============================================
+# 📦 Dependencies
+# ============================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*

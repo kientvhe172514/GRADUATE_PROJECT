@@ -296,3 +296,4 @@ spec:
   selector:
     app: face-recognition
     tier: api
+
