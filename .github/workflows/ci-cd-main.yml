@@ -479,11 +479,7 @@ jobs:
             # Apply deployment
             kubectl apply -f infra/k8s/services/auth/
             
-            # Update image với commit SHA
-            kubectl set image deployment/auth-depl auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:${{ github.sha }} -n graduate-project
-            
-            # Restart và wait
-            kubectl rollout restart deployment/auth-depl -n graduate-project
+            # Wait for deployment to be ready
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
             
             echo "✅ Auth service deployed"
@@ -508,8 +504,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/attendance/
-            kubectl set image deployment/attendance-depl attendance=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-attendance:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/attendance-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/attendance-depl -n graduate-project --timeout=5m
             
             echo "✅ Attendance service deployed"
@@ -534,8 +530,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/employee/
-            kubectl set image deployment/employee-depl employee=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-employee:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/employee-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
             
             echo "✅ Employee service deployed"
@@ -560,8 +556,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/leave/
-            kubectl set image deployment/leave-depl leave=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-leave:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/leave-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/leave-depl -n graduate-project --timeout=5m
             
             echo "✅ Leave service deployed"
@@ -586,8 +582,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/notification/
-            kubectl set image deployment/notification-depl notification=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-notification:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/notification-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/notification-depl -n graduate-project --timeout=5m
             
             echo "✅ Notification service deployed"
@@ -612,8 +608,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/reporting/
-            kubectl set image deployment/reporting-depl reporting=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-reporting:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/reporting-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/reporting-depl -n graduate-project --timeout=5m
             
             echo "✅ Reporting service deployed"
@@ -637,8 +633,8 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/face-recognition/
-            kubectl set image deployment/face-recognition-depl face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-face-recognition:${{ github.sha }} -n graduate-project
-            kubectl rollout restart deployment/face-recognition-depl -n graduate-project
+            
+            # Wait for deployment to be ready
             kubectl rollout status deployment/face-recognition-depl -n graduate-project --timeout=5m
             
             echo "✅ Face Recognition service deployed"
