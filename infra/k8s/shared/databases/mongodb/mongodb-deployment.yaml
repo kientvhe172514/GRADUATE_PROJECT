@@ -50,11 +50,11 @@ spec:
           mountPath: /data/db
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: "512Mi"  # FIX: Increased from 128Mi
+            cpu: "200m"      # FIX: Increased from 100m
           limits:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "1Gi"    # FIX: Increased from 256Mi
+            cpu: "500m"      # FIX: Increased from 250m
         livenessProbe:
           exec:
             command:

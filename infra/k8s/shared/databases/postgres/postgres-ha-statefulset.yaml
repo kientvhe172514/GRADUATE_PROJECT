@@ -250,7 +250,7 @@ spec:
     spec:
       containers:
       - name: pgbouncer
-        image: pgbouncer/pgbouncer:1.21.0
+        image: edoburu/pgbouncer:latest  # FIX: Changed from pgbouncer/pgbouncer:1.21.0
         ports:
         - containerPort: 5432
           name: pgbouncer
