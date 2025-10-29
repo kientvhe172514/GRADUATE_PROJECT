@@ -403,26 +403,26 @@ jobs:
             # DEPLOY INFRASTRUCTURE MỚI
             # ============================================
             echo "🚀 Deploying fresh infrastructure..."
-            # Deploy infrastructure (KHÔNG bao gồm secret files - đã tạo ở trên)
+            # Deploy platform resources
             kubectl apply -f infra/k8s/platform/
             
-            # Deploy Postgres (exclude secret files)
+            # Deploy Postgres (HA StatefulSet contains everything)
             kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
             kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
             
-            # Deploy MongoDB (exclude secret files)
+            # Deploy MongoDB
             kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-deployment.yaml
             kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-service.yaml
             kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-pvc.yaml
             
-            # Deploy RabbitMQ (exclude secret files)
+            # Deploy RabbitMQ
             kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
             kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-config.yaml
             
-            # Deploy Redis (exclude secret files)
-            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
+            # Deploy Redis (Sentinel mode with Master/Replica)
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-config.yaml
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
+            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
             
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
