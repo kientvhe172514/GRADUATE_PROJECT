@@ -67,7 +67,7 @@ spec:
       
       containers:
       - name: attendance
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-attendance:latest
         imagePullPolicy: Always
         
         ports:

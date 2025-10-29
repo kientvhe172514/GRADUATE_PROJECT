@@ -44,7 +44,7 @@ spec:
         command: ['sh', '-c', 'until nc -z postgres-replica-srv.infrastructure 5432; do sleep 5; done']
       containers:
       - name: reporting
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-reporting:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3006

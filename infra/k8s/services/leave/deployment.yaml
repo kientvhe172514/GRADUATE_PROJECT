@@ -40,7 +40,7 @@ spec:
         command: ['sh', '-c', 'until nc -z pgbouncer-srv.infrastructure 5432; do sleep 5; done']
       containers:
       - name: leave
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-leave:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3004

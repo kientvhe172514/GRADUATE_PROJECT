@@ -44,7 +44,7 @@ spec:
         command: ['sh', '-c', 'until nc -z rabbitmq-srv.infrastructure 5672; do sleep 5; done']
       containers:
       - name: notification
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-notification:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3005

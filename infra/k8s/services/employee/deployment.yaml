@@ -43,7 +43,7 @@ spec:
         command: ['sh', '-c', 'until nc -z redis-master-srv.infrastructure 6379; do sleep 5; done']
       containers:
       - name: employee
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-
+        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-employee:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3003
