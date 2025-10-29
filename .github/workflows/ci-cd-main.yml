@@ -334,79 +334,42 @@ jobs:
             git pull origin main
             
             # ============================================
-            # CREATE POSTGRES SECRET (7 DATABASES)
+            # CREATE INFRASTRUCTURE SECRETS (An toàn)
             # ============================================
-            cat > /tmp/postgres-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: postgres-secret
-              namespace: infrastructure
-            type: Opaque
-            stringData:
-              postgres-user: "${{ secrets.POSTGRES_USER }}"
-              postgres-password: "${{ secrets.POSTGRES_PASSWORD }}"
-              postgres-db: "postgres"
-            YAML
             
-            # ============================================
-            # CREATE MONGODB SECRET
-            # ============================================
-            cat > /tmp/mongodb-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: mongodb-secret
-              namespace: infrastructure
-            type: Opaque
-            stringData:
-              MONGODB_HOST: "${{ secrets.MONGODB_HOST }}"
-              MONGODB_PORT: "${{ secrets.MONGODB_PORT }}"
-              MONGODB_DATABASE: "${{ secrets.MONGODB_DATABASE }}"
-              MONGODB_USERNAME: "${{ secrets.MONGODB_USERNAME }}"
-              MONGODB_PASSWORD: "${{ secrets.MONGODB_PASSWORD }}"
-            YAML
+            # Postgres Secret
+            kubectl create secret generic postgres-secret \
+              --from-literal=postgres-user='${{ secrets.POSTGRES_USER }}' \
+              --from-literal=postgres-password='${{ secrets.POSTGRES_PASSWORD }}' \
+              --from-literal=postgres-db='postgres' \
+              -n infrastructure \
+              --dry-run=client -o yaml | kubectl apply -f -
             
-            # ============================================
-            # CREATE RABBITMQ SECRET
-            # ============================================
-            cat > /tmp/rabbitmq-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: rabbitmq-secret
-              namespace: infrastructure
-            type: Opaque
-            stringData:
-              RABBITMQ_HOST: "${{ secrets.RABBITMQ_HOST }}"
-              RABBITMQ_PORT: "${{ secrets.RABBITMQ_PORT }}"
-              RABBITMQ_USERNAME: "${{ secrets.RABBITMQ_USERNAME }}"
-              RABBITMQ_PASSWORD: "${{ secrets.RABBITMQ_PASSWORD }}"
-              RABBITMQ_MANAGEMENT_PORT: "${{ secrets.RABBITMQ_MANAGEMENT_PORT }}"
-            YAML
+            # MongoDB Secret
+            kubectl create secret generic mongodb-secret \
+              --from-literal=MONGODB_HOST='${{ secrets.MONGODB_HOST }}' \
+              --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
+              --from-literal=MONGODB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
+              --from-literal=MONGODB_USERNAME='${{ secrets.MONGODB_USERNAME }}' \
+              --from-literal=MONGODB_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
+              -n infrastructure \
+              --dry-run=client -o yaml | kubectl apply -f -
             
-            # ============================================
-            # CREATE REDIS SECRET
-            # ============================================
-            cat > /tmp/redis-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: redis-secret
-              namespace: infrastructure
-            type: Opaque
-            stringData:
-              redis-password: "${{ secrets.REDIS_PASSWORD }}"
-            YAML
+            # RabbitMQ Secret
+            kubectl create secret generic rabbitmq-secret \
+              --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
+              --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
+              --from-literal=RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
+              --from-literal=RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
+              --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \
+              -n infrastructure \
+              --dry-run=client -o yaml | kubectl apply -f -
             
-            # Apply all infrastructure secrets
-            kubectl apply -f /tmp/postgres-secret.yaml
-            kubectl apply -f /tmp/mongodb-secret.yaml
-            kubectl apply -f /tmp/rabbitmq-secret.yaml
-            kubectl apply -f /tmp/redis-secret.yaml
-            
-            # Cleanup temp files
-            rm /tmp/postgres-secret.yaml /tmp/mongodb-secret.yaml /tmp/rabbitmq-secret.yaml /tmp/redis-secret.yaml
+            # Redis Secret
+            kubectl create secret generic redis-secret \
+              --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
+              -n infrastructure \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             # ============================================
             # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
@@ -507,36 +470,23 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # ============================================
-            # CREATE AUTH SERVICE SECRET (1 GỘP)
-            # ============================================
-            cat > /tmp/auth-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: auth-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.AUTH_SECRET }}
-            YAML
+            # Tạo secret bằng cách an toàn (không dùng cat heredoc)
+            kubectl create secret generic auth-secret \
+              --from-literal=.env='${{ secrets.AUTH_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
-            # Apply secret
-            kubectl apply -f /tmp/auth-secret.yaml
-            rm /tmp/auth-secret.yaml
-            
-            # Apply/Update K8s deployment
+            # Apply deployment
             kubectl apply -f infra/k8s/services/auth/
             
-            # Update deployment image to specific commit SHA
+            # Update image với commit SHA
             kubectl set image deployment/auth-depl auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:${{ github.sha }} -n graduate-project
             
-            # Restart to pick up new secrets and image
+            # Restart và wait
             kubectl rollout restart deployment/auth-depl -n graduate-project
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
             
-            echo "✅ Auth service deployed with consolidated secret"
+            echo "✅ Auth service deployed"
           EOF
 
       - name: Deploy Attendance Service
@@ -551,21 +501,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE ATTENDANCE SERVICE SECRET (1 GỘP)
-            cat > /tmp/attendance-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: attendance-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.ATTENDANCE_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/attendance-secret.yaml
-            rm /tmp/attendance-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic attendance-secret \
+              --from-literal=.env='${{ secrets.ATTENDANCE_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/attendance/
             kubectl set image deployment/attendance-depl attendance=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-attendance:${{ github.sha }} -n graduate-project
@@ -587,21 +527,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE EMPLOYEE SERVICE SECRET (1 GỘP)
-            cat > /tmp/employee-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: employee-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.EMPLOYEE_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/employee-secret.yaml
-            rm /tmp/employee-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic employee-secret \
+              --from-literal=.env='${{ secrets.EMPLOYEE_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/employee/
             kubectl set image deployment/employee-depl employee=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-employee:${{ github.sha }} -n graduate-project
@@ -623,21 +553,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE LEAVE SERVICE SECRET (1 GỘP)
-            cat > /tmp/leave-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: leave-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.LEAVE_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/leave-secret.yaml
-            rm /tmp/leave-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic leave-secret \
+              --from-literal=.env='${{ secrets.LEAVE_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/leave/
             kubectl set image deployment/leave-depl leave=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-leave:${{ github.sha }} -n graduate-project
@@ -659,21 +579,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE NOTIFICATION SERVICE SECRET (1 GỘP)
-            cat > /tmp/notification-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: notification-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.NOTIFICATION_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/notification-secret.yaml
-            rm /tmp/notification-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic notification-secret \
+              --from-literal=.env='${{ secrets.NOTIFICATION_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/notification/
             kubectl set image deployment/notification-depl notification=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-notification:${{ github.sha }} -n graduate-project
@@ -695,21 +605,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE REPORTING SERVICE SECRET (1 GỘP)
-            cat > /tmp/reporting-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: reporting-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.REPORTING_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/reporting-secret.yaml
-            rm /tmp/reporting-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic reporting-secret \
+              --from-literal=.env='${{ secrets.REPORTING_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/reporting/
             kubectl set image deployment/reporting-depl reporting=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-reporting:${{ github.sha }} -n graduate-project
@@ -730,21 +630,11 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # CREATE FACE RECOGNITION SERVICE SECRET (1 GỘP)
-            cat > /tmp/face-recognition-secret.yaml << 'YAML'
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: face-recognition-secret
-              namespace: graduate-project
-            type: Opaque
-            stringData:
-              .env: |
-                ${{ secrets.FACE_RECOGNITION_SECRET }}
-            YAML
-            
-            kubectl apply -f /tmp/face-recognition-secret.yaml
-            rm /tmp/face-recognition-secret.yaml
+            # Tạo secret an toàn
+            kubectl create secret generic face-recognition-secret \
+              --from-literal=.env='${{ secrets.FACE_RECOGNITION_SECRET }}' \
+              -n graduate-project \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             kubectl apply -f infra/k8s/services/face-recognition/
             kubectl set image deployment/face-recognition-depl face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-face-recognition:${{ github.sha }} -n graduate-project
