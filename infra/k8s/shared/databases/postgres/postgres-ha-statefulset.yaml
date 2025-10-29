@@ -248,6 +248,29 @@ spec:
       labels:
         app: pgbouncer
     spec:
+      # Init container to copy config from read-only ConfigMap to writable emptyDir
+      initContainers:
+      - name: copy-config
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          cp -r /etc/pgbouncer-readonly/* /etc/pgbouncer/
+          chmod -R 755 /etc/pgbouncer
+        volumeMounts:
+        - name: pgbouncer-config-readonly
+          mountPath: /etc/pgbouncer-readonly
+        - name: pgbouncer-config
+          mountPath: /etc/pgbouncer
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+      
       containers:
       - name: pgbouncer
         image: edoburu/pgbouncer:latest  # FIX: Changed from pgbouncer/pgbouncer:1.21.0
@@ -298,9 +321,11 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 5
       volumes:
-      - name: pgbouncer-config
+      - name: pgbouncer-config-readonly
         configMap:
           name: pgbouncer-config
+      - name: pgbouncer-config
+        emptyDir: {}
 
 ---
 # ===== POD DISRUPTION BUDGETS =====
