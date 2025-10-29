@@ -155,8 +155,8 @@ spec:
               key: password
         
         # ===== PERFORMANCE TUNING =====
-        - name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
-          value: "0.7"  # Use 70% memory before flow control
+        # Note: RABBITMQ_VM_MEMORY_HIGH_WATERMARK is deprecated in RabbitMQ 3.13+
+        # Configure vm_memory_high_watermark in rabbitmq.conf instead
         - name: RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT
           value: "2GB"
         

@@ -256,6 +256,7 @@ spec:
         - sh
         - -c
         - |
+          mkdir -p /etc/pgbouncer
           cp -r /etc/pgbouncer-readonly/* /etc/pgbouncer/
           chmod -R 777 /etc/pgbouncer
           chown -R 999:999 /etc/pgbouncer
