@@ -27,8 +27,8 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
-  REGISTRY: ghcr.io
-  REGISTRY_USERNAME: ${{ github.actor }}
+  REGISTRY: docker.io
+  REGISTRY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
   # ==========================================
@@ -326,49 +326,104 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Generate and apply Kubernetes secrets
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-            cd /home/ubuntu/graduate-project/scripts
-            
-            # Export secrets from GitHub to environment
-            export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
-            export MONGODB_USERNAME="${{ secrets.MONGODB_USERNAME }}"
-            export MONGODB_PASSWORD="${{ secrets.MONGODB_PASSWORD }}"
-            export RABBITMQ_USERNAME="${{ secrets.RABBITMQ_USERNAME }}"
-            export RABBITMQ_PASSWORD="${{ secrets.RABBITMQ_PASSWORD }}"
-            export REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}"
-            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            
-            # Optional external service secrets
-            export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
-            export FIREBASE_PRIVATE_KEY="${{ secrets.FIREBASE_PRIVATE_KEY }}"
-            export FIREBASE_CLIENT_EMAIL="${{ secrets.FIREBASE_CLIENT_EMAIL }}"
-            export SMTP_HOST="${{ secrets.SMTP_HOST }}"
-            export SMTP_PORT="${{ secrets.SMTP_PORT }}"
-            export SMTP_USER="${{ secrets.SMTP_USER }}"
-            export SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}"
-            export TWILIO_ACCOUNT_SID="${{ secrets.TWILIO_ACCOUNT_SID }}"
-            export TWILIO_AUTH_TOKEN="${{ secrets.TWILIO_AUTH_TOKEN }}"
-            export TWILIO_PHONE_NUMBER="${{ secrets.TWILIO_PHONE_NUMBER }}"
-            
-            # Generate secrets from templates
-            ./generate-secrets.sh
-            
-            echo "✅ Secrets generated and applied"
-          EOF
-
-      - name: Deploy infrastructure changes
+      - name: Setup infrastructure secrets and deploy
         if: needs.detect-changes.outputs.infra == 'true'
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
+            
+            # ============================================
+            # CREATE POSTGRES SECRET (7 DATABASES)
+            # ============================================
+            cat > /tmp/postgres-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: postgres-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              POSTGRES_HOST: "${{ secrets.POSTGRES_HOST }}"
+              POSTGRES_PORT: "${{ secrets.POSTGRES_PORT }}"
+              POSTGRES_USER: "${{ secrets.POSTGRES_USER }}"
+              POSTGRES_PASSWORD: "${{ secrets.POSTGRES_PASSWORD }}"
+              POSTGRES_DB_IAM: "${{ secrets.POSTGRES_DB_IAM }}"
+              POSTGRES_DB_ATTENDANCE: "${{ secrets.POSTGRES_DB_ATTENDANCE }}"
+              POSTGRES_DB_EMPLOYEE: "${{ secrets.POSTGRES_DB_EMPLOYEE }}"
+              POSTGRES_DB_LEAVE: "${{ secrets.POSTGRES_DB_LEAVE }}"
+              POSTGRES_DB_NOTIFICATION: "${{ secrets.POSTGRES_DB_NOTIFICATION }}"
+              POSTGRES_DB_REPORTING: "${{ secrets.POSTGRES_DB_REPORTING }}"
+              POSTGRES_DB_ZENTRY: "${{ secrets.POSTGRES_DB_ZENTRY }}"
+            YAML
+            
+            # ============================================
+            # CREATE MONGODB SECRET
+            # ============================================
+            cat > /tmp/mongodb-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: mongodb-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              MONGODB_HOST: "${{ secrets.MONGODB_HOST }}"
+              MONGODB_PORT: "${{ secrets.MONGODB_PORT }}"
+              MONGODB_DATABASE: "${{ secrets.MONGODB_DATABASE }}"
+              MONGODB_USERNAME: "${{ secrets.MONGODB_USERNAME }}"
+              MONGODB_PASSWORD: "${{ secrets.MONGODB_PASSWORD }}"
+            YAML
+            
+            # ============================================
+            # CREATE RABBITMQ SECRET
+            # ============================================
+            cat > /tmp/rabbitmq-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: rabbitmq-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              RABBITMQ_HOST: "${{ secrets.RABBITMQ_HOST }}"
+              RABBITMQ_PORT: "${{ secrets.RABBITMQ_PORT }}"
+              RABBITMQ_USERNAME: "${{ secrets.RABBITMQ_USERNAME }}"
+              RABBITMQ_PASSWORD: "${{ secrets.RABBITMQ_PASSWORD }}"
+              RABBITMQ_MANAGEMENT_PORT: "${{ secrets.RABBITMQ_MANAGEMENT_PORT }}"
+            YAML
+            
+            # ============================================
+            # CREATE REDIS SECRET
+            # ============================================
+            cat > /tmp/redis-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: redis-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              REDIS_HOST: "${{ secrets.REDIS_HOST }}"
+              REDIS_PORT: "${{ secrets.REDIS_PORT }}"
+              REDIS_PASSWORD: "${{ secrets.REDIS_PASSWORD }}"
+            YAML
+            
+            # Apply all infrastructure secrets
+            kubectl apply -f /tmp/postgres-secret.yaml
+            kubectl apply -f /tmp/mongodb-secret.yaml
+            kubectl apply -f /tmp/rabbitmq-secret.yaml
+            kubectl apply -f /tmp/redis-secret.yaml
+            
+            # Cleanup temp files
+            rm /tmp/postgres-secret.yaml /tmp/mongodb-secret.yaml /tmp/rabbitmq-secret.yaml /tmp/redis-secret.yaml
+            
+            # Deploy infrastructure
             kubectl apply -f infra/k8s/platform/
             kubectl apply -f infra/k8s/shared/
-            echo "✅ Infrastructure updated"
+            
+            echo "✅ Infrastructure secrets (14 secrets total) and deployments updated"
           EOF
 
       - name: Deploy Auth Service
@@ -380,26 +435,39 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/auth-depl auth=ghcr.io/${{ github.repository_owner }}/graduate-project/auth-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/auth-depl -n default --timeout=5m
-            echo "✅ Auth service deployed"
-          EOF
-
-      - name: Deploy Face Recognition Service
-        if: |
-          needs.detect-changes.outputs.face-recognition == 'true' ||
-          github.event.inputs.service == 'all' ||
-          github.event.inputs.service == 'face-recognition'
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-            cd /home/ubuntu/graduate-project
-            git pull origin main
-            kubectl set image deployment/face-recognition-depl face-recognition=ghcr.io/${{ github.repository_owner }}/graduate-project/face-recognition-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/face-recognition-depl -n default --timeout=5m
-            echo "✅ Face Recognition service deployed"
+            
+            # ============================================
+            # CREATE AUTH SERVICE SECRET (1 GỘP)
+            # ============================================
+            cat > /tmp/auth-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: auth-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.AUTH_SECRET }}
+            YAML
+            
+            # Apply secret
+            kubectl apply -f /tmp/auth-secret.yaml
+            rm /tmp/auth-secret.yaml
+            
+            # Apply/Update K8s deployment
+            kubectl apply -f infra/k8s/services/auth/
+            
+            # Update deployment image
+            kubectl set image deployment/auth-depl auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:${{ github.sha }} -n graduate-project
+            
+            # Restart to pick up new secrets
+            kubectl rollout restart deployment/auth-depl -n graduate-project
+            kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
+            
+            echo "✅ Auth service deployed with consolidated secret"
           EOF
 
       - name: Deploy Attendance Service
@@ -411,10 +479,30 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/attendance-depl attendance=ghcr.io/${{ github.repository_owner }}/graduate-project/attendance-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/attendance-depl -n default --timeout=5m
+            
+            # CREATE ATTENDANCE SERVICE SECRET (1 GỘP)
+            cat > /tmp/attendance-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: attendance-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.ATTENDANCE_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/attendance-secret.yaml
+            rm /tmp/attendance-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/attendance/
+            kubectl set image deployment/attendance-depl attendance=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-attendance:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/attendance-depl -n graduate-project
+            kubectl rollout status deployment/attendance-depl -n graduate-project --timeout=5m
+            
             echo "✅ Attendance service deployed"
           EOF
 
@@ -427,10 +515,30 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/employee-depl employee=ghcr.io/${{ github.repository_owner }}/graduate-project/employee-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/employee-depl -n default --timeout=5m
+            
+            # CREATE EMPLOYEE SERVICE SECRET (1 GỘP)
+            cat > /tmp/employee-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: employee-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.EMPLOYEE_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/employee-secret.yaml
+            rm /tmp/employee-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/employee/
+            kubectl set image deployment/employee-depl employee=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-employee:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/employee-depl -n graduate-project
+            kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
+            
             echo "✅ Employee service deployed"
           EOF
 
@@ -443,10 +551,30 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/leave-depl leave=ghcr.io/${{ github.repository_owner }}/graduate-project/leave-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/leave-depl -n default --timeout=5m
+            
+            # CREATE LEAVE SERVICE SECRET (1 GỘP)
+            cat > /tmp/leave-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: leave-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.LEAVE_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/leave-secret.yaml
+            rm /tmp/leave-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/leave/
+            kubectl set image deployment/leave-depl leave=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-leave:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/leave-depl -n graduate-project
+            kubectl rollout status deployment/leave-depl -n graduate-project --timeout=5m
+            
             echo "✅ Leave service deployed"
           EOF
 
@@ -459,10 +587,30 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/notification-depl notification=ghcr.io/${{ github.repository_owner }}/graduate-project/notification-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/notification-depl -n default --timeout=5m
+            
+            # CREATE NOTIFICATION SERVICE SECRET (1 GỘP)
+            cat > /tmp/notification-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: notification-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.NOTIFICATION_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/notification-secret.yaml
+            rm /tmp/notification-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/notification/
+            kubectl set image deployment/notification-depl notification=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-notification:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/notification-depl -n graduate-project
+            kubectl rollout status deployment/notification-depl -n graduate-project --timeout=5m
+            
             echo "✅ Notification service deployed"
           EOF
 
@@ -475,19 +623,81 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/ubuntu/graduate-project
+            cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl set image deployment/reporting-depl reporting=ghcr.io/${{ github.repository_owner }}/graduate-project/reporting-service:${{ github.sha }} -n default
-            kubectl rollout status deployment/reporting-depl -n default --timeout=5m
+            
+            # CREATE REPORTING SERVICE SECRET (1 GỘP)
+            cat > /tmp/reporting-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: reporting-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.REPORTING_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/reporting-secret.yaml
+            rm /tmp/reporting-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/reporting/
+            kubectl set image deployment/reporting-depl reporting=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-reporting:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/reporting-depl -n graduate-project
+            kubectl rollout status deployment/reporting-depl -n graduate-project --timeout=5m
+            
             echo "✅ Reporting service deployed"
+          EOF
+
+      - name: Deploy Face Recognition Service
+        if: |
+          needs.detect-changes.outputs.face-recognition == 'true' ||
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'face-recognition'
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            cd ~/GRADUATE_PROJECT
+            git pull origin main
+            
+            # CREATE FACE RECOGNITION SERVICE SECRET (1 GỘP)
+            cat > /tmp/face-recognition-secret.yaml << 'YAML'
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: face-recognition-secret
+              namespace: graduate-project
+            type: Opaque
+            stringData:
+              .env: |
+                ${{ secrets.FACE_RECOGNITION_SECRET }}
+            YAML
+            
+            kubectl apply -f /tmp/face-recognition-secret.yaml
+            rm /tmp/face-recognition-secret.yaml
+            
+            kubectl apply -f infra/k8s/services/face-recognition/
+            kubectl set image deployment/face-recognition-depl face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-face-recognition:${{ github.sha }} -n graduate-project
+            kubectl rollout restart deployment/face-recognition-depl -n graduate-project
+            kubectl rollout status deployment/face-recognition-depl -n graduate-project --timeout=5m
+            
+            echo "✅ Face Recognition service deployed"
           EOF
 
       - name: Verify deployment
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             echo "📊 Deployment Status:"
-            kubectl get pods -n default
-            kubectl get svc -n default
+            echo ""
+            echo "=== Pods in graduate-project namespace ==="
+            kubectl get pods -n graduate-project
+            echo ""
+            echo "=== Services in graduate-project namespace ==="
+            kubectl get svc -n graduate-project
+            echo ""
+            echo "=== Secrets in graduate-project namespace ==="
+            kubectl get secrets -n graduate-project
           EOF
 
   # ==========================================
