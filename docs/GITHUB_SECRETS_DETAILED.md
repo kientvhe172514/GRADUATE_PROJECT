@@ -1,6 +1,21 @@
-# 🔐 GITHUB SECRETS SETUP - Chi Tiết 100%
+# 🔐 GITHUB SECRETS SETUP - Simplified Architecture
 
-> **Copy & Paste Guide** - Bạn chỉ cần đọc và copy chính xác values này vào GitHub Secrets!
+> **⚠️ CHÚ Ý:** GitHub Secrets CHỈ dùng để CI/CD có thể deploy, KHÔNG chứa app secrets!  
+> **📖 Đọc:** `docs/SECRETS_ARCHITECTURE.md` để hiểu kiến trúc secrets management
+
+---
+
+## 🎯 KIẾN TRÚC MỚI (ĐÚNG CHUẨN)
+
+### ✅ GitHub Secrets (6 secrets) - CHỈ cho CI/CD deployment
+### ✅ Kubernetes Secrets (18+ secrets) - Setup trực tiếp trên EC2
+
+**Tại sao?**
+- 🔒 **Bảo mật hơn:** App secrets không đi qua GitHub Actions
+- 🚀 **Đơn giản hơn:** Setup secrets 1 lần trên EC2, CI/CD chỉ deploy code
+- 🎓 **Professional:** Đúng best practices cho production
+
+---
 
 ---
 
@@ -16,120 +31,11 @@
 
 ---
 
-## 🗂️ REQUIRED SECRETS (BẮT BUỘC)
+## 🗂️ GITHUB SECRETS (CHỈ 6 SECRETS)
 
-### 1. Infrastructure Database & Messaging
+> **Mục đích:** Cho phép GitHub Actions SSH vào EC2 để deploy code
 
-#### `POSTGRES_PASSWORD`
-**Mô tả:** Password cho PostgreSQL database (master password)  
-**Ví dụ giá trị:**
-```
-P@ssw0rd!2024$Zentry
-```
-**Hướng dẫn tạo:**
-```bash
-# Tạo password mạnh 16-20 ký tự
-openssl rand -base64 16
-# Hoặc dùng: https://passwordsgenerator.net/
-```
-**📋 Copy value này:**
-```
-Zentry@Postgres#2024!Strong
-```
-
----
-
-#### `MONGODB_USERNAME`
-**Mô tả:** MongoDB admin username  
-**Giá trị cố định:**
-```
-admin
-```
-**📋 Copy value này:**
-```
-admin
-```
-
----
-
-#### `MONGODB_PASSWORD`
-**Mô tả:** Password cho MongoDB  
-**Ví dụ giá trị:**
-```
-M0ng0DB!Secure#2024
-```
-**Hướng dẫn tạo:**
-```bash
-openssl rand -base64 16
-```
-**📋 Copy value này:**
-```
-Zentry@MongoDB#2024!Strong
-```
-
----
-
-#### `RABBITMQ_USERNAME`
-**Mô tả:** RabbitMQ admin username  
-**Giá trị cố định:**
-```
-admin
-```
-**📋 Copy value này:**
-```
-admin
-```
-
----
-
-#### `RABBITMQ_PASSWORD`
-**Mô tả:** Password cho RabbitMQ message broker  
-**Ví dụ giá trị:**
-```
-RabbitMQ!Pass#2024
-```
-**📋 Copy value này:**
-```
-Zentry@RabbitMQ#2024!Strong
-```
-
----
-
-#### `REDIS_PASSWORD`
-**Mô tả:** Password cho Redis cache  
-**Ví dụ giá trị:**
-```
-Redis!Secure#2024
-```
-**📋 Copy value này:**
-```
-Zentry@Redis#2024!Strong
-```
-
----
-
-### 2. Application Security
-
-#### `JWT_SECRET`
-**Mô tả:** Secret key để tạo JWT tokens cho authentication  
-**⚠️ QUAN TRỌNG:** Phải tối thiểu 32 ký tự!  
-**Ví dụ giá trị:**
-```
-my-super-secret-jwt-key-minimum-32-characters-long-2024-zentry-hr-system
-```
-**Hướng dẫn tạo:**
-```bash
-# Tạo JWT secret 64 ký tự
-openssl rand -base64 48
-```
-**📋 Copy value này:**
-```
-Zentry-HR-JWT-Secret-Key-2024-Super-Strong-Min-32-Chars-Graduate-Project
-```
-
----
-
-### 3. AWS EC2 Connection
+### 1. AWS EC2 Connection (3 secrets)
 
 #### `EC2_HOST`
 **Mô tả:** Public IP address của EC2 instance  
@@ -153,11 +59,11 @@ THAY_BẰNG_EC2_PUBLIC_IP_CỦA_BẠN
 
 #### `EC2_USER`
 **Mô tả:** SSH username để connect vào EC2  
-**Giá trị cố định cho Ubuntu:**
-```
-ubuntu
-```
-**📋 Copy value này:**
+**Giá trị:**
+- Ubuntu AMI: `ubuntu`
+- Amazon Linux: `ec2-user`
+
+**📋 Copy value này (tùy AMI của bạn):**
 ```
 ubuntu
 ```
@@ -190,10 +96,10 @@ MIIEpAIBAAKCAQEAx1y2...
 
 ---
 
-### 4. AWS Credentials
+### 2. AWS Credentials (2 secrets)
 
 #### `AWS_ACCESS_KEY_ID`
-**Mô tả:** AWS IAM user access key để GitHub Actions có thể tương tác với AWS  
+**Mô tả:** AWS IAM user access key  
 **Ví dụ giá trị:**
 ```
 AKIAIOSFODNN7EXAMPLE
@@ -222,33 +128,10 @@ wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
 ---
 
-#### `AWS_REGION`
-**Mô tả:** AWS region nơi EC2 instance được deploy  
-**Ví dụ giá trị:**
-```
-ap-southeast-1
-```
-**Common regions:**
-- `ap-southeast-1` - Singapore (gần Việt Nam nhất)
-- `us-east-1` - US East (N. Virginia)
-- `us-west-2` - US West (Oregon)
-- `eu-west-1` - Europe (Ireland)
-
-**Cách kiểm tra:**
-```
-AWS Console → EC2 → Region dropdown (góc trên bên phải)
-```
-**📋 Copy value này (hoặc thay đổi theo region của bạn):**
-```
-ap-southeast-1
-```
-
----
-
-### 5. GitHub Container Registry
+### 3. GitHub Container Registry (1 secret)
 
 #### `GHCR_TOKEN`
-**Mô tả:** GitHub Personal Access Token để push Docker images vào GHCR  
+**Mô tả:** GitHub Personal Access Token để push Docker images  
 
 **Cách tạo:**
 ```
@@ -276,251 +159,68 @@ ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-## 🔔 OPTIONAL SECRETS (Notification Service)
+## � SUMMARY - GitHub Secrets
 
-> **💡 Tip:** Bạn có thể BỎ QUA phần này nếu không dùng Notification service hoặc set `USE_MOCK_SERVICES=true`
+| Secret Name | Purpose | Example |
+|-------------|---------|---------|
+| `EC2_HOST` | EC2 Public IP | `3.123.45.67` |
+| `EC2_USER` | SSH Username | `ubuntu` hoặc `ec2-user` |
+| `EC2_SSH_PRIVATE_KEY` | SSH Private Key | `-----BEGIN RSA...` |
+| `AWS_ACCESS_KEY_ID` | AWS API Access | `AKIAIOSFODNN7EXAMPLE` |
+| `AWS_SECRET_ACCESS_KEY` | AWS API Secret | `wJalrXUtnFEMI/K7...` |
+| `GHCR_TOKEN` | GitHub PAT | `ghp_xxxxxxxx` |
 
-### 6. Firebase Cloud Messaging (Push Notifications)
-
-#### `FIREBASE_PROJECT_ID`
-**Mô tả:** Firebase project ID cho push notifications  
-**Ví dụ giá trị:**
-```
-zentry-hr-system
-```
-**Cách lấy:**
-```
-1. Firebase Console: https://console.firebase.google.com/
-2. Chọn project hoặc tạo mới
-3. Project settings (icon bánh răng)
-4. General tab → Project ID
-```
-**📋 Copy value này (hoặc để mock):**
-```
-zentry-hr-graduation-project
-```
+**Total: 6 secrets only!**
 
 ---
 
-#### `FIREBASE_PRIVATE_KEY`
-**Mô tả:** Firebase service account private key  
-**⚠️ QUAN TRỌNG:** Phải giữ nguyên format với `\n`!
+## � APPLICATION SECRETS (Setup on EC2)
 
-**Cách lấy:**
-```
-1. Firebase Console → Project settings
-2. Service accounts tab
-3. Generate new private key
-4. Download JSON file
-5. Mở file JSON, tìm key "private_key"
-6. Copy value (bao gồm -----BEGIN và END-----)
-```
+> **⚠️ KHÔNG setup trong GitHub Secrets!**  
+> **📍 Setup Location:** Trực tiếp trên EC2 server khi chạy `setup-infrastructure-once.sh`
 
-**Format:**
-```
------BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhki...\n...xyz==\n-----END PRIVATE KEY-----\n
-```
+### Cần export các biến này TRÊN EC2:
 
-**📋 Copy private_key từ Firebase JSON (hoặc để mock):**
-```
------BEGIN PRIVATE KEY-----\nMOCK_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n
-```
+```bash
+# Infrastructure Passwords
+export POSTGRES_PASSWORD='Zentry@Postgres#2024!Strong'
+export MONGODB_USERNAME='admin'
+export MONGODB_PASSWORD='Zentry@MongoDB#2024!Strong'
+export RABBITMQ_USERNAME='admin'
+export RABBITMQ_PASSWORD='Zentry@RabbitMQ#2024!Strong'
+export REDIS_PASSWORD='Zentry@Redis#2024!Strong'
 
----
+# Application Security
+export JWT_SECRET='Zentry-HR-JWT-Secret-Key-2024-Super-Strong-Min-32-Chars-Graduate-Project-System'
 
-#### `FIREBASE_CLIENT_EMAIL`
-**Mô tả:** Firebase service account email  
-**Ví dụ giá trị:**
-```
-firebase-adminsdk-xxxxx@zentry-hr-system.iam.gserviceaccount.com
-```
-**Cách lấy:** Từ file JSON giống như private_key, tìm key "client_email"  
-**📋 Copy value này (hoặc để mock):**
-```
-firebase-adminsdk-mock@zentry-hr-graduation.iam.gserviceaccount.com
+# Optional: Notification Service
+export FIREBASE_PROJECT_ID='your-project-id'
+export FIREBASE_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n'
+export FIREBASE_CLIENT_EMAIL='firebase-adminsdk@project.iam.gserviceaccount.com'
+
+export SMTP_HOST='smtp.gmail.com'
+export SMTP_PORT='587'
+export SMTP_USER='kientvhe172514@fpt.edu.vn'
+export SMTP_PASSWORD='tlgs vqgb tbfe gslr'
+
+export TWILIO_ACCOUNT_SID='ACxxxx'
+export TWILIO_AUTH_TOKEN='your_token'
+export TWILIO_PHONE_NUMBER='+1234567890'
 ```
 
----
-
-### 7. SMTP Email Service
-
-#### `SMTP_HOST`
-**Mô tả:** SMTP server hostname để gửi email  
-**Common values:**
-- Gmail: `smtp.gmail.com`
-- Outlook: `smtp-mail.outlook.com`
-- Yahoo: `smtp.mail.yahoo.com`
-
-**📋 Copy value này (nếu dùng Gmail):**
-```
-smtp.gmail.com
-```
-
----
-
-#### `SMTP_PORT`
-**Mô tả:** SMTP server port  
-**Common ports:**
-- `587` - TLS (recommended)
-- `465` - SSL
-- `25` - Unencrypted (không recommend)
-
-**📋 Copy value này:**
-```
-587
-```
-
----
-
-#### `SMTP_USER`
-**Mô tả:** Email address dùng để gửi email  
-**Ví dụ giá trị:**
-```
-your-email@gmail.com
-```
-**📋 Copy email của bạn:**
-```
-YOUR_EMAIL_HERE@gmail.com
-```
-
----
-
-#### `SMTP_PASSWORD`
-**Mô tả:** Password hoặc App Password cho email  
-
-**⚠️ Với Gmail: PHẢI dùng App Password, không phải password thường!**
-
-**Cách tạo Gmail App Password:**
-```
-1. Vào: https://myaccount.google.com/security
-2. Enable 2-Step Verification (nếu chưa có)
-3. Tìm "App passwords"
-4. Select app: Mail
-5. Select device: Other (nhập "Zentry HR System")
-6. Generate
-7. Copy 16-ký tự password (vd: abcd efgh ijkl mnop)
-```
-
-**Format:**
-```
-abcdefghijklmnop
-```
-
-**📋 Copy App Password của bạn (16 ký tự, không có spaces):**
-```
-YOUR_GMAIL_APP_PASSWORD
-```
-
----
-
-### 8. Twilio SMS Service
-
-#### `TWILIO_ACCOUNT_SID`
-**Mô tả:** Twilio account identifier  
-**Ví dụ giá trị:**
-```
-ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-**Cách lấy:**
-```
-1. Đăng ký: https://www.twilio.com/try-twilio
-2. Console Dashboard: https://console.twilio.com/
-3. Account Info → Account SID
-```
-**📋 Copy value này (hoặc để mock):**
-```
-ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
-
----
-
-#### `TWILIO_AUTH_TOKEN`
-**Mô tả:** Twilio authentication token  
-**Ví dụ giá trị:**
-```
-your_auth_token_here
-```
-**Cách lấy:** Từ Twilio Console Dashboard, bên cạnh Account SID  
-**📋 Copy value này (hoặc để mock):**
-```
-MOCK_TWILIO_AUTH_TOKEN
-```
-
----
-
-#### `TWILIO_PHONE_NUMBER`
-**Mô tả:** Twilio phone number để gửi SMS  
-**Format:** `+1234567890` (phải có dấu +)  
-**Ví dụ giá trị:**
-```
-+14155551234
-```
-**Cách lấy:**
-```
-1. Twilio Console → Phone Numbers → Manage Numbers
-2. Copy số phone (Trial account có thể có free number)
-```
-**📋 Copy value này (hoặc để mock):**
-```
-+1234567890
-```
-
----
-
-## 📊 SUMMARY TABLE - Tất cả Secrets
-
-| Secret Name | Category | Required? | Example Value |
-|-------------|----------|-----------|---------------|
-| `POSTGRES_PASSWORD` | Infrastructure | ✅ Required | `Zentry@Postgres#2024!Strong` |
-| `MONGODB_USERNAME` | Infrastructure | ✅ Required | `admin` |
-| `MONGODB_PASSWORD` | Infrastructure | ✅ Required | `Zentry@MongoDB#2024!Strong` |
-| `RABBITMQ_USERNAME` | Infrastructure | ✅ Required | `admin` |
-| `RABBITMQ_PASSWORD` | Infrastructure | ✅ Required | `Zentry@RabbitMQ#2024!Strong` |
-| `REDIS_PASSWORD` | Infrastructure | ✅ Required | `Zentry@Redis#2024!Strong` |
-| `JWT_SECRET` | Security | ✅ Required | `Zentry-HR-JWT-Secret-Key-2024-Super-Strong-Min-32-Chars` |
-| `EC2_HOST` | AWS | ✅ Required | `3.123.45.67` |
-| `EC2_USER` | AWS | ✅ Required | `ubuntu` |
-| `EC2_SSH_PRIVATE_KEY` | AWS | ✅ Required | `-----BEGIN RSA PRIVATE KEY-----\n...` |
-| `AWS_ACCESS_KEY_ID` | AWS | ✅ Required | `AKIAIOSFODNN7EXAMPLE` |
-| `AWS_SECRET_ACCESS_KEY` | AWS | ✅ Required | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE` |
-| `AWS_REGION` | AWS | ✅ Required | `ap-southeast-1` |
-| `GHCR_TOKEN` | GitHub | ✅ Required | `ghp_xxxxxxxxxxxxxxxxxxxx` |
-| `FIREBASE_PROJECT_ID` | Notification | ⭕ Optional | `zentry-hr-graduation-project` |
-| `FIREBASE_PRIVATE_KEY` | Notification | ⭕ Optional | `-----BEGIN PRIVATE KEY-----\n...` |
-| `FIREBASE_CLIENT_EMAIL` | Notification | ⭕ Optional | `firebase-adminsdk@project.iam.gserviceaccount.com` |
-| `SMTP_HOST` | Notification | ⭕ Optional | `smtp.gmail.com` |
-| `SMTP_PORT` | Notification | ⭕ Optional | `587` |
-| `SMTP_USER` | Notification | ⭕ Optional | `your-email@gmail.com` |
-| `SMTP_PASSWORD` | Notification | ⭕ Optional | `abcdefghijklmnop` |
-| `TWILIO_ACCOUNT_SID` | Notification | ⭕ Optional | `ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` |
-| `TWILIO_AUTH_TOKEN` | Notification | ⭕ Optional | `your_auth_token` |
-| `TWILIO_PHONE_NUMBER` | Notification | ⭕ Optional | `+1234567890` |
-
-**Total:** 24 secrets (14 required, 10 optional)
+**Chi tiết setup:** Xem `docs/EC2_SETUP_COMMANDS.md` - STEP 6
 
 ---
 
 ## ✅ QUICK SETUP CHECKLIST
 
-### Step 1: Required Secrets (14 secrets)
+### Phase 1: GitHub Secrets (6 secrets - Add vào GitHub repo settings)
 
 ```bash
-# Infrastructure (6 secrets)
-□ POSTGRES_PASSWORD
-□ MONGODB_USERNAME
-□ MONGODB_PASSWORD
-□ RABBITMQ_USERNAME
-□ RABBITMQ_PASSWORD
-□ REDIS_PASSWORD
-
-# Security (1 secret)
-□ JWT_SECRET
-
-# AWS Connection (4 secrets)
+# AWS Connection (3 secrets)
 □ EC2_HOST
 □ EC2_USER
 □ EC2_SSH_PRIVATE_KEY
-□ AWS_REGION
 
 # AWS Credentials (2 secrets)
 □ AWS_ACCESS_KEY_ID
@@ -530,114 +230,161 @@ MOCK_TWILIO_AUTH_TOKEN
 □ GHCR_TOKEN
 ```
 
-### Step 2: Optional Secrets (10 secrets) - Skip if not using
+### Phase 2: EC2 Server Setup (Export trên EC2, KHÔNG vào GitHub!)
 
 ```bash
-# Firebase (3 secrets)
+# SSH vào EC2, export các biến này:
+
+# Infrastructure (6 values)
+□ POSTGRES_PASSWORD
+□ MONGODB_USERNAME
+□ MONGODB_PASSWORD
+□ RABBITMQ_USERNAME
+□ RABBITMQ_PASSWORD
+□ REDIS_PASSWORD
+
+# Security (1 value)
+□ JWT_SECRET
+
+# Optional - Notification Service (10 values)
 □ FIREBASE_PROJECT_ID
 □ FIREBASE_PRIVATE_KEY
 □ FIREBASE_CLIENT_EMAIL
-
-# SMTP (4 secrets)
 □ SMTP_HOST
 □ SMTP_PORT
 □ SMTP_USER
 □ SMTP_PASSWORD
-
-# Twilio (3 secrets)
 □ TWILIO_ACCOUNT_SID
 □ TWILIO_AUTH_TOKEN
 □ TWILIO_PHONE_NUMBER
 ```
 
+**Sau khi export → Chạy:** `./scripts/generate-secrets.sh`
+
 ---
 
-## 🎯 PRODUCTION-READY VALUES (COPY & PASTE)
+## 🎯 COPY & PASTE VALUES
 
-> **⚠️ CHÚ Ý:** Đây là ví dụ values cho môi trường PRODUCTION. Bạn NÊN thay đổi để bảo mật hơn!
-
-### Infrastructure Passwords
+### For GitHub Secrets (Setup once in GitHub repo settings)
 
 ```bash
-POSTGRES_PASSWORD=Zentry@Postgres#2024!Strong
-MONGODB_USERNAME=admin
-MONGODB_PASSWORD=Zentry@MongoDB#2024!Strong
-RABBITMQ_USERNAME=admin
-RABBITMQ_PASSWORD=Zentry@RabbitMQ#2024!Strong
-REDIS_PASSWORD=Zentry@Redis#2024!Strong
-JWT_SECRET=Zentry-HR-JWT-Secret-Key-2024-Super-Strong-Min-32-Chars-Graduate-Project-System
+# ⚠️ THAY ĐỔI những giá trị này:
+EC2_HOST=YOUR_EC2_PUBLIC_IP_HERE
+EC2_USER=ubuntu  # hoặc ec2-user nếu dùng Amazon Linux
+EC2_SSH_PRIVATE_KEY=YOUR_ENTIRE_PEM_FILE_CONTENT_HERE
+
+AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID_HERE
+AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY_HERE
+
+GHCR_TOKEN=ghp_YOUR_GITHUB_PERSONAL_ACCESS_TOKEN_HERE
 ```
 
-### AWS Configuration
+### For EC2 Server (Export khi SSH vào EC2)
+
+**File:** Tạo script `~/setup-env.sh` trên EC2 với nội dung:
 
 ```bash
-EC2_USER=ubuntu
-AWS_REGION=ap-southeast-1
+#!/bin/bash
 
-# THAY ĐỔI các giá trị này:
-EC2_HOST=YOUR_EC2_PUBLIC_IP
-AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
-EC2_SSH_PRIVATE_KEY=YOUR_PEM_FILE_CONTENT
-GHCR_TOKEN=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
+# Infrastructure Passwords (THAY ĐỔI trong production!)
+export POSTGRES_PASSWORD='Zentry@Postgres#2024!Strong'
+export MONGODB_USERNAME='admin'
+export MONGODB_PASSWORD='Zentry@MongoDB#2024!Strong'
+export RABBITMQ_USERNAME='admin'
+export RABBITMQ_PASSWORD='Zentry@RabbitMQ#2024!Strong'
+export REDIS_PASSWORD='Zentry@Redis#2024!Strong'
+
+# Application Security
+export JWT_SECRET='Zentry-HR-JWT-Secret-Key-2024-Super-Strong-Min-32-Chars-Graduate-Project-System'
+
+# Optional: Notification Service (bỏ qua nếu không dùng)
+export FIREBASE_PROJECT_ID='zentry-hr-mock'
+export FIREBASE_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\nMOCK_KEY\n-----END PRIVATE KEY-----\n'
+export FIREBASE_CLIENT_EMAIL='firebase-mock@zentry.iam.gserviceaccount.com'
+
+export SMTP_HOST='smtp.gmail.com'
+export SMTP_PORT='587'
+export SMTP_USER='your-email@gmail.com'
+export SMTP_PASSWORD='your-gmail-app-password'
+
+export TWILIO_ACCOUNT_SID='ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+export TWILIO_AUTH_TOKEN='mock-token'
+export TWILIO_PHONE_NUMBER='+1234567890'
+
+echo "✅ Environment variables exported!"
 ```
 
-### Optional - Mock Values (nếu không dùng thật)
+**Cách sử dụng:**
 
 ```bash
-FIREBASE_PROJECT_ID=zentry-hr-mock
-FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMOCK_KEY\n-----END PRIVATE KEY-----\n
-FIREBASE_CLIENT_EMAIL=firebase-mock@zentry.iam.gserviceaccount.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=noreply@zentry.local
-SMTP_PASSWORD=mock-password
-TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-TWILIO_AUTH_TOKEN=mock-token
-TWILIO_PHONE_NUMBER=+1234567890
+# Trên EC2:
+chmod +x ~/setup-env.sh
+source ~/setup-env.sh
+
+# Verify
+echo $POSTGRES_PASSWORD  # Phải hiện password
+
+# Generate K8s secrets
+cd ~/GRADUATE_PROJECT/scripts
+./generate-secrets.sh
 ```
 
 ---
 
 ## 🔍 Verification
 
-### Check if all required secrets are set:
+### Step 1: Check GitHub Secrets (phải có 6 secrets)
 
 ```bash
-# Vào GitHub Repository Settings
-Settings → Secrets and variables → Actions → Repository secrets
+# Vào GitHub Repository
+https://github.com/kientvhe172514/GRADUATE_PROJECT/settings/secrets/actions
 
-# Phải thấy ít nhất 14 secrets:
-✅ POSTGRES_PASSWORD
-✅ MONGODB_USERNAME
-✅ MONGODB_PASSWORD
-✅ RABBITMQ_USERNAME
-✅ RABBITMQ_PASSWORD
-✅ REDIS_PASSWORD
-✅ JWT_SECRET
+# Phải thấy:
 ✅ EC2_HOST
 ✅ EC2_USER
 ✅ EC2_SSH_PRIVATE_KEY
 ✅ AWS_ACCESS_KEY_ID
 ✅ AWS_SECRET_ACCESS_KEY
-✅ AWS_REGION
 ✅ GHCR_TOKEN
 ```
 
-### Test Secrets on EC2:
+### Step 2: Check K8s Secrets on EC2 (sau khi chạy setup-infrastructure-once.sh)
 
 ```bash
 # SSH to EC2
 ssh -i "your-key.pem" ubuntu@YOUR_EC2_IP
 
-# Test if secrets work
-cd /home/ubuntu/GRADUATE_PROJECT/scripts
-export POSTGRES_PASSWORD='Zentry@Postgres#2024!Strong'
-export MONGODB_PASSWORD='Zentry@MongoDB#2024!Strong'
-# ... export all other secrets
+# List all secrets
+kubectl get secrets -n infrastructure
+kubectl get secrets -n default
 
-./generate-secrets.sh
-# Should generate without errors
+# Expected output:
+NAME                      TYPE     DATA   AGE
+postgres-secret           Opaque   2      5m
+mongodb-secret            Opaque   2      5m
+rabbitmq-secret           Opaque   2      5m
+redis-secret              Opaque   1      5m
+auth-secrets              Opaque   8      5m
+attendance-secrets        Opaque   8      5m
+employee-secrets          Opaque   5      5m
+leave-secrets             Opaque   7      5m
+notification-secrets      Opaque   18     5m
+reporting-secrets         Opaque   9      5m
+face-recognition-secrets  Opaque   9      5m
+```
+
+### Step 3: Test Application Connections
+
+```bash
+# Check if pods can read secrets
+kubectl exec -it deployment/notification-depl -- env | grep SMTP
+# Expected:
+# SMTP_HOST=smtp.gmail.com
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASSWORD=<sensitive>
+
+# Check database connections
+kubectl logs -l app=notification --tail=20 | grep -i "connected\|error"
 ```
 
 ---
