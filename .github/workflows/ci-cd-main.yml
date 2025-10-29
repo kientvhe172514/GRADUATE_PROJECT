@@ -337,6 +337,13 @@ jobs:
             # CREATE INFRASTRUCTURE SECRETS (An toàn)
             # ============================================
             
+            # XÓA TẤT CẢ SECRETS CŨ TRƯỚC (để tránh merge keys cũ)
+            echo "🗑️  Deleting old secrets..."
+            kubectl delete secret postgres-secret -n infrastructure --ignore-not-found=true
+            kubectl delete secret mongodb-secret -n infrastructure --ignore-not-found=true
+            kubectl delete secret rabbitmq-secret -n infrastructure --ignore-not-found=true
+            kubectl delete secret redis-secret -n infrastructure --ignore-not-found=true
+            
             # Postgres Secret - FIX: Thêm đầy đủ database names + replicator password
             kubectl create secret generic postgres-secret \
               --from-literal=POSTGRES_HOST='${{ secrets.POSTGRES_HOST }}' \
@@ -352,8 +359,7 @@ jobs:
               --from-literal=POSTGRES_DB_NOTIFICATION='${{ secrets.POSTGRES_DB_NOTIFICATION }}' \
               --from-literal=POSTGRES_DB_REPORTING='${{ secrets.POSTGRES_DB_REPORTING }}' \
               --from-literal=POSTGRES_DB_ZENTRY='${{ secrets.POSTGRES_DB_ZENTRY }}' \
-              -n infrastructure \
-              --dry-run=client -o yaml | kubectl apply -f -
+              -n infrastructure
             
             # MongoDB Secret - FIX: Dùng keys chuẩn của MongoDB image
             kubectl create secret generic mongodb-secret \
@@ -362,8 +368,7 @@ jobs:
               --from-literal=MONGO_INITDB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
               --from-literal=MONGODB_HOST='${{ secrets.MONGODB_HOST }}' \
               --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
-              -n infrastructure \
-              --dry-run=client -o yaml | kubectl apply -f -
+              -n infrastructure
             
             # RabbitMQ Secret - FIX: Dùng keys chuẩn của RabbitMQ image + thêm erlang-cookie
             kubectl create secret generic rabbitmq-secret \
@@ -373,8 +378,7 @@ jobs:
               --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
               --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \
-              -n infrastructure \
-              --dry-run=client -o yaml | kubectl apply -f -
+              -n infrastructure
             
             # Redis Secret - FIX: Thêm cả 2 keys (in hoa và in thường) để tương thích
             kubectl create secret generic redis-secret \
@@ -382,8 +386,7 @@ jobs:
               --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
               --from-literal=REDIS_HOST='${{ secrets.REDIS_HOST }}' \
               --from-literal=REDIS_PORT='${{ secrets.REDIS_PORT }}' \
-              -n infrastructure \
-              --dry-run=client -o yaml | kubectl apply -f -
+              -n infrastructure
             
             # ============================================
             # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
@@ -400,12 +403,26 @@ jobs:
             # DEPLOY INFRASTRUCTURE MỚI
             # ============================================
             echo "🚀 Deploying fresh infrastructure..."
-            # Deploy infrastructure
+            # Deploy infrastructure (KHÔNG bao gồm secret files - đã tạo ở trên)
             kubectl apply -f infra/k8s/platform/
-            kubectl apply -f infra/k8s/shared/databases/postgres/
-            kubectl apply -f infra/k8s/shared/databases/mongodb/
-            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/
-            kubectl apply -f infra/k8s/shared/messaging/redis/
+            
+            # Deploy Postgres (exclude secret files)
+            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
+            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
+            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-services.yaml
+            
+            # Deploy MongoDB (exclude secret files)
+            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-deployment.yaml
+            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-service.yaml
+            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-pvc.yaml
+            
+            # Deploy RabbitMQ (exclude secret files)
+            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
+            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-config.yaml
+            
+            # Deploy Redis (exclude secret files)
+            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
+            kubectl apply -f infra/k8s/shared/messaging/redis/redis-config.yaml
             
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
