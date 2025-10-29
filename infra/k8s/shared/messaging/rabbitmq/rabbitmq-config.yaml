@@ -65,4 +65,6 @@ data:
     log.file.level = info
     
     # ===== MANAGEMENT UI =====
-    management.load_definitions = /etc/rabbitmq/definitions.json
+    # FIX: Commented out - definitions.json file does not exist
+    # management.load_definitions = /etc/rabbitmq/definitions.json
+    # Uncomment above line only if you provide definitions.json in ConfigMap
