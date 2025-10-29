@@ -1,47 +1,54 @@
-# Stage 1: Dependencies
-FROM node:22-alpine AS deps
-WORKDIR /app
+# Multi-stage build for attendance Service (pnpm workspace)
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.3 --activate
-
-# Copy package files
-COPY package.json pnpm-lock.yaml* .npmrc* ./
-
-# Install dependencies (production only)
-RUN pnpm install --frozen-lockfile --prod
-
-# Stage 2: Build
+# Stage 1: Builder - Install and build
 FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.3 --activate
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* .npmrc* ./
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc* ./
 
-# Install all dependencies (including dev)
+# Copy all workspace packages
+COPY services/shared-common ./services/shared-common
+COPY services/attendance ./services/attendance
+
+# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Build shared-common first
+RUN pnpm --filter @graduate-project/shared-common build
 
-# Build the application
-RUN pnpm run build
+# Build attendance service
+RUN pnpm --filter attendance build
 
-# Stage 3: Production
+# Stage 2: Production - Run
 FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy node_modules from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.3 --activate
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy workspace packages
+COPY services/shared-common/package.json ./services/shared-common/
+COPY services/attendance/package.json ./services/attendance/
+
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built files from builder
+COPY --from=builder /app/services/shared-common/dist ./services/shared-common/dist
+COPY --from=builder /app/services/attendance/dist ./services/attendance/dist
+
+# Set working directory to service
+WORKDIR /app/services/attendance
 
 # Create non-root user
 USER node
