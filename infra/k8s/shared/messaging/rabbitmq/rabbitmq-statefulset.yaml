@@ -93,6 +93,13 @@ spec:
           mountPath: /tmp/erlang
         - name: rabbitmq-data
           mountPath: /var/lib/rabbitmq
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
       
       containers:
       - name: rabbitmq
