@@ -3,25 +3,21 @@
 
 echo "🔧 Creating infrastructure secrets in 'infrastructure' namespace..."
 
+# Delete old secrets first
+echo "Deleting old secrets..."
+kubectl delete secret postgres-secret mongodb-secret rabbitmq-secret redis-secret -n infrastructure --ignore-not-found=true
+
 # Delete old pods to force recreate with correct secrets
 echo "Deleting failed pods..."
-kubectl delete pod --field-selector=status.phase=Failed -n infrastructure
-kubectl delete pod --field-selector=status.phase=Pending -n infrastructure
+kubectl delete pod --field-selector=status.phase=Failed -n infrastructure --ignore-not-found=true
+kubectl delete pod --field-selector=status.phase=Pending -n infrastructure --ignore-not-found=true
 
 # Create Postgres secret
 echo "Creating Postgres secret..."
 kubectl create secret generic postgres-secret \
-  --from-literal=POSTGRES_HOST="${POSTGRES_HOST:-postgres-srv}" \
-  --from-literal=POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
-  --from-literal=POSTGRES_USER="${POSTGRES_USER:-postgres}" \
-  --from-literal=POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres123}" \
-  --from-literal=POSTGRES_DB_IAM="${POSTGRES_DB_IAM:-iam_db}" \
-  --from-literal=POSTGRES_DB_ATTENDANCE="${POSTGRES_DB_ATTENDANCE:-attendance_db}" \
-  --from-literal=POSTGRES_DB_EMPLOYEE="${POSTGRES_DB_EMPLOYEE:-employee_db}" \
-  --from-literal=POSTGRES_DB_LEAVE="${POSTGRES_DB_LEAVE:-leave_db}" \
-  --from-literal=POSTGRES_DB_NOTIFICATION="${POSTGRES_DB_NOTIFICATION:-notification_db}" \
-  --from-literal=POSTGRES_DB_REPORTING="${POSTGRES_DB_REPORTING:-reporting_db}" \
-  --from-literal=POSTGRES_DB_ZENTRY="${POSTGRES_DB_ZENTRY:-zentry_db}" \
+  --from-literal=postgres-user="${POSTGRES_USER:-postgres}" \
+  --from-literal=postgres-password="${POSTGRES_PASSWORD:-postgres123}" \
+  --from-literal=postgres-db="postgres" \
   --namespace=infrastructure \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -50,9 +46,7 @@ kubectl create secret generic rabbitmq-secret \
 # Create Redis secret
 echo "Creating Redis secret..."
 kubectl create secret generic redis-secret \
-  --from-literal=REDIS_HOST="${REDIS_HOST:-redis-srv}" \
-  --from-literal=REDIS_PORT="${REDIS_PORT:-6379}" \
-  --from-literal=REDIS_PASSWORD="${REDIS_PASSWORD:-redis123}" \
+  --from-literal=redis-password="${REDIS_PASSWORD:-redis123}" \
   --namespace=infrastructure \
   --dry-run=client -o yaml | kubectl apply -f -
 

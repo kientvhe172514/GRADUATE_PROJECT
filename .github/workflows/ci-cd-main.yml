@@ -346,17 +346,9 @@ jobs:
               namespace: infrastructure
             type: Opaque
             stringData:
-              POSTGRES_HOST: "${{ secrets.POSTGRES_HOST }}"
-              POSTGRES_PORT: "${{ secrets.POSTGRES_PORT }}"
-              POSTGRES_USER: "${{ secrets.POSTGRES_USER }}"
-              POSTGRES_PASSWORD: "${{ secrets.POSTGRES_PASSWORD }}"
-              POSTGRES_DB_IAM: "${{ secrets.POSTGRES_DB_IAM }}"
-              POSTGRES_DB_ATTENDANCE: "${{ secrets.POSTGRES_DB_ATTENDANCE }}"
-              POSTGRES_DB_EMPLOYEE: "${{ secrets.POSTGRES_DB_EMPLOYEE }}"
-              POSTGRES_DB_LEAVE: "${{ secrets.POSTGRES_DB_LEAVE }}"
-              POSTGRES_DB_NOTIFICATION: "${{ secrets.POSTGRES_DB_NOTIFICATION }}"
-              POSTGRES_DB_REPORTING: "${{ secrets.POSTGRES_DB_REPORTING }}"
-              POSTGRES_DB_ZENTRY: "${{ secrets.POSTGRES_DB_ZENTRY }}"
+              postgres-user: "${{ secrets.POSTGRES_USER }}"
+              postgres-password: "${{ secrets.POSTGRES_PASSWORD }}"
+              postgres-db: "postgres"
             YAML
             
             # ============================================
@@ -406,9 +398,7 @@ jobs:
               namespace: infrastructure
             type: Opaque
             stringData:
-              REDIS_HOST: "${{ secrets.REDIS_HOST }}"
-              REDIS_PORT: "${{ secrets.REDIS_PORT }}"
-              REDIS_PASSWORD: "${{ secrets.REDIS_PASSWORD }}"
+              redis-password: "${{ secrets.REDIS_PASSWORD }}"
             YAML
             
             # Apply all infrastructure secrets
