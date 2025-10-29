@@ -409,7 +409,6 @@ jobs:
             # Deploy Postgres (exclude secret files)
             kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
             kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
-            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-services.yaml
             
             # Deploy MongoDB (exclude secret files)
             kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-deployment.yaml
@@ -423,6 +422,7 @@ jobs:
             # Deploy Redis (exclude secret files)
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-config.yaml
+            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
             
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
