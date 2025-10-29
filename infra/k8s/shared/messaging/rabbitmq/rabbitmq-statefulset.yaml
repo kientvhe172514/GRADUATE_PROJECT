@@ -233,7 +233,7 @@ spec:
       storageClassName: local-path  # FIX: Changed from standard to local-path
       resources:
         requests:
-          storage: 10Gi  # 10GB cho mỗi node
+          storage: 5Gi  # 5GB cho mỗi node
 
 ---
 # ===== SERVICE ACCOUNT & RBAC =====

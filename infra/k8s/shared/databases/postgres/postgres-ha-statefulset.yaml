@@ -257,7 +257,8 @@ spec:
         - -c
         - |
           cp -r /etc/pgbouncer-readonly/* /etc/pgbouncer/
-          chmod -R 755 /etc/pgbouncer
+          chmod -R 777 /etc/pgbouncer
+          chown -R 999:999 /etc/pgbouncer
         volumeMounts:
         - name: pgbouncer-config-readonly
           mountPath: /etc/pgbouncer-readonly

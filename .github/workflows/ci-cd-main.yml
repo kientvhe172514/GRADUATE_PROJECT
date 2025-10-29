@@ -370,10 +370,12 @@ jobs:
               --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
               -n infrastructure
             
-            # RabbitMQ Secret - FIX: Dùng keys chuẩn của RabbitMQ image + thêm erlang-cookie
+            # RabbitMQ Secret - FIX: Add both key formats (uppercase and lowercase)
             kubectl create secret generic rabbitmq-secret \
               --from-literal=RABBITMQ_DEFAULT_USER='${{ secrets.RABBITMQ_USERNAME }}' \
               --from-literal=RABBITMQ_DEFAULT_PASS='${{ secrets.RABBITMQ_PASSWORD }}' \
+              --from-literal=username='${{ secrets.RABBITMQ_USERNAME }}' \
+              --from-literal=password='${{ secrets.RABBITMQ_PASSWORD }}' \
               --from-literal=erlang-cookie='$(openssl rand -base64 32)' \
               --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
