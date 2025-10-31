@@ -517,12 +517,11 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             # Apply deployment (with placeholder)
+            # Apply deployment (with tranvukien125 hard-coded now)
             kubectl apply -f infra/k8s/services/auth/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/auth-depl \
-              auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config (fixes DNS issues)
+            kubectl rollout restart deployment/auth-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
@@ -549,12 +548,11 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             
             # Apply deployment (with placeholder)
+            # Apply deployment
             kubectl apply -f infra/k8s/services/attendance/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/attendance-depl \
-              attendance=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-attendance:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/attendance-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/attendance-depl -n graduate-project --timeout=5m
@@ -583,10 +581,8 @@ jobs:
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/employee/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/employee-depl \
-              employee=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-employee:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/employee-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
@@ -615,10 +611,8 @@ jobs:
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/leave/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/leave-depl \
-              leave=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-leave:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/leave-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/leave-depl -n graduate-project --timeout=5m
@@ -647,10 +641,8 @@ jobs:
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/notification/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/notification-depl \
-              notification=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-notification:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/notification-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/notification-depl -n graduate-project --timeout=5m
@@ -679,10 +671,8 @@ jobs:
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/reporting/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/reporting-depl \
-              reporting=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-reporting:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/reporting-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/reporting-depl -n graduate-project --timeout=5m
@@ -710,10 +700,8 @@ jobs:
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/face-recognition/ -n graduate-project
             
-            # Update image with actual Docker Hub username (no file modification!)
-            kubectl set image deployment/face-recognition-depl \
-              face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-face-recognition:latest \
-              -n graduate-project
+            # Force restart to pick up new deployment config
+            kubectl rollout restart deployment/face-recognition-depl -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/face-recognition-depl -n graduate-project --timeout=5m
