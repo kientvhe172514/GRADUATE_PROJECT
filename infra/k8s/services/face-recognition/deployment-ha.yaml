@@ -183,7 +183,7 @@ spec:
         # ===== HEALTH CHECKS =====
         startupProbe:
           httpGet:
-            path: /health/ready
+            path: /api/v1/health/ready
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 30
@@ -194,7 +194,7 @@ spec:
         
         readinessProbe:
           httpGet:
-            path: /health/ready
+            path: /api/v1/health/ready
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 10
@@ -205,7 +205,7 @@ spec:
         
         livenessProbe:
           httpGet:
-            path: /health/live
+            path: /api/v1/health/live
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 60

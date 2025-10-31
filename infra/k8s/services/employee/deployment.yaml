@@ -75,19 +75,19 @@ spec:
             cpu: "300m"
         startupProbe:
           httpGet:
-            path: /health
+            path: /api/v1/health
             port: 3003
           initialDelaySeconds: 20
           periodSeconds: 10
           failureThreshold: 6
         readinessProbe:
           httpGet:
-            path: /health
+            path: /api/v1/health
             port: 3003
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /health
+            path: /api/v1/health
             port: 3003
           initialDelaySeconds: 60
           periodSeconds: 30
