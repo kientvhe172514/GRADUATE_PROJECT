@@ -39,10 +39,8 @@ data:
     # ===== QUORUM QUEUES (Default) =====
     # Default queue type for HA - data replicated across nodes
     default_vhost = /
-    default_user = guest
-    default_permissions.configure = .*
-    default_permissions.read = .*
-    default_permissions.write = .*
+    # FIX: Removed default_user/permissions to avoid conflict with RABBITMQ_DEFAULT_USER env
+    # User credentials are managed via environment variables from rabbitmq-secret
     
     # ===== MEMORY & DISK (3.13+ syntax) =====
     vm_memory_high_watermark.relative = 0.7
