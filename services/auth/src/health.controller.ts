@@ -11,7 +11,6 @@ export class HealthController {
     };
   }
 
-  
   @Get('readiness')
   readiness() {
     return {
