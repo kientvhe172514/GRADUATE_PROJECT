@@ -83,7 +83,7 @@ spec:
         - sh
         - -c
         - |
-          until nc -z postgres-primary-srv.infrastructure.svc.cluster.local 5432; do
+          until nc -z postgres-primary-srv.infrastructure 5432; do
             echo "Waiting for PostgreSQL..."
             sleep 5
           done
@@ -95,7 +95,7 @@ spec:
         - sh
         - -c
         - |
-          until nc -z redis-master-srv.infrastructure.svc.cluster.local 6379; do
+          until nc -z redis-master-srv.infrastructure 6379; do
             echo "Waiting for Redis..."
             sleep 5
           done
@@ -107,7 +107,7 @@ spec:
         - sh
         - -c
         - |
-          until nc -z rabbitmq-srv.infrastructure.svc.cluster.local 5672; do
+          until nc -z rabbitmq-srv.infrastructure 5672; do
             echo "Waiting for RabbitMQ..."
             sleep 5
           done
