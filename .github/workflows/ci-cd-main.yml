@@ -484,13 +484,15 @@ jobs:
             set -e
             cd ~/GRADUATE_PROJECT
             
-            # Reset any local changes to avoid merge conflicts
-            echo "🔄 Resetting local changes..."
-            git reset --hard HEAD
-            git clean -fd
-            
-            # Pull latest code
-            git pull origin main
+            # --- ĐÂY LÀ PHẦN FIX LỖI GIT ---
+            echo "🔄 Fetching latest code from GitHub..."
+            git fetch origin
+
+            echo "🔄 Forcing server code to match GitHub (origin/main)..."
+            # Lệnh này vứt bỏ TẤT CẢ thay đổi (cả commit) trên server
+            git reset --hard origin/main
+            git clean -fd # Dọn dẹp các file rác
+            # --- HẾT PHẦN FIX LỖI GIT ---
             
             # Replace Docker Hub username placeholder in ALL service deployment files
             echo "🔄 Replacing DOCKERHUB_USERNAME_PLACEHOLDER with actual username..."
