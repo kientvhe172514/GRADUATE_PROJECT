@@ -521,7 +521,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/auth-depl \
-              auth=${{ secrets.DOCKERHUB_USERNAME }}/auth:latest \
+              auth=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-auth:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -553,7 +553,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/attendance-depl \
-              attendance=${{ secrets.DOCKERHUB_USERNAME }}/attendance:latest \
+              attendance=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-attendance:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -585,7 +585,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/employee-depl \
-              employee=${{ secrets.DOCKERHUB_USERNAME }}/employee:latest \
+              employee=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-employee:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -617,7 +617,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/leave-depl \
-              leave=${{ secrets.DOCKERHUB_USERNAME }}/leave:latest \
+              leave=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-leave:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -649,7 +649,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/notification-depl \
-              notification=${{ secrets.DOCKERHUB_USERNAME }}/notification:latest \
+              notification=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-notification:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -681,7 +681,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/reporting-depl \
-              reporting=${{ secrets.DOCKERHUB_USERNAME }}/reporting:latest \
+              reporting=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-reporting:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
@@ -712,7 +712,7 @@ jobs:
             
             # Update image with actual Docker Hub username (no file modification!)
             kubectl set image deployment/face-recognition-depl \
-              face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/face-recognition:latest \
+              face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/graduate-project-face-recognition:latest \
               -n graduate-project
             
             # Wait for deployment to be ready
