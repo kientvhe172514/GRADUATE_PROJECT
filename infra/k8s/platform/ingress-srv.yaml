@@ -2,16 +2,18 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: microservices-ingress
-  namespace: default
+  namespace: graduate-project
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # Remove rewrite-target to keep full path
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/rate-limit-connections: "20"
     nginx.ingress.kubernetes.io/rate-limit-rps: "10"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -27,8 +29,8 @@ spec:
     http:
       paths:
       # Auth Service
-      - path: /api/v1/auth(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/auth
+        pathType: Prefix
         backend:
           service:
             name: auth-srv
@@ -36,8 +38,8 @@ spec:
               number: 3001
       
       # Face Recognition Service
-      - path: /api/v1/face(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/face
+        pathType: Prefix
         backend:
           service:
             name: face-recognition-srv
@@ -45,8 +47,8 @@ spec:
               number: 8080
       
       # Attendance Service
-      - path: /api/v1/attendance(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/attendance
+        pathType: Prefix
         backend:
           service:
             name: attendance-srv
@@ -54,8 +56,8 @@ spec:
               number: 3002
       
       # Employee Service
-      - path: /api/v1/employee(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/employee
+        pathType: Prefix
         backend:
           service:
             name: employee-srv
@@ -63,8 +65,8 @@ spec:
               number: 3003
       
       # Leave Service
-      - path: /api/v1/leave(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/leave
+        pathType: Prefix
         backend:
           service:
             name: leave-srv
@@ -72,8 +74,8 @@ spec:
               number: 3004
       
       # Notification Service
-      - path: /api/v1/notification(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/notification
+        pathType: Prefix
         backend:
           service:
             name: notification-srv
@@ -81,8 +83,8 @@ spec:
               number: 3005
       
       # Reporting Service
-      - path: /api/v1/reporting(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/v1/reporting
+        pathType: Prefix
         backend:
           service:
             name: reporting-srv
