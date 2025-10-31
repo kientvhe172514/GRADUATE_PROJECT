@@ -47,9 +47,6 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/services/shared-common/dist ./services/shared-common/dist
 COPY --from=builder /app/services/employee/dist ./services/employee/dist
 
-# Copy node_modules (CRITICAL FIX)
-COPY --from=builder /app/node_modules ./node_modules
-
 # Set working directory to service
 WORKDIR /app/services/employee
 
