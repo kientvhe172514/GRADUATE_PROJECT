@@ -58,16 +58,13 @@ spec:
           value: "production"
         - name: PORT
           value: "3006"
-        - name: DATABASE_URL
-          value: "postgresql://$(POSTGRES_USERNAME):$(POSTGRES_PASSWORD)@pgbouncer-srv.infrastructure:5432/reporting_db"
-        - name: POSTGRES_READ_URL
-          value: "postgresql://$(POSTGRES_USERNAME):$(POSTGRES_PASSWORD)@postgres-replica-srv.infrastructure:5432/reporting_db"
-        envFrom:
-        - configMapRef:
-            name: reporting-config
-        - secretRef:
-            name: reporting-secrets
+        
+        # Mount .env file from secret (CI/CD injects all vars as .env string)
         volumeMounts:
+        - name: env-file
+          mountPath: /app/services/reporting/.env
+          subPath: .env
+          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -102,6 +99,12 @@ spec:
             drop:
             - ALL
       volumes:
+      - name: env-file
+        secret:
+          secretName: reporting-secrets
+          items:
+          - key: .env
+            path: .env
       - name: tmp
         emptyDir:
           sizeLimit: 256Mi

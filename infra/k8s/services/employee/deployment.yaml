@@ -57,14 +57,13 @@ spec:
           value: "production"
         - name: PORT
           value: "3003"
-        - name: DATABASE_URL
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@pgbouncer-srv.infrastructure:5432/employee_db"
-        envFrom:
-        - configMapRef:
-            name: employee-config
-        - secretRef:
-            name: employee-secrets
+        
+        # Mount .env file from secret (CI/CD injects all vars as .env string)
         volumeMounts:
+        - name: env-file
+          mountPath: /app/services/employee/.env
+          subPath: .env
+          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -99,6 +98,12 @@ spec:
             drop:
             - ALL
       volumes:
+      - name: env-file
+        secret:
+          secretName: employee-secrets
+          items:
+          - key: .env
+            path: .env
       - name: tmp
         emptyDir:
           sizeLimit: 256Mi

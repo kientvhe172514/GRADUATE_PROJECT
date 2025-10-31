@@ -151,13 +151,12 @@ spec:
         - name: PORT
           value: "3001"
         
-        envFrom:
-        - configMapRef:
-            name: auth-config
-        - secretRef:
-            name: auth-secrets
-        
+        # Mount .env file from secret (CI/CD injects all vars as .env string)
         volumeMounts:
+        - name: env-file
+          mountPath: /app/services/auth/.env
+          subPath: .env
+          readOnly: true
         - name: tmp
           mountPath: /tmp
         - name: cache
@@ -219,6 +218,12 @@ spec:
             - ALL
       
       volumes:
+      - name: env-file
+        secret:
+          secretName: auth-secrets
+          items:
+          - key: .env
+            path: .env
       - name: tmp
         emptyDir:
           sizeLimit: 500Mi
