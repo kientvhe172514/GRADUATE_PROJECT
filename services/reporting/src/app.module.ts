@@ -9,6 +9,7 @@ import { ExportBatchModule } from './application/export-batch/export-batch.modul
 import { AttendanceEventListener } from './presentation/event-listeners/attendance-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -69,6 +70,6 @@ import { EmployeeEventListener } from './presentation/event-listeners/employee-e
     ReportTemplateModule,
     ExportBatchModule,
   ],
-  controllers: [AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
+  controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
 })
 export class AppModule {}

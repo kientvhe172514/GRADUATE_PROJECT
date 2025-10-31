@@ -7,6 +7,7 @@ import { HolidayModule } from './application/holiday/holiday.module';
 import { LeaveRecordModule } from './application/leave-record/leave-record.module';
 import { LeaveBalanceModule } from './application/leave-balance/leave-balance.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { EmployeeEventListener } from './presentation/event-listeners/employee-e
     LeaveRecordModule,
     LeaveBalanceModule,
   ],
-  controllers: [EmployeeEventListener],
+  controllers: [HealthController, EmployeeEventListener],
 })
 export class AppModule {}

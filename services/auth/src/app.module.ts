@@ -6,6 +6,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { JwtPermissionGuard } from '@graduate-project/shared-common';
 import { AccountModule } from './application/account.module';
 import { RbacModule } from './application/rbac.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { RbacModule } from './application/rbac.module';
     AccountModule,
     RbacModule,
   ],
+  controllers: [HealthController],
   providers: [
     // Permission guard - no longer needs JwtService as it only checks permissions
     // JWT authentication is handled by JwtAuthGuard
@@ -48,5 +50,5 @@ import { RbacModule } from './application/rbac.module';
       inject: [Reflector],
     },
   ],
-})  
+})
 export class AppModule {}

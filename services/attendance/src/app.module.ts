@@ -9,6 +9,7 @@ import { EmployeeShiftModule } from './application/employee-shift/employee-shift
 import { ViolationModule } from './application/violation/violation.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -70,6 +71,6 @@ import { LeaveEventListener } from './presentation/event-listeners/leave-event.l
     EmployeeShiftModule,
     ViolationModule,
   ],
-  controllers: [EmployeeEventListener, LeaveEventListener],
+  controllers: [HealthController, EmployeeEventListener, LeaveEventListener],
 })
 export class AppModule {}
