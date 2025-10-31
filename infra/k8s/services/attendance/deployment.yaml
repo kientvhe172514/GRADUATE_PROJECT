@@ -56,7 +56,7 @@ spec:
       
       containers:
       - name: attendance
-        image: tranvukien125/attendance:latest
+        image: tranvukien125/graduate-project-attendance:latest
         imagePullPolicy: Always
         
         ports:

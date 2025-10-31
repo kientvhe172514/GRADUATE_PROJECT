@@ -77,7 +77,7 @@ spec:
       
       containers:
       - name: auth
-        image: tranvukien125/auth:latest
+        image: tranvukien125/graduate-project-auth:latest
         imagePullPolicy: Always
         
         ports:

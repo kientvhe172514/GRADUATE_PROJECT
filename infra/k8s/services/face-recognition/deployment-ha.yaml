@@ -83,7 +83,7 @@ spec:
       
       containers:
       - name: face-recognition
-        image: tranvukien125/face-recognition:latest
+        image: tranvukien125/graduate-project-face-recognition:latest
         imagePullPolicy: Always
         
         ports:

@@ -37,7 +37,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: notification
-        image: tranvukien125/notification:latest
+        image: tranvukien125/graduate-project-notification:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3005

@@ -36,7 +36,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: employee
-        image: tranvukien125/employee:latest
+        image: tranvukien125/graduate-project-employee:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3003
