@@ -37,7 +37,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: reporting
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-reporting:latest
+        image: tranvukien125/reporting:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3006

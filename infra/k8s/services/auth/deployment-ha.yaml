@@ -77,7 +77,7 @@ spec:
       
       containers:
       - name: auth
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-auth:latest
+        image: tranvukien125/auth:latest
         imagePullPolicy: Always
         
         ports:

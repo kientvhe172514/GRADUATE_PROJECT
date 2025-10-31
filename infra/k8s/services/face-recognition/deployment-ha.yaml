@@ -83,7 +83,7 @@ spec:
       
       containers:
       - name: face-recognition
-        image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-face-recognition:latest
+        image: tranvukien125/face-recognition:latest
         imagePullPolicy: Always
         
         ports:
