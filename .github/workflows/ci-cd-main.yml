@@ -511,6 +511,9 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/auth/deployment-ha.yaml
+            
             # Tạo secret bằng cách an toàn (không dùng cat heredoc)
             kubectl create secret generic auth-secrets \
               --from-literal=.env='${{ secrets.AUTH_SECRET }}' \
@@ -538,6 +541,9 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/attendance/deployment.yaml
+            
             # Tạo secret an toàn
             kubectl create secret generic attendance-secrets \
               --from-literal=.env='${{ secrets.ATTENDANCE_SECRET }}' \
@@ -563,6 +569,9 @@ jobs:
             set -e
             cd ~/GRADUATE_PROJECT
             git pull origin main
+            
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/employee/deployment.yaml
             
             # Tạo secret an toàn
             kubectl create secret generic employee-secrets \
@@ -590,6 +599,9 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/leave/deployment.yaml
+            
             # Tạo secret an toàn
             kubectl create secret generic leave-secrets \
               --from-literal=.env='${{ secrets.LEAVE_SECRET }}' \
@@ -615,6 +627,9 @@ jobs:
             set -e
             cd ~/GRADUATE_PROJECT
             git pull origin main
+            
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/notification/deployment.yaml
             
             # Tạo secret an toàn
             kubectl create secret generic notification-secrets \
@@ -642,6 +657,9 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/reporting/deployment.yaml
+            
             # Tạo secret an toàn
             kubectl create secret generic reporting-secrets \
               --from-literal=.env='${{ secrets.REPORTING_SECRET }}' \
@@ -666,6 +684,9 @@ jobs:
             set -e
             cd ~/GRADUATE_PROJECT
             git pull origin main
+            
+            # Replace Docker Hub username in deployment files
+            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/face-recognition/deployment-ha.yaml
             
             # Tạo secret an toàn
             kubectl create secret generic face-recognition-secrets \
