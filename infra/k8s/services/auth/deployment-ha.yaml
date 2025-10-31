@@ -141,7 +141,7 @@ spec:
             path: /api/v1/health
             port: 3001
             scheme: HTTP
-          initialDelaySeconds: 20
+          initialDelaySeconds: 30  # Increased to allow DNS propagation
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 12
