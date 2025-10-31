@@ -11,9 +11,7 @@
     "prepublishOnly": "npm run build"
   },
 
-  "dependencies": {
-    "@nestjs/swagger": "^11.2.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/node": "^20.0.0",
@@ -21,7 +19,8 @@
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/jwt": "^11.0.0",
-    "@nestjs/passport": "^11.0.5"
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/swagger": "^11.2.0"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.1.6",
