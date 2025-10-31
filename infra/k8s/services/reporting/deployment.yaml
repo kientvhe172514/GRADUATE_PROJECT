@@ -35,13 +35,6 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
-      initContainers:
-      - name: wait-for-postgres
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nslookup pgbouncer-srv.infrastructure.svc.cluster.local 2>/dev/null; do sleep 2; done']
-      - name: wait-for-postgres-replica
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nslookup postgres-replica-srv.infrastructure.svc.cluster.local 2>/dev/null; do sleep 2; done']
       containers:
       - name: reporting
         image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-reporting:latest

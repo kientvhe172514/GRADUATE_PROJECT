@@ -35,13 +35,6 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
-      initContainers:
-      - name: wait-for-postgres
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nslookup pgbouncer-srv.infrastructure.svc.cluster.local 2>/dev/null; do sleep 2; done']
-      - name: wait-for-rabbitmq
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nslookup rabbitmq-srv.infrastructure.svc.cluster.local 2>/dev/null; do sleep 2; done']
       containers:
       - name: notification
         image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-notification:latest

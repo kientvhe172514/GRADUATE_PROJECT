@@ -80,30 +80,6 @@ spec:
           type: RuntimeDefault
       
       # ===== INIT CONTAINER: Wait for dependencies =====
-      initContainers:
-      - name: wait-for-postgres
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          until nslookup postgres-srv.infrastructure.svc.cluster.local 2>/dev/null; do
-            echo "Waiting for PostgreSQL DNS..."
-            sleep 2
-          done
-          echo "PostgreSQL DNS is ready!"
-      
-      - name: wait-for-rabbitmq
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          until nslookup rabbitmq-srv.infrastructure.svc.cluster.local 2>/dev/null; do
-            echo "Waiting for RabbitMQ DNS..."
-            sleep 2
-          done
-          echo "RabbitMQ DNS is ready!"
       
       containers:
       - name: face-recognition

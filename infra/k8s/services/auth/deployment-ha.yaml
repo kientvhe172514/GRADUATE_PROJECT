@@ -75,44 +75,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       
-      # ===== INIT CONTAINERS =====
-      initContainers:
-      - name: wait-for-postgres
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          until nslookup postgres-primary-srv.infrastructure.svc.cluster.local 2>/dev/null; do
-            echo "Waiting for PostgreSQL DNS..."
-            sleep 2
-          done
-          echo "PostgreSQL DNS is ready!"
-      
-      - name: wait-for-redis
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          until nslookup redis-master-srv.infrastructure.svc.cluster.local 2>/dev/null; do
-            echo "Waiting for Redis DNS..."
-            sleep 2
-          done
-          echo "Redis DNS is ready!"
-      
-      - name: wait-for-rabbitmq
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          until nslookup rabbitmq-srv.infrastructure.svc.cluster.local 2>/dev/null; do
-            echo "Waiting for RabbitMQ DNS..."
-            sleep 2
-          done
-          echo "RabbitMQ DNS is ready!"
-      
       containers:
       - name: auth
         image: DOCKERHUB_USERNAME_PLACEHOLDER/graduate-project-auth:latest
