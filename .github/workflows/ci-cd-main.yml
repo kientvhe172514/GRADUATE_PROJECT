@@ -494,11 +494,8 @@ jobs:
             git clean -fd # Dọn dẹp các file rác
             # --- HẾT PHẦN FIX LỖI GIT ---
             
-            # Replace Docker Hub username placeholder in ALL service deployment files
-            echo "🔄 Replacing DOCKERHUB_USERNAME_PLACEHOLDER with actual username..."
-            find infra/k8s/services/ -name "*.yaml" -type f -exec sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" {} \;
-            
-            echo "✅ Deployment files prepared"
+            # NO MORE sed -i! We'll use kubectl set image instead to avoid git conflicts
+            echo "✅ Deployment files prepared (no in-place modifications)"
           EOF
 
       - name: Deploy Auth Service
@@ -513,17 +510,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/auth/deployment-ha.yaml
-            
-            # Tạo secret bằng cách an toàn (không dùng cat heredoc)
+            # Create secret safely
             kubectl create secret generic auth-secrets \
               --from-literal=.env='${{ secrets.AUTH_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
-            # Apply deployment
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/auth/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/auth-depl \
+              auth=${{ secrets.DOCKERHUB_USERNAME }}/auth:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/auth-depl -n graduate-project --timeout=5m
@@ -543,16 +542,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/attendance/deployment.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic attendance-secrets \
               --from-literal=.env='${{ secrets.ATTENDANCE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/attendance/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/attendance-depl \
+              attendance=${{ secrets.DOCKERHUB_USERNAME }}/attendance:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/attendance-depl -n graduate-project --timeout=5m
@@ -572,16 +574,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/employee/deployment.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic employee-secrets \
               --from-literal=.env='${{ secrets.EMPLOYEE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/employee/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/employee-depl \
+              employee=${{ secrets.DOCKERHUB_USERNAME }}/employee:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
@@ -601,16 +606,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/leave/deployment.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic leave-secrets \
               --from-literal=.env='${{ secrets.LEAVE_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/leave/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/leave-depl \
+              leave=${{ secrets.DOCKERHUB_USERNAME }}/leave:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/leave-depl -n graduate-project --timeout=5m
@@ -630,16 +638,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/notification/deployment.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic notification-secrets \
               --from-literal=.env='${{ secrets.NOTIFICATION_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/notification/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/notification-depl \
+              notification=${{ secrets.DOCKERHUB_USERNAME }}/notification:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/notification-depl -n graduate-project --timeout=5m
@@ -659,16 +670,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/reporting/deployment.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic reporting-secrets \
               --from-literal=.env='${{ secrets.REPORTING_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/reporting/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/reporting-depl \
+              reporting=${{ secrets.DOCKERHUB_USERNAME }}/reporting:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/reporting-depl -n graduate-project --timeout=5m
@@ -687,16 +701,19 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Replace Docker Hub username in deployment files
-            sed -i "s|DOCKERHUB_USERNAME_PLACEHOLDER|${{ secrets.DOCKERHUB_USERNAME }}|g" infra/k8s/services/face-recognition/deployment-ha.yaml
-            
-            # Tạo secret an toàn
+            # Create secret safely
             kubectl create secret generic face-recognition-secrets \
               --from-literal=.env='${{ secrets.FACE_RECOGNITION_SECRET }}' \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
             
+            # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/face-recognition/ -n graduate-project
+            
+            # Update image with actual Docker Hub username (no file modification!)
+            kubectl set image deployment/face-recognition-depl \
+              face-recognition=${{ secrets.DOCKERHUB_USERNAME }}/face-recognition:latest \
+              -n graduate-project
             
             # Wait for deployment to be ready
             kubectl rollout status deployment/face-recognition-depl -n graduate-project --timeout=5m
