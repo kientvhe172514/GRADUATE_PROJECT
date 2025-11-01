@@ -30,6 +30,7 @@ spec:
       port: 3001
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== FACE RECOGNITION SERVICE =====
   - match: PathPrefix(`/api/v1/face`)
@@ -39,6 +40,7 @@ spec:
       port: 8080
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== ATTENDANCE SERVICE =====
   - match: PathPrefix(`/api/v1/attendance`)
@@ -48,6 +50,7 @@ spec:
       port: 3002
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== EMPLOYEE SERVICE =====
   - match: PathPrefix(`/api/v1/employee`)
@@ -57,6 +60,7 @@ spec:
       port: 3003
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== LEAVE SERVICE =====
   - match: PathPrefix(`/api/v1/leave`)
@@ -66,6 +70,7 @@ spec:
       port: 3004
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== NOTIFICATION SERVICE =====
   - match: PathPrefix(`/api/v1/notification`)
@@ -75,6 +80,7 @@ spec:
       port: 3005
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
   
   # ===== REPORTING SERVICE =====
   - match: PathPrefix(`/api/v1/reporting`)
@@ -84,6 +90,7 @@ spec:
       port: 3006
     middlewares:
     - name: cors-headers
+      namespace: graduate-project
 
 ---
 # ============================================
