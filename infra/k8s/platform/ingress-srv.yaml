@@ -22,7 +22,7 @@ spec:
   routes:
   # ===== AUTH SERVICE =====
   # /api/v1/auth/** → auth-srv:3001/api/v1/auth/**
-  # Swagger: http://TRAEFIK_IP/api/v1/api (vì service có prefix api/v1)
+  # Swagger: http://TRAEFIK_IP:32527/api/v1/api
   - match: PathPrefix(`/api/v1/auth`)
     kind: Rule
     services:
@@ -30,53 +30,53 @@ spec:
       namespace: graduate-project
       port: 3001
   
-  # ===== FACE RECOGNITION SERVICE =====
-  - match: PathPrefix(`/api/v1/face`)
-    kind: Rule
-    services:
-    - name: face-recognition-srv
-      namespace: graduate-project
-      port: 8080
+  # ===== FACE RECOGNITION SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/face`)
+  #   kind: Rule
+  #   services:
+  #   - name: face-recognition-srv
+  #     namespace: graduate-project
+  #     port: 8080
   
-  # ===== ATTENDANCE SERVICE =====
-  - match: PathPrefix(`/api/v1/attendance`)
-    kind: Rule
-    services:
-    - name: attendance-srv
-      namespace: graduate-project
-      port: 3002
+  # ===== ATTENDANCE SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/attendance`)
+  #   kind: Rule
+  #   services:
+  #   - name: attendance-srv
+  #     namespace: graduate-project
+  #     port: 3002
   
-  # ===== EMPLOYEE SERVICE =====
-  - match: PathPrefix(`/api/v1/employee`)
-    kind: Rule
-    services:
-    - name: employee-srv
-      namespace: graduate-project
-      port: 3003
+  # ===== EMPLOYEE SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/employee`)
+  #   kind: Rule
+  #   services:
+  #   - name: employee-srv
+  #     namespace: graduate-project
+  #     port: 3003
   
-  # ===== LEAVE SERVICE =====
-  - match: PathPrefix(`/api/v1/leave`)
-    kind: Rule
-    services:
-    - name: leave-srv
-      namespace: graduate-project
-      port: 3004
+  # ===== LEAVE SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/leave`)
+  #   kind: Rule
+  #   services:
+  #   - name: leave-srv
+  #     namespace: graduate-project
+  #     port: 3004
   
-  # ===== NOTIFICATION SERVICE =====
-  - match: PathPrefix(`/api/v1/notification`)
-    kind: Rule
-    services:
-    - name: notification-srv
-      namespace: graduate-project
-      port: 3005
+  # ===== NOTIFICATION SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/notification`)
+  #   kind: Rule
+  #   services:
+  #   - name: notification-srv
+  #     namespace: graduate-project
+  #     port: 3005
   
-  # ===== REPORTING SERVICE =====
-  - match: PathPrefix(`/api/v1/reporting`)
-    kind: Rule
-    services:
-    - name: reporting-srv
-      namespace: graduate-project
-      port: 3006
+  # ===== REPORTING SERVICE (DISABLED - Service chưa có) =====
+  # - match: PathPrefix(`/api/v1/reporting`)
+  #   kind: Rule
+  #   services:
+  #   - name: reporting-srv
+  #     namespace: graduate-project
+  #     port: 3006
 
 ---
 # ============================================
