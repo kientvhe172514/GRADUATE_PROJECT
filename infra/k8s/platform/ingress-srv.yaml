@@ -28,9 +28,6 @@ spec:
     services:
     - name: auth-srv
       port: 3001
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== FACE RECOGNITION SERVICE =====
   - match: PathPrefix(`/api/v1/face`)
@@ -38,9 +35,6 @@ spec:
     services:
     - name: face-recognition-srv
       port: 8080
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== ATTENDANCE SERVICE =====
   - match: PathPrefix(`/api/v1/attendance`)
@@ -48,9 +42,6 @@ spec:
     services:
     - name: attendance-srv
       port: 3002
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== EMPLOYEE SERVICE =====
   - match: PathPrefix(`/api/v1/employee`)
@@ -58,9 +49,6 @@ spec:
     services:
     - name: employee-srv
       port: 3003
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== LEAVE SERVICE =====
   - match: PathPrefix(`/api/v1/leave`)
@@ -68,9 +56,6 @@ spec:
     services:
     - name: leave-srv
       port: 3004
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== NOTIFICATION SERVICE =====
   - match: PathPrefix(`/api/v1/notification`)
@@ -78,9 +63,6 @@ spec:
     services:
     - name: notification-srv
       port: 3005
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
   
   # ===== REPORTING SERVICE =====
   - match: PathPrefix(`/api/v1/reporting`)
@@ -88,38 +70,6 @@ spec:
     services:
     - name: reporting-srv
       port: 3006
-    middlewares:
-    - name: cors-headers
-      namespace: graduate-project
-
----
-# ============================================
-# MIDDLEWARE: CORS Headers
-# ============================================
-# Cho phép CORS từ tất cả origins (development)
-# Production: Thay "*" bằng domain cụ thể
-# ============================================
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: cors-headers
-  namespace: graduate-project
-spec:
-  headers:
-    accessControlAllowMethods:
-      - GET
-      - POST
-      - PUT
-      - PATCH
-      - DELETE
-      - OPTIONS
-    accessControlAllowHeaders:
-      - "*"
-    accessControlAllowOriginList:
-      - "*"
-    accessControlMaxAge: 3600
-    addVaryHeader: true
-    accessControlAllowCredentials: true
 
 ---
 # ============================================
