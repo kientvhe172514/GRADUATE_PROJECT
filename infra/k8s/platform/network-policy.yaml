@@ -1,37 +1,11 @@
 # ============================================
-# Simplified Network Policy for GRADUATE_PROJECT
-# Single source of truth to avoid conflicts.
+# Network Policy for GRADUATE_PROJECT
+# ALLOW ALL - For debugging connectivity issues
+# Remove default-deny temporarily to isolate the problem
 # ============================================
 
 ---
-# Rule 1: DEFAULT-DENY in each namespace
-# Deny all traffic by default unless explicitly allowed.
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: graduate-project
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: infrastructure
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
-
----
-# Rule 2: ALLOW DNS (MOST IMPORTANT)
-# Allow ALL pods in both namespaces to query DNS.
-# NOTE: Removed podSelector to allow DNS queries to ANY pod in kube-system namespace.
+# Rule 1: ALLOW DNS from graduate-project
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -51,7 +25,9 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
+
 ---
+# Rule 2: ALLOW DNS from infrastructure
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -73,109 +49,57 @@ spec:
       port: 53
 
 ---
-# Rule 3: ALLOW ALL CROSS-NAMESPACE TRAFFIC
-# Allow pods in 'graduate-project' to talk to 'infrastructure' and vice-versa.
-# This is a broad rule to ensure connectivity. We can tighten it later if needed.
+# Rule 3: ALLOW ALL EGRESS from graduate-project
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-cross-namespace-comm
+  name: allow-all-egress
   namespace: graduate-project
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
   - Egress
   egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: infrastructure
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: infrastructure
+  - {}
+
 ---
+# Rule 4: ALLOW ALL INGRESS to infrastructure
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-cross-namespace-comm
+  name: allow-all-ingress
   namespace: infrastructure
 spec:
   podSelector: {}
   policyTypes:
   - Ingress
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: graduate-project
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: graduate-project
+  - {}
 
 ---
-# Rule 4: ALLOW IN-NAMESPACE COMMUNICATION
-# Allow pods within the same namespace to talk to each other.
+# Rule 5: ALLOW ALL EGRESS from infrastructure
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-intra-namespace
-  namespace: graduate-project
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - podSelector: {}
-  egress:
-  - to:
-    - podSelector: {}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-intra-namespace
+  name: allow-all-egress
   namespace: infrastructure
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
   - Egress
-  ingress:
-  - from:
-    - podSelector: {}
   egress:
-  - to:
-    - podSelector: {}
+  - {}
 
 ---
-# Rule 5: ALLOW INGRESS-CONTROLLER
-# Allow traffic from the Ingress Controller into the services.
-# This assumes the ingress controller is in the 'kube-system' namespace.
+# Rule 6: ALLOW ALL INGRESS to graduate-project
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-controller
+  name: allow-all-ingress
   namespace: graduate-project
 spec:
-  podSelector: {} # Apply to all pods
+  podSelector: {}
   policyTypes:
   - Ingress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          # This label is for the default k3s/Rancher ingress.
-          # Change if your ingress controller has a different label.
-          app.kubernetes.io/name: traefik
-    - namespaceSelector:
-        matchLabels:
-          # Add other possible ingress labels here
-          app.kubernetes.io/name: ingress-nginx
+  - {}
