@@ -10,7 +10,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: default-deny-all
+  kubernetes.io/metadata.name: graduate-project-deny-all
   namespace: infrastructure
 spec:
   podSelector: {}
@@ -19,12 +19,12 @@ spec:
   - Egress
 
 ---
-# ===== DEFAULT DENY ALL (Default Namespace) =====
+# ===== DEFAULT DENY ALL (Graduate Project Namespace) =====
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: default-deny-all
-  namespace: default
+  kubernetes.io/metadata.name: graduate-project-deny-all
+  namespace: graduate-project
 spec:
   podSelector: {}
   policyTypes:
@@ -46,7 +46,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.kubernetes.io/metadata.name: kube-system
+          kubernetes.io/metadata.name: kube-system
     ports:
     - protocol: UDP
       port: 53
@@ -58,7 +58,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-dns
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector: {}
   policyTypes:
@@ -67,7 +67,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.kubernetes.io/metadata.name: kube-system
+          kubernetes.io/metadata.name: kube-system
     ports:
     - protocol: UDP
       port: 53
@@ -153,11 +153,11 @@ spec:
   policyTypes:
   - Ingress
   ingress:
-  # Allow from default namespace
+  # Allow from graduate-project namespace
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 6379
@@ -187,11 +187,11 @@ spec:
   policyTypes:
   - Ingress
   ingress:
-  # Allow from default namespace
+  # Allow from graduate-project namespace
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 26379
@@ -257,11 +257,11 @@ spec:
   policyTypes:
   - Ingress
   ingress:
-  # Allow from default namespace (app services)
+  # Allow from graduate-project namespace (app services)
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 5672  # AMQP
@@ -332,7 +332,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: auth-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -344,15 +344,15 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3001
-  # Allow from other services in default namespace
+  # Allow from other services in graduate-project namespace
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3001
@@ -363,7 +363,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: auth-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -375,7 +375,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL
@@ -383,11 +383,11 @@ spec:
       port: 6379  # Redis
     - protocol: TCP
       port: 5672  # RabbitMQ
-  # Allow to other services in default namespace
+  # Allow to other services in graduate-project namespace
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   # Allow DNS
   - to:
     - namespaceSelector:
@@ -396,10 +396,10 @@ spec:
     ports:
     - protocol: UDP
       port: 53
+    - protocol: TCP
+      port: 53
   # Allow HTTPS egress (external APIs)
-  - to:
-    - namespaceSelector: {}
-    ports:
+  - ports:
     - protocol: TCP
       port: 443
 
@@ -409,7 +409,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: face-recognition-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -421,7 +421,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 8080
@@ -429,7 +429,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 8080
@@ -440,7 +440,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: face-recognition-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -452,7 +452,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL
@@ -464,7 +464,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   # Allow DNS
   - to:
     - namespaceSelector:
@@ -486,7 +486,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-scraping
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector: {}
   policyTypes:
@@ -495,7 +495,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: monitoring
+          kubernetes.io/metadata.name: monitoring
       podSelector:
         matchLabels:
           app: prometheus
@@ -533,7 +533,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: monitoring
+          kubernetes.io/metadata.name: monitoring
       podSelector:
         matchLabels:
           app: prometheus
@@ -555,7 +555,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: attendance-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -567,7 +567,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3002
@@ -575,7 +575,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3002
@@ -586,7 +586,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: attendance-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -598,7 +598,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL (attendance_db)
@@ -610,7 +610,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   # Allow DNS
   - to:
     - namespaceSelector:
@@ -632,7 +632,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: employee-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -643,14 +643,14 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3003
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3003
@@ -661,7 +661,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: employee-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -672,7 +672,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL (employee_db)
@@ -681,7 +681,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   - to:
     - namespaceSelector:
         matchLabels:
@@ -701,7 +701,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: leave-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -712,14 +712,14 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3004
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3004
@@ -730,7 +730,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: leave-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -741,14 +741,14 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL (leave_db)
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   - to:
     - namespaceSelector:
         matchLabels:
@@ -768,7 +768,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: notification-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -779,14 +779,14 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3005
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3005
@@ -797,7 +797,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: notification-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -808,7 +808,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432   # PostgreSQL (notification_db)
@@ -817,7 +817,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   - to:
     - namespaceSelector:
         matchLabels:
@@ -841,7 +841,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: reporting-allow-ingress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -852,14 +852,14 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3006
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
     ports:
     - protocol: TCP
       port: 3006
@@ -870,7 +870,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: reporting-allow-egress
-  namespace: default
+  namespace: graduate-project
 spec:
   podSelector:
     matchLabels:
@@ -881,14 +881,14 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432   # PostgreSQL (primary + read replica for analytics)
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          kubernetes.io/metadata.name: graduate-project
   - to:
     - namespaceSelector:
         matchLabels:
