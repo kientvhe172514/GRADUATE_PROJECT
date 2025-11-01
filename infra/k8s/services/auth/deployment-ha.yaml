@@ -129,12 +129,12 @@ spec:
         # ===== RESOURCES (OPTIMIZED FOR GRADUATION PROJECT) =====
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "50m"
+            memory: "256Mi"
+            cpu: "100m"
             ephemeral-storage: "128Mi"
           limits:
-            memory: "128Mi"
-            cpu: "150m"
+            memory: "512Mi"
+            cpu: "500m"
             ephemeral-storage: "256Mi"
         
         # ===== HEALTH CHECKS =====
