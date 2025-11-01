@@ -371,18 +371,12 @@ spec:
   policyTypes:
   - Egress
   egress:
-  # Allow to infrastructure namespace (databases, messaging)
+  # Allow ALL traffic to infrastructure namespace (databases, messaging)
+  # NOTE: Không specify ports để cho phép kết nối tới Service ClusterIP
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: infrastructure
-    ports:
-    - protocol: TCP
-      port: 5432  # PostgreSQL
-    - protocol: TCP
-      port: 6379  # Redis
-    - protocol: TCP
-      port: 5672  # RabbitMQ
   # Allow to other services in graduate-project namespace
   - to:
     - namespaceSelector:
@@ -448,18 +442,7 @@ spec:
   policyTypes:
   - Egress
   egress:
-  # Allow to infrastructure namespace
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: infrastructure
-    ports:
-    - protocol: TCP
-      port: 5432  # PostgreSQL
-    - protocol: TCP
-      port: 6379  # Redis
-    - protocol: TCP
-      port: 5672  # RabbitMQ
+  # Allow to infrastructure namespace`n  - to:`n    - namespaceSelector:`n        matchLabels:`n          kubernetes.io/metadata.name: infrastructure
   # Allow to other services
   - to:
     - namespaceSelector:
@@ -594,18 +577,7 @@ spec:
   policyTypes:
   - Egress
   egress:
-  # Allow to infrastructure namespace
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: infrastructure
-    ports:
-    - protocol: TCP
-      port: 5432  # PostgreSQL (attendance_db)
-    - protocol: TCP
-      port: 6379  # Redis
-    - protocol: TCP
-      port: 5672  # RabbitMQ
+  # Allow to infrastructure namespace`n  - to:`n    - namespaceSelector:`n        matchLabels:`n          kubernetes.io/metadata.name: infrastructure
   # Allow to other services
   - to:
     - namespaceSelector:
@@ -901,3 +873,4 @@ spec:
     ports:
     - protocol: TCP
       port: 443   # External analytics/BI tools
+
