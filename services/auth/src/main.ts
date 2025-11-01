@@ -35,12 +35,15 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  // Swagger at root /api/v1/auth (without 'api' path)
+  SwaggerModule.setup('api/v1/auth', app, document);
 
   const port = process.env.APP_PORT || 3001;
   await app.listen(port);
   console.log(`IAM Service running on http://localhost:${port}`);
-  console.log(`Swagger at http://localhost:${port}/api`);
-  console.log(`RMQ listener on queue: ${configService.getOrThrow('RABBITMQ_IAM_QUEUE')}`);
+  console.log(`Swagger at http://localhost:${port}/api/v1/auth`);
+  console.log(
+    `RMQ listener on queue: ${configService.getOrThrow('RABBITMQ_IAM_QUEUE')}`,
+  );
 }
 bootstrap();

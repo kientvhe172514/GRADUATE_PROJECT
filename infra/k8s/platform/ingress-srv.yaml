@@ -22,7 +22,6 @@ spec:
   routes:
   # ===== AUTH SERVICE =====
   # /api/v1/auth/** → auth-srv:3001/api/v1/auth/**
-  # Swagger: http://TRAEFIK_IP:32527/api/v1/api
   - match: PathPrefix(`/api/v1/auth`)
     kind: Rule
     services:
