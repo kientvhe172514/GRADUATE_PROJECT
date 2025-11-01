@@ -72,15 +72,16 @@ spec:
       port: 53
     - protocol: UDP
       port: 53
-  # Allow access to infrastructure services (DB, RabbitMQ, Redis, etc)
+  # Allow ALL traffic to infrastructure namespace (DB, RabbitMQ, Redis, MongoDB, etc)
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: infrastructure
-  # Allow HTTPS/HTTP egress (for external APIs if needed)
+  # Allow inter-service communication within graduate-project namespace
   - to:
     - podSelector: {}
-    ports:
+  # Allow HTTPS/HTTP egress to internet (for external APIs if needed)
+  - ports:
     - protocol: TCP
       port: 443
     - protocol: TCP
