@@ -27,6 +27,7 @@ spec:
     kind: Rule
     services:
     - name: auth-srv
+      namespace: graduate-project
       port: 3001
   
   # ===== FACE RECOGNITION SERVICE =====
@@ -34,6 +35,7 @@ spec:
     kind: Rule
     services:
     - name: face-recognition-srv
+      namespace: graduate-project
       port: 8080
   
   # ===== ATTENDANCE SERVICE =====
@@ -41,6 +43,7 @@ spec:
     kind: Rule
     services:
     - name: attendance-srv
+      namespace: graduate-project
       port: 3002
   
   # ===== EMPLOYEE SERVICE =====
@@ -48,6 +51,7 @@ spec:
     kind: Rule
     services:
     - name: employee-srv
+      namespace: graduate-project
       port: 3003
   
   # ===== LEAVE SERVICE =====
@@ -55,6 +59,7 @@ spec:
     kind: Rule
     services:
     - name: leave-srv
+      namespace: graduate-project
       port: 3004
   
   # ===== NOTIFICATION SERVICE =====
@@ -62,6 +67,7 @@ spec:
     kind: Rule
     services:
     - name: notification-srv
+      namespace: graduate-project
       port: 3005
   
   # ===== REPORTING SERVICE =====
@@ -69,6 +75,7 @@ spec:
     kind: Rule
     services:
     - name: reporting-srv
+      namespace: graduate-project
       port: 3006
 
 ---
