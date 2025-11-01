@@ -45,19 +45,21 @@ spec:
       serviceAccountName: auth-sa
       
       # ===== ANTI-AFFINITY =====
+      # FIX: Changed to preferredDuringScheduling to avoid scheduling deadlock
+      # with replicas=1 or limited nodes. Hard requirement can block pod scheduling.
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - auth
-            topologyKey: kubernetes.io/hostname
-          
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - auth
+              topologyKey: kubernetes.io/hostname
+          - weight: 50
             podAffinityTerm:
               labelSelector:
                 matchExpressions:
