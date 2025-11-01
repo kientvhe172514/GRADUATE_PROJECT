@@ -35,11 +35,11 @@ async function bootstrap() {
     .addTag('leave')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/v1/leave', app, document);
 
   const port = configService.get('APP_PORT') || 3003;
   await app.listen(port);
   console.log(`Leave Service running on http://localhost:${port}`);
-  console.log(`Swagger at http://localhost:${port}/api`);
+  console.log(`Swagger at http://localhost:${port}/api/v1/leave`);
 }
 bootstrap();

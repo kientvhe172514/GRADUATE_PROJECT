@@ -35,11 +35,11 @@ async function bootstrap() {
     .addTag('reporting')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/v1/reporting', app, document);
 
   const port = configService.get('APP_PORT') || 3005;
   await app.listen(port);
   console.log(`Reporting Service running on http://localhost:${port}`);
-  console.log(`Swagger at http://localhost:${port}/api`);
+  console.log(`Swagger at http://localhost:${port}/api/v1/reporting`);
 }
 bootstrap();

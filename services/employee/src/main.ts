@@ -32,11 +32,11 @@ async function bootstrap() {
     .addTag('employees')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/v1/employee', app, document);
 
   const port = process.env.APP_PORT || 3001;
   await app.listen(port);
   console.log(`Employee Service running on http://localhost:${port}`);
-  console.log(`Swagger at http://localhost:${port}/api`);
+  console.log(`Swagger at http://localhost:${port}/api/v1/employee`);
 }
 bootstrap();

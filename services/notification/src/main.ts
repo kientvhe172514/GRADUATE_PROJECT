@@ -30,7 +30,7 @@ async function bootstrap() {
   );
 
   // Global prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/v1');
 
   // Hybrid setup: HTTP + RabbitMQ listener for events from other services
   const rabbitmqUrl = configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672');
@@ -62,7 +62,7 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/v1/notification', app, document);
 
   const port = configService.get('APP_PORT', 3004);
   await app.listen(port);
@@ -70,7 +70,7 @@ async function bootstrap() {
   logger.log(`🚀 Notification Service is running on port ${port}`);
   logger.log(`📝 Environment: ${configService.get('NODE_ENV', 'development')}`);
   logger.log(`💚 Health check: http://localhost:${port}/health`);
-  logger.log(`📚 Swagger documentation: http://localhost:${port}/api`);
+  logger.log(`📚 Swagger documentation: http://localhost:${port}/api/v1/notification`);
 }
 
 bootstrap();
