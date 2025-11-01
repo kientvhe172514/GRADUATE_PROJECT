@@ -6,7 +6,6 @@ metadata:
   annotations:
     # Traefik annotations (k3s default)
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: default-compress@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
