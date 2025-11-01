@@ -10,8 +10,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-  - host: microservices.local
-    http:
+  - http:
       paths:
       # Auth Service
       - path: /api/v1/auth
