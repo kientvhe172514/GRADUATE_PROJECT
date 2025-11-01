@@ -10,7 +10,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  kubernetes.io/metadata.name: graduate-project-deny-all
+  name: default-deny-all
   namespace: infrastructure
 spec:
   podSelector: {}
@@ -23,7 +23,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  kubernetes.io/metadata.name: graduate-project-deny-all
+  name: default-deny-all
   namespace: graduate-project
 spec:
   podSelector: {}
@@ -344,7 +344,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          app.kubernetes.io/app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 3001
@@ -375,7 +375,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.kubernetes.io/metadata.name: infrastructure
+          kubernetes.io/metadata.name: infrastructure
     ports:
     - protocol: TCP
       port: 5432  # PostgreSQL
