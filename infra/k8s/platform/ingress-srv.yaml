@@ -1,88 +1,123 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# ============================================
+# TRAEFIK INGRESSROUTE - MICROSERVICES ROUTING
+# ============================================
+# Cấu hình routing cho tất cả microservices
+# - Auth: /api/v1/auth → auth-srv:3001/api/v1/auth
+# - Face: /api/v1/face → face-recognition-srv:8080/api/v1/face
+# - Attendance: /api/v1/attendance → attendance-srv:3002/api/v1/attendance
+# - Employee: /api/v1/employee → employee-srv:3003/api/v1/employee
+# - Leave: /api/v1/leave → leave-srv:3004/api/v1/leave
+# - Notification: /api/v1/notification → notification-srv:3005/api/v1/notification
+# - Reporting: /api/v1/reporting → reporting-srv:3006/api/v1/reporting
+# ============================================
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
 metadata:
-  name: microservices-ingress
+  name: microservices-ingressroute
   namespace: graduate-project
-  annotations:
-    # Traefik annotations (k3s default)
-    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  ingressClassName: traefik
-  rules:
-  - http:
-      paths:
-      # Auth Service
-      - path: /api/v1/auth
-        pathType: Prefix
-        backend:
-          service:
-            name: auth-srv
-            port:
-              number: 3001
-      
-      # Health check (cho auth)
-      - path: /api/v1/health
-        pathType: Prefix
-        backend:
-          service:
-            name: auth-srv
-            port:
-              number: 3001
-      
-      # Face Recognition Service
-      - path: /api/v1/face
-        pathType: Prefix
-        backend:
-          service:
-            name: face-recognition-srv
-            port:
-              number: 8080
-      
-      # Attendance Service
-      - path: /api/v1/attendance
-        pathType: Prefix
-        backend:
-          service:
-            name: attendance-srv
-            port:
-              number: 3002
-      
-      # Employee Service
-      - path: /api/v1/employee
-        pathType: Prefix
-        backend:
-          service:
-            name: employee-srv
-            port:
-              number: 3003
-      
-      # Leave Service
-      - path: /api/v1/leave
-        pathType: Prefix
-        backend:
-          service:
-            name: leave-srv
-            port:
-              number: 3004
-      
-      # Notification Service
-      - path: /api/v1/notification
-        pathType: Prefix
-        backend:
-          service:
-            name: notification-srv
-            port:
-              number: 3005
-      
-      # Reporting Service
-      - path: /api/v1/reporting
-        pathType: Prefix
-        backend:
-          service:
-            name: reporting-srv
-            port:
-              number: 3006
+  entryPoints:
+    - web
+  routes:
+  # ===== AUTH SERVICE =====
+  # /api/v1/auth/** → auth-srv:3001/api/v1/auth/**
+  # Swagger: http://TRAEFIK_IP/api/v1/api (vì service có prefix api/v1)
+  - match: PathPrefix(`/api/v1/auth`)
+    kind: Rule
+    services:
+    - name: auth-srv
+      port: 3001
+    middlewares:
+    - name: cors-headers
+  
+  # ===== FACE RECOGNITION SERVICE =====
+  - match: PathPrefix(`/api/v1/face`)
+    kind: Rule
+    services:
+    - name: face-recognition-srv
+      port: 8080
+    middlewares:
+    - name: cors-headers
+  
+  # ===== ATTENDANCE SERVICE =====
+  - match: PathPrefix(`/api/v1/attendance`)
+    kind: Rule
+    services:
+    - name: attendance-srv
+      port: 3002
+    middlewares:
+    - name: cors-headers
+  
+  # ===== EMPLOYEE SERVICE =====
+  - match: PathPrefix(`/api/v1/employee`)
+    kind: Rule
+    services:
+    - name: employee-srv
+      port: 3003
+    middlewares:
+    - name: cors-headers
+  
+  # ===== LEAVE SERVICE =====
+  - match: PathPrefix(`/api/v1/leave`)
+    kind: Rule
+    services:
+    - name: leave-srv
+      port: 3004
+    middlewares:
+    - name: cors-headers
+  
+  # ===== NOTIFICATION SERVICE =====
+  - match: PathPrefix(`/api/v1/notification`)
+    kind: Rule
+    services:
+    - name: notification-srv
+      port: 3005
+    middlewares:
+    - name: cors-headers
+  
+  # ===== REPORTING SERVICE =====
+  - match: PathPrefix(`/api/v1/reporting`)
+    kind: Rule
+    services:
+    - name: reporting-srv
+      port: 3006
+    middlewares:
+    - name: cors-headers
+
 ---
+# ============================================
+# MIDDLEWARE: CORS Headers
+# ============================================
+# Cho phép CORS từ tất cả origins (development)
+# Production: Thay "*" bằng domain cụ thể
+# ============================================
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-headers
+  namespace: graduate-project
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "*"
+    accessControlMaxAge: 3600
+    addVaryHeader: true
+    accessControlAllowCredentials: true
+
+---
+# ============================================
+# MONITORING INGRESS (Separate namespace)
+# ============================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
