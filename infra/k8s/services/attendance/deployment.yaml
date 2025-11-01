@@ -77,44 +77,13 @@ spec:
           value: "production"
         - name: PORT
           value: "3002"
-        - name: DATABASE_URL
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DATABASE)"
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: postgres-username
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: postgres-password
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: redis-password
-        - name: RABBITMQ_USER
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: rabbitmq-username
-        - name: RABBITMQ_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: rabbitmq-password
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: attendance-secrets
-              key: jwt-secret
         
-        envFrom:
-        - configMapRef:
-            name: attendance-config
-        
+        # Mount .env file from secret (CI/CD injects all vars as .env string)
         volumeMounts:
+        - name: env-file
+          mountPath: /app/services/attendance/.env
+          subPath: .env
+          readOnly: true
         - name: tmp
           mountPath: /tmp
         - name: cache
@@ -167,6 +136,12 @@ spec:
       terminationGracePeriodSeconds: 30
       
       volumes:
+      - name: env-file
+        secret:
+          secretName: attendance-secrets
+          items:
+          - key: .env
+            path: .env
       - name: tmp
         emptyDir:
           sizeLimit: 256Mi
