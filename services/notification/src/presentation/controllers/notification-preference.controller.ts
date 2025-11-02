@@ -11,7 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateNotificationPreferenceUseCase } from '../../application/use-cases/update-notification-preference.use-case';
 import { GetNotificationPreferencesUseCase } from '../../application/use-cases/get-notification-preferences.use-case';
 import { UpdateNotificationPreferenceDto } from '../../application/dtos/update-notification-preference.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('preferences')
 @Controller('notification-preferences')

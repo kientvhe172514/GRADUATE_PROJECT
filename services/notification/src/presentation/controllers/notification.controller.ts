@@ -21,7 +21,7 @@ import { MarkAllNotificationsAsReadUseCase } from '../../application/use-cases/m
 import { SendNotificationDto } from '../../application/dtos/send-notification.dto';
 import { SendNotificationFromTemplateDto } from '../../application/dtos/send-notification-from-template.dto';
 import { SendNotificationFromTemplateUseCase } from '../../application/use-cases/send-notification-from-template.use-case';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 // NOTE: Notification Service is an internal service, authentication is handled by API Gateway/Auth Service
 // No JWT validation needed here - trust requests from internal network

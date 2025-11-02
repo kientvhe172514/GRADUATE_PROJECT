@@ -14,7 +14,7 @@ import {
   RegisterPushTokenDto,
   UnregisterPushTokenDto,
 } from '../../application/dtos/push-token.dto';
-import { ApiResponseDto } from '../../common/dto/api-response.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('push-tokens')
 @Controller('push-tokens')

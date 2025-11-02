@@ -2,20 +2,20 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { LEAVE_TYPE_REPOSITORY } from '../../tokens';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
-import { UpdateLeaveTypeDto } from '../dto/leave-type.dto';
-import { UpdateLeaveTypeResponseDto } from '../dto/leave-type-response.dto';
+import { LeaveTypeResponseDto } from '../dto/leave-type-response.dto';
 import { LeaveTypeMapper } from '../mappers/leave-type.mapper';
 
 @Injectable()
-export class UpdateLeaveTypeUseCase {
+export class GetLeaveTypeByIdUseCase {
   constructor(
     @Inject(LEAVE_TYPE_REPOSITORY)
     private readonly leaveTypeRepository: ILeaveTypeRepository,
   ) {}
 
-  async execute(id: number, dto: UpdateLeaveTypeDto): Promise<UpdateLeaveTypeResponseDto> {
-    const existing = await this.leaveTypeRepository.findById(id);
-    if (!existing) {
+  async execute(id: number): Promise<LeaveTypeResponseDto> {
+    const entity = await this.leaveTypeRepository.findById(id);
+
+    if (!entity) {
       throw new BusinessException(
         ErrorCodes.NOT_FOUND,
         'Leave type not found',
@@ -24,8 +24,7 @@ export class UpdateLeaveTypeUseCase {
       );
     }
 
-    const updatedEntity = await this.leaveTypeRepository.update(id, dto);
-
-    return LeaveTypeMapper.toUpdateResponseDto(updatedEntity);
+    return LeaveTypeMapper.toResponseDto(entity);
   }
 }
+

@@ -6,6 +6,14 @@ import { SendNotificationDto } from '../../application/dtos/send-notification.dt
 import { NotificationType } from '../../domain/enums/notification-type.enum';
 import { Priority } from '../../domain/enums/priority.enum';
 import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
+import {
+  UserRegisteredEventDto,
+  PasswordChangedEventDto,
+  PasswordResetRequestedEventDto,
+  LoginSuccessEventDto,
+  SuspiciousLoginEventDto,
+  AccountLockedEventDto,
+} from '../../application/event-listeners/dto/auth-event.dtos';
 
 @Controller()
 export class AuthEventListener {
@@ -15,7 +23,7 @@ export class AuthEventListener {
   ) {}
 
   @EventPattern('auth.user-registered')
-  async handleUserRegistered(@Payload() event: any): Promise<void> {
+  async handleUserRegistered(@Payload() event: UserRegisteredEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.user-registered:', event);
     try {
       const dto: SendNotificationDto = {
@@ -40,7 +48,7 @@ export class AuthEventListener {
   }
 
   @EventPattern('auth.password-changed')
-  async handlePasswordChanged(@Payload() event: any): Promise<void> {
+  async handlePasswordChanged(@Payload() event: PasswordChangedEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.password-changed:', event);
     try {
       const dto: SendNotificationDto = {
@@ -65,7 +73,7 @@ export class AuthEventListener {
   }
 
   @EventPattern('auth.password-reset-requested')
-  async handlePasswordResetRequested(@Payload() event: any): Promise<void> {
+  async handlePasswordResetRequested(@Payload() event: PasswordResetRequestedEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.password-reset-requested:', event);
     try {
       // Debug log để kiểm tra email
@@ -118,7 +126,7 @@ export class AuthEventListener {
   }
 
   @EventPattern('auth.login-success')
-  async handleLoginSuccess(@Payload() event: any): Promise<void> {
+  async handleLoginSuccess(@Payload() event: LoginSuccessEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.login-success:', event);
     try {
       const dto: SendNotificationDto = {
@@ -144,7 +152,7 @@ export class AuthEventListener {
   }
 
   @EventPattern('auth.suspicious-login')
-  async handleSuspiciousLogin(@Payload() event: any): Promise<void> {
+  async handleSuspiciousLogin(@Payload() event: SuspiciousLoginEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.suspicious-login:', event);
     try {
       const dto: SendNotificationDto = {
@@ -170,7 +178,7 @@ export class AuthEventListener {
   }
 
   @EventPattern('auth.account-locked')
-  async handleAccountLocked(@Payload() event: any): Promise<void> {
+  async handleAccountLocked(@Payload() event: AccountLockedEventDto): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.account-locked:', event);
     try {
       const dto: SendNotificationDto = {
