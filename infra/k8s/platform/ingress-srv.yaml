@@ -38,44 +38,44 @@ spec:
   #     port: 8080
   
   # ===== ATTENDANCE SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/attendance`)
-  #   kind: Rule
-  #   services:
-  #   - name: attendance-srv
-  #     namespace: graduate-project
-  #     port: 3002
+  - match: PathPrefix(`/api/v1/attendance`)
+    kind: Rule
+    services:
+    - name: attendance-srv
+      namespace: graduate-project
+      port: 3002
   
   # ===== EMPLOYEE SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/employee`)
-  #   kind: Rule
-  #   services:
-  #   - name: employee-srv
-  #     namespace: graduate-project
-  #     port: 3003
+  - match: PathPrefix(`/api/v1/employee`)
+    kind: Rule
+    services:
+    - name: employee-srv
+      namespace: graduate-project
+      port: 3003
   
   # ===== LEAVE SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/leave`)
-  #   kind: Rule
-  #   services:
-  #   - name: leave-srv
-  #     namespace: graduate-project
-  #     port: 3004
+  - match: PathPrefix(`/api/v1/leave`)
+    kind: Rule
+    services:
+    - name: leave-srv
+      namespace: graduate-project
+      port: 3004
   
   # ===== NOTIFICATION SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/notification`)
-  #   kind: Rule
-  #   services:
-  #   - name: notification-srv
-  #     namespace: graduate-project
-  #     port: 3005
+  - match: PathPrefix(`/api/v1/notification`)
+    kind: Rule
+    services:
+    - name: notification-srv
+      namespace: graduate-project
+      port: 3005
   
   # ===== REPORTING SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/reporting`)
-  #   kind: Rule
-  #   services:
-  #   - name: reporting-srv
-  #     namespace: graduate-project
-  #     port: 3006
+  - match: PathPrefix(`/api/v1/reporting`)
+    kind: Rule
+    services:
+    - name: reporting-srv
+      namespace: graduate-project
+      port: 3006
 
 ---
 # ============================================
