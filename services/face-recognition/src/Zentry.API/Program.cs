@@ -459,10 +459,10 @@ static async Task DropContextTablesAsync(DbContext dbContext, ILogger logger, st
 
 static void ValidateConfiguration(IConfiguration configuration)
 {
+    // FaceIdConnection removed - code uses DefaultConnection for both databases
     var requiredConfigs = new[]
     {
         "ConnectionStrings:DefaultConnection",
-        "ConnectionStrings:FaceIdConnection",
         "Redis:ConnectionString",
         "RabbitMQ:ConnectionString",
         "Jwt:Secret"
