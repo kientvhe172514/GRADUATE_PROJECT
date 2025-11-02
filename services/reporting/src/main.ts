@@ -14,6 +14,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  
   // Hybrid setup: HTTP + RMQ listener for events from Attendance & Leave services
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,

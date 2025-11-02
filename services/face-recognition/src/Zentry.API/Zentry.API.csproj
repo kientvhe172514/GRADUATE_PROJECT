@@ -38,6 +38,7 @@
 
     <ItemGroup>
         <!-- ===== CORE INFRASTRUCTURE - CẦN THIẾT ===== -->
+        
         <ProjectReference Include="..\Zentry.Infrastructure\Zentry.Infrastructure.csproj" />
         <ProjectReference Include="..\Zentry.SharedKernel\Zentry.SharedKernel.csproj" />
 
