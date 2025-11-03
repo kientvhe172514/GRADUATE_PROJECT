@@ -30,12 +30,12 @@ spec:
       port: 3001
   
   # ===== FACE RECOGNITION SERVICE (DISABLED - Service chưa có) =====
-  # - match: PathPrefix(`/api/v1/face`)
-  #   kind: Rule
-  #   services:
-  #   - name: face-recognition-srv
-  #     namespace: graduate-project
-  #     port: 8080
+  - match: PathPrefix(`/api/v1/face`)
+    kind: Rule
+    services:
+    - name: face-recognition-srv
+      namespace: graduate-project
+      port: 8080
   
   # ===== ATTENDANCE SERVICE (DISABLED - Service chưa có) =====
   - match: PathPrefix(`/api/v1/attendance`)
