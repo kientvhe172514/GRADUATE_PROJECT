@@ -12,7 +12,7 @@ using Zentry.SharedKernel.Contracts.Schedule;
 namespace Zentry.Modules.FaceId.Controllers;
 
 [ApiController]
-[Route("api/faceid/requests")]
+[Route("faceid/requests")]
 public class FaceVerificationRequestsController : ControllerBase
 {
     private readonly ILogger<FaceVerificationRequestsController> _logger;

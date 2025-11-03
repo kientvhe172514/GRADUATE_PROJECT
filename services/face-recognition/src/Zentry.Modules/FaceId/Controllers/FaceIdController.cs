@@ -10,7 +10,7 @@ using Zentry.Modules.FaceId.Interfaces;
 namespace Zentry.Modules.FaceId.Controllers;
 
 [ApiController]
-[Route("api/faceid")]
+[Route("faceid")]
 public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdRepository) : ControllerBase
 {
     [HttpPost("register")]

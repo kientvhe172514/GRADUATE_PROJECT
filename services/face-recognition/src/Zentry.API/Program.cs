@@ -316,6 +316,10 @@ ValidateConfiguration(builder.Configuration);
 
 var app = builder.Build();
 
+// ===== CONFIGURE API ROUTING =====
+// Add global prefix to match other services: /api/v1/face
+app.UsePathBase("/api/v1/face");
+
 app.UseSwagger();
 // Bật middleware để phục vụ trang giao diện Swagger UI
 app.UseSwaggerUI(c =>
