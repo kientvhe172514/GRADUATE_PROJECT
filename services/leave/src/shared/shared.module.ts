@@ -1,6 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-event.publisher';
+import { EVENT_PUBLISHER } from '../application/tokens';
 
 @Global()
 @Module({
@@ -46,6 +48,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       },
     ]),
   ],
-  exports: [ClientsModule],
+  providers: [
+    {
+      provide: EVENT_PUBLISHER,
+      useClass: RabbitMQEventPublisher,
+    },
+  ],
+  exports: [ClientsModule, EVENT_PUBLISHER],
 })
 export class SharedModule {}
