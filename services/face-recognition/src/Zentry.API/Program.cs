@@ -564,30 +564,46 @@ static string FixRabbitMqConnectionString(string connectionString)
     {
         // If URI parsing fails, try manual fix for common pattern
         // Pattern: amqp://username:password@host:port/
+        // Password may contain @ character, so we need to match from LAST @
         Console.WriteLine("⚠️  URI parsing failed, trying manual password encoding...");
         
-        var match = System.Text.RegularExpressions.Regex.Match(
-            connectionString, 
-            @"^(amqp://[^:]+:)([^@]+)(@.+)$"
-        );
-
-        if (match.Success)
+        // Match: amqp://username: + password + @host:port/
+        // Using LastIndexOf to find the @ that separates password from host
+        var amqpPrefix = "amqp://";
+        if (!connectionString.StartsWith(amqpPrefix))
         {
-            var prefix = match.Groups[1].Value;  // "amqp://username:"
-            var password = match.Groups[2].Value; // "password"
-            var suffix = match.Groups[3].Value;   // "@host:port/"
-
-            var encodedPassword = Uri.EscapeDataString(password);
-            var fixedConnectionString = $"{prefix}{encodedPassword}{suffix}";
-            
-            Console.WriteLine($"🔧 Manual encoding: {password} → {encodedPassword}");
-            Console.WriteLine($"✅ Fixed connection string: {fixedConnectionString}");
-            
-            return fixedConnectionString;
+            Console.WriteLine("❌ Not a valid AMQP connection string");
+            return connectionString;
         }
 
-        Console.WriteLine("❌ Could not fix connection string, returning original");
-        return connectionString;
+        // Find the position of : after username (should be after "amqp://username")
+        var firstColonPos = connectionString.IndexOf(':', amqpPrefix.Length);
+        if (firstColonPos < 0)
+        {
+            Console.WriteLine("❌ Could not find password delimiter (:)");
+            return connectionString;
+        }
+
+        // Find LAST @ in the string (this separates password from hostname)
+        var lastAtPos = connectionString.LastIndexOf('@');
+        if (lastAtPos <= firstColonPos)
+        {
+            Console.WriteLine("❌ Could not find host delimiter (@)");
+            return connectionString;
+        }
+
+        // Extract parts
+        var prefix = connectionString.Substring(0, firstColonPos + 1); // "amqp://username:"
+        var password = connectionString.Substring(firstColonPos + 1, lastAtPos - firstColonPos - 1); // "password"
+        var suffix = connectionString.Substring(lastAtPos); // "@host:port/"
+
+        var encodedPassword = Uri.EscapeDataString(password);
+        var fixedConnectionString = $"{prefix}{encodedPassword}{suffix}";
+        
+        Console.WriteLine($"🔧 Manual encoding: {password} → {encodedPassword}");
+        Console.WriteLine($"✅ Fixed connection string: {fixedConnectionString}");
+        
+        return fixedConnectionString;
     }
 }
 
