@@ -210,6 +210,9 @@ Console.WriteLine($"🔍 Reading RabbitMQ:ConnectionString = {rabbitMqHealthChec
 
 if (!string.IsNullOrEmpty(rabbitMqHealthCheckConnStr))
 {
+    // 🔧 FIX: URL-encode password nếu chưa được encode
+    rabbitMqHealthCheckConnStr = FixRabbitMqConnectionString(rabbitMqHealthCheckConnStr);
+    
     builder.Services.AddRabbitMqHealthChecks(rabbitMqHealthCheckConnStr);
     Console.WriteLine("✅ RabbitMQ health checks added");
 }
@@ -237,7 +240,7 @@ builder.Services.AddMassTransit(x =>
 
         // ✅ Debug logging để kiểm tra config
         Console.WriteLine("=== RabbitMQ Configuration Debug ===");
-        Console.WriteLine($"RabbitMQ:ConnectionString = {rabbitMqConnectionString}");
+        Console.WriteLine($"RabbitMQ:ConnectionString (raw) = {rabbitMqConnectionString}");
 
         // Kiểm tra tất cả RabbitMQ keys
         foreach (var kvp in configuration.AsEnumerable()
@@ -246,6 +249,11 @@ builder.Services.AddMassTransit(x =>
 
         if (string.IsNullOrEmpty(rabbitMqConnectionString))
             throw new InvalidOperationException("RabbitMQ:ConnectionString is not configured.");
+
+        // 🔧 FIX: URL-encode password nếu chưa được encode
+        // Password có ký tự @ cần encode thành %40 để URI parser không confused
+        rabbitMqConnectionString = FixRabbitMqConnectionString(rabbitMqConnectionString);
+        Console.WriteLine($"RabbitMQ:ConnectionString (fixed) = {rabbitMqConnectionString}");
 
         cfg.Host(new Uri(rabbitMqConnectionString), h =>
         {
@@ -507,6 +515,80 @@ static void ValidateConfiguration(IConfiguration configuration)
     }
 
     Console.WriteLine("✅ All required configurations are present.");
+}
+
+/// <summary>
+/// Fix RabbitMQ connection string by URL-encoding password if needed.
+/// Password with @ character needs to be encoded as %40 to avoid URI parsing errors.
+/// </summary>
+static string FixRabbitMqConnectionString(string connectionString)
+{
+    if (string.IsNullOrEmpty(connectionString))
+        return connectionString;
+
+    try
+    {
+        // Check if already encoded (contains %40 or other encoded chars)
+        if (connectionString.Contains("%40") || connectionString.Contains("%"))
+        {
+            Console.WriteLine("🔍 Connection string already URL-encoded, skipping fix");
+            return connectionString;
+        }
+
+        // Parse AMQP URI: amqp://username:password@host:port/vhost
+        var uri = new UriBuilder(connectionString);
+        
+        // UserInfo format: "username:password"
+        var userInfo = uri.UserName;
+        var password = uri.Password;
+
+        if (!string.IsNullOrEmpty(password))
+        {
+            // URL-encode password (will encode @ as %40, etc.)
+            var encodedPassword = Uri.EscapeDataString(password);
+            
+            if (encodedPassword != password)
+            {
+                Console.WriteLine($"🔧 Encoding password: {password} → {encodedPassword}");
+                uri.Password = encodedPassword;
+                
+                var fixedConnectionString = uri.ToString();
+                Console.WriteLine($"✅ Fixed connection string created");
+                return fixedConnectionString;
+            }
+        }
+
+        return connectionString;
+    }
+    catch (UriFormatException)
+    {
+        // If URI parsing fails, try manual fix for common pattern
+        // Pattern: amqp://username:password@host:port/
+        Console.WriteLine("⚠️  URI parsing failed, trying manual password encoding...");
+        
+        var match = System.Text.RegularExpressions.Regex.Match(
+            connectionString, 
+            @"^(amqp://[^:]+:)([^@]+)(@.+)$"
+        );
+
+        if (match.Success)
+        {
+            var prefix = match.Groups[1].Value;  // "amqp://username:"
+            var password = match.Groups[2].Value; // "password"
+            var suffix = match.Groups[3].Value;   // "@host:port/"
+
+            var encodedPassword = Uri.EscapeDataString(password);
+            var fixedConnectionString = $"{prefix}{encodedPassword}{suffix}";
+            
+            Console.WriteLine($"🔧 Manual encoding: {password} → {encodedPassword}");
+            Console.WriteLine($"✅ Fixed connection string: {fixedConnectionString}");
+            
+            return fixedConnectionString;
+        }
+
+        Console.WriteLine("❌ Could not fix connection string, returning original");
+        return connectionString;
+    }
 }
 
 public static class HealthCheckResponseWriter
