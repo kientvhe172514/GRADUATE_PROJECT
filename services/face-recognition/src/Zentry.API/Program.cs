@@ -196,7 +196,27 @@ builder.Services.AddAuthorization();
 // --- Thêm health check ---
 builder.Services.AddHealthChecks();
 
-builder.Services.AddRabbitMqHealthChecks(builder.Configuration["RabbitMQ:ConnectionString"]!);
+// Debug: Check ALL RabbitMQ-related env vars
+Console.WriteLine("=== RabbitMQ Environment Variables Debug ===");
+foreach (var kvp in builder.Configuration.AsEnumerable()
+             .Where(x => x.Key.Contains("RabbitMQ", StringComparison.OrdinalIgnoreCase)))
+{
+    Console.WriteLine($"{kvp.Key} = {kvp.Value}");
+}
+
+// Only add RabbitMQ health check if connection string is configured
+var rabbitMqHealthCheckConnStr = builder.Configuration["RabbitMQ:ConnectionString"];
+Console.WriteLine($"🔍 Reading RabbitMQ:ConnectionString = {rabbitMqHealthCheckConnStr}");
+
+if (!string.IsNullOrEmpty(rabbitMqHealthCheckConnStr))
+{
+    builder.Services.AddRabbitMqHealthChecks(rabbitMqHealthCheckConnStr);
+    Console.WriteLine("✅ RabbitMQ health checks added");
+}
+else
+{
+    Console.WriteLine("⚠️  RabbitMQ:ConnectionString not found, skipping RabbitMQ health checks");
+}
 
 // ===== CẤU HÌNH MASSTRANSIT =====
 builder.Services.AddMassTransit(x =>
