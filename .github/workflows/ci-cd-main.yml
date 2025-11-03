@@ -691,11 +691,17 @@ jobs:
             cd ~/GRADUATE_PROJECT
             git pull origin main
             
-            # Create secret safely
+            # Create secret from env file (each line becomes a key)
+            # Convert multiline secret to --from-env-file format
+            echo '${{ secrets.FACE_RECOGNITION_SECRET }}' > /tmp/face-recognition.env
+            
             kubectl create secret generic face-recognition-secrets \
-              --from-literal=.env='${{ secrets.FACE_RECOGNITION_SECRET }}' \
+              --from-env-file=/tmp/face-recognition.env \
               -n graduate-project \
               --dry-run=client -o yaml | kubectl apply -f -
+            
+            # Clean up temp file
+            rm -f /tmp/face-recognition.env
             
             # Apply deployment (with placeholder)
             kubectl apply -f infra/k8s/services/face-recognition/ -n graduate-project
