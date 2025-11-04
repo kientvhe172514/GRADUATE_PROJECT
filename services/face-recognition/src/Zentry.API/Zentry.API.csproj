@@ -37,41 +37,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- ===== CORE INFRASTRUCTURE - CẦN THIẾT ===== -->  
+        <!-- Core Infrastructure -->
         <ProjectReference Include="..\Zentry.Infrastructure\Zentry.Infrastructure.csproj" />
         <ProjectReference Include="..\Zentry.SharedKernel\Zentry.SharedKernel.csproj" />
-
-        <!-- ===== ATTENDANCE MANAGEMENT - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Đã có service attendance riêng xử lý (NestJS) -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Application\Zentry.Modules.AttendanceManagement.Application.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Domain\Zentry.Modules.AttendanceManagement.Domain.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Infrastructure\Zentry.Modules.AttendanceManagement.Infrastructure.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\AttendanceManagement\Zentry.Modules.AttendanceManagement.Presentation\Zentry.Modules.AttendanceManagement.Presentation.csproj" /> -->
-
-        <!-- ===== CONFIGURATION MANAGEMENT - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Dùng appsettings.json thay thế -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\ConfigurationManagement\Zentry.Modules.ConfigurationManagement\Zentry.Modules.ConfigurationManagement.csproj" /> -->
         
-        <!-- ===== DEVICE MANAGEMENT - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Đã có service riêng quản lý BLE Beacons -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\DeviceManagement\Zentry.Modules.DeviceManagement\Zentry.Modules.DeviceManagement.csproj" /> -->
-        
-        <!-- ===== FACE ID - CẦN THIẾT ✅ ===== -->
-        <!-- MODULE DUY NHẤT - Xác thực khuôn mặt nhân viên (core business logic) -->
+        <!-- Face ID Module - Core Service -->
         <ProjectReference Include="..\Zentry.Modules\FaceId\Zentry.Modules.FaceId.csproj" />
-        
-        <!-- ===== NOTIFICATION SERVICE - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Đã có service notification riêng xử lý (NestJS) -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\NotificationService\Zentry.Modules.NotificationService\Zentry.Modules.NotificationService.csproj" /> -->
-
-        <!-- ===== SCHEDULE MANAGEMENT - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Module cho lịch học, không phù hợp HR attendance -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Application\Zentry.Modules.ScheduleManagement.Application.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Domain\Zentry.Modules.ScheduleManagement.Domain.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Infrastructure\Zentry.Modules.ScheduleManagement.Infrastructure.csproj" />
-        <ProjectReference Include="..\Zentry.Modules\ScheduleManagement\Zentry.Modules.ScheduleManagement.Presentation\Zentry.Modules.ScheduleManagement.Presentation.csproj" /> -->
-
-        <!-- ===== USER MANAGEMENT - KHÔNG CẦN ❌ ===== -->
-        <!-- Lý do: Đã có service auth/employee riêng xử lý (NestJS) -->
-        <!-- <ProjectReference Include="..\Zentry.Modules\UserManagement\Zentry.Modules.UserManagement\Zentry.Modules.UserManagement.csproj" /> -->
     </ItemGroup></Project>

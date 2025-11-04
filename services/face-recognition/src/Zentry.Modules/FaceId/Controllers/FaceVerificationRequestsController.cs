@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Zentry.Infrastructure.Caching;
 using Zentry.Modules.FaceId.Features.VerifyFaceId;
 using Zentry.Modules.FaceId.Interfaces;
+using Zentry.Modules.FaceId.Models;
 using Zentry.SharedKernel.Contracts.Events;
 using Zentry.SharedKernel.Contracts.Schedule;
 
@@ -521,25 +522,10 @@ public class FaceVerificationRequestsController : ControllerBase
         foreach (var key in keysToRemove) await _redis.RemoveAsync(key);
     }
 
-    public class CreateFaceVerificationRequestDto
-    {
-        public Guid LecturerId { get; set; }
-        public Guid SessionId { get; set; }
-        public Guid? ClassSectionId { get; set; }
-        public List<Guid>? RecipientUserIds { get; set; }
-        public int? ExpiresInMinutes { get; set; }
-        public string? Title { get; set; }
-        public string? Body { get; set; }
-    }
-
-    public class CreateFaceVerificationResponseDto
-    {
-        public required Guid RequestId { get; init; }
-        public required Guid SessionId { get; init; }
-        public required DateTime ExpiresAt { get; init; }
-        public required int TotalRecipients { get; init; }
-        public required float Threshold { get; init; }
-    }
+    // DTOs moved to separate files: Zentry.Modules.FaceId.Models
+    // - CreateFaceVerificationRequestDto
+    // - CreateFaceVerificationResponseDto
+    // - FaceVerificationStatusResponse
 
     private record FaceVerificationRequestMeta(
         Guid RequestId,
@@ -559,14 +545,4 @@ public class FaceVerificationRequestsController : ControllerBase
         float Similarity,
         DateTime VerifiedAt
     );
-
-    public class FaceVerificationStatusResponse
-    {
-        public required Guid RequestId { get; init; }
-        public required Guid SessionId { get; init; }
-        public required DateTime ExpiresAt { get; init; }
-        public required int TotalRecipients { get; init; }
-        public required int TotalVerified { get; init; }
-        public required List<Guid> VerifiedUserIds { get; init; }
-    }
 }
