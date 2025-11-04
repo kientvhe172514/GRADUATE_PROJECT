@@ -72,9 +72,65 @@ export class AccountController {
   }
 
   @Public()
-  @Post('register')  // Internal endpoint for employee service
+  @Post('register')  // Internal endpoint for manual account creation (Dev/Admin use)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register new account (internal from employee event)' })
+  @ApiOperation({ 
+    summary: '🔧 Register new account (Dev/Admin internal use)',
+    description: `
+      **Internal endpoint for manual account creation**
+      
+      Features:
+      - ✅ Create account with custom password (or temp password "1")
+      - ✅ Assign custom role (SUPER_ADMIN, HR_ADMIN, MANAGER, etc.)
+      - ✅ Optional employee linking (employee_id, employee_code)
+      - ✅ No notification email sent if custom password provided
+      
+      **Use Cases:**
+      - Create SUPER_ADMIN account
+      - Create test accounts for development
+      - Manual account creation by HR/Admin
+      
+      **⚠️ Security Note:** This endpoint should be protected in production!
+    `
+  })
+  @ApiBody({
+    type: CreateAccountDto,
+    examples: {
+      superAdmin: {
+        summary: 'Create SUPER_ADMIN account',
+        value: {
+          email: 'superadmin@zentry.com',
+          full_name: 'Super Administrator',
+          password: 'SecurePassword123!',
+          suggested_role: 'SUPER_ADMIN'
+        }
+      },
+      hrAdmin: {
+        summary: 'Create HR_ADMIN account',
+        value: {
+          email: 'hr@zentry.com',
+          full_name: 'HR Manager',
+          password: 'HRPassword123!',
+          suggested_role: 'HR_ADMIN',
+          department_name: 'Human Resources'
+        }
+      },
+      employeeWithLink: {
+        summary: 'Create linked employee account',
+        value: {
+          email: 'employee@zentry.com',
+          full_name: 'Nguyễn Văn A',
+          employee_id: 1,
+          employee_code: 'EMP001',
+          department_id: 1,
+          department_name: 'Engineering',
+          position_id: 1,
+          position_name: 'Senior Developer',
+          suggested_role: 'EMPLOYEE'
+        }
+      }
+    }
+  })
   async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
     return this.createAccountUseCase.execute(dto);
   }

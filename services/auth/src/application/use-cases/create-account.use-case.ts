@@ -28,19 +28,22 @@ export class CreateAccountUseCase {
       throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account already exists');
     }
 
-    // Use temporary password "1"
-    const tempPass = '1';
+    // Use custom password if provided, otherwise use temporary password "1"
+    const tempPass = dto.password || '1';
+    const isCustomPassword = !!dto.password;
     const tempPasswordHash = await this.hashing.hash(tempPass);
 
     // Determine role from suggested_role or default to EMPLOYEE
     let assignedRole = dto.suggested_role || 'EMPLOYEE';
     
     // Validate role exists in AccountRole enum
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'];
+    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_ADMIN', 'HR_STAFF', 'HR', 'MANAGER', 'EMPLOYEE'];
     if (!validRoles.includes(assignedRole.toUpperCase())) {
       console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
       assignedRole = 'EMPLOYEE';
     }
+
+    console.log(`🔐 Creating account with role: ${assignedRole}, custom password: ${isCustomPassword}`);
 
     // Create account using Factory Pattern
     const account = AccountFactory.createEmployeeAccount({
@@ -58,24 +61,38 @@ export class CreateAccountUseCase {
 
     const savedAccount = await this.accountRepo.create(account);
 
-    const backEvent = new AccountCreatedEventDto();
-    backEvent.account_id = savedAccount.id!;
-    backEvent.employee_id = dto.employee_id;
-    backEvent.temp_password = tempPass;
-    console.log('Publishing account_created with data:', backEvent);
-    this.publisher.publish('account_created', backEvent);
+    // Publish account_created event for employee service (backward compatibility)
+    if (dto.employee_id) {
+      const backEvent = new AccountCreatedEventDto();
+      backEvent.account_id = savedAccount.id!;
+      backEvent.employee_id = dto.employee_id;
+      backEvent.temp_password = tempPass;
+      console.log('Publishing account_created with data:', backEvent);
+      this.publisher.publish('account_created', backEvent);
+    }
 
-    // Publish auth.user-registered event for notification service
-    const userRegisteredEvent = {
-      userId: savedAccount.id!,
-      email: savedAccount.email,
-      fullName: dto.full_name,
-      tempPassword: tempPass,
-      timestamp: new Date().toISOString(),
-    };
-    console.log('Publishing auth.user-registered with data:', userRegisteredEvent);
-    this.publisher.publish('auth.user-registered', userRegisteredEvent);
+    // Only publish notification event if using temporary password
+    // (Custom password = manual creation, no need to send email)
+    if (!isCustomPassword) {
+      const userRegisteredEvent = {
+        userId: savedAccount.id!,
+        email: savedAccount.email,
+        fullName: dto.full_name,
+        tempPassword: tempPass,
+        timestamp: new Date().toISOString(),
+      };
+      console.log('Publishing auth.user-registered with data:', userRegisteredEvent);
+      this.publisher.publish('auth.user-registered', userRegisteredEvent);
+    } else {
+      console.log('⏭️  Skipping notification email (custom password provided)');
+    }
 
-    return ApiResponseDto.success({ id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 'Account created with temporary password', 201, undefined, 'ACCOUNT_CREATED');
+    return ApiResponseDto.success(
+      { id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 
+      isCustomPassword ? 'Account created successfully' : 'Account created with temporary password', 
+      201, 
+      undefined, 
+      'ACCOUNT_CREATED'
+    );
   }
 }
