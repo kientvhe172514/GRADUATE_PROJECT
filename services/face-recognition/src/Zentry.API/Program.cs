@@ -226,7 +226,6 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddHeartbeatConsumer();
     x.AddHealthCheckConsumer();
-    // ❌ Service riêng xử lý attendance, user, notification
     // x.AddAttendanceMassTransitConsumers();
     // x.AddUserMassTransitConsumers();
     // x.AddNotificationMassTransitConsumers();
