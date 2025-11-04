@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD, Reflector } from '@nestjs/core';
-import { JwtPermissionGuard } from '@graduate-project/shared-common';
+import { AuthJwtPermissionGuard } from './presentation/guards/auth-jwt-permission.guard';
 import { AccountModule } from './application/account.module';
 import { RbacModule } from './application/rbac.module';
 import { HealthController } from './health.controller';
@@ -19,7 +19,9 @@ import { HealthController } from './health.controller';
         entities: [
           __dirname + '/infrastructure/persistence/typeorm/*.schema{.ts,.js}',
         ],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        // ⚠️ TEMPORARY: Enable synchronize in production until migrations are set up
+        // TODO: Create proper migrations and disable this
+        synchronize: true,
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
@@ -40,12 +42,12 @@ import { HealthController } from './health.controller';
   ],
   controllers: [HealthController],
   providers: [
-    // Permission guard - no longer needs JwtService as it only checks permissions
-    // JWT authentication is handled by JwtAuthGuard
+    // Auth Service JWT Permission Guard - Verifies JWT + checks permissions
+    // This is different from shared-common HeaderBasedPermissionGuard
     {
       provide: APP_GUARD,
       useFactory: (reflector: Reflector) => {
-        return new JwtPermissionGuard(reflector);
+        return new AuthJwtPermissionGuard(reflector);
       },
       inject: [Reflector],
     },
