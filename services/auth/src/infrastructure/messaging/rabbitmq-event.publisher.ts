@@ -10,11 +10,12 @@ export class RabbitMQEventPublisher implements EventPublisherPort {
   ) {}
 
   publish(pattern: string, data: any): void {
-    if (pattern.startsWith('auth.password-')) {
+    // Route auth events to notification service
+    if (pattern.startsWith('auth.')) {
       this.notificationClient.emit(pattern, data);
       return;
     }
-    // default route to employee service for legacy events
+    // default route to employee service for legacy events (account_created)
     this.employeeClient.emit(pattern, data);
   }
 }

@@ -292,162 +292,164 @@ jobs:
     secrets: inherit
 
   # ==========================================
+  # ==========================================
   # JOB 10: DEPLOY INFRASTRUCTURE (RUN FIRST)
   # ==========================================
-  deploy-infrastructure:
-    name: 🏗️ Deploy Infrastructure First
-    needs: detect-changes
-    if: always()  # LUÔN CHẠY để đảm bảo infrastructure ready
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Setup git credentials on EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            # Configure git to use token for private repo
-            git config --global credential.helper store
-            echo "https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com" > ~/.git-credentials
-          EOF
-
-      - name: Setup infrastructure secrets and deploy
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-            cd ~/GRADUATE_PROJECT
-            git pull origin main
-            
-            # ============================================
-            # CREATE INFRASTRUCTURE SECRETS (An toàn)
-            # ============================================
-            
-            # XÓA TẤT CẢ SECRETS CŨ TRƯỚC (để tránh merge keys cũ)
-            echo "🗑️  Deleting old secrets..."
-            kubectl delete secret postgres-secret -n infrastructure --ignore-not-found=true
-            kubectl delete secret mongodb-secret -n infrastructure --ignore-not-found=true
-            kubectl delete secret rabbitmq-secret -n infrastructure --ignore-not-found=true
-            kubectl delete secret redis-secret -n infrastructure --ignore-not-found=true
-            
-            # Postgres Secret - FIX: Thêm đầy đủ database names + replicator password
-            kubectl create secret generic postgres-secret \
-              --from-literal=POSTGRES_HOST='${{ secrets.POSTGRES_HOST }}' \
-              --from-literal=POSTGRES_PORT='${{ secrets.POSTGRES_PORT }}' \
-              --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
-              --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
-              --from-literal=replicator-password='${{ secrets.POSTGRES_PASSWORD }}' \
-              --from-literal=POSTGRES_DB='postgres' \
-              --from-literal=POSTGRES_DB_IAM='${{ secrets.POSTGRES_DB_IAM }}' \
-              --from-literal=POSTGRES_DB_ATTENDANCE='${{ secrets.POSTGRES_DB_ATTENDANCE }}' \
-              --from-literal=POSTGRES_DB_EMPLOYEE='${{ secrets.POSTGRES_DB_EMPLOYEE }}' \
-              --from-literal=POSTGRES_DB_LEAVE='${{ secrets.POSTGRES_DB_LEAVE }}' \
-              --from-literal=POSTGRES_DB_NOTIFICATION='${{ secrets.POSTGRES_DB_NOTIFICATION }}' \
-              --from-literal=POSTGRES_DB_REPORTING='${{ secrets.POSTGRES_DB_REPORTING }}' \
-              --from-literal=POSTGRES_DB_ZENTRY='${{ secrets.POSTGRES_DB_ZENTRY }}' \
-              -n infrastructure
-            
-            # MongoDB Secret - FIX: Dùng keys chuẩn của MongoDB image
-            kubectl create secret generic mongodb-secret \
-              --from-literal=MONGO_INITDB_ROOT_USERNAME='${{ secrets.MONGODB_USERNAME }}' \
-              --from-literal=MONGO_INITDB_ROOT_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
-              --from-literal=MONGO_INITDB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
-              --from-literal=MONGODB_HOST='${{ secrets.MONGODB_HOST }}' \
-              --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
-              -n infrastructure
-            
-            # RabbitMQ Secret - FIX: Add both key formats (uppercase and lowercase)
-            kubectl create secret generic rabbitmq-secret \
-              --from-literal=RABBITMQ_DEFAULT_USER='${{ secrets.RABBITMQ_USERNAME }}' \
-              --from-literal=RABBITMQ_DEFAULT_PASS='${{ secrets.RABBITMQ_PASSWORD }}' \
-              --from-literal=username='${{ secrets.RABBITMQ_USERNAME }}' \
-              --from-literal=password='${{ secrets.RABBITMQ_PASSWORD }}' \
-              --from-literal=erlang-cookie='$(openssl rand -base64 32)' \
-              --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
-              --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
-              --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \
-              -n infrastructure
-            
-            # Redis Secret - FIX: Thêm cả 2 keys (in hoa và in thường) để tương thích
-            kubectl create secret generic redis-secret \
-              --from-literal=REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
-              --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
-              --from-literal=REDIS_HOST='${{ secrets.REDIS_HOST }}' \
-              --from-literal=REDIS_PORT='${{ secrets.REDIS_PORT }}' \
-              -n infrastructure
-            
-            # ============================================
-            # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
-            # ============================================
-            echo "🗑️  Cleaning up old infrastructure..."
-            kubectl delete deployment --all -n infrastructure --ignore-not-found=true
-            kubectl delete statefulset --all -n infrastructure --ignore-not-found=true
-            kubectl delete pod --all -n infrastructure --force --grace-period=0 --ignore-not-found=true
-            
-            echo "⏳ Waiting for cleanup to complete..."
-            sleep 10
-            
-            # ============================================
-            # DEPLOY INFRASTRUCTURE MỚI
-            # ============================================
-            echo "🚀 Deploying fresh infrastructure..."
-            # Deploy platform resources
-            kubectl apply -f infra/k8s/platform/
-            
-            # Deploy Postgres (HA StatefulSet contains everything)
-            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
-            kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
-            
-            # Deploy MongoDB
-            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-deployment.yaml
-            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-service.yaml
-            kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-pvc.yaml
-            
-            # Deploy RabbitMQ
-            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
-            kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-config.yaml
-            
-            # Deploy Redis (Sentinel mode with Master/Replica)
-            kubectl apply -f infra/k8s/shared/messaging/redis/redis-config.yaml
-            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
-            kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
-            
-            echo "⏳ Waiting for infrastructure to be ready..."
-            # Wait for at least 1 pod of each service to be ready
-            kubectl wait --for=condition=ready pod -l app=postgres -n infrastructure --timeout=5m || echo "⚠️ Postgres not ready"
-            kubectl wait --for=condition=ready pod -l app=mongodb -n infrastructure --timeout=5m || echo "⚠️ MongoDB not ready"
-            kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
-            kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
-            
-            echo "✅ Infrastructure secrets and deployments updated"
-            echo "📊 Checking infrastructure pods..."
-            kubectl get pods -n infrastructure
-            kubectl get statefulset -n infrastructure || echo "⚠️ No StatefulSet found"
-            kubectl get pvc -n infrastructure || echo "No PVC found"
-          EOF
+  # 🚧 COMMENTED OUT - Infrastructure is stable, uncomment when needed
+  # deploy-infrastructure:
+  #   name: 🏗️ Deploy Infrastructure First
+  #   needs: detect-changes
+  #   if: always()  # LUÔN CHẠY để đảm bảo infrastructure ready
+  #   runs-on: ubuntu-latest
+  #   
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  # 
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  # 
+  #     - name: Setup SSH key
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+  #         chmod 600 ~/.ssh/id_rsa
+  #         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+  # 
+  #     - name: Setup git credentials on EC2
+  #       run: |
+  #         ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+  #           # Configure git to use token for private repo
+  #           git config --global credential.helper store
+  #           echo "https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com" > ~/.git-credentials
+  #         EOF
+  # 
+  #     - name: Setup infrastructure secrets and deploy
+  #       run: |
+  #         ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+  #           set -e
+  #           cd ~/GRADUATE_PROJECT
+  #           git pull origin main
+  #           
+  #           # ============================================
+  #           # CREATE INFRASTRUCTURE SECRETS (An toàn)
+  #           # ============================================
+  #           
+  #           # XÓA TẤT CẢ SECRETS CŨ TRƯỚC (để tránh merge keys cũ)
+  #           echo "🗑️  Deleting old secrets..."
+  #           kubectl delete secret postgres-secret -n infrastructure --ignore-not-found=true
+  #           kubectl delete secret mongodb-secret -n infrastructure --ignore-not-found=true
+  #           kubectl delete secret rabbitmq-secret -n infrastructure --ignore-not-found=true
+  #           kubectl delete secret redis-secret -n infrastructure --ignore-not-found=true
+  #           
+  #           # Postgres Secret - FIX: Thêm đầy đủ database names + replicator password
+  #           kubectl create secret generic postgres-secret \
+  #             --from-literal=POSTGRES_HOST='${{ secrets.POSTGRES_HOST }}' \
+  #             --from-literal=POSTGRES_PORT='${{ secrets.POSTGRES_PORT }}' \
+  #             --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
+  #             --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+  #             --from-literal=replicator-password='${{ secrets.POSTGRES_PASSWORD }}' \
+  #             --from-literal=POSTGRES_DB='postgres' \
+  #             --from-literal=POSTGRES_DB_IAM='${{ secrets.POSTGRES_DB_IAM }}' \
+  #             --from-literal=POSTGRES_DB_ATTENDANCE='${{ secrets.POSTGRES_DB_ATTENDANCE }}' \
+  #             --from-literal=POSTGRES_DB_EMPLOYEE='${{ secrets.POSTGRES_DB_EMPLOYEE }}' \
+  #             --from-literal=POSTGRES_DB_LEAVE='${{ secrets.POSTGRES_DB_LEAVE }}' \
+  #             --from-literal=POSTGRES_DB_NOTIFICATION='${{ secrets.POSTGRES_DB_NOTIFICATION }}' \
+  #             --from-literal=POSTGRES_DB_REPORTING='${{ secrets.POSTGRES_DB_REPORTING }}' \
+  #             --from-literal=POSTGRES_DB_ZENTRY='${{ secrets.POSTGRES_DB_ZENTRY }}' \
+  #             -n infrastructure
+  #           
+  #           # MongoDB Secret - FIX: Dùng keys chuẩn của MongoDB image
+  #           kubectl create secret generic mongodb-secret \
+  #             --from-literal=MONGO_INITDB_ROOT_USERNAME='${{ secrets.MONGODB_USERNAME }}' \
+  #             --from-literal=MONGO_INITDB_ROOT_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
+  #             --from-literal=MONGO_INITDB_DATABASE='${{ secrets.MONGODB_DATABASE }}' \
+  #             --from-literal=MONGODB_HOST='${{ secrets.MONGODB_HOST }}' \
+  #             --from-literal=MONGODB_PORT='${{ secrets.MONGODB_PORT }}' \
+  #             -n infrastructure
+  #           
+  #           # RabbitMQ Secret - FIX: Add both key formats (uppercase and lowercase)
+  #           kubectl create secret generic rabbitmq-secret \
+  #             --from-literal=RABBITMQ_DEFAULT_USER='${{ secrets.RABBITMQ_USERNAME }}' \
+  #             --from-literal=RABBITMQ_DEFAULT_PASS='${{ secrets.RABBITMQ_PASSWORD }}' \
+  #             --from-literal=username='${{ secrets.RABBITMQ_USERNAME }}' \
+  #             --from-literal=password='${{ secrets.RABBITMQ_PASSWORD }}' \
+  #             --from-literal=erlang-cookie='$(openssl rand -base64 32)' \
+  #             --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
+  #             --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
+  #             --from-literal=RABBITMQ_MANAGEMENT_PORT='${{ secrets.RABBITMQ_MANAGEMENT_PORT }}' \
+  #             -n infrastructure
+  #           
+  #           # Redis Secret - FIX: Thêm cả 2 keys (in hoa và in thường) để tương thích
+  #           kubectl create secret generic redis-secret \
+  #             --from-literal=REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
+  #             --from-literal=redis-password='${{ secrets.REDIS_PASSWORD }}' \
+  #             --from-literal=REDIS_HOST='${{ secrets.REDIS_HOST }}' \
+  #             --from-literal=REDIS_PORT='${{ secrets.REDIS_PORT }}' \
+  #             -n infrastructure
+  #           
+  #           # ============================================
+  #           # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
+  #           # ============================================
+  #           echo "🗑️  Cleaning up old infrastructure..."
+  #           kubectl delete deployment --all -n infrastructure --ignore-not-found=true
+  #           kubectl delete statefulset --all -n infrastructure --ignore-not-found=true
+  #           kubectl delete pod --all -n infrastructure --force --grace-period=0 --ignore-not-found=true
+  #           
+  #           echo "⏳ Waiting for cleanup to complete..."
+  #           sleep 10
+  #           
+  #           # ============================================
+  #           # DEPLOY INFRASTRUCTURE MỚI
+  #           # ============================================
+  #           echo "🚀 Deploying fresh infrastructure..."
+  #           # Deploy platform resources
+  #           kubectl apply -f infra/k8s/platform/
+  #           
+  #           # Deploy Postgres (HA StatefulSet contains everything)
+  #           kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-statefulset.yaml
+  #           kubectl apply -f infra/k8s/shared/databases/postgres/postgres-ha-config.yaml
+  #           
+  #           # Deploy MongoDB
+  #           kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-deployment.yaml
+  #           kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-service.yaml
+  #           kubectl apply -f infra/k8s/shared/databases/mongodb/mongodb-pvc.yaml
+  #           
+  #           # Deploy RabbitMQ
+  #           kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-statefulset.yaml
+  #           kubectl apply -f infra/k8s/shared/messaging/rabbitmq/rabbitmq-config.yaml
+  #           
+  #           # Deploy Redis (Sentinel mode with Master/Replica)
+  #           kubectl apply -f infra/k8s/shared/messaging/redis/redis-config.yaml
+  #           kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
+  #           kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
+  #           
+  #           echo "⏳ Waiting for infrastructure to be ready..."
+  #           # Wait for at least 1 pod of each service to be ready
+  #           kubectl wait --for=condition=ready pod -l app=postgres -n infrastructure --timeout=5m || echo "⚠️ Postgres not ready"
+  #           kubectl wait --for=condition=ready pod -l app=mongodb -n infrastructure --timeout=5m || echo "⚠️ MongoDB not ready"
+  #           kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
+  #           kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
+  #           
+  #           echo "✅ Infrastructure secrets and deployments updated"
+  #           echo "📊 Checking infrastructure pods..."
+  #           kubectl get pods -n infrastructure
+  #           kubectl get statefulset -n infrastructure || echo "⚠️ No StatefulSet found"
+  #           kubectl get pvc -n infrastructure || echo "No PVC found"
+  #         EOF
 
   # ==========================================
-  # JOB 11: DEPLOY SERVICES TO AWS EC2 (RUN AFTER INFRASTRUCTURE)
+  # JOB 11: DEPLOY SERVICES TO AWS EC2
   # ==========================================
   deploy-services:
     name: 🚀 Deploy Services to EC2
     needs: 
       - detect-changes
-      - deploy-infrastructure
+      # - deploy-infrastructure  # 🚧 COMMENTED OUT - Infrastructure deployment disabled
       # CHỜ TẤT CẢ BUILD JOBS HOÀN THÀNH
       - build-auth
       - build-face-recognition
