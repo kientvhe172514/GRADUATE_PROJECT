@@ -3,7 +3,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes, Public } from '@graduate-project/shared-common';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import { Public } from '../decorators/public.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
 import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';

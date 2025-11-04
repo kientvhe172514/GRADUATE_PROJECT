@@ -40,6 +40,16 @@ export class AuthJwtPermissionGuard
     const handler = context.getHandler();
     const controllerClass = context.getClass();
 
+    // Skip guard for Swagger and static assets
+    const request = context.switchToHttp().getRequest<Request>();
+    const path = request.url;
+    if (path.startsWith('/api/v1/auth-json') || 
+        path.startsWith('/api/v1/auth-yaml') ||
+        path.includes('swagger') ||
+        path.includes('api-docs')) {
+      return true;
+    }
+
     // Check if endpoint is marked as public with @Public()
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       handler,
