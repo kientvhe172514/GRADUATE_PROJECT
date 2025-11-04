@@ -2,8 +2,9 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { Employee } from '../../domain/entities/employee.entity';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
+import { PositionRepositoryPort } from '../ports/position.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { EMPLOYEE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
+import { EMPLOYEE_REPOSITORY, POSITION_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { EmployeeCreatedEventDto } from '../dto/employee/employee-created.event.dto';
 import { CreateEmployeeDto } from 'application/dto/employee/create-employee.dto';
 import { CreateEmployeeResponseDto } from 'application/dto/employee/create-employee-response.dto';
@@ -13,6 +14,8 @@ export class CreateEmployeeUseCase {
   constructor(
     @Inject(EMPLOYEE_REPOSITORY)
     private employeeRepository: EmployeeRepositoryPort,
+    @Inject(POSITION_REPOSITORY)
+    private positionRepository: PositionRepositoryPort,
     @Inject(EVENT_PUBLISHER)
     private eventPublisher: EventPublisherPort,
   ) {}
@@ -32,7 +35,18 @@ export class CreateEmployeeUseCase {
     Object.assign(employee, dto);
     employee.full_name = `${dto.first_name} ${dto.last_name}`;
 
-    const savedEmployee = await this.employeeRepository.create(employee); 
+    const savedEmployee = await this.employeeRepository.create(employee);
+    
+    // Fetch position to get suggested_role for RBAC
+    let suggestedRole = 'EMPLOYEE'; // Default role
+    if (savedEmployee.position_id) {
+      const position = await this.positionRepository.findById(savedEmployee.position_id);
+      if (position && position.suggested_role) {
+        suggestedRole = position.suggested_role;
+        console.log(`✅ Assigned role "${suggestedRole}" from position "${position.position_name}" to employee ${savedEmployee.id}`);
+      }
+    }
+
     const response: CreateEmployeeResponseDto = {
       id: savedEmployee.id!,
       account_id: savedEmployee.account_id,
@@ -44,7 +58,7 @@ export class CreateEmployeeUseCase {
       created_at: savedEmployee.created_at!,
     };
 
-    const eventDto = new EmployeeCreatedEventDto(savedEmployee);
+    const eventDto = new EmployeeCreatedEventDto(savedEmployee, suggestedRole);
     this.eventPublisher.publish('employee_created', eventDto);
 
     return ApiResponseDto.success(response, 'Employee created', 201, undefined, 'EMPLOYEE_CREATED');

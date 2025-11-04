@@ -32,6 +32,16 @@ export class CreateAccountUseCase {
     const tempPass = '1';
     const tempPasswordHash = await this.hashing.hash(tempPass);
 
+    // Determine role from suggested_role or default to EMPLOYEE
+    let assignedRole = dto.suggested_role || 'EMPLOYEE';
+    
+    // Validate role exists in AccountRole enum
+    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'];
+    if (!validRoles.includes(assignedRole.toUpperCase())) {
+      console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
+      assignedRole = 'EMPLOYEE';
+    }
+
     // Create account using Factory Pattern
     const account = AccountFactory.createEmployeeAccount({
       email: dto.email,
@@ -43,6 +53,7 @@ export class CreateAccountUseCase {
       department_name: dto.department_name,
       position_id: dto.position_id,
       position_name: dto.position_name,
+      role: assignedRole as any, // Assign role from position's suggested_role
     });
 
     const savedAccount = await this.accountRepo.create(account);

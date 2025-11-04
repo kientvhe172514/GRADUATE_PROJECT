@@ -7,7 +7,6 @@ export class AccountCreatedEventDto {
   @ApiProperty()
   employee_id: number;
 
-  
   @ApiProperty()
   temp_password: string;
 }

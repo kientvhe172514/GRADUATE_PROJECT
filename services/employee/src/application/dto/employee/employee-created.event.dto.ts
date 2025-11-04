@@ -17,11 +17,15 @@ export class EmployeeCreatedEventDto {
   @ApiProperty()
   hire_date: Date;
 
-  constructor(employee: Employee) {
+  @ApiProperty()
+  suggested_role: string; // Role from position for RBAC assignment
+
+  constructor(employee: Employee, suggestedRole: string = 'EMPLOYEE') {
     this.id = employee.id!;
     this.employee_code = employee.employee_code;
     this.full_name = employee.full_name;
     this.email = employee.email;
     this.hire_date = employee.hire_date;
+    this.suggested_role = suggestedRole;
   }
 }

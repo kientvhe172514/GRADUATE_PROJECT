@@ -36,4 +36,8 @@ export class CreateAccountDto {
   @ApiProperty({ required: false })
   @IsString()
   position_name?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  suggested_role?: string; // Role suggested from position (e.g., "MANAGER", "EMPLOYEE", "HR")
 }
