@@ -80,9 +80,10 @@ export class VerifyController {
     @Headers('authorization') authorization: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ status: string }> {
-    // Extract token from Authorization header
+    // If no token provided, return 200 OK without headers
+    // This allows public endpoints (login, register, swagger) to work
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('No token provided');
+      return { status: 'ok' };  // ← Return 200, không set headers
     }
 
     const token = authorization.substring(7);
@@ -104,6 +105,7 @@ export class VerifyController {
 
       return { status: 'ok' };
     } catch (error) {
+      // Invalid token → 401 (block request)
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -130,7 +132,7 @@ export class VerifyController {
   ): Promise<{ status: string }> {
     // Same logic as POST
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('No token provided');
+      return { status: 'ok' };  // ← Return 200 for public endpoints
     }
 
     const token = authorization.substring(7);
