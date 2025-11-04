@@ -60,9 +60,6 @@ spec:
   # Requires JWT authentication via auth-forward middleware
   - match: PathPrefix(`/api/v1/face`)
     kind: Rule
-    middlewares:
-      - name: auth-forward
-        namespace: graduate-project
     services:
     - name: face-recognition-srv
       namespace: graduate-project
