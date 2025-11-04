@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus, Inject } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { Permissions, CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { CreateApiKeyDto, UpdateApiKeyDto } from '../dto/api-key.dto';
 import { ApiKeyRepositoryPort } from '../../application/ports/api-key.repository.port';
 import { API_KEY_REPOSITORY } from '../../application/tokens';
@@ -9,7 +9,6 @@ import * as crypto from 'crypto';
 
 @ApiTags('api-keys')
 @Controller('api-keys')
-@UseGuards(AuthGuard('jwt'))
 @ApiBearerAuth()
 export class ApiKeyController {
   constructor(
@@ -18,7 +17,7 @@ export class ApiKeyController {
   ) {}
 
   @Get()
-  @Permissions('api_key.read')
+  @AuthPermissions('api_key.read')
   @ApiOperation({ summary: 'Get all API keys' })
   @ApiQuery({ name: 'status', required: false, example: 'active', description: 'Filter by status' })
   @ApiQuery({ name: 'service_name', required: false, example: 'face-recognition', description: 'Filter by service name' })
@@ -39,7 +38,7 @@ export class ApiKeyController {
   }
 
   @Get(':id')
-  @Permissions('api_key.read')
+  @AuthPermissions('api_key.read')
   async getApiKeyById(@Param('id') id: number) {
     const apiKey = await this.apiKeyRepository.findById(id);
     return {
@@ -49,7 +48,7 @@ export class ApiKeyController {
   }
 
   @Get(':id/usage-stats')
-  @Permissions('api_key.read')
+  @AuthPermissions('api_key.read')
   @ApiOperation({ summary: 'Get usage statistics for an API key' })
   async getApiKeyUsageStats(@Param('id') id: number) {
     const stats = await this.apiKeyRepository.getUsageStats(id);
@@ -60,7 +59,7 @@ export class ApiKeyController {
   }
 
   @Post()
-  @Permissions('api_key.create')
+  @AuthPermissions('api_key.create')
   @HttpCode(HttpStatus.CREATED)
   async createApiKey(@Body() dto: CreateApiKeyDto, @CurrentUser() user: JwtPayload) {
     // TODO: Implement create API key
@@ -85,7 +84,7 @@ export class ApiKeyController {
   }
 
   @Put(':id')
-  @Permissions('api_key.update')
+  @AuthPermissions('api_key.update')
   async updateApiKey(
     @Param('id') id: number,
     @Body() dto: UpdateApiKeyDto,
@@ -101,7 +100,7 @@ export class ApiKeyController {
   }
 
   @Delete(':id')
-  @Permissions('api_key.delete')
+  @AuthPermissions('api_key.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteApiKey(@Param('id') id: number) {
     // TODO: Implement delete (or revoke) API key
@@ -110,7 +109,7 @@ export class ApiKeyController {
   }
 
   @Post(':id/regenerate')
-  @Permissions('api_key.create')
+  @AuthPermissions('api_key.create')
   async regenerateApiKey(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
     // TODO: Implement regenerate API key
     // Generate new random key, hash it, update key_hash
@@ -129,7 +128,7 @@ export class ApiKeyController {
   }
 
   @Post(':id/rotate')
-  @Permissions('api_key.create')
+  @AuthPermissions('api_key.create')
   async rotateApiKey(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
     // TODO: Implement rotate API key (graceful rotation)
     // Create a new API key with same permissions

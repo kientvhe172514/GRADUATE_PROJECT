@@ -66,6 +66,12 @@ export class HeaderBasedPermissionGuard implements CanActivate {
       throw new UnauthorizedException('Authentication required - No user headers found');
     }
 
+    // ✅ SUPER_ADMIN bypass: Full access to all endpoints
+    if (user.role === 'SUPER_ADMIN') {
+      console.log('✅ [PERMISSION GUARD] SUPER_ADMIN detected - bypassing permission check');
+      return true;
+    }
+
     // Check permissions
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
