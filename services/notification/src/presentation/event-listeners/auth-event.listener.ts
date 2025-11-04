@@ -20,10 +20,32 @@ export class AuthEventListener {
     try {
       const dto: SendNotificationDto = {
         recipientId: event.userId,
+        recipientEmail: event.email,
+        recipientName: event.fullName,
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.HIGH,
         title: '🎉 Welcome to Zentry HR System!',
-        message: `Welcome ${event.fullName || event.email}! Your account has been created successfully. Please verify your email to get started.`,
+        message: [
+          `Hello ${event.fullName || 'User'},`,
+          '',
+          'Your account has been created successfully!',
+          '',
+          'Please use the following credentials to log in:',
+          '',
+          `📧 Email: ${event.email}`,
+          `🔑 Temporary Password: ${event.tempPassword}`,
+          '',
+          '⚠️ IMPORTANT: Please change your password immediately after first login.',
+          '',
+          'To change your password:',
+          '1. Login with the temporary password',
+          '2. Go to Profile Settings',
+          '3. Select "Change Password"',
+          '4. Enter your new secure password',
+          '',
+          'Best regards,',
+          'Zentry HR System'
+        ].join('\n'),
         channels: [ChannelType.IN_APP, ChannelType.EMAIL],
         metadata: {
           eventType: 'auth.user-registered',
@@ -33,7 +55,7 @@ export class AuthEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] User registration notification sent successfully');
+      console.log('✅ [AuthEventListener] User registration notification sent successfully to:', event.email);
     } catch (error) {
       console.error('❌ [AuthEventListener] Error handling auth.user-registered:', error);
     }

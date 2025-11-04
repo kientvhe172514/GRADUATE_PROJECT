@@ -54,6 +54,17 @@ export class CreateAccountUseCase {
     console.log('Publishing account_created with data:', backEvent);
     this.publisher.publish('account_created', backEvent);
 
+    // Publish auth.user-registered event for notification service
+    const userRegisteredEvent = {
+      userId: savedAccount.id!,
+      email: savedAccount.email,
+      fullName: dto.full_name,
+      tempPassword: tempPass,
+      timestamp: new Date().toISOString(),
+    };
+    console.log('Publishing auth.user-registered with data:', userRegisteredEvent);
+    this.publisher.publish('auth.user-registered', userRegisteredEvent);
+
     return ApiResponseDto.success({ id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 'Account created with temporary password', 201, undefined, 'ACCOUNT_CREATED');
   }
 }
