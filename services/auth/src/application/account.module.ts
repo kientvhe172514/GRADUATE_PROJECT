@@ -3,9 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 
 import { AccountController } from '../presentation/controllers/account.controller';
 import { AdminController } from '../presentation/controllers/admin.controller';
+import { VerifyController } from '../presentation/controllers/verify.controller';
+import { JwtStrategy } from '../presentation/strategies/jwt.strategy';
 import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';  // Add
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
@@ -87,7 +90,7 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
       },
     ]),
   ],
-  controllers: [AccountController, AdminController, EmployeeCreatedListener],  // Add AdminController
+  controllers: [AccountController, AdminController, VerifyController, EmployeeCreatedListener],  // Add AdminController
   providers: [
     CreateAccountUseCase,
     LoginUseCase,
@@ -104,6 +107,7 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     ListAuditLogsUseCase,
     EmployeeCreatedHandler,
     RabbitMQEventSubscriber,
+    JwtStrategy,
     {
       provide: ACCOUNT_REPOSITORY,
       useClass: PostgresAccountRepository,

@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ExtractUserFromHeadersMiddleware } from '@graduate-project/shared-common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -32,6 +33,15 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
+
+  // Extract user from headers (set by Ingress ForwardAuth)
+  // Skip auth in dev mode if SKIP_AUTH=true
+  if (configService.get('SKIP_AUTH') !== 'true') {
+    app.use(new ExtractUserFromHeadersMiddleware().use);
+    logger.log('✅ Auth enabled - User extraction from headers active');
+  } else {
+    logger.warn('⚠️  SKIP_AUTH=true - Authentication DISABLED (Dev mode only!)');
+  }
 
   // Hybrid setup: HTTP + RabbitMQ listener for events from other services
   const rabbitmqUrl = configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672');

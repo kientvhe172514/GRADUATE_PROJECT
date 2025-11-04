@@ -9,7 +9,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtPayload } from '../types/jwt-payload.type';
 import { Request } from 'express';
-import { AuthGuard } from '@nestjs/passport';
 
 export const PERMISSIONS_KEY = 'permissions';
 export const REQUIRE_AUTH_KEY = 'require_auth';
@@ -19,11 +18,28 @@ export const Permissions = (...permissions: string[]) =>
 
 export const Public = () => SetMetadata(REQUIRE_AUTH_KEY, true);
 
+/**
+ * HeaderBasedPermissionGuard
+ * 
+ * Purpose: Check permissions based on user info from headers (set by Ingress)
+ * 
+ * NOTE: This guard does NOT verify JWT tokens!
+ * JWT verification is done by Auth Service at Ingress level.
+ * This guard only checks if user has required permissions.
+ * 
+ * Flow:
+ *   1. ExtractUserFromHeadersMiddleware reads headers and sets req.user
+ *   2. This guard checks req.user.permissions
+ *   3. If permission check fails → 403 Forbidden
+ * 
+ * Usage:
+ *   @Permissions('leave.create')
+ *   @Post()
+ *   async createLeave() { ... }
+ */
 @Injectable()
-export class JwtPermissionGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
-    super();
-  }
+export class HeaderBasedPermissionGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const handler = context.getHandler();
@@ -39,23 +55,16 @@ export class JwtPermissionGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    try {
-      // Call AuthGuard for authentication
-      const can = await super.canActivate(context);
-
-      if (!can) {
-        throw new UnauthorizedException('Authentication required');
-      }
-    } catch (error) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    // Get user from request
+    // Get request
     const request = context.switchToHttp().getRequest<Request>();
+    
+    // Get user from request (set by ExtractUserFromHeadersMiddleware)
     const user: JwtPayload = (request as any).user || request['user'];
 
-    // Log user permissions
-    // console.log('[PERMISSION GUARD] User permissions:', user.permissions || []);
+    // If no user in request, authentication is required
+    if (!user) {
+      throw new UnauthorizedException('Authentication required - No user headers found');
+    }
 
     // Check permissions
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
@@ -64,12 +73,9 @@ export class JwtPermissionGuard extends AuthGuard('jwt') {
     );
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
-      // console.log('[PERMISSION GUARD] No specific permissions required. Access granted.');
+      // No specific permissions required
       return true;
     }
-
-    // Log required permissions
-    // console.log('[PERMISSION GUARD] Required permissions:', requiredPermissions);
 
     const hasPermission = this.checkPermissions(
       user.permissions || [],
@@ -77,7 +83,6 @@ export class JwtPermissionGuard extends AuthGuard('jwt') {
     );
 
     if (!hasPermission) {
-      // console.log('[PERMISSION GUARD] Permission check failed. Missing required permissions.');
       throw new ForbiddenException(
         `Missing required permissions: ${requiredPermissions.join(', ')}`,
       );

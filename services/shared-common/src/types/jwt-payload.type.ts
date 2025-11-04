@@ -1,8 +1,8 @@
 export interface JwtPayload {
   // Standard JWT claims
   sub: number; // account_id
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
   
   // User identification
   email: string;

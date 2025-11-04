@@ -1,27 +1,57 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus, Inject } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { Permissions, CurrentUser, JwtPayload } from '@graduate-project/shared-common';
-import { CreateRoleDto, UpdateRoleDto, AssignPermissionsToRoleDto } from '../dto/role.dto';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { AuthPermissions } from '../decorators/auth-permissions.decorator';
+import {
+  CreateRoleDto,
+  UpdateRoleDto,
+  AssignPermissionsToRoleDto,
+} from '../dto/role.dto';
 import { RoleRepositoryPort } from '../../application/ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../application/tokens';
 
 @ApiTags('roles')
 @Controller('roles')
-// @UseGuards(AuthGuard('jwt'))
 @ApiBearerAuth()
 export class RoleController {
   constructor(
     @Inject(ROLE_REPOSITORY)
     private roleRepository: RoleRepositoryPort,
   ) {}
-  
+
   @Get()
-  @Permissions('role.read')
+  @AuthPermissions('role:read')
   @ApiOperation({ summary: 'Get all roles with pagination' })
-  @ApiQuery({ name: 'status', required: false, example: 'active', description: 'Filter by status: active, inactive' })
-  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, example: 20, description: 'Items per page' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    example: 'active',
+    description: 'Filter by status: active, inactive',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 20,
+    description: 'Items per page',
+  })
   async getAllRoles(
     @Query('status') status?: string,
     @Query('page') page: number = 1,
@@ -36,7 +66,7 @@ export class RoleController {
   }
 
   @Get(':id')
-  @Permissions('role.read')
+  @AuthPermissions('role:read')
   @ApiOperation({ summary: 'Get role by ID with permissions' })
   async getRoleById(@Param('id') id: number) {
     const role = await this.roleRepository.findByIdWithPermissions(id);
@@ -47,7 +77,7 @@ export class RoleController {
   }
 
   @Post()
-  @Permissions('role.create')
+  @AuthPermissions('role:create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
@@ -61,7 +91,7 @@ export class RoleController {
   }
 
   @Put(':id')
-  @Permissions('role.update')
+  @AuthPermissions('role:update')
   @ApiOperation({ summary: 'Update role information' })
   async updateRole(
     @Param('id') id: number,
@@ -78,7 +108,7 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @Permissions('role.delete')
+  @AuthPermissions('role:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteRole(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
     // TODO: Implement delete role
@@ -88,7 +118,7 @@ export class RoleController {
   }
 
   @Post(':id/permissions')
-  @Permissions('role.assign_permissions')
+  @AuthPermissions('role:assign-permissions')
   async assignPermissionsToRole(
     @Param('id') id: number,
     @Body() dto: AssignPermissionsToRoleDto,
@@ -104,7 +134,7 @@ export class RoleController {
   }
 
   @Delete(':id/permissions/:permissionId')
-  @Permissions('role.assign_permissions')
+  @AuthPermissions('role:assign-permissions')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removePermissionFromRole(
     @Param('id') id: number,
@@ -115,7 +145,7 @@ export class RoleController {
   }
 
   @Get(':id/permissions')
-  @Permissions('role.read')
+  @AuthPermissions('role:read')
   async getRolePermissions(@Param('id') id: number) {
     const permissions = await this.roleRepository.getRolePermissions(id);
     return {

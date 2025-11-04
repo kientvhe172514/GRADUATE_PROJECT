@@ -11,11 +11,14 @@ export * from './enums/error-codes.enum';
 export * from './types/jwt-payload.type';
 
 // Guards
-export * from './guards/jwt-permission.guard';
+export { HeaderBasedPermissionGuard } from './guards/jwt-permission.guard';
 export { Public, Permissions, REQUIRE_AUTH_KEY, PERMISSIONS_KEY } from './guards/jwt-permission.guard';
 
 // Decorators
 export * from './decorators/current-user.decorator';
+
+// Middlewares
+export * from './middlewares/extract-user.middleware';
 
 // Filters
 export * from './filters/http-exception.filter';

@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { HttpExceptionFilter } from '@graduate-project/shared-common';
+import { HttpExceptionFilter, ExtractUserFromHeadersMiddleware } from '@graduate-project/shared-common';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 
@@ -13,6 +13,15 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Extract user from headers (set by Ingress ForwardAuth)
+  // Skip auth in dev mode if SKIP_AUTH=true
+  if (configService.get('SKIP_AUTH') !== 'true') {
+    app.use(new ExtractUserFromHeadersMiddleware().use);
+    console.log('✅ Auth enabled - User extraction from headers active');
+  } else {
+    console.warn('⚠️  SKIP_AUTH=true - Authentication DISABLED (Dev mode only!)');
+  }
 
   // Hybrid setup: HTTP + RMQ listener for events from IAM (e.g., account_created)
   app.connectMicroservice<MicroserviceOptions>({
@@ -31,6 +40,7 @@ async function bootstrap() {
     .setDescription('Employee Service API')
     .setVersion('1.0')
     .addTag('employees')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/v1/employee', app, document);
