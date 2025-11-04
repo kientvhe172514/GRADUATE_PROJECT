@@ -1,6 +1,6 @@
 import { Controller, Post, Get, HttpCode, HttpStatus, UseGuards, Headers, Req, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Request, Response } from 'express';
 
@@ -38,7 +38,7 @@ export class VerifyController {
    */
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ 
     summary: 'Verify JWT token for API Gateway',
@@ -79,7 +79,7 @@ export class VerifyController {
    */
   @Get('verify')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ 
     summary: 'Verify JWT token for API Gateway (GET)',

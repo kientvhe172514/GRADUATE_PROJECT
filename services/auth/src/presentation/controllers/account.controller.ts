@@ -1,10 +1,9 @@
-import { Controller, Post, Put, Get, Body, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
 import { ApiResponseDto, BusinessException, ErrorCodes, Public } from '@graduate-project/shared-common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
 import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';
@@ -16,7 +15,6 @@ import { GetAccountUseCase } from '../../application/use-cases/get-account.use-c
 import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
 import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
-import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -59,7 +57,6 @@ export class AccountController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, type: LogoutResponseDto })
@@ -92,7 +89,6 @@ export class AccountController {
 
   @Get('me')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current account profile' })
   async me(@CurrentUser() user: any): Promise<ApiResponseDto<any>> {
@@ -102,7 +98,6 @@ export class AccountController {
 
   @Put('me/password')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change current account password' })
   @ApiBody({ schema: { properties: { current_password: { type: 'string' }, new_password: { type: 'string' } }, required: ['current_password','new_password'] } })
