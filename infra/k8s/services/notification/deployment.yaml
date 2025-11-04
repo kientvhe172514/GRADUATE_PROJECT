@@ -69,19 +69,19 @@ spec:
             cpu: "500m"
         startupProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/notification/health
             port: 3005
           initialDelaySeconds: 30  # Increased to allow DNS propagation
           periodSeconds: 10
           failureThreshold: 6
         readinessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/notification/health
             port: 3005
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/notification/health
             port: 3005
           initialDelaySeconds: 60
           periodSeconds: 30

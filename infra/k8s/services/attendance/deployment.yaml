@@ -99,7 +99,7 @@ spec:
         
         startupProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/attendance/health
             port: 3002
           initialDelaySeconds: 30  # Increased to allow DNS propagation
           periodSeconds: 10
@@ -108,7 +108,7 @@ spec:
         
         readinessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/attendance/health
             port: 3002
           periodSeconds: 10
           timeoutSeconds: 5
@@ -117,7 +117,7 @@ spec:
         
         livenessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/attendance/health
             port: 3002
           initialDelaySeconds: 60
           periodSeconds: 30
