@@ -17,8 +17,9 @@ public static class HeartbeatConsumerExtensions
     {
         cfg.ReceiveEndpoint("heartbeat_queue", e =>
         {
-            e.Durable = false;
-            e.AutoDelete = true;
+            e.Durable = true;
+            e.AutoDelete = false;
+            e.ExclusiveConsumer = false; // ✅ FIX: Không dùng exclusive để nhiều pods có thể cùng consume
             e.PrefetchCount = 1;
             e.ConcurrentMessageLimit = 1;
             e.ConfigureConsumer<HeartbeatConsumer>(context);
