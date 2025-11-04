@@ -32,7 +32,7 @@ async function bootstrap() {
   );
 
   // Global prefix
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1/notification');
 
   // Extract user from headers (set by Ingress ForwardAuth)
   // Skip auth in dev mode if SKIP_AUTH=true
