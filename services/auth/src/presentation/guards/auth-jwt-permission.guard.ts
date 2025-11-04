@@ -40,8 +40,10 @@ export class AuthJwtPermissionGuard
     const handler = context.getHandler();
     const controllerClass = context.getClass();
 
-    // Skip guard for Swagger and static assets
+    // Get request once for all checks
     const request = context.switchToHttp().getRequest<Request>();
+    
+    // Skip guard for Swagger and static assets
     const path = request.url;
     if (path.startsWith('/api/v1/auth-json') || 
         path.startsWith('/api/v1/auth-yaml') ||
@@ -71,7 +73,6 @@ export class AuthJwtPermissionGuard
     }
 
     // Get user from request (set by Passport JWT strategy)
-    const request = context.switchToHttp().getRequest<Request>();
     const user = (request as any).user;
 
     if (!user) {
