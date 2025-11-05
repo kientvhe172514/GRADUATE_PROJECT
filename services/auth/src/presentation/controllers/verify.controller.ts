@@ -25,7 +25,7 @@ import { JwtService } from '@nestjs/jwt';
  *   5. Target service reads headers directly (NO JWT verification needed!)
  */
 @ApiTags('auth-verify')
-@Controller('auth')
+@Controller('')
 export class VerifyController {
   constructor(private jwtService: JwtService) {}
 
