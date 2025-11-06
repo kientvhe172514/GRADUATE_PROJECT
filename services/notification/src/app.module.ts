@@ -15,8 +15,11 @@ import { HealthController } from './health.controller';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
-        entities: [__dirname + '/**/*.schema{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        entities: [
+          __dirname + '/infrastructure/persistence/typeorm/schemas/*.schema{.ts,.js}',
+        ],
+        // ⚠️ TEMPORARY: Enable synchronize in development until migrations are set up
+        synchronize: true,
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
