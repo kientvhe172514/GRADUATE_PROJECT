@@ -42,10 +42,24 @@ async function bootstrap() {
     .setDescription('Leave Service API')
     .setVersion('1.0')
     .addTag('leave')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('leave/swagger', app, document);
+  SwaggerModule.setup('leave/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = configService.get('APP_PORT') || 3003;
   await app.listen(port);

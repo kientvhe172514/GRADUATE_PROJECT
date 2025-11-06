@@ -69,10 +69,24 @@ async function bootstrap() {
     .addTag('notifications', 'Notification management endpoints')
     .addTag('push-tokens', 'Push token registration endpoints')
     .addTag('preferences', 'Notification preference settings')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer', // This name must match @ApiBearerAuth() decorator
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('notification/swagger', app, document);
+  SwaggerModule.setup('notification/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // ← Lưu token sau khi Authorize!
+    },
+  });
 
   const port = configService.get('APP_PORT', 3004);
   await app.listen(port);

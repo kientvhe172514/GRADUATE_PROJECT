@@ -42,10 +42,24 @@ async function bootstrap() {
     .setDescription('Reporting Service API')
     .setVersion('1.0')
     .addTag('reporting')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('reporting/swagger', app, document);
+  SwaggerModule.setup('reporting/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = configService.get('APP_PORT') || 3005;
   await app.listen(port);

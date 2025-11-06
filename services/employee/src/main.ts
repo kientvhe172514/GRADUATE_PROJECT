@@ -40,10 +40,24 @@ async function bootstrap() {
     .setDescription('Employee Service API')
     .setVersion('1.0')
     .addTag('employees')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('employee/swagger', app, document);
+  SwaggerModule.setup('employee/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = process.env.APP_PORT || 3001;
   await app.listen(port);

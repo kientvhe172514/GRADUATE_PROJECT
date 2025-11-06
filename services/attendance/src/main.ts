@@ -42,10 +42,24 @@ async function bootstrap() {
     .setDescription('Attendance Service API')
     .setVersion('1.0')
     .addTag('attendance')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('attendance/swagger', app, document);
+  SwaggerModule.setup('attendance/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = configService.get('APP_PORT') || 3004;
   await app.listen(port);

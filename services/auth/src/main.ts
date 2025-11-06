@@ -32,10 +32,24 @@ async function bootstrap() {
     .setTitle('IAM API')
     .setDescription('Auth Service API')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('auth/swagger', app, document);
+  SwaggerModule.setup('auth/swagger', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = process.env.APP_PORT || 3001;
   await app.listen(port);
