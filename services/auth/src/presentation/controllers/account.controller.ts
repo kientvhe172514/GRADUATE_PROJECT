@@ -18,7 +18,7 @@ import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../applicati
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
 
 @ApiTags('auth')
-@Controller('auth')
+@Controller('')
 export class AccountController {
   constructor(
     private createAccountUseCase: CreateAccountUseCase,

@@ -98,7 +98,7 @@ spec:
   
   # ===== AUTH SERVICE API =====
   # PUBLIC ROUTES (No Auth Required): /login, /register, /refresh
-  - match: PathPrefix(`/api/v1/auth/auth/login`) || PathPrefix(`/api/v1/auth/auth/register`) || PathPrefix(`/api/v1/auth/auth/refresh`)
+  - match: PathPrefix(`/api/v1/auth/login`) || PathPrefix(`/api/v1/auth/register`) || PathPrefix(`/api/v1/auth/refresh`)
     kind: Rule
     priority: 20
     services:
