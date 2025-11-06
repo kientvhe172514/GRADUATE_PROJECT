@@ -80,10 +80,10 @@ export class VerifyController {
     @Headers('authorization') authorization: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ status: string }> {
-    // If no token provided, return 200 OK without headers
-    // This allows public endpoints (login, register, swagger) to work
+    // Verify endpoint MUST have token
+    // Public routes (login, register) should NOT go through auth-forward middleware
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      return { status: 'ok' };  // ← Return 200, không set headers
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
     const token = authorization.substring(7);
@@ -130,9 +130,10 @@ export class VerifyController {
     @Headers('authorization') authorization: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ status: string }> {
-    // Same logic as POST
+    // Verify endpoint MUST have token
+    // Public routes (login, register) should NOT go through auth-forward middleware
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      return { status: 'ok' };  // ← Return 200 for public endpoints
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
     const token = authorization.substring(7);
