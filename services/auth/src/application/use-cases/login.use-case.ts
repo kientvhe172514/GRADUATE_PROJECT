@@ -86,9 +86,13 @@ export class LoginUseCase {
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
     // Create refresh token record
+    // IMPORTANT: Store token hash using SHA256 (deterministic) NOT bcrypt (random salt)
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    
     const refreshTokenEntity = new RefreshTokens();
     refreshTokenEntity.account_id = account.id!;
-    refreshTokenEntity.token_hash = await this.hashing.hash(refreshToken);
+    refreshTokenEntity.token_hash = tokenHash;
     refreshTokenEntity.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     refreshTokenEntity.device_fingerprint = userAgent;
     

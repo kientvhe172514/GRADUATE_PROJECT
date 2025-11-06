@@ -57,7 +57,9 @@ export class RefreshTokenUseCase {
     }
 
     // Find the refresh token in database
-    const tokenHash = await this.hashing.hash(refreshTokenDto.refresh_token);
+    // IMPORTANT: Use SHA256 hash (same as login) NOT bcrypt
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(refreshTokenDto.refresh_token).digest('hex');
     const refreshTokenRecord = await this.refreshTokensRepo.findByTokenHash(tokenHash);
     
     if (!refreshTokenRecord) {
