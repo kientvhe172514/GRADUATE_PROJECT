@@ -26,7 +26,7 @@ export class NotificationPreferenceController {
   @ApiOperation({ summary: 'Get user notification preferences' })
   @ApiResponse({ status: 200, description: 'Notification preferences retrieved successfully' })
   async getPreferences(@Req() req: any): Promise<ApiResponseDto<any>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     const preferences = await this.getPreferencesUseCase.execute(userId);
 
     return ApiResponseDto.success(preferences, 'Notification preferences retrieved successfully');
@@ -41,7 +41,7 @@ export class NotificationPreferenceController {
     @Req() req: any,
   ): Promise<ApiResponseDto<any>> {
     // Ensure user can only update their own preferences
-    dto.employeeId = req.user.id;
+    dto.employeeId = req.user.sub; // user.sub = userId
 
     const preference = await this.updatePreferenceUseCase.execute(dto);
 

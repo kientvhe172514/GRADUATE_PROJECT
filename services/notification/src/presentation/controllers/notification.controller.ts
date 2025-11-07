@@ -93,12 +93,12 @@ export class NotificationController {
     });
     console.log('📋 [GET Notifications] req.user:', req.user);
 
-    // Check if user exists
-    if (!req.user || !req.user.id) {
+    // Check if user exists (user.sub is the userId from JWT)
+    if (!req.user || !req.user.sub) {
       throw new Error('User not authenticated - missing X-User-Id header from Ingress');
     }
 
-    const userId = req.user.id; // From JWT token via Ingress headers
+    const userId = req.user.sub; // From JWT token via Ingress headers (user.sub = userId)
     console.log('📋 [GET Notifications] Fetching notifications for userId:', userId);
 
     const result = await this.getUserNotificationsUseCase.execute(userId, {
@@ -116,7 +116,7 @@ export class NotificationController {
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     await this.markAsReadUseCase.execute(id, userId);
 
     return ApiResponseDto.success(null, 'Notification marked as read');
@@ -127,7 +127,7 @@ export class NotificationController {
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   async markAllAsRead(@Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     await this.markAllAsReadUseCase.execute(userId);
 
     return ApiResponseDto.success(null, 'All notifications marked as read');
