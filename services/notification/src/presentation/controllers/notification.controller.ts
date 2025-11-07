@@ -13,7 +13,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.use-case';
@@ -26,6 +26,7 @@ import { ApiResponseDto } from '../../common/dto/api-response.dto';
 // NOTE: Notification Service is an internal service, authentication is handled by API Gateway/Auth Service
 // No JWT validation needed here - trust requests from internal network
 @ApiTags('notifications')
+@ApiBearerAuth('bearer')
 @Controller('')
 export class NotificationController {
   constructor(

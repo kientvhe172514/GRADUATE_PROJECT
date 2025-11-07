@@ -7,7 +7,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RegisterPushTokenUseCase } from '../../application/use-cases/register-push-token.use-case';
 import { UnregisterPushTokenUseCase } from '../../application/use-cases/unregister-push-token.use-case';
 import {
@@ -17,6 +17,7 @@ import {
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 @ApiTags('push-tokens')
+@ApiBearerAuth('bearer')
 @Controller('push-tokens')
 export class PushTokenController {
   constructor(

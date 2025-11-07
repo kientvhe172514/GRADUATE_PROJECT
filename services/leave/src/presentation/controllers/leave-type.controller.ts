@@ -1,9 +1,12 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateLeaveTypeUseCase } from '../../application/leave-type/use-cases/create-leave-type.use-case';
 import { GetLeaveTypesUseCase } from '../../application/leave-type/use-cases/get-leave-types.use-case';
 import { UpdateLeaveTypeUseCase } from '../../application/leave-type/use-cases/update-leave-type.use-case';
 import { CreateLeaveTypeDto, UpdateLeaveTypeDto } from '../../application/leave-type/dto/leave-type.dto';
 
+@ApiTags('leave-types')
+@ApiBearerAuth('bearer')
 @Controller('leave-types')
 export class LeaveTypeController {
   constructor(

@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateDepartmentDto } from '../../application/dto/department/create-department.dto';
 import { UpdateDepartmentDto } from '../../application/dto/department/update-department.dto';
 import { DepartmentDetailDto } from '../../application/dto/department/department-detail.dto';
@@ -12,6 +12,7 @@ import { DeleteDepartmentUseCase } from '../../application/use-cases/delete-depa
 import { ApiResponseDto, ResponseStatus } from '@graduate-project/shared-common';
 
 @ApiTags('departments')
+@ApiBearerAuth('bearer')
 @Controller('departments')
 export class DepartmentController {
   constructor(

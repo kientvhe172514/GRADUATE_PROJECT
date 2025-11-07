@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
 import { Controller, Post, Body, HttpCode, HttpStatus, Get, Param, Put, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateEmployeeUseCase } from '../../application/use-cases/create-employee.use-case';
 import { GetEmployeeDetailUseCase } from '../../application/use-cases/get-employee-detail.use-case';
 import { UpdateEmployeeUseCase } from '../../application/use-cases/update-employee.use-case';
@@ -24,6 +24,7 @@ import { CreateEmployeeDto } from '../../application/dto/employee/create-employe
 import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('employees')
+@ApiBearerAuth('bearer')
 @Controller('employees')
 export class EmployeeController {
   constructor(

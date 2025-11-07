@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, HttpStatus, ParseIntPipe, Inject } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { GetAllPositionsUseCase } from '../../application/use-cases/get-all-positions.use-case';
 import { GetPositionByIdUseCase } from '../../application/use-cases/get-position-by-id.use-case';
 import { CreatePositionUseCase } from '../../application/use-cases/create-position.use-case';
@@ -12,6 +12,7 @@ import { PositionListResponseDto } from '../../application/dto/position-list-res
 import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('positions')
+@ApiBearerAuth('bearer')
 @Controller('positions')
 export class PositionController {
   constructor(
