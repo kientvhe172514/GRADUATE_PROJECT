@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LEAVE_TYPE_REPOSITORY } from '../../tokens';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
+import { ListLeaveTypesQueryDto, LeaveTypeStatus } from '../dto/leave-type.dto';
 
 @Injectable()
 export class GetLeaveTypesUseCase {
@@ -9,10 +10,17 @@ export class GetLeaveTypesUseCase {
     private readonly leaveTypeRepository: ILeaveTypeRepository,
   ) {}
 
-  async execute(activeOnly: boolean = false) {
-    if (activeOnly) {
-      return this.leaveTypeRepository.findActive();
+  async execute(filters?: ListLeaveTypesQueryDto) {
+    if (filters?.status === LeaveTypeStatus.ACTIVE) {
+      // Optimization path
+      if (typeof filters.is_paid === 'undefined') {
+        return this.leaveTypeRepository.findActive();
+      }
+      return this.leaveTypeRepository.findFiltered(LeaveTypeStatus.ACTIVE, filters.is_paid);
     }
-    return this.leaveTypeRepository.findAll();
+    if (!filters || (typeof filters.status === 'undefined' && typeof filters.is_paid === 'undefined')) {
+      return this.leaveTypeRepository.findAll();
+    }
+    return this.leaveTypeRepository.findFiltered(filters.status, filters.is_paid);
   }
 }
