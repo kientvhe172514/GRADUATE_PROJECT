@@ -26,7 +26,7 @@ import { ApiResponseDto } from '../../common/dto/api-response.dto';
 // NOTE: Notification Service is an internal service, authentication is handled by API Gateway/Auth Service
 // No JWT validation needed here - trust requests from internal network
 @ApiTags('notifications')
-@Controller('notifications')
+@Controller('')
 export class NotificationController {
   constructor(
     private readonly sendNotificationUseCase: SendNotificationUseCase,
@@ -41,7 +41,21 @@ export class NotificationController {
   @ApiOperation({ summary: 'Send a notification' })
   @ApiResponse({ status: 201, description: 'Notification sent successfully' })
   async sendNotification(@Body() dto: SendNotificationDto): Promise<ApiResponseDto<any>> {
+    console.log('📨 [POST Notification] Sending notification:', {
+      recipientId: dto.recipientId,
+      title: dto.title,
+      channels: dto.channels,
+      notificationType: dto.notificationType,
+    });
+    
     const notification = await this.sendNotificationUseCase.execute(dto);
+    
+    console.log('📨 [POST Notification] Notification created:', {
+      id: notification.id,
+      recipientId: notification.recipientId,
+      isRead: notification.isRead,
+    });
+    
     return ApiResponseDto.success(notification, 'Notification sent successfully', 201);
   }
 
@@ -70,7 +84,22 @@ export class NotificationController {
     @Query('unreadOnly', new DefaultValuePipe(false), ParseBoolPipe)
     unreadOnly: boolean,
   ): Promise<ApiResponseDto<any>> {
-    const userId = req.user.id; // From JWT token
+    // Debug logging
+    console.log('📋 [GET Notifications] Request Headers:', {
+      'x-user-id': req.headers['x-user-id'],
+      'x-user-email': req.headers['x-user-email'],
+      'x-user-roles': req.headers['x-user-roles'],
+      authorization: req.headers['authorization']?.substring(0, 20) + '...',
+    });
+    console.log('📋 [GET Notifications] req.user:', req.user);
+
+    // Check if user exists
+    if (!req.user || !req.user.id) {
+      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    }
+
+    const userId = req.user.id; // From JWT token via Ingress headers
+    console.log('📋 [GET Notifications] Fetching notifications for userId:', userId);
 
     const result = await this.getUserNotificationsUseCase.execute(userId, {
       limit,
@@ -78,6 +107,7 @@ export class NotificationController {
       unreadOnly,
     });
 
+    console.log('📋 [GET Notifications] Found notifications:', result.total);
     return ApiResponseDto.success(result, 'User notifications retrieved successfully');
   }
 
