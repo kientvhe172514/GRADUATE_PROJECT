@@ -121,12 +121,19 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: PUSH_NOTIFICATION_SERVICE,
       useFactory: (configService: ConfigService, pushTokenRepo: PushTokenRepositoryPort) => {
-        // Always use mock for push notifications (Firebase not configured)
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'false' || 
-                       !configService.get('FIREBASE_PROJECT_ID');
-        return useMock 
-          ? new MockPushService() 
-          : new FirebasePushNotificationService(configService, pushTokenRepo);
+        // Use mock if explicitly enabled OR if Firebase credentials are missing
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
+                       !configService.get('FIREBASE_PROJECT_ID') ||
+                       !configService.get('FIREBASE_PRIVATE_KEY') ||
+                       !configService.get('FIREBASE_CLIENT_EMAIL');
+        
+        if (useMock) {
+          console.log('🔔 [PUSH] Using MockPushService (Firebase not configured)');
+          return new MockPushService();
+        } else {
+          console.log('🔥 [PUSH] Using FirebasePushNotificationService');
+          return new FirebasePushNotificationService(configService, pushTokenRepo);
+        }
       },
       inject: [ConfigService, PUSH_TOKEN_REPOSITORY],
     },
@@ -144,12 +151,18 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     {
       provide: SMS_SERVICE,
       useFactory: (configService: ConfigService) => {
-        // Always use mock for SMS (Twilio not configured)
-        const useMock = configService.get('USE_MOCK_SERVICES') === 'false' || 
-                       !configService.get('TWILIO_ACCOUNT_SID');
-        return useMock 
-          ? new MockSmsService() 
-          : new TwilioSmsService(configService);
+        // Use mock if explicitly enabled OR if Twilio credentials are missing
+        const useMock = configService.get('USE_MOCK_SERVICES') === 'true' || 
+                       !configService.get('TWILIO_ACCOUNT_SID') ||
+                       !configService.get('TWILIO_AUTH_TOKEN');
+        
+        if (useMock) {
+          console.log('📱 [SMS] Using MockSmsService (Twilio not configured)');
+          return new MockSmsService();
+        } else {
+          console.log('📱 [SMS] Using TwilioSmsService');
+          return new TwilioSmsService(configService);
+        }
       },
       inject: [ConfigService],
     },

@@ -53,7 +53,14 @@ export class NotificationMapper {
     schema.related_entity_type = notification.relatedEntityType ?? null;
     schema.related_entity_id = notification.relatedEntityId ?? null;
     schema.related_data = notification.relatedData ?? null;
-    schema.channels = DeliveryChannel.toChannels(notification.channels);
+    
+    // Debug logging for channels
+    console.log('🗄️ [MAPPER] notification.channels:', notification.channels);
+    console.log('🗄️ [MAPPER] notification.channels.map(c => c.type):', notification.channels.map(c => c.type));
+    const channelsArray = DeliveryChannel.toChannels(notification.channels);
+    console.log('🗄️ [MAPPER] DeliveryChannel.toChannels result:', channelsArray);
+    
+    schema.channels = channelsArray;
     schema.is_read = notification.isRead;
     schema.read_at = notification.readAt ?? null;
     schema.email_sent = notification.emailSent;
@@ -65,6 +72,8 @@ export class NotificationMapper {
     schema.metadata = notification.metadata ?? null;
     schema.created_at = notification.createdAt;
     schema.expires_at = notification.expiresAt ?? null;
+    
+    console.log('🗄️ [MAPPER] Final schema.channels:', schema.channels);
     return schema;
   }
 }

@@ -87,10 +87,14 @@ export class SendNotificationUseCase {
       pushSent: false,
       smsSent: false,
     });
+    
+    this.logger.log(`📨 [SEND] Notification entity created with channels: ${JSON.stringify(notification.channels.map(c => c.type))}`);
 
     // 4. Save to database
     const savedNotification = await this.notificationRepo.create(notification);
-    this.logger.log(`Notification created with ID: ${savedNotification.id}`);
+    this.logger.log(`📨 [SEND] Notification saved to DB with ID: ${savedNotification.id}`);
+    this.logger.log(`📨 [SEND] Saved notification channels in DB: ${JSON.stringify(savedNotification.channels.map(c => c.type))}`);
+
 
     // 5. Send through enabled channels (async, don't block)
     this.deliverNotification(savedNotification, preference).catch((error) => {
