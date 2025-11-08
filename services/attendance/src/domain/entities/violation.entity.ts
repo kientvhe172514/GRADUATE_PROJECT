@@ -1,17 +1,19 @@
 export class ViolationEntity {
   id?: number;
-  employeeId: number;
-  violationType: 'LATE' | 'EARLY_LEAVE' | 'MISSING_CHECKIN' | 'MISSING_CHECKOUT' | 'ABSENT' | 'OTHER';
-  violationDate: Date;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  description: string;
-  referenceId?: number; // ID của attendance record hoặc shift
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
-  approvedBy?: number;
-  approvedAt?: Date;
+  employee_id?: number;
+  shift_id?: number;
+  violation_type?: 'LATE' | 'EARLY_LEAVE' | 'MISSING_CHECKIN' | 'MISSING_CHECKOUT' | 'ABSENT' | 'OTHER';
+  violation_date?: Date;
+  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  description?: string;
+  detected_at?: Date;
+  reference_id?: number;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
+  approved_by?: number;
+  approved_at?: Date;
   notes?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  created_at?: Date;
+  updated_at?: Date;
 
   constructor(partial: Partial<ViolationEntity>) {
     Object.assign(this, partial);

@@ -17,7 +17,8 @@ async function bootstrap() {
   // Extract user from headers (set by Ingress ForwardAuth)
   // Skip auth in dev mode if SKIP_AUTH=true
   if (configService.get('SKIP_AUTH') !== 'true') {
-    app.use(new ExtractUserFromHeadersMiddleware().use);
+    const middleware = new ExtractUserFromHeadersMiddleware();
+    app.use(middleware.use.bind(middleware));
     console.log('✅ Auth enabled - User extraction from headers active');
   } else {
     console.warn('⚠️  SKIP_AUTH=true - Authentication DISABLED (Dev mode only!)');
@@ -61,9 +62,10 @@ async function bootstrap() {
     },
   });
 
-  const port = configService.get('APP_PORT') || 3004;
+  const port = configService.get<number>('APP_PORT') ?? 3004;
   await app.listen(port);
   console.log(`Attendance Service running on http://localhost:${port}`);
   console.log(`Swagger at http://localhost:${port}/api/v1/attendance`);
 }
-bootstrap();
+
+void bootstrap();
