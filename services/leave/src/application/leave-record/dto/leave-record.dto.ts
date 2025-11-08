@@ -1,4 +1,5 @@
 import { IsString, IsDateString, IsInt, IsBoolean, IsOptional, IsEnum, IsNumber, IsUrl, Min, IsObject } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum LeaveRecordStatus {
@@ -132,18 +133,22 @@ export class CancelLeaveDto {
 
 export class LeaveRecordResponseDto {
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   id: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   employee_id: number;
 
   @ApiProperty()
   employee_code: string;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   department_id: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   leave_type_id: number;
 
   @ApiProperty()
@@ -153,12 +158,15 @@ export class LeaveRecordResponseDto {
   end_date: Date;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   total_calendar_days: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   total_working_days: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   total_leave_days: number;
 
   @ApiProperty()
@@ -180,12 +188,15 @@ export class LeaveRecordResponseDto {
   requested_at: Date;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   approval_level: number;
 
   @ApiProperty({ required: false })
+  @Transform(({ value }) => value ? Number(value) : undefined)
   current_approver_id?: number;
 
   @ApiProperty({ required: false })
+  @Transform(({ value }) => value ? Number(value) : undefined)
   approved_by?: number;
 
   @ApiProperty({ required: false })
@@ -213,6 +224,7 @@ export class LeaveRecordResponseDto {
 export class GetLeaveRecordsQueryDto {
   @ApiProperty({ required: false, description: 'Filter by employee ID' })
   @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
   @IsInt()
   employee_id?: number;
 
@@ -223,6 +235,7 @@ export class GetLeaveRecordsQueryDto {
 
   @ApiProperty({ required: false, description: 'Filter by leave type ID' })
   @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
   @IsInt()
   leave_type_id?: number;
 
@@ -238,27 +251,34 @@ export class GetLeaveRecordsQueryDto {
 
   @ApiProperty({ required: false, description: 'Filter by department ID' })
   @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
   @IsInt()
   department_id?: number;
 }
 
 export class LeaveRecordStatsDto {
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   total_requests: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   pending_requests: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   approved_requests: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   rejected_requests: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   cancelled_requests: number;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   total_days_taken: number;
 }
 

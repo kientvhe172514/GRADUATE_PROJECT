@@ -1,5 +1,5 @@
 import { IsString, IsDateString, IsEnum, IsBoolean, IsOptional, IsInt, Min, Max, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum HolidayType {
@@ -180,6 +180,7 @@ export class UpdateHolidayDto {
 
 export class HolidayResponseDto {
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   id: number;
 
   @ApiProperty()
@@ -204,9 +205,11 @@ export class HolidayResponseDto {
   is_recurring: boolean;
 
   @ApiProperty({ required: false })
+  @Transform(({ value }) => value ? Number(value) : undefined)
   recurring_month?: number;
 
   @ApiProperty({ required: false })
+  @Transform(({ value }) => value ? Number(value) : undefined)
   recurring_day?: number;
 
   @ApiProperty({ required: false })
@@ -225,6 +228,7 @@ export class HolidayResponseDto {
   description?: string;
 
   @ApiProperty()
+  @Transform(({ value }) => Number(value))
   year: number;
 
   @ApiProperty({ enum: HolidayStatus })
@@ -240,6 +244,7 @@ export class HolidayResponseDto {
 export class GetHolidaysQueryDto {
   @ApiProperty({ required: false, example: 2025 })
   @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
   @IsInt()
   year?: number;
 

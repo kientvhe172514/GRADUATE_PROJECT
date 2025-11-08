@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, ParseIntPipe, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { 
   CreateHolidayDto, 
@@ -38,7 +39,8 @@ export class HolidayController {
   @ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'INACTIVE'] })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getAll(@Query() filters: GetHolidaysQueryDto): Promise<ApiResponseDto<HolidayResponseDto[]>> {
-    const data = await this.getHolidaysUseCase.execute(filters);
+    const result = await this.getHolidaysUseCase.execute(filters);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(data, 'Holidays retrieved successfully');
   }
 
@@ -48,7 +50,8 @@ export class HolidayController {
   @ApiParam({ name: 'year', type: Number, description: 'Year (e.g., 2025)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getCalendar(@Param('year', ParseIntPipe) year: number): Promise<ApiResponseDto<HolidayResponseDto[]>> {
-    const data = await this.getHolidaysByYearUseCase.execute(year);
+    const result = await this.getHolidaysByYearUseCase.execute(year);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(data, `Holiday calendar for ${year} retrieved successfully`);
   }
 
@@ -59,7 +62,8 @@ export class HolidayController {
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Holiday not found' })
   async getById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<HolidayResponseDto>> {
-    const data = await this.getHolidayByIdUseCase.execute(id);
+    const result = await this.getHolidayByIdUseCase.execute(id);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(data, 'Holiday retrieved successfully');
   }
 
@@ -69,7 +73,8 @@ export class HolidayController {
   @ApiResponse({ status: 201, type: ApiResponseDto })
   @ApiResponse({ status: 400, description: 'Holiday already exists' })
   async create(@Body() dto: CreateHolidayDto): Promise<ApiResponseDto<HolidayResponseDto>> {
-    const data = await this.createHolidayUseCase.execute(dto);
+    const result = await this.createHolidayUseCase.execute(dto);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(data, 'Holiday created successfully', HttpStatus.CREATED);
   }
 
@@ -81,7 +86,8 @@ export class HolidayController {
   })
   @ApiResponse({ status: 201, type: ApiResponseDto })
   async bulkCreate(@Body() dto: BulkCreateHolidaysDto): Promise<ApiResponseDto<HolidayResponseDto[]>> {
-    const data = await this.bulkCreateHolidaysUseCase.execute(dto);
+    const result = await this.bulkCreateHolidaysUseCase.execute(dto);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(
       data, 
       `Successfully created ${data.length} holiday(s)`,
@@ -99,7 +105,8 @@ export class HolidayController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateHolidayDto
   ): Promise<ApiResponseDto<HolidayResponseDto>> {
-    const data = await this.updateHolidayUseCase.execute(id, dto);
+    const result = await this.updateHolidayUseCase.execute(id, dto);
+    const data = plainToInstance(HolidayResponseDto, result);
     return ApiResponseDto.success(data, 'Holiday updated successfully');
   }
 

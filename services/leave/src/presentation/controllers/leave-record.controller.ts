@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, ParseIntPipe, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import {
   CreateLeaveRequestDto,
@@ -46,7 +47,8 @@ export class LeaveRecordController {
   @ApiQuery({ name: 'department_id', required: false, type: Number })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getAll(@Query() filters: GetLeaveRecordsQueryDto): Promise<ApiResponseDto<LeaveRecordResponseDto[]>> {
-    const data = await this.getLeaveRecordsUseCase.execute(filters);
+    const result = await this.getLeaveRecordsUseCase.execute(filters);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave records retrieved successfully');
   }
 
@@ -57,7 +59,8 @@ export class LeaveRecordController {
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Leave record not found' })
   async getById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.getLeaveRecordByIdUseCase.execute(id);
+    const result = await this.getLeaveRecordByIdUseCase.execute(id);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave record retrieved successfully');
   }
 
@@ -71,7 +74,8 @@ export class LeaveRecordController {
   @ApiResponse({ status: 400, description: 'Overlapping leave or insufficient balance' })
   @ApiResponse({ status: 404, description: 'Leave type or balance not found' })
   async create(@Body() dto: CreateLeaveRequestDto): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.createLeaveRequestUseCase.execute(dto);
+    const result = await this.createLeaveRequestUseCase.execute(dto);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request created successfully', HttpStatus.CREATED);
   }
 
@@ -89,7 +93,8 @@ export class LeaveRecordController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateLeaveRecordDto
   ): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.updateLeaveRequestUseCase.execute(id, dto);
+    const result = await this.updateLeaveRequestUseCase.execute(id, dto);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request updated successfully');
   }
 
@@ -107,7 +112,8 @@ export class LeaveRecordController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ApproveLeaveDto
   ): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.approveLeaveUseCase.execute(id, dto);
+    const result = await this.approveLeaveUseCase.execute(id, dto);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request approved successfully');
   }
 
@@ -125,7 +131,8 @@ export class LeaveRecordController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RejectLeaveDto
   ): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.rejectLeaveUseCase.execute(id, dto);
+    const result = await this.rejectLeaveUseCase.execute(id, dto);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request rejected successfully');
   }
 
@@ -143,7 +150,8 @@ export class LeaveRecordController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CancelLeaveDto
   ): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const data = await this.cancelLeaveUseCase.execute(id, dto);
+    const result = await this.cancelLeaveUseCase.execute(id, dto);
+    const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request cancelled successfully');
   }
 }

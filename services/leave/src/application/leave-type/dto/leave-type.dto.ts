@@ -1,4 +1,5 @@
 import { IsBoolean, IsEnum, IsHexColor, IsInt, IsNumber, IsOptional, IsPositive, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export enum LeaveTypeStatus {
   ACTIVE = 'ACTIVE',
@@ -215,12 +216,19 @@ export class ListLeaveTypesQueryDto {
   status?: LeaveTypeStatus;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   is_paid?: boolean;
 }
 
 export class LeaveTypeResponseDto {
+  @Transform(({ value }) => Number(value))
   id: number;
+
   leave_type_code: string;
   leave_type_name: string;
   description?: string;
@@ -228,22 +236,42 @@ export class LeaveTypeResponseDto {
   requires_approval: boolean;
   requires_document: boolean;
   deducts_from_balance: boolean;
+
+  @Transform(({ value }) => value ? Number(value) : undefined)
   max_days_per_year?: number;
+
+  @Transform(({ value }) => value ? Number(value) : undefined)
   max_consecutive_days?: number;
+
+  @Transform(({ value }) => Number(value))
   min_notice_days: number;
+
   exclude_holidays: boolean;
   exclude_weekends: boolean;
   allow_carry_over: boolean;
+
+  @Transform(({ value }) => value ? Number(value) : undefined)
   max_carry_over_days?: number;
+
+  @Transform(({ value }) => Number(value))
   carry_over_expiry_months: number;
+
   is_prorated: boolean;
   proration_basis: ProrationBasis | string;
   is_accrued: boolean;
+
+  @Transform(({ value }) => value ? Number(value) : undefined)
   accrual_rate?: number;
+
+  @Transform(({ value }) => Number(value))
   accrual_start_month: number;
+
   color_hex: string;
   icon?: string;
+
+  @Transform(({ value }) => Number(value))
   sort_order: number;
+
   status: LeaveTypeStatus | string;
   created_at: Date;
   updated_at: Date;
