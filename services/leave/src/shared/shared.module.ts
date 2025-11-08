@@ -3,7 +3,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Global()
-
 @Module({
   imports: [
     ClientsModule.registerAsync([
@@ -11,8 +10,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         name: 'EMPLOYEE_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
-          const employeeQueue = configService.getOrThrow<string>('RABBITMQ_EMPLOYEE_QUEUE') as string;
+          // Make RabbitMQ optional - use default values if not configured
+          const rabbitmqUrl = configService.get<string>('RABBITMQ_URL', 'amqp://localhost:5672');
+          const employeeQueue = configService.get<string>('RABBITMQ_EMPLOYEE_QUEUE', 'employee_queue');
           return {
             transport: Transport.RMQ,
             options: {
@@ -21,6 +21,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               queueOptions: {
                 durable: true,
               },
+              // Prevent app crash if RabbitMQ is not available
+              noAck: false,
+              prefetchCount: 1,
             },
           };
         },
@@ -30,8 +33,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         name: 'NOTIFICATION_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
-          const notificationQueue = configService.getOrThrow<string>('RABBITMQ_NOTIFICATION_QUEUE') as string;
+          // Make RabbitMQ optional - use default values if not configured
+          const rabbitmqUrl = configService.get<string>('RABBITMQ_URL', 'amqp://localhost:5672');
+          const notificationQueue = configService.get<string>('RABBITMQ_NOTIFICATION_QUEUE', 'notification_queue');
           return {
             transport: Transport.RMQ,
             options: {
@@ -40,6 +44,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               queueOptions: {
                 durable: true,
               },
+              // Prevent app crash if RabbitMQ is not available
+              noAck: false,
+              prefetchCount: 1,
             },
           };
         },

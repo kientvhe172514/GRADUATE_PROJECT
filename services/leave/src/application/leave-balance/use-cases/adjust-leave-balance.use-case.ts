@@ -1,7 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
 import { ILeaveBalanceTransactionRepository } from '../../ports/leave-balance-transaction.repository.interface';
 import { LEAVE_BALANCE_REPOSITORY, LEAVE_BALANCE_TRANSACTION_REPOSITORY } from '../../tokens';
+import { LeaveBalanceResponseDto } from '../dto/leave-balance.dto';
 
 @Injectable()
 export class AdjustLeaveBalanceUseCase {
@@ -12,10 +14,14 @@ export class AdjustLeaveBalanceUseCase {
     private readonly transactions: ILeaveBalanceTransactionRepository,
   ) {}
 
-  async execute(employeeId: number, leaveTypeId: number, year: number, adjustment: number, description?: string, createdBy?: number) {
+  async execute(employeeId: number, leaveTypeId: number, year: number, adjustment: number, description?: string, createdBy?: number): Promise<LeaveBalanceResponseDto> {
     const balance = await this.balances.findByEmployeeLeaveTypeAndYear(employeeId, leaveTypeId, year);
     if (!balance) {
-      throw new NotFoundException('Leave balance not found');
+      throw new BusinessException(
+        ErrorCodes.LEAVE_BALANCE_NOT_FOUND,
+        'Leave balance not found',
+        404,
+      );
     }
     const before = Number(balance.remaining_days);
     const newAdjusted = Number(balance.adjusted_days) + Number(adjustment);
@@ -38,7 +44,11 @@ export class AdjustLeaveBalanceUseCase {
       created_by: createdBy,
     });
 
-    return { ...balance, adjusted_days: newAdjusted, remaining_days: after };
+    return { 
+      ...balance, 
+      adjusted_days: newAdjusted, 
+      remaining_days: after 
+    } as LeaveBalanceResponseDto;
   }
 }
 
