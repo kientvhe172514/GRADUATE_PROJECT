@@ -12,14 +12,22 @@ export class ViolationDetectedHandler {
 
   async handle(event: ViolationDetectedEvent): Promise<void> {
     // Publish event to notification service for alerts
-    this.eventPublisher.publish('attendance.violation-detected', {
-      violationId: event.violation.id,
-      employeeId: event.violation.employee_id,
-      shiftId: event.violation.shift_id,
-      violationType: event.violation.violation_type,
-      severity: event.violation.severity,
-      description: event.violation.description,
-      detectedAt: event.violation.detected_at,
+    const violationId = event.violation.id ?? 0;
+    const employeeId = event.violation.employee_id ?? 0;
+    const shiftId = event.violation.shift_id ?? 0;
+    const violationType = event.violation.violation_type ?? 'OTHER';
+    const severity = event.violation.severity ?? 'LOW';
+    const description = event.violation.description ?? '';
+    const detectedAt = event.violation.detected_at ?? new Date();
+
+    await this.eventPublisher.publish('attendance.violation-detected', {
+      violationId,
+      employeeId,
+      shiftId,
+      violationType,
+      severity,
+      description,
+      detectedAt,
     });
   }
 }

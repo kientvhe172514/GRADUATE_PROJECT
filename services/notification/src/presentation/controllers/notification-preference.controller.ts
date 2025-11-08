@@ -7,13 +7,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateNotificationPreferenceUseCase } from '../../application/use-cases/update-notification-preference.use-case';
 import { GetNotificationPreferencesUseCase } from '../../application/use-cases/get-notification-preferences.use-case';
 import { UpdateNotificationPreferenceDto } from '../../application/dtos/update-notification-preference.dto';
 import { ApiResponseDto } from '../../common/dto/api-response.dto';
 
 @ApiTags('preferences')
+@ApiBearerAuth('bearer')
 @Controller('notification-preferences')
 export class NotificationPreferenceController {
   constructor(
@@ -26,7 +27,7 @@ export class NotificationPreferenceController {
   @ApiOperation({ summary: 'Get user notification preferences' })
   @ApiResponse({ status: 200, description: 'Notification preferences retrieved successfully' })
   async getPreferences(@Req() req: any): Promise<ApiResponseDto<any>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     const preferences = await this.getPreferencesUseCase.execute(userId);
 
     return ApiResponseDto.success(preferences, 'Notification preferences retrieved successfully');
@@ -41,7 +42,7 @@ export class NotificationPreferenceController {
     @Req() req: any,
   ): Promise<ApiResponseDto<any>> {
     // Ensure user can only update their own preferences
-    dto.employeeId = req.user.id;
+    dto.employeeId = req.user.sub; // user.sub = userId
 
     const preference = await this.updatePreferenceUseCase.execute(dto);
 

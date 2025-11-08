@@ -32,12 +32,11 @@ export class CreateAccountUseCase {
     const tempPass = dto.password || '1';
     const isCustomPassword = !!dto.password;
     const tempPasswordHash = await this.hashing.hash(tempPass);
-
     // Determine role from suggested_role or default to EMPLOYEE
     let assignedRole = dto.suggested_role || 'EMPLOYEE';
     
     // Validate role exists in AccountRole enum
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_ADMIN', 'HR_STAFF', 'HR', 'MANAGER', 'EMPLOYEE'];
+    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_HEAD','MANAGER', 'EMPLOYEE'];
     if (!validRoles.includes(assignedRole.toUpperCase())) {
       console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
       assignedRole = 'EMPLOYEE';

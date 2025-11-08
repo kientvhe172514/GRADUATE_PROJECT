@@ -13,7 +13,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.use-case';
@@ -26,7 +26,8 @@ import { ApiResponseDto } from '../../common/dto/api-response.dto';
 // NOTE: Notification Service is an internal service, authentication is handled by API Gateway/Auth Service
 // No JWT validation needed here - trust requests from internal network
 @ApiTags('notifications')
-@Controller('notifications')
+@ApiBearerAuth('bearer')
+@Controller('')
 export class NotificationController {
   constructor(
     private readonly sendNotificationUseCase: SendNotificationUseCase,
@@ -41,7 +42,21 @@ export class NotificationController {
   @ApiOperation({ summary: 'Send a notification' })
   @ApiResponse({ status: 201, description: 'Notification sent successfully' })
   async sendNotification(@Body() dto: SendNotificationDto): Promise<ApiResponseDto<any>> {
+    console.log('📨 [POST Notification] Sending notification:', {
+      recipientId: dto.recipientId,
+      title: dto.title,
+      channels: dto.channels,
+      notificationType: dto.notificationType,
+    });
+    
     const notification = await this.sendNotificationUseCase.execute(dto);
+    
+    console.log('📨 [POST Notification] Notification created:', {
+      id: notification.id,
+      recipientId: notification.recipientId,
+      isRead: notification.isRead,
+    });
+    
     return ApiResponseDto.success(notification, 'Notification sent successfully', 201);
   }
 
@@ -70,7 +85,22 @@ export class NotificationController {
     @Query('unreadOnly', new DefaultValuePipe(false), ParseBoolPipe)
     unreadOnly: boolean,
   ): Promise<ApiResponseDto<any>> {
-    const userId = req.user.id; // From JWT token
+    // Debug logging
+    console.log('📋 [GET Notifications] Request Headers:', {
+      'x-user-id': req.headers['x-user-id'],
+      'x-user-email': req.headers['x-user-email'],
+      'x-user-roles': req.headers['x-user-roles'],
+      authorization: req.headers['authorization']?.substring(0, 20) + '...',
+    });
+    console.log('📋 [GET Notifications] req.user:', req.user);
+
+    // Check if user exists (user.sub is the userId from JWT)
+    if (!req.user || !req.user.sub) {
+      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    }
+
+    const userId = req.user.sub; // From JWT token via Ingress headers (user.sub = userId)
+    console.log('📋 [GET Notifications] Fetching notifications for userId:', userId);
 
     const result = await this.getUserNotificationsUseCase.execute(userId, {
       limit,
@@ -78,6 +108,7 @@ export class NotificationController {
       unreadOnly,
     });
 
+    console.log('📋 [GET Notifications] Found notifications:', result.total);
     return ApiResponseDto.success(result, 'User notifications retrieved successfully');
   }
 
@@ -86,7 +117,7 @@ export class NotificationController {
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     await this.markAsReadUseCase.execute(id, userId);
 
     return ApiResponseDto.success(null, 'Notification marked as read');
@@ -97,7 +128,7 @@ export class NotificationController {
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   async markAllAsRead(@Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.id;
+    const userId = req.user.sub; // user.sub = userId
     await this.markAllAsReadUseCase.execute(userId);
 
     return ApiResponseDto.success(null, 'All notifications marked as read');

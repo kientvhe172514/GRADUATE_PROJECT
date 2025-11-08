@@ -48,18 +48,24 @@ export class SendNotificationUseCase {
     this.logger.log(
       `Sending notification to user ${dto.recipientId}, type: ${dto.notificationType}`,
     );
+    this.logger.log(`📨 [SEND] Requested channels: ${JSON.stringify(dto.channels)}`);
 
     // 1. Get user preferences
     const preference = await this.preferenceRepo.findByEmployeeIdAndType(
       dto.recipientId,
       dto.notificationType,
     );
+    this.logger.log(`📨 [SEND] User preference found: ${preference ? 'YES' : 'NO'}`);
+    if (preference) {
+      this.logger.log(`📨 [SEND] Preference details: emailEnabled=${preference.emailEnabled}, pushEnabled=${preference.pushEnabled}, inAppEnabled=${preference.inAppEnabled}`);
+    }
 
     // 2. Filter channels based on preferences
     const enabledChannels = this.filterChannelsByPreference(
       dto.channels || [ChannelType.IN_APP],
       preference,
     );
+    this.logger.log(`📨 [SEND] Enabled channels after filter: ${JSON.stringify(enabledChannels.map(c => c.type))}`);
 
     // 3. Create notification entity
     const notification = new Notification({
@@ -81,10 +87,14 @@ export class SendNotificationUseCase {
       pushSent: false,
       smsSent: false,
     });
+    
+    this.logger.log(`📨 [SEND] Notification entity created with channels: ${JSON.stringify(notification.channels.map(c => c.type))}`);
 
     // 4. Save to database
     const savedNotification = await this.notificationRepo.create(notification);
-    this.logger.log(`Notification created with ID: ${savedNotification.id}`);
+    this.logger.log(`📨 [SEND] Notification saved to DB with ID: ${savedNotification.id}`);
+    this.logger.log(`📨 [SEND] Saved notification channels in DB: ${JSON.stringify(savedNotification.channels.map(c => c.type))}`);
+
 
     // 5. Send through enabled channels (async, don't block)
     this.deliverNotification(savedNotification, preference).catch((error) => {
@@ -107,17 +117,23 @@ export class SendNotificationUseCase {
     requestedChannels: ChannelType[],
     preference: NotificationPreference | null,
   ): DeliveryChannel[] {
+    this.logger.log(`🔍 [FILTER] Requested channels: ${JSON.stringify(requestedChannels)}`);
+    this.logger.log(`🔍 [FILTER] Preference: ${preference ? 'EXISTS' : 'NULL'}`);
+    
     if (!preference) {
+      this.logger.log(`🔍 [FILTER] No preference found, returning all requested channels`);
       return requestedChannels.map((type) => new DeliveryChannel(type, true));
     }
 
     // Check Do Not Disturb
     if (preference.isInDoNotDisturbPeriod()) {
-      this.logger.log('User is in Do Not Disturb period, skipping notification');
+      this.logger.log('🔍 [FILTER] User is in Do Not Disturb period, skipping notification');
       return []; // Don't send any notifications during DND
     }
 
-    return requestedChannels
+    this.logger.log(`🔍 [FILTER] Checking preferences: email=${preference.emailEnabled}, push=${preference.pushEnabled}, sms=${preference.smsEnabled}, inApp=${preference.inAppEnabled}`);
+
+    const filtered = requestedChannels
       .filter((channel) => {
         switch (channel) {
           case ChannelType.EMAIL:
@@ -133,6 +149,9 @@ export class SendNotificationUseCase {
         }
       })
       .map((type) => new DeliveryChannel(type, true));
+
+    this.logger.log(`🔍 [FILTER] Filtered channels: ${JSON.stringify(filtered.map(c => c.type))}`);
+    return filtered;
   }
 
   private async deliverNotification(

@@ -12,17 +12,28 @@ export class ShiftCompletedHandler {
 
   async handle(event: ShiftCompletedEvent): Promise<void> {
     // Publish event to reporting service for timesheet sync
-    this.eventPublisher.publish('attendance.shift-completed', {
-      shiftId: event.shift.id,
-      employeeId: event.shift.employee_id,
-      employeeCode: event.shift.employee_code,
-      departmentId: event.shift.department_id,
-      shiftDate: event.shift.shift_date,
-      workHours: event.shift.work_hours,
-      overtimeHours: event.shift.overtime_hours,
-      lateMinutes: event.shift.late_minutes,
-      earlyLeaveMinutes: event.shift.early_leave_minutes,
-      status: event.shift.status,
+    const shiftId = event.shift.id ?? 0;
+    const employeeId = event.shift.employee_id ?? 0;
+    const employeeCode = event.shift.employee_code ?? '';
+    const departmentId = event.shift.department_id ?? 0;
+    const shiftDate = event.shift.shift_date ?? new Date();
+    const workHours = event.shift.work_hours ?? 0;
+    const overtimeHours = event.shift.overtime_hours ?? 0;
+    const lateMinutes = event.shift.late_minutes ?? 0;
+    const earlyLeaveMinutes = event.shift.early_leave_minutes ?? 0;
+    const status = event.shift.status ?? 'COMPLETED';
+
+    await this.eventPublisher.publish('attendance.shift-completed', {
+      shiftId,
+      employeeId,
+      employeeCode,
+      departmentId,
+      shiftDate,
+      workHours,
+      overtimeHours,
+      lateMinutes,
+      earlyLeaveMinutes,
+      status,
     });
   }
 }
