@@ -1,11 +1,17 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, ParseIntPipe, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { CreateLeaveTypeUseCase } from '../../application/leave-type/use-cases/create-leave-type.use-case';
 import { GetLeaveTypesUseCase } from '../../application/leave-type/use-cases/get-leave-types.use-case';
 import { UpdateLeaveTypeUseCase } from '../../application/leave-type/use-cases/update-leave-type.use-case';
 import { GetLeaveTypeByIdUseCase } from '../../application/leave-type/use-cases/get-leave-type-by-id.use-case';
 import { DeleteLeaveTypeUseCase } from '../../application/leave-type/use-cases/delete-leave-type.use-case';
-import { CreateLeaveTypeDto, UpdateLeaveTypeDto, ListLeaveTypesQueryDto, LeaveTypeResponseDto, LeaveTypeStatus } from '../../application/leave-type/dto/leave-type.dto';
+import { 
+  CreateLeaveTypeDto, 
+  UpdateLeaveTypeDto, 
+  ListLeaveTypesQueryDto,
+  LeaveTypeResponseDto 
+} from '../../application/leave-type/dto/leave-type.dto';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('leave-types')
@@ -21,38 +27,73 @@ export class LeaveTypeController {
   ) {}
 
   @Get()
-  async getLeaveTypes(@Query() query: ListLeaveTypesQueryDto): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
-    const data = await this.getLeaveTypesUseCase.execute(query);
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all leave types with optional filters' })
+  @ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'INACTIVE'] })
+  @ApiQuery({ name: 'is_paid', required: false, type: Boolean })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async getAll(@Query() filters: ListLeaveTypesQueryDto): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
+    const result = await this.getLeaveTypesUseCase.execute(filters);
+    const data = plainToInstance(LeaveTypeResponseDto, result);
     return ApiResponseDto.success(data, 'Leave types retrieved successfully');
   }
 
+  @Get('active')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all active leave types (for dropdown/selection)' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async getActive(): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
+    const result = await this.getLeaveTypesUseCase.execute({ status: 'ACTIVE' } as any);
+    const data = plainToInstance(LeaveTypeResponseDto, result);
+    return ApiResponseDto.success(data, 'Active leave types retrieved successfully');
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get leave type by ID' })
+  @ApiParam({ name: 'id', type: Number, description: 'Leave type ID' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Leave type not found' })
+  async getById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
+    const result = await this.getLeaveTypeByIdUseCase.execute(id);
+    const data = plainToInstance(LeaveTypeResponseDto, result);
+    return ApiResponseDto.success(data, 'Leave type retrieved successfully');
+  }
+
   @Post()
-  async createLeaveType(@Body() dto: CreateLeaveTypeDto): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
-    const data = await this.createLeaveTypeUseCase.execute(dto);
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new leave type' })
+  @ApiResponse({ status: 201, type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Leave type code already exists' })
+  async create(@Body() dto: CreateLeaveTypeDto): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
+    const result = await this.createLeaveTypeUseCase.execute(dto);
+    const data = plainToInstance(LeaveTypeResponseDto, result);
     return ApiResponseDto.success(data, 'Leave type created successfully', HttpStatus.CREATED);
   }
 
   @Put(':id')
-  async updateLeaveType(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateLeaveTypeDto): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
-    const data = await this.updateLeaveTypeUseCase.execute(id, dto);
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update leave type' })
+  @ApiParam({ name: 'id', type: Number, description: 'Leave type ID' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Leave type not found' })
+  async update(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() dto: UpdateLeaveTypeDto
+  ): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
+    const result = await this.updateLeaveTypeUseCase.execute(id, dto);
+    const data = plainToInstance(LeaveTypeResponseDto, result);
     return ApiResponseDto.success(data, 'Leave type updated successfully');
   }
 
-  @Get(':id')
-  async getById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
-    const data = await this.getLeaveTypeByIdUseCase.execute(id);
-    return ApiResponseDto.success(data, 'Leave type retrieved successfully');
-  }
-
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<null>> {
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete leave type' })
+  @ApiParam({ name: 'id', type: Number, description: 'Leave type ID' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Leave type not found' })
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<void>> {
     await this.deleteLeaveTypeUseCase.execute(id);
-    return ApiResponseDto.success(null, 'Leave type deleted successfully');
-  }
-
-  @Get('active')
-  async getActive(): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
-    const data = await this.getLeaveTypesUseCase.execute({ status: LeaveTypeStatus.ACTIVE });
-    return ApiResponseDto.success(data, 'Active leave types retrieved successfully');
+    return ApiResponseDto.success(undefined, 'Leave type deleted successfully');
   }
 }
