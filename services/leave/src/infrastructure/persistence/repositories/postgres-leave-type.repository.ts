@@ -16,6 +16,17 @@ export class PostgresLeaveTypeRepository implements ILeaveTypeRepository {
     return this.repository.find({ order: { sort_order: 'ASC' } });
   }
 
+  async findFiltered(status?: string, isPaid?: boolean): Promise<LeaveTypeEntity[]> {
+    const where: any = {};
+    if (typeof status !== 'undefined') {
+      where.status = status;
+    }
+    if (typeof isPaid !== 'undefined') {
+      where.is_paid = isPaid;
+    }
+    return this.repository.find({ where, order: { sort_order: 'ASC' } });
+  }
+
   async findById(id: number): Promise<LeaveTypeEntity | null> {
     return this.repository.findOne({ where: { id } });
   }
