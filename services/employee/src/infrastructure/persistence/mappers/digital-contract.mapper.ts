@@ -1,4 +1,4 @@
-import { DigitalContract } from '../../../domain/entities/digital-contract.entity';
+import { DigitalContract, DigitalContractStatus } from '../../../domain/entities/digital-contract.entity';
 
 export class DigitalContractMapper {
   static toDomain(schema: any): DigitalContract {
@@ -9,7 +9,7 @@ export class DigitalContractMapper {
       contract_number: schema.file_name || '',
       contract_type: schema.mime_type || 'PDF',
       contract_pdf_url: schema.file_url,
-      status: schema.is_final ? 'SIGNED' : 'DRAFT',
+      status: schema.is_final ? DigitalContractStatus.SIGNED : DigitalContractStatus.DRAFT,
       employee_signed_at: schema.employee_signed_at,
       employee_signature_data: schema.employee_signature_data ? JSON.stringify(schema.employee_signature_data) : undefined,
       employee_ip_address: schema.employee_signature_ip,
