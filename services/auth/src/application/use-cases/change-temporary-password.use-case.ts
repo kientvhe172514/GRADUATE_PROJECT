@@ -1,5 +1,6 @@
 import { Injectable, Inject, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ChangeTemporaryPasswordResponseDto } from '../dto/change-temporary-password-response.dto';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
@@ -33,7 +34,7 @@ export class ChangeTemporaryPasswordUseCase {
   async execute(
     accountId: number,
     dto: ChangeTemporaryPasswordDto,
-  ): Promise<ApiResponseDto<{ message: string }>> {
+  ): Promise<ApiResponseDto<ChangeTemporaryPasswordResponseDto>> {
     // 1. Find account
     const account = await this.accountRepo.findById(accountId);
     if (!account) {
@@ -90,8 +91,12 @@ export class ChangeTemporaryPasswordUseCase {
       timestamp: new Date().toISOString(),
     });
 
+    const response: ChangeTemporaryPasswordResponseDto = {
+      message: 'Mật khẩu đã được thay đổi thành công',
+    };
+
     return ApiResponseDto.success(
-      { message: 'Mật khẩu đã được thay đổi thành công' },
+      response,
       'Đổi mật khẩu thành công',
     );
   }

@@ -1,7 +1,8 @@
-import { Controller, Post, Put, Get, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, HttpCode, HttpStatus, Req, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Response } from 'express';
 import { LoginRequestDto } from '../dto/login-request.dto';
-import { LoginResponseDto } from '../dto/login-response.dto';
+import { LoginResponseDto } from '../../application/dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { Public } from '../decorators/public.decorator';
@@ -12,12 +13,16 @@ import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { CreateAccountDto } from '../../application/dto/create-account.dto';
+import { CreateAccountResponseDto } from '../../application/dto/create-account-response.dto';
 import { GetAccountUseCase } from '../../application/use-cases/get-account.use-case';
+import { GetAccountResponseDto } from '../../application/dto/get-account-response.dto';
 import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
+import { ChangePasswordRequestDto } from '../../application/dto/change-password-request.dto';
 import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
 import { ChangeTemporaryPasswordUseCase } from '../../application/use-cases/change-temporary-password.use-case';
 import { ChangeTemporaryPasswordDto } from '../dto/change-temporary-password.dto';
+import { ChangeTemporaryPasswordResponseDto } from '../../application/dto/change-temporary-password-response.dto';
 
 @ApiTags('auth')
 @Controller('')
@@ -38,17 +43,75 @@ export class AccountController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login' })
+  @ApiOperation({ 
+    summary: 'User login',
+    description: `
+      **Login Flow with Cookies:**
+      
+      1. User submits email + password
+      2. System validates credentials
+      3. System generates access_token + refresh_token
+      4. System sets HttpOnly cookies for security:
+         - \`access_token\` cookie (15 minutes expiry)
+         - \`refresh_token\` cookie (7 days expiry)
+      5. System returns tokens in response body (for mobile apps)
+      
+      **Cookie Configuration:**
+      - HttpOnly: ✅ Prevents XSS attacks
+      - Secure: ✅ HTTPS only (in production)
+      - SameSite: Lax (CSRF protection)
+      - Domain: Configured for cross-subdomain sharing
+      
+      **Web vs Mobile:**
+      - Web: Use cookies automatically
+      - Mobile App: Use tokens from response body
+    `
+  })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 403, description: 'Temporary password must be changed' })
-  async login(@Body() loginDto: LoginRequestDto, @Req() req: any): Promise<ApiResponseDto<LoginResponseDto>> {
+  async login(
+    @Body() loginDto: LoginRequestDto, 
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<ApiResponseDto<LoginResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
+    
+    // Execute login use case
+    const loginResult = await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
+
+    // Extract tokens from response
+    const { access_token, refresh_token } = loginResult.data!;
+
+    // Set HttpOnly cookies for Web browsers
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = process.env.COOKIE_DOMAIN || 'localhost';
+
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      domain: cookieDomain,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
+    });
+
+    res.cookie('refresh_token', refresh_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      domain: cookieDomain,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    console.log('🍪 [Login] Cookies set successfully');
+
+    return loginResult;
   }
 
-  @Put('/change-temporary-password')
+  @Put('me/change-temporary-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({
@@ -87,35 +150,132 @@ export class AccountController {
   async changeTemporaryPassword(
     @CurrentUser() user: any,
     @Body() dto: ChangeTemporaryPasswordDto,
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    return await this.changeTemporaryPasswordUseCase.execute(user.sub, dto);
+  ): Promise<ApiResponseDto<ChangeTemporaryPasswordResponseDto>> {
+    return await this.changeTemporaryPasswordUseCase.execute(user.accountId, dto);
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiOperation({ 
+    summary: 'Refresh access token',
+    description: `
+      **Refresh Token Flow with Cookies:**
+      
+      1. Client sends refresh_token (from cookie or request body)
+      2. System validates refresh_token
+      3. System generates new access_token + refresh_token
+      4. System updates HttpOnly cookies
+      5. System returns new tokens in response body
+      
+      **Cookie Support:**
+      - Web: Automatically reads from HttpOnly cookie
+      - Mobile App: Send refresh_token in request body
+    `
+  })
   @ApiResponse({ status: 200, type: RefreshTokenResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(@Body() refreshDto: RefreshTokenRequestDto, @Req() req: any): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
+  async refresh(
+    @Body() refreshDto: RefreshTokenRequestDto, 
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return await this.refreshTokenUseCase.execute(refreshDto, ipAddress, userAgent);
+    
+    // Try to get refresh_token from cookie if not provided in body (Web browser flow)
+    let refreshTokenToUse = refreshDto.refresh_token;
+    if (!refreshTokenToUse && req.cookies?.refresh_token) {
+      refreshTokenToUse = req.cookies.refresh_token;
+      console.log('🍪 [Refresh] Using refresh_token from cookie');
+    }
+
+    // Override the DTO with cookie value if available
+    const refreshRequest: RefreshTokenRequestDto = {
+      refresh_token: refreshTokenToUse,
+    };
+
+    const refreshResult = await this.refreshTokenUseCase.execute(refreshRequest, ipAddress, userAgent);
+
+    // Extract new tokens from response
+    const { access_token, refresh_token } = refreshResult.data!;
+
+    // Update cookies with new tokens
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = process.env.COOKIE_DOMAIN || 'localhost';
+
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      domain: cookieDomain,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
+    });
+
+    res.cookie('refresh_token', refresh_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      domain: cookieDomain,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    console.log('🍪 [Refresh] Cookies updated successfully');
+
+    return refreshResult;
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'User logout' })
+  @ApiOperation({ 
+    summary: 'User logout',
+    description: `
+      **Logout Flow with Cookies:**
+      
+      1. System invalidates refresh_token in database
+      2. System clears HttpOnly cookies
+      3. Client should discard access_token
+      
+      **Cookie Clearing:**
+      - Removes access_token cookie
+      - Removes refresh_token cookie
+      - Works for both Web and Mobile
+    `
+  })
   @ApiResponse({ status: 200, type: LogoutResponseDto })
   async logout(
     @Body() logoutDto: LogoutRequestDto,
     @CurrentUser() user: any,
-    @Req() req: any
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response
   ): Promise<ApiResponseDto<LogoutResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return await this.logoutUseCase.execute(logoutDto, user.sub, ipAddress, userAgent);
+    
+    // Execute logout use case
+    const logoutResult = await this.logoutUseCase.execute(logoutDto, user.sub, ipAddress, userAgent);
+
+    // Clear HttpOnly cookies
+    const cookieDomain = process.env.COOKIE_DOMAIN || 'localhost';
+    
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      domain: cookieDomain,
+      path: '/',
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      domain: cookieDomain,
+      path: '/',
+    });
+
+    console.log('🍪 [Logout] Cookies cleared successfully');
+
+    return logoutResult;
   }
 
   @Public()
@@ -178,7 +338,8 @@ export class AccountController {
       }
     }
   })
-  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
+  @ApiResponse({ status: 201, type: CreateAccountResponseDto })
+  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<CreateAccountResponseDto>> {
     return this.createAccountUseCase.execute(dto);
   }
 
@@ -195,7 +356,8 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current account profile' })
-  async me(@CurrentUser() user: any): Promise<ApiResponseDto<any>> {
+  @ApiResponse({ status: 200, type: GetAccountResponseDto })
+  async me(@CurrentUser() user: any): Promise<ApiResponseDto<GetAccountResponseDto>> {
     console.log('🔍 [AccountController] JWT payload:', user);
     return this.getAccountUseCase.execute(user.sub);
   }
@@ -204,9 +366,9 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change current account password' })
-  @ApiBody({ schema: { properties: { current_password: { type: 'string' }, new_password: { type: 'string' } }, required: ['current_password','new_password'] } })
+  @ApiBody({ type: ChangePasswordRequestDto })
   async changeMyPassword(
-    @Body() body: { current_password: string; new_password: string },
+    @Body() body: ChangePasswordRequestDto,
     @CurrentUser() user: any,
     @Req() req: any,
   ): Promise<ApiResponseDto<null>> {

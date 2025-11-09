@@ -1,4 +1,5 @@
-import { LoginResponseDto } from '../../presentation/dto/login-response.dto';
+import { LoginResponseDto } from '../../application/dto/login-response.dto';
+import { UserInfoDto } from '../../application/dto/user-info.dto';
 
 export class LoginResponseBuilder {
   private response: LoginResponseDto;
@@ -23,7 +24,13 @@ export class LoginResponseBuilder {
   }
 
   withUser(id: number, email: string, fullName: string, role: string): LoginResponseBuilder {
-    this.response.user = { id, email, full_name: fullName, role };
+    const userInfo: UserInfoDto = { 
+      id, 
+      email, 
+      full_name: fullName, 
+      role 
+    };
+    this.response.user = userInfo;
     return this;
   }
 
