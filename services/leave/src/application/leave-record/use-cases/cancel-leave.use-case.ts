@@ -42,19 +42,30 @@ export class CancelLeaveUseCase {
       );
     }
 
-    // 3. Check if leave has already started
+    // 3. Check if leave has already started (compare date only, not time)
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day
     const startDate = new Date(leaveRecord.start_date);
+    startDate.setHours(0, 0, 0, 0); // Reset to start of day
+    
+    // Debug logging
+    console.log('Cancel Leave Debug:', {
+      originalStartDate: leaveRecord.start_date,
+      parsedStartDate: startDate.toISOString(),
+      now: now.toISOString(),
+      comparison: startDate < now ? 'START_DATE < NOW (cannot cancel)' : 'START_DATE >= NOW (can cancel)',
+    });
+    
     if (startDate < now) {
       throw new BusinessException(
         ErrorCodes.LEAVE_CANNOT_BE_CANCELLED,
-        'Cannot cancel a leave that has already started',
+        `Cannot cancel a leave that has already started. Start date: ${startDate.toISOString().split('T')[0]}, Today: ${now.toISOString().split('T')[0]}`,
         400,
       );
     }
 
     // 4. Restore balance based on current status
-    const year = leaveRecord.start_date.getFullYear();
+    const year = new Date(leaveRecord.start_date).getFullYear();
     const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
       leaveRecord.employee_id,
       leaveRecord.leave_type_id,
@@ -62,17 +73,25 @@ export class CancelLeaveUseCase {
     );
 
     if (balance) {
+      const leaveDays = Number(leaveRecord.total_leave_days);
+      
       if (leaveRecord.status === 'PENDING') {
         // Restore from pending_days
+        const newPendingDays = Number(balance.pending_days) - leaveDays;
+        const newRemainingDays = Number(balance.remaining_days) + leaveDays;
+        
         await this.leaveBalanceRepository.update(balance.id, {
-          pending_days: Number(balance.pending_days) - leaveRecord.total_leave_days,
-          remaining_days: Number(balance.remaining_days) + leaveRecord.total_leave_days,
+          pending_days: newPendingDays,
+          remaining_days: newRemainingDays,
         });
       } else if (leaveRecord.status === 'APPROVED') {
         // Restore from used_days
+        const newUsedDays = Number(balance.used_days) - leaveDays;
+        const newRemainingDays = Number(balance.remaining_days) + leaveDays;
+        
         await this.leaveBalanceRepository.update(balance.id, {
-          used_days: Number(balance.used_days) - leaveRecord.total_leave_days,
-          remaining_days: Number(balance.remaining_days) + leaveRecord.total_leave_days,
+          used_days: newUsedDays,
+          remaining_days: newRemainingDays,
         });
       }
     }

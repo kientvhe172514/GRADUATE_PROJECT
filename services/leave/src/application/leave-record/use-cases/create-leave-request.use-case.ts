@@ -78,18 +78,23 @@ export class CreateLeaveRequestUseCase {
         );
       }
 
-      if (balance.remaining_days < totalLeaveDays) {
+      const remainingDays = Number(balance.remaining_days);
+      
+      if (remainingDays < totalLeaveDays) {
         throw new BusinessException(
           ErrorCodes.INSUFFICIENT_LEAVE_BALANCE,
-          `Insufficient leave balance. Required: ${totalLeaveDays} days, Available: ${balance.remaining_days} days`,
+          `Insufficient leave balance. Required: ${totalLeaveDays.toFixed(2)} days, Available: ${remainingDays.toFixed(2)} days`,
           400,
         );
       }
 
       // Update pending_days in balance
+      const newPendingDays = Number(balance.pending_days) + totalLeaveDays;
+      const newRemainingDays = remainingDays - totalLeaveDays;
+      
       await this.leaveBalanceRepository.update(balance.id, {
-        pending_days: Number(balance.pending_days) + totalLeaveDays,
-        remaining_days: Number(balance.remaining_days) - totalLeaveDays,
+        pending_days: newPendingDays,
+        remaining_days: newRemainingDays,
       });
     }
 

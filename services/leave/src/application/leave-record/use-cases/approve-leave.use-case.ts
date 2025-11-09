@@ -44,7 +44,7 @@ export class ApproveLeaveUseCase {
     }
 
     // 4. Update balance: pending_days -> used_days
-    const year = leaveRecord.start_date.getFullYear();
+    const year = new Date(leaveRecord.start_date).getFullYear();
     const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
       leaveRecord.employee_id,
       leaveRecord.leave_type_id,
@@ -52,9 +52,13 @@ export class ApproveLeaveUseCase {
     );
 
     if (balance) {
+      const leaveDays = Number(leaveRecord.total_leave_days);
+      const newPendingDays = Number(balance.pending_days) - leaveDays;
+      const newUsedDays = Number(balance.used_days) + leaveDays;
+      
       await this.leaveBalanceRepository.update(balance.id, {
-        pending_days: Number(balance.pending_days) - leaveRecord.total_leave_days,
-        used_days: Number(balance.used_days) + leaveRecord.total_leave_days,
+        pending_days: newPendingDays,
+        used_days: newUsedDays,
       });
     }
 
