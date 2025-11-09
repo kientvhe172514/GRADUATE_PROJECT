@@ -1069,6 +1069,11 @@ GET http://localhost:3003/api/v1/leave/leave-records/1
 ## 4.5 Approve Leave Request
 **Endpoint:** `POST /api/v1/leave/leave-records/:id/approve`
 
+**Business Rules:**
+- ✅ Can approve if status is `PENDING`
+- ❌ Cannot approve if status is `APPROVED`, `REJECTED`, or `CANCELLED`
+- Updates balance: `pending_days` → `used_days`
+
 **Request Body:**
 ```json
 {
@@ -1098,6 +1103,11 @@ GET http://localhost:3003/api/v1/leave/leave-records/1
 
 ## 4.6 Reject Leave Request
 **Endpoint:** `POST /api/v1/leave/leave-records/:id/reject`
+
+**Business Rules:**
+- ✅ Can reject if status is `PENDING`
+- ❌ Cannot reject if status is `APPROVED`, `REJECTED`, or `CANCELLED`
+- Restores balance: removes from `pending_days`, adds back to `remaining_days`
 
 **Request Body:**
 ```json
@@ -1129,6 +1139,12 @@ GET http://localhost:3003/api/v1/leave/leave-records/1
 
 ## 4.7 Cancel Leave Request
 **Endpoint:** `POST /api/v1/leave/leave-records/:id/cancel`
+
+**Business Rules:**
+- ✅ Can cancel if status is `PENDING` or `APPROVED`
+- ✅ Can cancel if leave starts **today or in the future** (date-only comparison)
+- ❌ Cannot cancel if leave started **yesterday or earlier**
+- ❌ Cannot cancel if status is `REJECTED` or `CANCELLED`
 
 **Request Body:**
 ```json
