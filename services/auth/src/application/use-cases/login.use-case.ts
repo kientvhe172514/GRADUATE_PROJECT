@@ -1,6 +1,7 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LoginRequestDto } from '../../presentation/dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
+import { UserInfoDto } from '../dto/user-info.dto';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
@@ -139,18 +140,24 @@ export class LoginUseCase {
       await this.logSuccessfulAttempt(account.id!, loginDto.email, ipAddress, userAgent);
     }
 
+    // Build UserInfoDto
+    const userInfo: UserInfoDto = {
+      id: account.id!,
+      email: account.email,
+      full_name: account.full_name || '',
+      role: account.role,
+    };
+
+    // Build LoginResponseDto
+    const response: LoginResponseDto = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      must_change_password: mustChangePassword,
+      user: userInfo,
+    };
+
     return ApiResponseDto.success(
-      {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        must_change_password: mustChangePassword, // Flag để client biết phải đổi password
-        user: {
-          id: account.id!,
-          email: account.email,
-          full_name: account.full_name || '',
-          role: account.role,
-        },
-      },
+      response,
       mustChangePassword
         ? 'Login successful. Please change your temporary password.'
         : 'Login successful',

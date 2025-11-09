@@ -16,14 +16,25 @@ export class GetAccountUseCase {
     if (!account) {
       throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
+    
     const dto: GetAccountResponseDto = {
       id: account.id!,
       email: account.email,
       full_name: account.full_name,
       role: account.role,
       status: account.status,
+      employee_id: account.employee_id,
+      employee_code: account.employee_code,
+      department_id: account.department_id,
+      department_name: account.department_name,
+      position_id: account.position_id,
+      position_name: account.position_name,
       last_login_at: account.last_login_at,
+      last_login_ip: account.last_login_ip,
+      created_at: account.created_at,
+      updated_at: account.updated_at,
     };
+    
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 
@@ -32,14 +43,25 @@ export class GetAccountUseCase {
     if (!account) {
       throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
+    
     const dto: GetAccountResponseDto = {
       id: account.id!,
       email: account.email,
       full_name: account.full_name,
       role: account.role,
       status: account.status,
+      employee_id: account.employee_id,
+      employee_code: account.employee_code,
+      department_id: account.department_id,
+      department_name: account.department_name,
+      position_id: account.position_id,
+      position_name: account.position_name,
       last_login_at: account.last_login_at,
+      last_login_ip: account.last_login_ip,
+      created_at: account.created_at,
+      updated_at: account.updated_at,
     };
+    
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 
@@ -48,14 +70,25 @@ export class GetAccountUseCase {
     if (!account) {
       throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
     }
+    
     const dto: GetAccountResponseDto = {
       id: account.id!,
       email: account.email,
       full_name: account.full_name,
       role: account.role,
       status: account.status,
+      employee_id: account.employee_id,
+      employee_code: account.employee_code,
+      department_id: account.department_id,
+      department_name: account.department_name,
+      position_id: account.position_id,
+      position_name: account.position_name,
       last_login_at: account.last_login_at,
+      last_login_ip: account.last_login_ip,
+      created_at: account.created_at,
+      updated_at: account.updated_at,
     };
+    
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 }

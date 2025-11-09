@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
+import { CreateAccountResponseDto } from '../dto/create-account-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountFactory } from '../../domain/factories/account.factory';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
@@ -30,7 +31,7 @@ export class CreateAccountUseCase {
     private tempPasswordsRepo: TemporaryPasswordsRepositoryPort,
   ) {}
 
-  async execute(dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
+  async execute(dto: CreateAccountDto): Promise<ApiResponseDto<CreateAccountResponseDto>> {
     const existing = await this.accountRepo.findByEmail(dto.email);
     if (existing) {
       throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account already exists');
@@ -107,8 +108,16 @@ export class CreateAccountUseCase {
       console.log('⏭️  Skipping notification email (custom password provided)');
     }
 
+    // Build response DTO
+    const response: CreateAccountResponseDto = {
+      id: savedAccount.id!,
+      email: savedAccount.email,
+      temp_password: isCustomPassword ? undefined : tempPass,
+      has_custom_password: isCustomPassword,
+    };
+
     return ApiResponseDto.success(
-      { id: savedAccount.id!, email: savedAccount.email, temp_password: tempPass }, 
+      response, 
       isCustomPassword ? 'Account created successfully' : 'Account created with temporary password', 
       201, 
       undefined, 

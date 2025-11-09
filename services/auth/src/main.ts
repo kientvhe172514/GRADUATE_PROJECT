@@ -5,10 +5,22 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  // Enable cookie parsing for HttpOnly cookies
+  app.use(cookieParser());
+
+  // Enable CORS with credentials support for cookies
+  app.enableCors({
+    origin: configService.get('CORS_ORIGINS', '*').split(','),
+    credentials: true, // Allow cookies to be sent from browser
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Email', 'X-User-Role', 'X-User-Permissions'],
+  });
 
   app.setGlobalPrefix('api/v1/auth');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

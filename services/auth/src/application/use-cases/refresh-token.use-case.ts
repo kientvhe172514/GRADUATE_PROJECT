@@ -90,10 +90,14 @@ export class RefreshTokenUseCase {
     // Revoke old refresh token and create new one
     await this.refreshTokensRepo.revokeToken(refreshTokenRecord.id!);
     
+    // IMPORTANT: Use SHA256 hash (same as login) NOT bcrypt
+    const newTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+    
     const newRefreshTokenEntity = new RefreshTokens();
     newRefreshTokenEntity.account_id = account.id!;
-    newRefreshTokenEntity.token_hash = await this.hashing.hash(newRefreshToken);
+    newRefreshTokenEntity.token_hash = newTokenHash;
     newRefreshTokenEntity.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    newRefreshTokenEntity.device_fingerprint = userAgent;
     
     await this.refreshTokensRepo.create(newRefreshTokenEntity);
 
