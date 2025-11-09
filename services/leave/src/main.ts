@@ -24,18 +24,33 @@ async function bootstrap() {
   }
 
   // Hybrid setup: HTTP + RMQ listener for events from Employee service
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [configService.getOrThrow('RABBITMQ_URL')] as string[],
-      queue: configService.getOrThrow('RABBITMQ_LEAVE_QUEUE') as string,
-      queueOptions: {
-        durable: true,
-      },
-    },
-  });
+  // Make RabbitMQ optional in development
+  const rabbitmqUrl = configService.get('RABBITMQ_URL');
+  const rabbitmqQueue = configService.get('RABBITMQ_LEAVE_QUEUE');
   
-  await app.startAllMicroservices();
+  if (rabbitmqUrl && rabbitmqQueue) {
+    try {
+      app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.RMQ,
+        options: {
+          urls: [rabbitmqUrl] as string[],
+          queue: rabbitmqQueue as string,
+          queueOptions: {
+            durable: true,
+          },
+        },
+      });
+      
+      await app.startAllMicroservices();
+      console.log('✅ RabbitMQ microservice connected successfully');
+    } catch (error) {
+      console.warn('⚠️  RabbitMQ connection failed. Running in HTTP-only mode.');
+      console.warn('⚠️  Event-driven features will be disabled.');
+    }
+  } else {
+    console.warn('⚠️  RabbitMQ not configured. Running in HTTP-only mode.');
+    console.warn('⚠️  Set RABBITMQ_URL and RABBITMQ_LEAVE_QUEUE to enable event-driven features.');
+  }
   
   const config = new DocumentBuilder()
     .setTitle('Leave API')

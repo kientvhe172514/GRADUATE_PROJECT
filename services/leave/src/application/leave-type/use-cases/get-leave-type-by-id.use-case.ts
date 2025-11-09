@@ -1,6 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { LEAVE_TYPE_REPOSITORY } from '../../tokens';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
+import { LeaveTypeResponseDto } from '../dto/leave-type.dto';
 
 @Injectable()
 export class GetLeaveTypeByIdUseCase {
@@ -9,12 +11,16 @@ export class GetLeaveTypeByIdUseCase {
     private readonly leaveTypeRepository: ILeaveTypeRepository,
   ) {}
 
-  async execute(id: number) {
+  async execute(id: number): Promise<LeaveTypeResponseDto> {
     const item = await this.leaveTypeRepository.findById(id);
     if (!item) {
-      throw new NotFoundException('Leave type not found');
+      throw new BusinessException(
+        ErrorCodes.LEAVE_TYPE_NOT_FOUND,
+        'Leave type not found',
+        404,
+      );
     }
-    return item;
+    return item as LeaveTypeResponseDto;
   }
 }
 

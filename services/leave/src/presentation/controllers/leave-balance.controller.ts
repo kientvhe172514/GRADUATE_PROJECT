@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
+import { plainToInstance } from 'class-transformer';
 import { GetBalanceQueryDto, InitializeLeaveBalancesDto, AdjustLeaveBalanceDto, CarryOverDto, ExpiringCarryOverQueryDto, LeaveBalanceResponseDto, LeaveBalanceSummaryDto } from '../../application/leave-balance/dto/leave-balance.dto';
 import { GetEmployeeBalancesUseCase } from '../../application/leave-balance/use-cases/get-employee-balances.use-case';
 import { GetEmployeeBalanceSummaryUseCase } from '../../application/leave-balance/use-cases/get-employee-balance-summary.use-case';
@@ -25,7 +26,8 @@ export class LeaveBalanceController {
     @Query() query: GetBalanceQueryDto,
   ): Promise<ApiResponseDto<LeaveBalanceResponseDto[]>> {
     const year = query.year ?? new Date().getFullYear();
-    const data = await this.getEmployeeBalances.execute(employeeId, year);
+    const result = await this.getEmployeeBalances.execute(employeeId, year);
+    const data = plainToInstance(LeaveBalanceResponseDto, result);
     return ApiResponseDto.success(data, 'Employee leave balances retrieved successfully');
   }
 
@@ -35,19 +37,21 @@ export class LeaveBalanceController {
     @Query() query: GetBalanceQueryDto,
   ): Promise<ApiResponseDto<LeaveBalanceSummaryDto>> {
     const year = query.year ?? new Date().getFullYear();
-    const data = await this.getEmployeeBalanceSummary.execute(employeeId, year);
+    const result = await this.getEmployeeBalanceSummary.execute(employeeId, year);
+    const data = plainToInstance(LeaveBalanceSummaryDto, result);
     return ApiResponseDto.success(data, 'Employee leave balance summary retrieved successfully');
   }
 
   @Post('initialize')
   async initialize(@Body() dto: InitializeLeaveBalancesDto): Promise<ApiResponseDto<LeaveBalanceResponseDto[]>> {
-    const data = await this.initializeEmployeeBalances.execute(dto.employee_id, dto.year);
+    const result = await this.initializeEmployeeBalances.execute(dto.employee_id, dto.year);
+    const data = plainToInstance(LeaveBalanceResponseDto, result);
     return ApiResponseDto.success(data, 'Leave balances initialized successfully', HttpStatus.CREATED);
   }
 
   @Post('adjust')
   async adjust(@Body() dto: AdjustLeaveBalanceDto): Promise<ApiResponseDto<LeaveBalanceResponseDto>> {
-    const data = await this.adjustLeaveBalance.execute(
+    const result = await this.adjustLeaveBalance.execute(
       dto.employee_id,
       dto.leave_type_id,
       dto.year,
@@ -55,6 +59,7 @@ export class LeaveBalanceController {
       dto.description,
       dto.created_by,
     );
+    const data = plainToInstance(LeaveBalanceResponseDto, result);
     return ApiResponseDto.success(data, 'Leave balance adjusted successfully');
   }
 
