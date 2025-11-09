@@ -16,6 +16,8 @@ import { GetAccountUseCase } from '../../application/use-cases/get-account.use-c
 import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
 import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
+import { ChangeTemporaryPasswordUseCase } from '../../application/use-cases/change-temporary-password.use-case';
+import { ChangeTemporaryPasswordDto } from '../dto/change-temporary-password.dto';
 
 @ApiTags('auth')
 @Controller('')
@@ -30,6 +32,7 @@ export class AccountController {
     private changePasswordUseCase: ChangePasswordUseCase,
     private forgotPasswordUseCase: ForgotPasswordUseCase,
     private resetPasswordUseCase: ResetPasswordUseCase,
+    private changeTemporaryPasswordUseCase: ChangeTemporaryPasswordUseCase,
   ) {}
 
   @Public()
@@ -38,10 +41,44 @@ export class AccountController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 403, description: 'Temporary password must be changed' })
   async login(@Body() loginDto: LoginRequestDto, @Req() req: any): Promise<ApiResponseDto<LoginResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
     return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
+  }
+
+  @Public()
+  @Post('change-temporary-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Change temporary password (first-time login)',
+    description: `
+      **Flow for first-time login with temporary password**
+      
+      Steps:
+      1. User tries to login with temporary password "1"
+      2. System returns 403 error with code TEMPORARY_PASSWORD_MUST_CHANGE
+      3. User calls this endpoint to change temporary password
+      4. System validates and updates password
+      5. Returns access_token and refresh_token (auto-login)
+      
+      **Requirements:**
+      - New password: Min 8 characters
+      - Must contain: uppercase, lowercase, number
+      - Cannot reuse temporary password
+    `,
+  })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  async changeTemporaryPassword(
+    @Body() dto: ChangeTemporaryPasswordDto,
+    @Req() req: any,
+  ): Promise<ApiResponseDto<LoginResponseDto>> {
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return await this.changeTemporaryPasswordUseCase.execute(dto, ipAddress, userAgent);
   }
 
   @Public()
@@ -214,36 +251,4 @@ export class AccountController {
     return this.resetPasswordUseCase.execute(body);
   }
 
-  @Public()
-  @Post('change-temporary-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Change temporary password to permanent password' })
-  @ApiBody({ 
-    schema: { 
-      properties: { 
-        account_id: { type: 'number' }, 
-        temporary_password: { type: 'string' }, 
-        new_password: { type: 'string' } 
-      }, 
-      required: ['account_id', 'temporary_password', 'new_password'] 
-    } 
-  })
-  async changeTemporaryPassword(
-    @Body() body: { account_id: number; temporary_password: string; new_password: string },
-    @Req() req: any,
-  ): Promise<ApiResponseDto<null>> {
-    // Validate required fields
-    if (!body.account_id || !body.temporary_password || !body.new_password) {
-      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Missing required fields: account_id, temporary_password, new_password');
-    }
-
-    const dto = {
-      account_id: Number(body.account_id),
-      temporary_password: body.temporary_password,
-      new_password: body.new_password,
-    };
-    const ipAddress = req.ip || req.connection?.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    return this.changePasswordUseCase.changeTemporaryPassword(dto, ipAddress, userAgent);
-  }
 }

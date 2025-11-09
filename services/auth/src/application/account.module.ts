@@ -13,6 +13,7 @@ import { EmployeeCreatedListener } from '../presentation/event-listeners/employe
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
+import { ChangeTemporaryPasswordUseCase } from './use-cases/change-temporary-password.use-case';
 import { GetAccountUseCase } from './use-cases/get-account.use-case';
 import { ForgotPasswordUseCase } from './use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase } from './use-cases/reset-password.use-case';
@@ -98,6 +99,7 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     LogoutUseCase,
     UpdateAccountUseCase,
     ChangePasswordUseCase,
+    ChangeTemporaryPasswordUseCase,
     GetAccountUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,

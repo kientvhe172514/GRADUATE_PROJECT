@@ -26,6 +26,7 @@ export const AccountSchema = new EntitySchema<AccountEntity>({
     locked_until: { type: 'timestamp', nullable: true },
     last_login_at: { type: 'timestamp', nullable: true },
     last_login_ip: { type: 'varchar', length: 45, nullable: true },
+    is_temporary_password: { type: 'boolean', default: false },
     created_at: { type: 'timestamp', createDate: true },
     updated_at: { type: 'timestamp', updateDate: true },
     created_by: { type: 'bigint', nullable: true },

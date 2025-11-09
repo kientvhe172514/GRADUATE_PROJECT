@@ -28,6 +28,9 @@ export class Account {
   last_login_at?: Date;
   last_login_ip?: string;
   
+  // Temporary password flag (for first-time login flow)
+  is_temporary_password?: boolean;
+  
   // Audit
   created_at?: Date;
   updated_at?: Date;

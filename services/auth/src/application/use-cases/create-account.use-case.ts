@@ -58,6 +58,9 @@ export class CreateAccountUseCase {
       role: assignedRole as any, // Assign role from position's suggested_role
     });
 
+    // Mark as temporary password if using default "1" password
+    account.is_temporary_password = !isCustomPassword;
+
     const savedAccount = await this.accountRepo.create(account);
 
     // Publish account_created event for employee service (backward compatibility)

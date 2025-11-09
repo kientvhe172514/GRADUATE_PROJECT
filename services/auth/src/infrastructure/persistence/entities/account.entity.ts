@@ -20,6 +20,7 @@ export class AccountEntity {
     locked_until?: Date;
     last_login_at?: Date;
     last_login_ip?: string;
+    is_temporary_password?: boolean;
     created_at?: Date;
     updated_at?: Date;
     created_by?: number;

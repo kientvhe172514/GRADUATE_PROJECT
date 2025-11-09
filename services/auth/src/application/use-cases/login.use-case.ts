@@ -64,11 +64,22 @@ export class LoginUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if user is using temporary password "1"
-    const isTemporaryPassword = await this.hashing.compare('1', account.password_hash);
-    if (isTemporaryPassword) {
-      // User is using temporary password, require password change
-      throw new BusinessException(ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE, "Temporary password must change");
+    // Check if user is using temporary password
+    if (account.is_temporary_password) {
+      await this.logFailedAttempt(
+        account.id!,
+        loginDto.email,
+        ipAddress,
+        userAgent,
+        'Temporary password requires change',
+      );
+
+      // User must change temporary password before logging in
+      throw new BusinessException(
+        ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE,
+        'Bạn đang sử dụng mật khẩu tạm. Vui lòng đổi mật khẩu để tiếp tục.',
+        403,
+      );
     }
 
     // Reset failed attempts and unlock account if needed

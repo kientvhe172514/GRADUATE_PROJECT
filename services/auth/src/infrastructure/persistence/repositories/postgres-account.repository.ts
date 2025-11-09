@@ -68,6 +68,10 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
     await this.repository.update(id, { password_hash: passwordHash });
   }
 
+  async setTemporaryPasswordFlag(id: number, isTemporary: boolean): Promise<void> {
+    await this.repository.update(id, { is_temporary_password: isTemporary });
+  }
+
   async update(account: Account): Promise<Account> {
     const entity = AccountMapper.toPersistence(account);
     const saved = await this.repository.save(entity);
