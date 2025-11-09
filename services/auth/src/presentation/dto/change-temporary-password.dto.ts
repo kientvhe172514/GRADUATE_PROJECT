@@ -1,12 +1,8 @@
-import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
+import { IsString, MinLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ChangeTemporaryPasswordDto {
-  @ApiProperty({ example: 'user@example.com' })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({ example: '1', description: 'Current temporary password' })
+  @ApiProperty({ example: 'temp_password_123', description: 'Current temporary password from email' })
   @IsString()
   current_password: string;
 

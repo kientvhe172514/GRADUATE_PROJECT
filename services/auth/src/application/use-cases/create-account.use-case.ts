@@ -7,7 +7,13 @@ import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
+import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
+import {
+  ACCOUNT_REPOSITORY,
+  HASHING_SERVICE,
+  EVENT_PUBLISHER,
+  TEMPORARY_PASSWORDS_REPOSITORY,
+} from '../tokens';
 import { UserRegisteredEvent } from '../../domain/events/user-registered.event';
 import { AccountCreatedEventDto } from '../dto/account-created.event.dto';
 
@@ -20,6 +26,8 @@ export class CreateAccountUseCase {
     private hashing: HashingServicePort,
     @Inject(EVENT_PUBLISHER)
     private publisher: EventPublisherPort,
+    @Inject(TEMPORARY_PASSWORDS_REPOSITORY)
+    private tempPasswordsRepo: TemporaryPasswordsRepositoryPort,
   ) {}
 
   async execute(dto: CreateAccountDto): Promise<ApiResponseDto<{ id: number; email: string; temp_password: string }>> {
@@ -58,10 +66,20 @@ export class CreateAccountUseCase {
       role: assignedRole as any, // Assign role from position's suggested_role
     });
 
-    // Mark as temporary password if using default "1" password
-    account.is_temporary_password = !isCustomPassword;
-
     const savedAccount = await this.accountRepo.create(account);
+
+    // Create temporary password record if using default password
+    if (!isCustomPassword) {
+      const tempPasswordEntity = {
+        account_id: savedAccount.id!,
+        temp_password_hash: tempPasswordHash,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        must_change_password: true,
+        created_at: new Date(),
+      };
+      await this.tempPasswordsRepo.create(tempPasswordEntity as any);
+      console.log('✅ Created temporary password record for account:', savedAccount.id);
+    }
 
     // Publish account_created event for employee service (backward compatibility)
     if (dto.employee_id) {

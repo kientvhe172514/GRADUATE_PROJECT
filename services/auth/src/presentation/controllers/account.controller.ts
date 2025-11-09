@@ -48,37 +48,47 @@ export class AccountController {
     return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
   }
 
-  @Public()
-  @Post('change-temporary-password')
+  @Put('me/change-temporary-password')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Change temporary password (first-time login)',
     description: `
       **Flow for first-time login with temporary password**
       
       Steps:
-      1. User tries to login with temporary password "1"
-      2. System returns 403 error with code TEMPORARY_PASSWORD_MUST_CHANGE
-      3. User calls this endpoint to change temporary password
-      4. System validates and updates password
-      5. Returns access_token and refresh_token (auto-login)
+      1. User logs in with temporary password sent via email
+      2. System allows login but returns: { must_change_password: true }
+      3. User calls this PROTECTED endpoint with access_token to change password
+      4. System validates temporary password and updates to new password
+      5. Temporary password is marked as used
       
       **Requirements:**
-      - New password: Min 8 characters
-      - Must contain: uppercase, lowercase, number
+      - Must be authenticated (use access_token from login)
+      - Current password: The temporary password from email
+      - New password: Min 8 characters, must contain uppercase, lowercase, number
       - Cannot reuse temporary password
     `,
   })
-  @ApiResponse({ status: 200, type: LoginResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully',
+    schema: {
+      example: {
+        success: true,
+        data: { message: 'Mật khẩu đã được thay đổi thành công' },
+        timestamp: '2024-01-15T10:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Validation error or password mismatch' })
+  @ApiResponse({ status: 401, description: 'Invalid temporary password' })
+  @ApiResponse({ status: 404, description: 'No active temporary password found' })
   async changeTemporaryPassword(
+    @CurrentUser() user: any,
     @Body() dto: ChangeTemporaryPasswordDto,
-    @Req() req: any,
-  ): Promise<ApiResponseDto<LoginResponseDto>> {
-    const ipAddress = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    return await this.changeTemporaryPasswordUseCase.execute(dto, ipAddress, userAgent);
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    return await this.changeTemporaryPasswordUseCase.execute(user.accountId, dto);
   }
 
   @Public()

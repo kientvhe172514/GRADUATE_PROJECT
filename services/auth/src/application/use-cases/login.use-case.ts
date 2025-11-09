@@ -6,16 +6,18 @@ import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { RefreshTokensRepositoryPort } from '../ports/refresh-tokens.repository.port';
+import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { JwtServicePort } from '../ports/jwt.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { 
-  ACCOUNT_REPOSITORY, 
-  HASHING_SERVICE, 
-  EVENT_PUBLISHER, 
-  REFRESH_TOKENS_REPOSITORY, 
+import {
+  ACCOUNT_REPOSITORY,
+  HASHING_SERVICE,
+  EVENT_PUBLISHER,
+  REFRESH_TOKENS_REPOSITORY,
   JWT_SERVICE,
-  AUDIT_LOGS_REPOSITORY
+  AUDIT_LOGS_REPOSITORY,
+  TEMPORARY_PASSWORDS_REPOSITORY,
 } from '../tokens';
 import { UserLoggedInEvent } from '../../domain/events/user-logged-in.event';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
@@ -31,6 +33,8 @@ export class LoginUseCase {
     private accountRepo: AccountRepositoryPort,
     @Inject(REFRESH_TOKENS_REPOSITORY)
     private refreshTokensRepo: RefreshTokensRepositoryPort,
+    @Inject(TEMPORARY_PASSWORDS_REPOSITORY)
+    private tempPasswordsRepo: TemporaryPasswordsRepositoryPort,
     @Inject(HASHING_SERVICE)
     private hashing: HashingServicePort,
     @Inject(JWT_SERVICE)
@@ -55,31 +59,35 @@ export class LoginUseCase {
       throw new UnauthorizedException('Account is temporarily locked due to too many failed login attempts');
     }
 
-    // Verify password
-    const isPasswordValid = await this.hashing.compare(loginDto.password, account.password_hash);
-    
-    if (!isPasswordValid) {
-      await this.handleFailedLogin(account);
-      await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Invalid password');
-      throw new UnauthorizedException('Invalid credentials');
+    // Check if account has active temporary password
+    const activeTempPassword = await this.tempPasswordsRepo.findActiveByAccountId(account.id!);
+
+    let isUsingTemporaryPassword = false;
+    let mustChangePassword = false;
+
+    if (activeTempPassword) {
+      // Try to verify with temporary password
+      const isTempPasswordValid = await this.hashing.compare(
+        loginDto.password,
+        activeTempPassword.temp_password_hash,
+      );
+
+      if (isTempPasswordValid) {
+        // Login với temporary password - CHO PHÉP LOGIN nhưng đánh dấu phải đổi password
+        isUsingTemporaryPassword = true;
+        mustChangePassword = activeTempPassword.must_change_password;
+      }
     }
 
-    // Check if user is using temporary password
-    if (account.is_temporary_password) {
-      await this.logFailedAttempt(
-        account.id!,
-        loginDto.email,
-        ipAddress,
-        userAgent,
-        'Temporary password requires change',
-      );
+    // If not using temporary password, verify with regular password
+    if (!isUsingTemporaryPassword) {
+      const isPasswordValid = await this.hashing.compare(loginDto.password, account.password_hash);
 
-      // User must change temporary password before logging in
-      throw new BusinessException(
-        ErrorCodes.TEMPORARY_PASSWORD_MUST_CHANGE,
-        'Bạn đang sử dụng mật khẩu tạm. Vui lòng đổi mật khẩu để tiếp tục.',
-        403,
-      );
+      if (!isPasswordValid) {
+        await this.handleFailedLogin(account);
+        await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Invalid password');
+        throw new UnauthorizedException('Invalid credentials');
+      }
     }
 
     // Reset failed attempts and unlock account if needed
@@ -115,16 +123,38 @@ export class LoginUseCase {
     // Publish event
     this.publisher.publish('user_logged_in', new UserLoggedInEvent(account));
 
-    return ApiResponseDto.success({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      user: {
-        id: account.id!,
-        email: account.email,
-        full_name: account.full_name || '',
-        role: account.role,
+    // Log successful login
+    if (isUsingTemporaryPassword) {
+      // Log with temporary password info in metadata
+      const auditLog = new AuditLogs();
+      auditLog.account_id = account.id!;
+      auditLog.action = 'LOGIN_SUCCESS_TEMP_PASSWORD';
+      auditLog.ip_address = ipAddress;
+      auditLog.user_agent = userAgent;
+      auditLog.success = true;
+      auditLog.metadata = { email: loginDto.email, using_temporary_password: true };
+      auditLog.created_at = new Date();
+      await this.auditLogsRepo.create(auditLog);
+    } else {
+      await this.logSuccessfulAttempt(account.id!, loginDto.email, ipAddress, userAgent);
+    }
+
+    return ApiResponseDto.success(
+      {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        must_change_password: mustChangePassword, // Flag để client biết phải đổi password
+        user: {
+          id: account.id!,
+          email: account.email,
+          full_name: account.full_name || '',
+          role: account.role,
+        },
       },
-    }, 'Login successful');
+      mustChangePassword
+        ? 'Login successful. Please change your temporary password.'
+        : 'Login successful',
+    );
   }
 
   private async handleFailedLogin(account: Account): Promise<void> {
