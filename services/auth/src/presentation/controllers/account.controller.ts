@@ -48,7 +48,7 @@ export class AccountController {
     return await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
   }
 
-  @Put('me/change-temporary-password')
+  @Put('/change-temporary-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({
@@ -88,7 +88,7 @@ export class AccountController {
     @CurrentUser() user: any,
     @Body() dto: ChangeTemporaryPasswordDto,
   ): Promise<ApiResponseDto<{ message: string }>> {
-    return await this.changeTemporaryPasswordUseCase.execute(user.accountId, dto);
+    return await this.changeTemporaryPasswordUseCase.execute(user.sub, dto);
   }
 
   @Public()
