@@ -1,0 +1,17 @@
+module.exports = {
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: '.',
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': 'ts-jest',
+  },
+  collectCoverageFrom: [
+    'src/application/use-cases/create-employee.use-case.ts',
+  ],
+  coverageDirectory: './coverage',
+  testEnvironment: 'node',
+  coverageReporters: ['text', 'lcov', 'text-summary'],
+  moduleNameMapper: {
+    '^@graduate-project/shared-common$': '<rootDir>/../shared-common/src',
+  },
+};
