@@ -45,7 +45,7 @@ export class CreateAccountUseCase {
     let assignedRole = dto.suggested_role || 'EMPLOYEE';
     
     // Validate role exists in AccountRole enum
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_HEAD','MANAGER', 'EMPLOYEE'];
+    const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
     if (!validRoles.includes(assignedRole.toUpperCase())) {
       console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
       assignedRole = 'EMPLOYEE';

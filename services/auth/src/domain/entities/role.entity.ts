@@ -5,7 +5,7 @@ export class Role {
   code: string;
   name: string;
   description?: string;
-  level: number; // Hierarchy level: 1=SUPER_ADMIN, 2=HR_ADMIN, 3=HR_STAFF, 4=MANAGER, 5=EMPLOYEE
+  level: number; // Hierarchy level: 1=ADMIN (highest), 2=HR_MANAGER, 3=DEPARTMENT_MANAGER, 4=EMPLOYEE (lowest)
   is_system_role: boolean = false; // System roles cannot be deleted
   status: RoleStatus = RoleStatus.ACTIVE;
   

@@ -288,12 +288,12 @@ export class AccountController {
       
       Features:
       - ✅ Create account with custom password (or temp password "1")
-      - ✅ Assign custom role (SUPER_ADMIN, HR_ADMIN, MANAGER, etc.)
+      - ✅ Assign custom role (ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE)
       - ✅ Optional employee linking (employee_id, employee_code)
       - ✅ No notification email sent if custom password provided
       
       **Use Cases:**
-      - Create SUPER_ADMIN account
+      - Create ADMIN account
       - Create test accounts for development
       - Manual account creation by HR/Admin
       
@@ -303,29 +303,29 @@ export class AccountController {
   @ApiBody({
     type: CreateAccountDto,
     examples: {
-      superAdmin: {
-        summary: 'Create SUPER_ADMIN account',
+      adminAccount: {
+        summary: 'Create ADMIN account',
         value: {
-          email: 'superadmin@zentry.com',
-          full_name: 'Super Administrator',
+          email: 'admin@company.com',
+          full_name: 'System Administrator',
           password: 'SecurePassword123!',
-          suggested_role: 'SUPER_ADMIN'
+          suggested_role: 'ADMIN'
         }
       },
-      hrAdmin: {
-        summary: 'Create HR_ADMIN account',
+      hrManager: {
+        summary: 'Create HR_MANAGER account',
         value: {
-          email: 'hr@zentry.com',
+          email: 'hr@company.com',
           full_name: 'HR Manager',
           password: 'HRPassword123!',
-          suggested_role: 'HR_ADMIN',
+          suggested_role: 'HR_MANAGER',
           department_name: 'Human Resources'
         }
       },
       employeeWithLink: {
         summary: 'Create linked employee account',
         value: {
-          email: 'employee@zentry.com',
+          email: 'employee@company.com',
           full_name: 'Nguyễn Văn A',
           employee_id: 1,
           employee_code: 'EMP001',

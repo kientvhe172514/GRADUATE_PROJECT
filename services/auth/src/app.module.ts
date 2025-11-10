@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER, Reflector } from '@nestjs/core';
+import { HttpExceptionFilter } from '@graduate-project/shared-common';
 import { AuthJwtPermissionGuard } from './presentation/guards/auth-jwt-permission.guard';
 import { AccountModule } from './application/account.module';
 import { RbacModule } from './application/rbac.module';
@@ -42,6 +43,11 @@ import { HealthController } from './health.controller';
   ],
   controllers: [HealthController],
   providers: [
+    // Global Exception Filter - Convert BusinessException to ApiResponseDto format
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
     // Auth Service JWT Permission Guard - Verifies JWT + checks permissions
     // This is different from shared-common HeaderBasedPermissionGuard
     {
