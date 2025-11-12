@@ -60,7 +60,7 @@ export class UpdateAccountUseCase {
       id: updatedAccount.id!,
       email: updatedAccount.email,
       full_name: updatedAccount.full_name,
-      role: updatedAccount.role,
+      role: updatedAccount.role || '',
       status: updatedAccount.status,
       department_id: updatedAccount.department_id,
       department_name: updatedAccount.department_name,
