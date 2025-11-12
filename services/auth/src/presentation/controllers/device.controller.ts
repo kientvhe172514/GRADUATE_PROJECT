@@ -1,48 +1,70 @@
 import {
   Controller,
   Get,
-  Post,
   Delete,
   Param,
   Query,
-  UseGuards,
-  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { AuthJwtPermissionGuard } from '../guards/auth-jwt-permission.guard';
-import { DeviceSessionService } from '../../application/services/device-session.service';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { GetMyDevicesUseCase } from '../../application/use-cases/device/get-my-devices.use-case';
+import { RevokeDeviceUseCase } from '../../application/use-cases/device/revoke-device.use-case';
+import { GetDeviceActivitiesUseCase } from '../../application/use-cases/device/get-device-activities.use-case';
 
-@ApiTags('Device Management')
+@ApiTags('devices')
 @ApiBearerAuth()
 @Controller('devices')
-@UseGuards(AuthJwtPermissionGuard)
 export class DeviceController {
-  constructor(private readonly deviceSessionService: DeviceSessionService) {}
+  constructor(
+    private getMyDevicesUseCase: GetMyDevicesUseCase,
+    private revokeDeviceUseCase: RevokeDeviceUseCase,
+    private getDeviceActivitiesUseCase: GetDeviceActivitiesUseCase,
+  ) {}
 
   @Get('my-devices')
-  @ApiOperation({ summary: 'Get my devices' })
-  @ApiResponse({ status: 200, description: 'Returns list of user devices' })
-  async getMyDevices(@Req() req: any) {
-    const accountId = req.user.id;
-    const devices = await this.deviceSessionService.getAccountDevices(accountId, true);
-
-    return ApiResponseDto.success(devices, 'Devices retrieved successfully');
+  @ApiOperation({ summary: 'Get my registered devices' })
+  @ApiResponse({
+    status: 200,
+    description: 'Devices retrieved successfully',
+  })
+  async getMyDevices(@CurrentUser() user: any) {
+    return await this.getMyDevicesUseCase.execute(user.sub);
   }
 
-  @Delete(':deviceId/revoke')
-  @ApiOperation({ summary: 'Revoke my device' })
-  @ApiParam({ name: 'deviceId', description: 'Device session ID' })
-  @ApiResponse({ status: 200, description: 'Device revoked successfully' })
-  async revokeMyDevice(@Req() req: any, @Param('deviceId') deviceId: string) {
-    const accountId = req.user.id;
-
-    await this.deviceSessionService.revokeDevice(
-      parseInt(deviceId),
-      accountId,
-      'User requested device removal',
+  @Delete(':id/revoke')
+  @ApiOperation({ summary: 'Revoke a specific device' })
+  @ApiResponse({
+    status: 200,
+    description: 'Device revoked successfully',
+  })
+  async revokeDevice(
+    @Param('id', ParseIntPipe) deviceId: number,
+    @CurrentUser() user: any,
+  ) {
+    return await this.revokeDeviceUseCase.execute(
+      deviceId,
+      user.sub,
+      user.sub,
+      'Revoked by user',
     );
+  }
 
-    return ApiResponseDto.success(null, 'Device revoked successfully');
+  @Get('my-activities')
+  @ApiOperation({ summary: 'Get my device activities' })
+  @ApiResponse({
+    status: 200,
+    description: 'Activities retrieved successfully',
+  })
+  async getMyActivities(
+    @CurrentUser() user: any,
+    @Query('limit', ParseIntPipe) limit?: number,
+  ) {
+    return await this.getDeviceActivitiesUseCase.execute(user.sub, limit);
   }
 }

@@ -23,9 +23,16 @@ import {
 import { UserLoggedInEvent } from '../../domain/events/user-logged-in.event';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
-import { DeviceSessionService, DeviceInfo } from '../services/device-session.service';
-import { ActivityType, ActivityStatus } from '../../domain/entities/device-activity-log.entity';
-import { DevicePlatform } from '../../domain/entities/device-session.entity';
+import { CreateDeviceSessionUseCase } from './device/create-device-session.use-case';
+import { LogDeviceActivityUseCase } from './device/log-device-activity.use-case';
+import {
+  DevicePlatform,
+  DeviceLocation,
+} from '../../domain/entities/device-session.entity';
+import {
+  ActivityType,
+  ActivityStatus,
+} from '../../domain/entities/device-activity-log.entity';
 
 @Injectable()
 export class LoginUseCase {
@@ -47,7 +54,8 @@ export class LoginUseCase {
     private publisher: EventPublisherPort,
     @Inject(AUDIT_LOGS_REPOSITORY)
     private auditLogsRepo: AuditLogsRepositoryPort,
-    private deviceSessionService: DeviceSessionService,
+    private createDeviceSessionUseCase: CreateDeviceSessionUseCase,
+    private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
   async execute(loginDto: LoginRequestDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LoginResponseDto>> {
@@ -106,53 +114,48 @@ export class LoginUseCase {
     }
 
     // Create or update device session
-    const deviceInfo: DeviceInfo = {
-      device_id: loginDto.device_id || `web_${Date.now()}`,
-      device_name: loginDto.device_name,
-      device_os: loginDto.device_os,
-      device_model: loginDto.device_model,
-      device_fingerprint: userAgent,
-      platform: loginDto.platform || DevicePlatform.WEB,
-      app_version: loginDto.app_version,
-      ip_address: ipAddress,
-      location: loginDto.location,
-      user_agent: userAgent,
-      fcm_token: loginDto.fcm_token,
-    };
+    let deviceSession;
+    try {
+      deviceSession = await this.createDeviceSessionUseCase.execute({
+        account_id: account.id!,
+        employee_id: account.employee_id || undefined,
+        device_id: loginDto.device_id || `web_${Date.now()}`,
+        device_name: loginDto.device_name,
+        device_os: loginDto.device_os,
+        device_model: loginDto.device_model,
+        device_fingerprint: userAgent,
+        platform: (loginDto.platform as DevicePlatform) || DevicePlatform.WEB,
+        app_version: loginDto.app_version,
+        ip_address: ipAddress,
+        location: loginDto.location as DeviceLocation,
+        user_agent: userAgent,
+        fcm_token: loginDto.fcm_token,
+      });
 
-    const deviceSession = await this.deviceSessionService.createOrUpdateDeviceSession(
-      account.id!,
-      account.employee_id || null,
-      deviceInfo,
-    );
-
-    // Perform security checks
-    const securityCheck = await this.deviceSessionService.performSecurityCheck(
-      account.id!,
-      deviceSession.id!,
-      deviceInfo,
-    );
-
-    // Log device activity
-    await this.deviceSessionService.logActivity(
-      account.id!,
-      deviceSession.id!,
-      ActivityType.LOGIN,
-      ActivityStatus.SUCCESS,
-      ipAddress,
-      deviceInfo.location,
-      userAgent,
-      { email: loginDto.email, using_temporary_password: isUsingTemporaryPassword },
-      securityCheck.is_suspicious,
-      securityCheck.suspicious_reasons.join(', '),
-      securityCheck.risk_score,
-    );
+      // Log device activity
+      await this.logDeviceActivityUseCase.execute({
+        device_session_id: deviceSession.id,
+        account_id: account.id!,
+        activity_type: ActivityType.LOGIN,
+        status: ActivityStatus.SUCCESS,
+        ip_address: ipAddress,
+        location: loginDto.location as any,
+        user_agent: userAgent,
+        metadata: {
+          email: loginDto.email,
+          using_temporary_password: isUsingTemporaryPassword,
+        },
+      });
+    } catch (error) {
+      console.error('Device tracking error:', error);
+      // Continue login even if device tracking fails
+    }
 
     // Generate tokens
     const accessToken = await this.jwtService.generateAccessToken(account);
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
-    // Create refresh token record with device tracking
+    // Create refresh token record
     const crypto = require('crypto');
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     
@@ -160,10 +163,10 @@ export class LoginUseCase {
     refreshTokenEntity.account_id = account.id!;
     refreshTokenEntity.token_hash = tokenHash;
     refreshTokenEntity.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    refreshTokenEntity.device_session_id = deviceSession.id;
+    refreshTokenEntity.device_session_id = deviceSession?.id;
     refreshTokenEntity.device_fingerprint = userAgent;
     refreshTokenEntity.ip_address = ipAddress;
-    refreshTokenEntity.location = deviceInfo.location;
+    refreshTokenEntity.location = loginDto.location;
     refreshTokenEntity.user_agent = userAgent;
     
     await this.refreshTokensRepo.create(refreshTokenEntity);

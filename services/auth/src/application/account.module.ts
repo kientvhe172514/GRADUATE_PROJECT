@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { RbacModule } from './rbac.module';
 
 import { AccountController } from '../presentation/controllers/account.controller';
 import { AdminController } from '../presentation/controllers/admin.controller';
@@ -37,11 +38,23 @@ import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-eve
 import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';
 import { EmployeeCreatedHandler } from './handlers/employee-created.handler';
 import { AccountSchema } from '../infrastructure/persistence/typeorm/account.schema';
+import { DeviceSessionSchema } from '../infrastructure/persistence/typeorm/device-session.schema';
+import { DeviceActivityLogSchema } from '../infrastructure/persistence/typeorm/device-activity-log.schema';
+import { DeviceSecurityAlertSchema } from '../infrastructure/persistence/typeorm/device-security-alert.schema';
 import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSITORY, JWT_SERVICE, REFRESH_TOKENS_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY } from './tokens';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AccountSchema, RefreshTokensSchema, AuditLogsSchema, TemporaryPasswordsSchema]),
+    RbacModule,
+    TypeOrmModule.forFeature([
+      AccountSchema,
+      RefreshTokensSchema,
+      AuditLogsSchema,
+      TemporaryPasswordsSchema,
+      DeviceSessionSchema,
+      DeviceActivityLogSchema,
+      DeviceSecurityAlertSchema,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

@@ -13,8 +13,11 @@ import {
 } from '../tokens';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
-import { DeviceSessionService } from '../services/device-session.service';
-import { ActivityType, ActivityStatus } from '../../domain/entities/device-activity-log.entity';
+import { LogDeviceActivityUseCase } from './device/log-device-activity.use-case';
+import {
+  ActivityType,
+  ActivityStatus,
+} from '../../domain/entities/device-activity-log.entity';
 
 @Injectable()
 export class LogoutUseCase {
@@ -27,7 +30,7 @@ export class LogoutUseCase {
     private jwtService: JwtServicePort,
     @Inject(AUDIT_LOGS_REPOSITORY)
     private auditLogsRepo: AuditLogsRepositoryPort,
-    private deviceSessionService: DeviceSessionService,
+    private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
   async execute(logoutDto: LogoutRequestDto, accountId?: number, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LogoutResponseDto>> {
@@ -58,21 +61,23 @@ export class LogoutUseCase {
       if (refreshTokenRecord) {
         await this.refreshTokensRepo.revokeToken(refreshTokenRecord.id!);
         
-        // Log device activity if device_session_id exists
+        // Log device activity
         if (refreshTokenRecord.device_session_id) {
-          await this.deviceSessionService.logActivity(
-            payload.sub,
-            refreshTokenRecord.device_session_id,
-            ActivityType.LOGOUT,
-            ActivityStatus.SUCCESS,
-            ipAddress,
-            refreshTokenRecord.location,
-            userAgent,
-            { revoke_reason: 'User logout' },
-          );
-          
-          // Update device last active
-          await this.deviceSessionService.updateLastActive(refreshTokenRecord.device_session_id);
+          try {
+            await this.logDeviceActivityUseCase.execute({
+              device_session_id: refreshTokenRecord.device_session_id,
+              account_id: payload.sub,
+              activity_type: ActivityType.LOGOUT,
+              status: ActivityStatus.SUCCESS,
+              ip_address: ipAddress,
+              user_agent: userAgent,
+              metadata: {
+                refresh_token_id: refreshTokenRecord.id,
+              },
+            });
+          } catch (error) {
+            console.error('Device activity logging error:', error);
+          }
         }
         
         await this.logSuccessfulLogout(payload.sub, ipAddress, userAgent, 'Token revoked');
