@@ -9,14 +9,14 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/auth-jwt-permission.guard';
+import { AuthJwtPermissionGuard } from '../guards/auth-jwt-permission.guard';
 import { DeviceSessionService } from '../../application/services/device-session.service';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @ApiTags('Device Management')
 @ApiBearerAuth()
 @Controller('devices')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthJwtPermissionGuard)
 export class DeviceController {
   constructor(private readonly deviceSessionService: DeviceSessionService) {}
 

@@ -53,7 +53,7 @@ export class ListAccountsUseCase {
         id: account.id!,
         email: account.email,
         full_name: account.full_name || '',
-        role: account.role,
+        role: account.role || '',
         status: account.status,
         department_id: account.department_id || 0,
         department_name: account.department_name || '',

@@ -195,7 +195,7 @@ export class LoginUseCase {
       id: account.id!,
       email: account.email,
       full_name: account.full_name || '',
-      role: account.role,
+      role: account.role || '',
     };
 
     // Build LoginResponseDto

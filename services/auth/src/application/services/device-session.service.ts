@@ -88,7 +88,7 @@ export class DeviceSessionService {
       // Create new device session
       const newDevice = new DeviceSession({
         account_id: accountId,
-        employee_id: employeeId,
+        employee_id: employeeId || undefined,
         device_id: deviceInfo.device_id,
         device_name: deviceInfo.device_name,
         device_os: deviceInfo.device_os,
@@ -271,9 +271,11 @@ export class DeviceSessionService {
       device_session_id: deviceSessionId,
       alert_type: alertType,
       severity,
+      title: description,
       description,
-      metadata,
-      auto_action_taken: autoAction,
+      details: metadata,
+      auto_action_taken: !!autoAction,
+      action_details: autoAction ? { action: autoAction } : undefined,
       created_at: new Date(),
     });
 
