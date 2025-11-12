@@ -6,7 +6,9 @@ import {
   FcmTokenStatus,
 } from '../../../domain/entities/device-session.entity';
 import { DeviceSessionRepositoryPort } from '../../ports/device-session.repository.port';
-import { DEVICE_SESSION_REPOSITORY } from '../../tokens';
+import { EventPublisherPort } from '../../ports/event.publisher.port';
+import { DEVICE_SESSION_REPOSITORY, EVENT_PUBLISHER } from '../../tokens';
+import { DeviceSessionCreatedEvent } from '../../../domain/events/device-session-created.event';
 
 export interface CreateDeviceSessionDto {
   account_id: number;
@@ -34,7 +36,9 @@ export interface CreateDeviceSessionDto {
 export class CreateDeviceSessionUseCase {
   constructor(
     @Inject(DEVICE_SESSION_REPOSITORY)
-    private deviceSessionRepo: DeviceSessionRepositoryPort,
+    private readonly deviceSessionRepo: DeviceSessionRepositoryPort,
+    @Inject(EVENT_PUBLISHER)
+    private readonly eventPublisher: EventPublisherPort,
   ) {}
 
   async execute(dto: CreateDeviceSessionDto): Promise<DeviceSession> {
@@ -99,6 +103,28 @@ export class CreateDeviceSessionUseCase {
       updated_at: new Date(),
     };
 
-    return await this.deviceSessionRepo.create(newDevice as DeviceSession);
+    const savedDevice = await this.deviceSessionRepo.create(newDevice as DeviceSession);
+
+    // Publish event for notification service to sync FCM token
+    if (savedDevice.fcm_token && savedDevice.employee_id) {
+      try {
+        this.eventPublisher.publish(
+          'device_session_created',
+          new DeviceSessionCreatedEvent(
+            savedDevice.id!,
+            savedDevice.account_id,
+            savedDevice.employee_id,
+            savedDevice.device_id,
+            savedDevice.fcm_token,
+            savedDevice.platform,
+          ),
+        );
+      } catch (error) {
+        console.error('Failed to publish device session created event:', error);
+        // Don't fail the request if event publishing fails
+      }
+    }
+
+    return savedDevice;
   }
 }

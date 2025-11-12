@@ -5,8 +5,10 @@ export interface PushTokenRepositoryPort {
   findByEmployeeId(employeeId: number): Promise<PushToken[]>;
   findActiveByEmployeeId(employeeId: number): Promise<PushToken[]>;
   findByDeviceId(employeeId: number, deviceId: string): Promise<PushToken | null>;
+  findByDeviceSessionId(deviceSessionId: number): Promise<PushToken | null>;
   update(token: PushToken): Promise<PushToken>;
   deactivateByToken(token: string): Promise<void>;
   deactivateByDeviceId(employeeId: number, deviceId: string): Promise<void>;
+  deactivateByDeviceSessionId(deviceSessionId: number): Promise<void>;
   deleteInactive(olderThanDays: number): Promise<number>;
 }

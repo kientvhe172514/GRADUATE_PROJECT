@@ -1,10 +1,14 @@
-import { IsNotEmpty, IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { Platform } from '../../domain/entities/push-token.entity';
 
 export class RegisterPushTokenDto {
   @IsNotEmpty()
   @IsString()
   deviceId: string;
+
+  @IsOptional()
+  @IsNumber()
+  deviceSessionId?: number;
 
   @IsNotEmpty()
   @IsString()

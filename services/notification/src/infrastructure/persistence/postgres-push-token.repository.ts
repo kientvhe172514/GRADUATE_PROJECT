@@ -49,6 +49,15 @@ export class PostgresPushTokenRepository implements PushTokenRepositoryPort {
     return schema ? PushTokenMapper.toDomain(schema) : null;
   }
 
+  async findByDeviceSessionId(deviceSessionId: number): Promise<PushToken | null> {
+    const schema = await this.repository.findOne({
+      where: {
+        device_session_id: deviceSessionId,
+      },
+    });
+    return schema ? PushTokenMapper.toDomain(schema) : null;
+  }
+
   async update(token: PushToken): Promise<PushToken> {
     const schema = PushTokenMapper.toPersistence(token);
     const updated = await this.repository.save(schema);
@@ -65,6 +74,13 @@ export class PostgresPushTokenRepository implements PushTokenRepositoryPort {
   ): Promise<void> {
     await this.repository.update(
       { employee_id: employeeId, device_id: deviceId },
+      { is_active: false },
+    );
+  }
+
+  async deactivateByDeviceSessionId(deviceSessionId: number): Promise<void> {
+    await this.repository.update(
+      { device_session_id: deviceSessionId },
       { is_active: false },
     );
   }

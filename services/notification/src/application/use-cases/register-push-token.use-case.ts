@@ -15,16 +15,17 @@ export class RegisterPushTokenUseCase {
   ) {}
 
   async execute(employeeId: number, dto: RegisterPushTokenDto): Promise<PushToken> {
-    this.logger.log(`Registering push token for employee ${employeeId}, device: ${dto.deviceId}`);
+    this.logger.log(`Registering push token for employee ${employeeId}, device: ${dto.deviceId}, session: ${dto.deviceSessionId}`);
 
     // Check if device already registered
     const existing = await this.pushTokenRepo.findByDeviceId(employeeId, dto.deviceId);
 
     if (existing) {
       // Update existing token
-      if (existing.token !== dto.token) {
+      if (existing.token !== dto.token || existing.deviceSessionId !== dto.deviceSessionId) {
         existing.token = dto.token;
         existing.platform = dto.platform;
+        existing.deviceSessionId = dto.deviceSessionId;
         existing.activate();
         return await this.pushTokenRepo.update(existing);
       }
@@ -36,6 +37,7 @@ export class RegisterPushTokenUseCase {
     const pushToken = new PushToken({
       employeeId,
       deviceId: dto.deviceId,
+      deviceSessionId: dto.deviceSessionId,
       token: dto.token,
       platform: dto.platform,
       isActive: true,

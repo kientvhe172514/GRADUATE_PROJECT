@@ -10,6 +10,7 @@ import {
 @Index(['employee_id', 'device_id'], { unique: true })
 @Index(['employee_id'])
 @Index(['token'])
+@Index(['device_session_id'])
 export class PushTokenSchema {
   @PrimaryGeneratedColumn('increment')
   id: number;
@@ -19,6 +20,9 @@ export class PushTokenSchema {
 
   @Column({ type: 'varchar', length: 255 })
   device_id: string;
+
+  @Column({ type: 'bigint', nullable: true })
+  device_session_id: number;
 
   @Column({ type: 'varchar', length: 500 })
   token: string;

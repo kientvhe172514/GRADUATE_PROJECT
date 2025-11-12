@@ -21,6 +21,7 @@ import { LeaveEventListener } from '../presentation/event-listeners/leave-event.
 import { FaceVerificationEventListener } from '../presentation/event-listeners/face-verification-event.listener';
 import { AuthEventListener } from '../presentation/event-listeners/auth-event.listener';
 import { EmployeeEventListener } from '../presentation/event-listeners/employee-event.listener';
+import { DeviceSessionCreatedListener } from '../presentation/event-listeners/device-session-created.listener';
 
 // Use Cases
 import {
@@ -86,6 +87,7 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
     FaceVerificationEventListener,
     AuthEventListener,
     EmployeeEventListener,
+    DeviceSessionCreatedListener,
   ],
   providers: [
     // Use Cases
