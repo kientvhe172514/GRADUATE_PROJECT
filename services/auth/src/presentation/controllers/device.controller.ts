@@ -9,9 +9,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
+import { JwtAuthGuard } from '../guards/auth-jwt-permission.guard';
 import { DeviceSessionService } from '../../application/services/device-session.service';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 

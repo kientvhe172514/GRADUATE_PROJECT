@@ -48,4 +48,10 @@ export class DeviceActivityLog {
 
   // Timestamp
   created_at?: Date;
+
+  constructor(data?: Partial<DeviceActivityLog>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
 }

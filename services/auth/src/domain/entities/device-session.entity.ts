@@ -74,4 +74,10 @@ export class DeviceSession {
   // Audit
   created_at?: Date;
   updated_at?: Date;
+
+  constructor(data?: Partial<DeviceSession>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
 }

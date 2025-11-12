@@ -48,4 +48,10 @@ export class DeviceSecurityAlert {
 
   // Timestamp
   created_at?: Date;
+
+  constructor(data?: Partial<DeviceSecurityAlert>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
 }

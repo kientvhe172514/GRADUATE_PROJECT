@@ -17,28 +17,30 @@ import {
   ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
-import { DeviceSessionService } from '../../application/services/device-session.service';
-import { DeviceActivityLogRepositoryPort } from '../../application/ports/device-activity-log.repository.port';
-import { DeviceSecurityAlertRepositoryPort } from '../../application/ports/device-security-alert.repository.port';
+import { AuthJwtPermissionGuard } from '../../guards/auth-jwt-permission.guard';
+import { AuthPermissions } from '../../decorators/auth-permissions.decorator';
+import { DeviceSessionService } from '../../../application/services/device-session.service';
+import { DeviceActivityLogRepositoryPort } from '../../../application/ports/device-activity-log.repository.port';
+import { DeviceSecurityAlertRepositoryPort } from '../../../application/ports/device-security-alert.repository.port';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { Inject } from '@nestjs/common';
 import {
   DEVICE_ACTIVITY_LOG_REPOSITORY,
   DEVICE_SECURITY_ALERT_REPOSITORY,
-} from '../../application/tokens';
+} from '../../../application/tokens';
 
 class RevokeDeviceDto {
   reason: string;
 }
 
+class ResolveAlertDto {
+  resolution_note?: string;
+}
+
 @ApiTags('Admin - Device Management')
 @ApiBearerAuth()
 @Controller('admin/devices')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'SUPER_ADMIN')
+@UseGuards(AuthJwtPermissionGuard)
 export class AdminDeviceController {
   constructor(
     private readonly deviceSessionService: DeviceSessionService,
@@ -49,9 +51,10 @@ export class AdminDeviceController {
   ) {}
 
   @Get('accounts/:accountId')
-  @ApiOperation({ summary: 'Get account devices' })
-  @ApiParam({ name: 'accountId', description: 'Account ID' })
-  @ApiQuery({ name: 'activeOnly', required: false, type: Boolean })
+  @AuthPermissions('view:accounts', 'manage:accounts')
+  @ApiOperation({ summary: 'Get account devices', description: 'Admin can view all devices for an account' })
+  @ApiParam({ name: 'accountId', description: 'Account ID', type: 'number' })
+  @ApiQuery({ name: 'activeOnly', required: false, type: Boolean, description: 'Filter active devices only' })
   @ApiResponse({ status: 200, description: 'Returns list of account devices' })
   async getAccountDevices(
     @Param('accountId') accountId: string,
@@ -66,8 +69,9 @@ export class AdminDeviceController {
   }
 
   @Post(':deviceId/revoke')
-  @ApiOperation({ summary: 'Revoke device' })
-  @ApiParam({ name: 'deviceId', description: 'Device session ID' })
+  @AuthPermissions('manage:accounts')
+  @ApiOperation({ summary: 'Revoke device', description: 'Admin can revoke any device' })
+  @ApiParam({ name: 'deviceId', description: 'Device session ID', type: 'number' })
   @ApiBody({ type: RevokeDeviceDto })
   @ApiResponse({ status: 200, description: 'Device revoked successfully' })
   async revokeDevice(
@@ -76,7 +80,7 @@ export class AdminDeviceController {
   ) {
     await this.deviceSessionService.revokeDevice(
       parseInt(deviceId),
-      0, // Admin action
+      0, // System/Admin action
       dto.reason || 'Revoked by admin',
     );
 
@@ -101,9 +105,10 @@ export class AdminDeviceController {
   }
 
   @Get('suspicious-activities/:accountId')
-  @ApiOperation({ summary: 'Get suspicious activities' })
-  @ApiParam({ name: 'accountId', description: 'Account ID' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @AuthPermissions('view:accounts', 'manage:security')
+  @ApiOperation({ summary: 'Get suspicious activities', description: 'View suspicious device activities for security monitoring' })
+  @ApiParam({ name: 'accountId', description: 'Account ID', type: 'number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of records', example: 50 })
   @ApiResponse({ status: 200, description: 'Returns suspicious activities' })
   async getSuspiciousActivities(
     @Param('accountId') accountId: string,
@@ -121,7 +126,8 @@ export class AdminDeviceController {
   }
 
   @Get('security-alerts')
-  @ApiOperation({ summary: 'Get all pending security alerts' })
+  @AuthPermissions('manage:security')
+  @ApiOperation({ summary: 'Get all pending security alerts', description: 'View all pending security alerts across all accounts' })
   @ApiResponse({ status: 200, description: 'Returns pending security alerts' })
   async getPendingAlerts() {
     const alerts = await this.securityAlertRepo.findPendingAlerts();
@@ -130,9 +136,10 @@ export class AdminDeviceController {
   }
 
   @Get('security-alerts/:accountId')
-  @ApiOperation({ summary: 'Get account security alerts' })
-  @ApiParam({ name: 'accountId', description: 'Account ID' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @AuthPermissions('view:accounts', 'manage:security')
+  @ApiOperation({ summary: 'Get account security alerts', description: 'View security alerts for a specific account' })
+  @ApiParam({ name: 'accountId', description: 'Account ID', type: 'number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of records', example: 50 })
   @ApiResponse({ status: 200, description: 'Returns account security alerts' })
   async getAccountAlerts(
     @Param('accountId') accountId: string,
@@ -147,12 +154,35 @@ export class AdminDeviceController {
   }
 
   @Post('security-alerts/:alertId/resolve')
-  @ApiOperation({ summary: 'Resolve security alert' })
-  @ApiParam({ name: 'alertId', description: 'Alert ID' })
+  @AuthPermissions('manage:security')
+  @ApiOperation({ summary: 'Resolve security alert', description: 'Mark security alert as resolved' })
+  @ApiParam({ name: 'alertId', description: 'Alert ID', type: 'number' })
+  @ApiBody({ type: ResolveAlertDto })
   @ApiResponse({ status: 200, description: 'Alert resolved successfully' })
-  async resolveAlert(@Param('alertId') alertId: string) {
-    await this.securityAlertRepo.updateStatus(parseInt(alertId), 'RESOLVED', 0);
+  async resolveAlert(
+    @Param('alertId') alertId: string,
+    @Body() dto: ResolveAlertDto,
+  ) {
+    const { AlertStatus } = await import('../../../domain/entities/device-security-alert.entity');
+    await this.securityAlertRepo.updateStatus(parseInt(alertId), AlertStatus.RESOLVED, 0);
 
     return ApiResponseDto.success(null, 'Alert resolved successfully');
+  }
+
+  @Get('statistics')
+  @AuthPermissions('view:statistics')
+  @ApiOperation({ summary: 'Get device statistics', description: 'Get overall device and security statistics' })
+  @ApiResponse({ status: 200, description: 'Returns device statistics' })
+  async getDeviceStatistics() {
+    // TODO: Implement statistics aggregation
+    const stats = {
+      total_devices: 0,
+      active_devices: 0,
+      suspicious_devices: 0,
+      pending_alerts: 0,
+      critical_alerts: 0,
+    };
+
+    return ApiResponseDto.success(stats, 'Statistics retrieved successfully');
   }
 }
