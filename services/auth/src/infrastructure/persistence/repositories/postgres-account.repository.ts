@@ -21,13 +21,45 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   }
 
   async findByEmail(email: string): Promise<Account | null> {
-    const entity = await this.repository.findOne({ where: { email } });
-    return entity ? AccountMapper.toDomain(entity) : null;
+    // Join with roles table to get role_code
+    const result = await this.repository.query(
+      `
+      SELECT a.*, r.code as role_code
+      FROM accounts a
+      LEFT JOIN roles r ON r.id = a.role_id
+      WHERE a.email = $1
+      `,
+      [email],
+    );
+    
+    if (!result || result.length === 0) return null;
+    
+    const entity = result[0];
+    const account = AccountMapper.toDomain(entity);
+    // Set role_code for JWT encoding
+    account.role = entity.role_code;
+    return account;
   }
 
   async findById(id: number): Promise<Account | null> {
-    const entity = await this.repository.findOne({ where: { id } });
-    return entity ? AccountMapper.toDomain(entity) : null;
+    // Join with roles table to get role_code
+    const result = await this.repository.query(
+      `
+      SELECT a.*, r.code as role_code
+      FROM accounts a
+      LEFT JOIN roles r ON r.id = a.role_id
+      WHERE a.id = $1
+      `,
+      [id],
+    );
+    
+    if (!result || result.length === 0) return null;
+    
+    const entity = result[0];
+    const account = AccountMapper.toDomain(entity);
+    // Set role_code for JWT encoding
+    account.role = entity.role_code;
+    return account;
   }
 
   async updateLastLogin(id: number, ip: string): Promise<void> {
@@ -79,57 +111,99 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   }
 
   async findByEmployeeId(employeeId: number): Promise<Account | null> {
-    const entity = await this.repository.findOne({ where: { employee_id: employeeId } as any });
-    return entity ? AccountMapper.toDomain(entity) : null;
+    // Join with roles table to get role_code
+    const result = await this.repository.query(
+      `
+      SELECT a.*, r.code as role_code
+      FROM accounts a
+      LEFT JOIN roles r ON r.id = a.role_id
+      WHERE a.employee_id = $1
+      `,
+      [employeeId],
+    );
+    
+    if (!result || result.length === 0) return null;
+    
+    const entity = result[0];
+    const account = AccountMapper.toDomain(entity);
+    // Set role_code for JWT encoding
+    account.role = entity.role_code;
+    return account;
   }
 
   async updateStatus(id: number, status: string): Promise<Account> {
     await this.repository.update(id, { status });
-    const updatedEntity = await this.repository.findOne({ where: { id } });
-    if (!updatedEntity) {
+    
+    // Use findById to get role_code properly
+    const account = await this.findById(id);
+    if (!account) {
       throw new Error('Account not found after update');
     }
-    return AccountMapper.toDomain(updatedEntity);
+    return account;
   }
 
   async findWithPagination(criteria: any): Promise<{ accounts: Account[]; total: number }> {
-    const queryBuilder = this.repository.createQueryBuilder('account');
+    // Use raw query to join with roles table
+    let whereConditions: string[] = ['1=1'];
+    const params: any[] = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (criteria.status) {
-      queryBuilder.andWhere('account.status = :status', { status: criteria.status });
+      whereConditions.push(`a.status = $${paramIndex}`);
+      params.push(criteria.status);
+      paramIndex++;
     }
     
     if (criteria.role) {
-      queryBuilder.andWhere('account.role = :role', { role: criteria.role });
+      whereConditions.push(`r.code = $${paramIndex}`);
+      params.push(criteria.role);
+      paramIndex++;
     }
     
     if (criteria.department_id) {
-      queryBuilder.andWhere('account.department_id = :department_id', { department_id: criteria.department_id });
+      whereConditions.push(`a.department_id = $${paramIndex}`);
+      params.push(criteria.department_id);
+      paramIndex++;
     }
 
-    // Apply search
     if (criteria.search) {
-      queryBuilder.andWhere(
-        '(account.email ILIKE :search OR account.full_name ILIKE :search)',
-        { search: `%${criteria.search}%` }
-      );
+      whereConditions.push(`(a.email ILIKE $${paramIndex} OR a.full_name ILIKE $${paramIndex})`);
+      params.push(`%${criteria.search}%`);
+      paramIndex++;
     }
 
-    // Apply sorting
     const sortBy = criteria.sortBy || 'created_at';
     const sortOrder = criteria.sortOrder || 'DESC';
-    queryBuilder.orderBy(`account.${sortBy}`, sortOrder);
-
-    // Apply pagination
-    queryBuilder.skip(criteria.offset || 0).take(criteria.limit || 10);
+    const offset = criteria.offset || 0;
+    const limit = criteria.limit || 10;
 
     // Get total count
-    const total = await queryBuilder.getCount();
+    const countQuery = `
+      SELECT COUNT(*) as count
+      FROM accounts a
+      LEFT JOIN roles r ON r.id = a.role_id
+      WHERE ${whereConditions.join(' AND ')}
+    `;
+    const countResult: any = await this.repository.query(countQuery, params);
+    const total = parseInt(countResult[0]?.count || '0', 10);
 
-    // Get accounts
-    const entities = await queryBuilder.getMany();
-    const accounts = entities.map(AccountMapper.toDomain);
+    // Get accounts with role_code
+    const query = `
+      SELECT a.*, r.code as role_code
+      FROM accounts a
+      LEFT JOIN roles r ON r.id = a.role_id
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY a.${sortBy} ${sortOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    params.push(limit, offset);
+    
+    const results: any = await this.repository.query(query, params);
+    const accounts = results.map((entity: any) => {
+      const account = AccountMapper.toDomain(entity);
+      account.role = entity.role_code;
+      return account;
+    });
 
     return { accounts, total };
   }

@@ -6,11 +6,13 @@ import { Account } from '../../domain/entities/account.entity';
 import { AccountFactory } from '../../domain/factories/account.factory';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
+import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
 import {
   ACCOUNT_REPOSITORY,
+  ROLE_REPOSITORY,
   HASHING_SERVICE,
   EVENT_PUBLISHER,
   TEMPORARY_PASSWORDS_REPOSITORY,
@@ -23,6 +25,8 @@ export class CreateAccountUseCase {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private accountRepo: AccountRepositoryPort,
+    @Inject(ROLE_REPOSITORY)
+    private roleRepo: RoleRepositoryPort,
     @Inject(HASHING_SERVICE)
     private hashing: HashingServicePort,
     @Inject(EVENT_PUBLISHER)
@@ -42,16 +46,28 @@ export class CreateAccountUseCase {
     const isCustomPassword = !!dto.password;
     const tempPasswordHash = await this.hashing.hash(tempPass);
     // Determine role from suggested_role or default to EMPLOYEE
-    let assignedRole = dto.suggested_role || 'EMPLOYEE';
+    let roleCode = dto.suggested_role || 'EMPLOYEE';
     
     // Validate role exists in AccountRole enum
     const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_HEAD','MANAGER', 'EMPLOYEE'];
-    if (!validRoles.includes(assignedRole.toUpperCase())) {
-      console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
-      assignedRole = 'EMPLOYEE';
+    if (!validRoles.includes(roleCode.toUpperCase())) {
+      console.warn(`⚠️ Invalid role "${roleCode}" from position, defaulting to EMPLOYEE`);
+      roleCode = 'EMPLOYEE';
     }
 
-    console.log(`🔐 Creating account with role: ${assignedRole}, custom password: ${isCustomPassword}`);
+    // Lookup role_id from roles table
+    let role = await this.roleRepo.findByCode(roleCode.toUpperCase());
+    if (!role) {
+      console.error(`❌ Role "${roleCode}" not found in roles table, defaulting to EMPLOYEE`);
+      const employeeRole = await this.roleRepo.findByCode('EMPLOYEE');
+      if (!employeeRole) {
+        throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'EMPLOYEE role not found in database');
+      }
+      role = employeeRole;
+      roleCode = 'EMPLOYEE';
+    }
+
+    console.log(`🔐 Creating account with role_id: ${role.id} (${roleCode}), custom password: ${isCustomPassword}`);
 
     // Create account using Factory Pattern
     const account = AccountFactory.createEmployeeAccount({
@@ -64,8 +80,11 @@ export class CreateAccountUseCase {
       department_name: dto.department_name,
       position_id: dto.position_id,
       position_name: dto.position_name,
-      role: assignedRole as any, // Assign role from position's suggested_role
+      role: roleCode as any, // Store role_code for backward compatibility
     });
+    
+    // Set role_id for database foreign key
+    account.role_id = role.id;
 
     const savedAccount = await this.accountRepo.create(account);
 

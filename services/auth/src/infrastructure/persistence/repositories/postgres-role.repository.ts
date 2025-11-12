@@ -27,6 +27,10 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
     return result.map((row) => row.code);
   }
 
+  async findByCode(code: string): Promise<any | null> {
+    return await this.repository.findOne({ where: { code } as any });
+  }
+
   async findAll(filters?: { status?: string; page?: number; limit?: number }): Promise<{ roles: any[]; total: number }> {
     const page = filters?.page || 1;
     const limit = filters?.limit || 20;
