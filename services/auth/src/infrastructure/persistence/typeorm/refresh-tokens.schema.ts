@@ -12,6 +12,10 @@ export const RefreshTokensSchema = new EntitySchema<RefreshTokensEntity>({
     device_name: { type: 'varchar', length: 255, nullable: true },
     device_os: { type: 'varchar', length: 50, nullable: true },
     device_fingerprint: { type: 'text', nullable: true },
+    device_session_id: { type: 'bigint', nullable: true },
+    ip_address: { type: 'varchar', length: 45, nullable: true },
+    location: { type: 'jsonb', nullable: true },
+    user_agent: { type: 'text', nullable: true },
     expires_at: { type: 'timestamp' },
     revoked_at: { type: 'timestamp', nullable: true },
     last_used_at: { type: 'timestamp', nullable: true },
@@ -29,6 +33,10 @@ export const RefreshTokensSchema = new EntitySchema<RefreshTokensEntity>({
     {
       name: 'idx_refresh_tokens_expires_at',
       columns: ['expires_at'],
+    },
+    {
+      name: 'idx_refresh_tokens_device_session',
+      columns: ['device_session_id'],
     },
   ],
 });

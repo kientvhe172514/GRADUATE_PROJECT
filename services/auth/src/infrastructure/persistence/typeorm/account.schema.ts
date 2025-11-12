@@ -9,7 +9,8 @@ export const AccountSchema = new EntitySchema<AccountEntity>({
     email: { type: 'varchar', length: 255, unique: true },
     password_hash: { type: 'varchar', length: 255 },
     account_type: { type: 'varchar', length: 50, default: 'EMPLOYEE' },
-    role: { type: 'varchar', length: 50, default: 'EMPLOYEE' },
+    role_id: { type: 'int', nullable: false },
+    role_legacy: { type: 'varchar', length: 50, nullable: true }, // Kept for migration rollback
     employee_id: { type: 'bigint', nullable: true },
     employee_code: { type: 'varchar', length: 50, nullable: true },
     full_name: { type: 'varchar', length: 255, nullable: true },

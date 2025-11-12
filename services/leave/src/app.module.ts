@@ -18,7 +18,7 @@ import { HealthController } from './health.controller';
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         entities: [__dirname + '/infrastructure/persistence/typeorm/**/*.schema{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: true, // Development only - set false in production
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
