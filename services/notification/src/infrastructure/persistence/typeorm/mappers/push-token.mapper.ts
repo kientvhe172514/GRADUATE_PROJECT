@@ -7,6 +7,7 @@ export class PushTokenMapper {
       id: schema.id,
       employeeId: Number(schema.employee_id),
       deviceId: schema.device_id,
+      deviceSessionId: schema.device_session_id ? Number(schema.device_session_id) : undefined,
       token: schema.token,
       platform: schema.platform as Platform,
       isActive: schema.is_active,
@@ -20,6 +21,9 @@ export class PushTokenMapper {
     if (pushToken.id) schema.id = pushToken.id;
     schema.employee_id = pushToken.employeeId;
     schema.device_id = pushToken.deviceId;
+    if (pushToken.deviceSessionId !== undefined) {
+      schema.device_session_id = pushToken.deviceSessionId;
+    }
     schema.token = pushToken.token;
     schema.platform = pushToken.platform;
     schema.is_active = pushToken.isActive;

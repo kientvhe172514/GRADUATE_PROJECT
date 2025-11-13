@@ -23,6 +23,16 @@ import {
 import { UserLoggedInEvent } from '../../domain/events/user-logged-in.event';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
+import { CreateDeviceSessionUseCase } from './device/create-device-session.use-case';
+import { LogDeviceActivityUseCase } from './device/log-device-activity.use-case';
+import {
+  DevicePlatform,
+  DeviceLocation,
+} from '../../domain/entities/device-session.entity';
+import {
+  ActivityType,
+  ActivityStatus,
+} from '../../domain/entities/device-activity-log.entity';
 
 @Injectable()
 export class LoginUseCase {
@@ -44,6 +54,8 @@ export class LoginUseCase {
     private publisher: EventPublisherPort,
     @Inject(AUDIT_LOGS_REPOSITORY)
     private auditLogsRepo: AuditLogsRepositoryPort,
+    private createDeviceSessionUseCase: CreateDeviceSessionUseCase,
+    private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
   async execute(loginDto: LoginRequestDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LoginResponseDto>> {
@@ -101,12 +113,49 @@ export class LoginUseCase {
       await this.accountRepo.updateLastLogin(account.id!, ipAddress);
     }
 
+    // Create or update device session
+    let deviceSession;
+    try {
+      deviceSession = await this.createDeviceSessionUseCase.execute({
+        account_id: account.id!,
+        employee_id: account.employee_id || undefined,
+        device_id: loginDto.device_id || `web_${Date.now()}`,
+        device_name: loginDto.device_name,
+        device_os: loginDto.device_os,
+        device_model: loginDto.device_model,
+        device_fingerprint: userAgent,
+        platform: (loginDto.platform as DevicePlatform) || DevicePlatform.WEB,
+        app_version: loginDto.app_version,
+        ip_address: ipAddress,
+        location: loginDto.location as DeviceLocation,
+        user_agent: userAgent,
+        fcm_token: loginDto.fcm_token,
+      });
+
+      // Log device activity
+      await this.logDeviceActivityUseCase.execute({
+        device_session_id: deviceSession.id,
+        account_id: account.id!,
+        activity_type: ActivityType.LOGIN,
+        status: ActivityStatus.SUCCESS,
+        ip_address: ipAddress,
+        location: loginDto.location as any,
+        user_agent: userAgent,
+        metadata: {
+          email: loginDto.email,
+          using_temporary_password: isUsingTemporaryPassword,
+        },
+      });
+    } catch (error) {
+      console.error('Device tracking error:', error);
+      // Continue login even if device tracking fails
+    }
+
     // Generate tokens
     const accessToken = await this.jwtService.generateAccessToken(account);
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
     // Create refresh token record
-    // IMPORTANT: Store token hash using SHA256 (deterministic) NOT bcrypt (random salt)
     const crypto = require('crypto');
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     
@@ -114,11 +163,15 @@ export class LoginUseCase {
     refreshTokenEntity.account_id = account.id!;
     refreshTokenEntity.token_hash = tokenHash;
     refreshTokenEntity.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    refreshTokenEntity.device_session_id = deviceSession?.id;
     refreshTokenEntity.device_fingerprint = userAgent;
+    refreshTokenEntity.ip_address = ipAddress;
+    refreshTokenEntity.location = loginDto.location;
+    refreshTokenEntity.user_agent = userAgent;
     
     await this.refreshTokensRepo.create(refreshTokenEntity);
 
-    // Log successful login
+    // Log successful login to audit logs
     await this.logSuccessfulAttempt(account.id!, loginDto.email, ipAddress, userAgent);
 
     // Publish event
@@ -145,7 +198,7 @@ export class LoginUseCase {
       id: account.id!,
       email: account.email,
       full_name: account.full_name || '',
-      role: account.role,
+      role: account.role || '',
     };
 
     // Build LoginResponseDto

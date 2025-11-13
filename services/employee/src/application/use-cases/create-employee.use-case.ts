@@ -21,6 +21,20 @@ export class CreateEmployeeUseCase {
   ) {}
 
   async execute(dto: CreateEmployeeDto): Promise<ApiResponseDto<CreateEmployeeResponseDto>> {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(dto.email)) {
+      throw new BusinessException('INVALID_EMAIL_FORMAT', 'Invalid email format', 400);
+    }
+
+    // Validate phone number format (10 digits)
+    if (dto.phone_number && dto.phone_number.trim() !== '') {
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(dto.phone_number.trim())) {
+        throw new BusinessException('INVALID_PHONE_NUMBER', 'Phone number must be exactly 10 digits', 400);
+      }
+    }
+
     const existingByCode = await this.employeeRepository.findByCode(dto.employee_code);
     if (existingByCode) {
       throw new BusinessException(ErrorCodes.EMPLOYEE_CODE_ALREADY_EXISTS, 'Employee code already exists');

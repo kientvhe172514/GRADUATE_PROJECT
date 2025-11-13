@@ -18,7 +18,7 @@ export class AccountUpdatedEventDto {
   constructor(account: Account) {
     this.account_id = account.id!;
     this.email = account.email;
-    this.role = account.role;
+    this.role = account.role || '';
     this.status = account.status;
     this.employee_id = account.employee_id;
     this.employee_code = account.employee_code;

@@ -3,7 +3,8 @@ export class AccountEntity {
     email: string;
     password_hash: string;
     account_type: string;
-    role: string;
+    role_id: number;
+    role_legacy?: string; // Kept for migration
     employee_id?: number;
     employee_code?: string;
     full_name?: string;

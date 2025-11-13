@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { RbacModule } from './rbac.module';
 
 import { AccountController } from '../presentation/controllers/account.controller';
 import { AdminController } from '../presentation/controllers/admin.controller';
@@ -23,10 +24,17 @@ import { ListAccountsUseCase } from './use-cases/admin/list-accounts.use-case';
 import { GetAccountDetailUseCase } from './use-cases/admin/get-account-detail.use-case';
 import { UpdateAccountStatusUseCase } from './use-cases/admin/update-account-status.use-case';
 import { ListAuditLogsUseCase } from './use-cases/admin/list-audit-logs.use-case';
+import { CreateDeviceSessionUseCase } from './use-cases/device/create-device-session.use-case';
+import { LogDeviceActivityUseCase } from './use-cases/device/log-device-activity.use-case';
+import { GetMyDevicesUseCase } from './use-cases/device/get-my-devices.use-case';
+import { RevokeDeviceUseCase } from './use-cases/device/revoke-device.use-case';
+import { GetDeviceActivitiesUseCase } from './use-cases/device/get-device-activities.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
 import { PostgresAuditLogsRepository } from '../infrastructure/persistence/repositories/postgres-audit-logs.repository';
+import { PostgresDeviceSessionRepository } from '../infrastructure/persistence/repositories/postgres-device-session.repository';
+import { PostgresDeviceActivityLogRepository } from '../infrastructure/persistence/repositories/postgres-device-activity-log.repository';
 import { RefreshTokensSchema } from '../infrastructure/persistence/typeorm/refresh-tokens.schema';
 import { AuditLogsSchema } from '../infrastructure/persistence/typeorm/audit-logs.schema';
 import { JwtServiceImpl } from '../infrastructure/services/jwt.service';
@@ -37,11 +45,34 @@ import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-eve
 import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';
 import { EmployeeCreatedHandler } from './handlers/employee-created.handler';
 import { AccountSchema } from '../infrastructure/persistence/typeorm/account.schema';
-import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSITORY, JWT_SERVICE, REFRESH_TOKENS_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY } from './tokens';
+import { DeviceSessionSchema } from '../infrastructure/persistence/typeorm/device-session.schema';
+import { DeviceActivityLogSchema } from '../infrastructure/persistence/typeorm/device-activity-log.schema';
+import { DeviceSecurityAlertSchema } from '../infrastructure/persistence/typeorm/device-security-alert.schema';
+import { DeviceController } from '../presentation/controllers/device.controller';
+import { 
+  ACCOUNT_REPOSITORY, 
+  HASHING_SERVICE, 
+  EVENT_PUBLISHER, 
+  AUDIT_LOGS_REPOSITORY, 
+  JWT_SERVICE, 
+  REFRESH_TOKENS_REPOSITORY, 
+  TEMPORARY_PASSWORDS_REPOSITORY,
+  DEVICE_SESSION_REPOSITORY,
+  DEVICE_ACTIVITY_LOG_REPOSITORY,
+} from './tokens';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AccountSchema, RefreshTokensSchema, AuditLogsSchema, TemporaryPasswordsSchema]),
+    RbacModule,
+    TypeOrmModule.forFeature([
+      AccountSchema,
+      RefreshTokensSchema,
+      AuditLogsSchema,
+      TemporaryPasswordsSchema,
+      DeviceSessionSchema,
+      DeviceActivityLogSchema,
+      DeviceSecurityAlertSchema,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -91,7 +122,13 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
       },
     ]),
   ],
-  controllers: [AccountController, AdminController, VerifyController, EmployeeCreatedListener],  // Add AdminController
+  controllers: [
+    AccountController, 
+    AdminController, 
+    VerifyController, 
+    DeviceController,
+    EmployeeCreatedListener,
+  ],
   providers: [
     CreateAccountUseCase,
     LoginUseCase,
@@ -107,6 +144,12 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     GetAccountDetailUseCase,
     UpdateAccountStatusUseCase,
     ListAuditLogsUseCase,
+    // Device management use cases
+    CreateDeviceSessionUseCase,
+    LogDeviceActivityUseCase,
+    GetMyDevicesUseCase,
+    RevokeDeviceUseCase,
+    GetDeviceActivitiesUseCase,
     EmployeeCreatedHandler,
     RabbitMQEventSubscriber,
     JwtStrategy,
@@ -137,6 +180,14 @@ import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER, AUDIT_LOGS_REPOSI
     {
       provide: JWT_SERVICE,
       useClass: JwtServiceImpl,
+    },
+    {
+      provide: DEVICE_SESSION_REPOSITORY,
+      useClass: PostgresDeviceSessionRepository,
+    },
+    {
+      provide: DEVICE_ACTIVITY_LOG_REPOSITORY,
+      useClass: PostgresDeviceActivityLogRepository,
     },
   ],
 })

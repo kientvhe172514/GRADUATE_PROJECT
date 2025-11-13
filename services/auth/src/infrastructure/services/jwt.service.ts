@@ -15,18 +15,18 @@ export class JwtServiceImpl implements JwtServicePort {
   ) {}
 
   async generateAccessToken(account: Account): Promise<string> {
-    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role);
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role || '');
     const payload = {
       sub: account.id,
       email: account.email,
-      role: account.role,
+      role: account.role || '',
       permissions: permissions
     };
     return this.jwtService.sign(payload, { expiresIn: '15m' }); // 15 minutes
   }
 
   generateRefreshToken(account: Account): string {
-    const payload = { sub: account.id, email: account.email, role: account.role };
+    const payload = { sub: account.id, email: account.email, role: account.role || '' };
     return this.jwtService.sign(payload, { expiresIn: '7d' }); // 7 days
   }
 
@@ -43,11 +43,11 @@ export class JwtServiceImpl implements JwtServicePort {
 
   // Legacy method for backward compatibility
   async generateTokens(account: Account): Promise<LoginResponseDto> {
-    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role);
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role || '');
     const payload = {
       sub: account.id,
       email: account.email,
-      role: account.role,
+      role: account.role || '',
       permissions: permissions
     };
     return {
@@ -57,7 +57,7 @@ export class JwtServiceImpl implements JwtServicePort {
         id: account.id!,
         email: account.email,
         full_name: account.full_name || '',
-        role: account.role,
+        role: account.role || '',
       },
     };
   }

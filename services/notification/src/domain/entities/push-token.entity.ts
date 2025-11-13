@@ -8,6 +8,7 @@ export class PushToken {
   id?: number;
   employeeId: number;
   deviceId: string;
+  deviceSessionId?: number; // Link to auth service's device_sessions table
   token: string;
   platform: Platform;
   isActive: boolean;

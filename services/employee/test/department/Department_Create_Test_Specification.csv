@@ -1,0 +1,58 @@
+,,,,UTCID01,UTCID02,UTCID03,UTCID04,UTCID05,UTCID06,UTCID07
+,,,,"Create department with all fields","Department code already exists","Create with parent_department_id","Create with manager_id","Create with minimal required fields","Create with office location details","Handle repository errors gracefully"
+Condition,Preconditions,,,,,,,,,
+,,,Can connect to database,O,O,O,O,O,O,O
+,,,department_code 'IT-001' does NOT exist,O,,O,O,,,O
+,,,department_code 'IT-002' does NOT exist,,,O,,,,
+,,,department_code 'HR-001' does NOT exist,,,,,O,,
+,,,department_code 'IT-001' ALREADY EXISTS,,O,,,,,
+,,,Event publishing service available,O,O,O,O,O,O,
+,,,parent_department_id 1 exists,,,O,,,,
+,department_code,,,,,,,,,
+,,,"	""IT-001""",O,O,,O,,,O
+,,,"	""IT-002""",,,O,,,,
+,,,"	""HR-001""",,,,,O,,
+,department_name,,,,,,,,,
+,,,"	""Information Technology""",O,O,,O,,,O
+,,,"	""Software Development""",,,O,,,,
+,,,"	""Human Resources""",,,,,O,,
+,description,,,,,,,,,
+,,,"	""IT Department""",O,O,,O,,,O
+,,,undefined,,,O,,O,,
+,parent_department_id,,,,,,,,,
+,,,undefined,O,O,,O,O,O,O
+,,,1,,,O,,,,
+,manager_id,,,,,,,,,
+,,,undefined,O,O,O,,O,O,O
+,,,100,,,,O,,,
+,office_address,,,,,,,,,
+,,,"	""Floor 3, Building A""",O,O,,O,,,O
+,,,"	""123 Tech Street, District 1""",,,,,,,O,
+,,,undefined,,,O,,O,,
+,office_latitude,,,,,,,,,
+,,,10.123456,O,O,,O,,,O
+,,,10.776889,,,,,,,O,
+,,,undefined,,,O,,O,,
+,office_longitude,,,,,,,,,
+,,,106.789012,O,O,,O,,,O
+,,,106.700806,,,,,,,O,
+,,,undefined,,,O,,O,,
+,office_radius_meters,,,,,,,,,
+,,,100,O,O,,O,,,O
+,,,200,,,,,,,O,
+,,,undefined,,,O,,O,,
+,,,,,,,,,,
+Confirm,Return,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Department created successfully"", data:{id:1, department_code:""IT-001"", department_name:""Information Technology"", description:""IT Department"", level:1, office_address:""Floor 3, Building A"", office_latitude:10.123456, office_longitude:106.789012, office_radius_meters:100, status:""ACTIVE"", created_at:Date('2025-11-09T10:00:00Z'), updated_at:Date('2025-11-09T10:00:00Z')}} + Event published with 'department_created'",,,O,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Department created successfully"", data:{id:2, department_code:""IT-002"", department_name:""Software Development"", description:""IT Department"", parent_department_id:1, level:2, office_address:""Floor 3, Building A"", office_latitude:10.123456, office_longitude:106.789012, office_radius_meters:100, status:""ACTIVE"", created_at:Date('2025-11-09T10:00:00Z'), updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,O,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Department created successfully"", data:{id:1, department_code:""IT-001"", department_name:""Information Technology"", description:""IT Department"", manager_id:100, level:1, office_address:""Floor 3, Building A"", office_latitude:10.123456, office_longitude:106.789012, office_radius_meters:100, status:""ACTIVE"", created_at:Date('2025-11-09T10:00:00Z'), updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,O,,
+,"{status:""SUCCESS"", statusCode:201, message:""Department created successfully"", data:{id:3, department_code:""HR-001"", department_name:""Human Resources"", description:undefined, office_address:undefined, office_latitude:undefined, office_longitude:undefined, level:1, status:""ACTIVE"", created_at:Date('2025-11-09T10:00:00Z'), updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,
+,"{status:""SUCCESS"", statusCode:201, message:""Department created successfully"", data:{id:1, department_code:""IT-001"", department_name:""Information Technology"", description:""IT Department"", office_address:""123 Tech Street, District 1"", office_latitude:10.776889, office_longitude:106.700806, office_radius_meters:200, level:1, status:""ACTIVE"", created_at:Date('2025-11-09T10:00:00Z'), updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,O
+,,,,,,,,,,
+,Exception,,,,,,,,,
+,,"BusinessException with errorCode:""DEPARTMENT_CODE_ALREADY_EXISTS"" + message:""Department code already exists"" + statusCode:400",,,,O,,,,,
+,,"Error with message:""Database error""",,,,,,,,,O
+,,,,,,,,,,
+Result,Test Result,,,,,,,,,
+,,PASS,,,O,O,O,O,O,O,O
+,"Type (N: Normal, A: Abnormal, B: Boundary)",,,N,A,N,N,N,N,A

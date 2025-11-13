@@ -3,11 +3,17 @@ export class RefreshTokens {
   account_id: number;
   token_hash: string;
   
-  // Device info
+  // Device tracking
+  device_session_id?: number;
   device_id?: string;
   device_name?: string;
   device_os?: string;
   device_fingerprint?: string;
+  
+  // Location tracking
+  ip_address?: string;
+  location?: any;
+  user_agent?: string;
   
   // Token lifecycle
   expires_at: Date;

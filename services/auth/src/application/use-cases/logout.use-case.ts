@@ -13,6 +13,11 @@ import {
 } from '../tokens';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
+import { LogDeviceActivityUseCase } from './device/log-device-activity.use-case';
+import {
+  ActivityType,
+  ActivityStatus,
+} from '../../domain/entities/device-activity-log.entity';
 
 @Injectable()
 export class LogoutUseCase {
@@ -25,6 +30,7 @@ export class LogoutUseCase {
     private jwtService: JwtServicePort,
     @Inject(AUDIT_LOGS_REPOSITORY)
     private auditLogsRepo: AuditLogsRepositoryPort,
+    private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
   async execute(logoutDto: LogoutRequestDto, accountId?: number, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LogoutResponseDto>> {
@@ -54,6 +60,26 @@ export class LogoutUseCase {
       
       if (refreshTokenRecord) {
         await this.refreshTokensRepo.revokeToken(refreshTokenRecord.id!);
+        
+        // Log device activity
+        if (refreshTokenRecord.device_session_id) {
+          try {
+            await this.logDeviceActivityUseCase.execute({
+              device_session_id: refreshTokenRecord.device_session_id,
+              account_id: payload.sub,
+              activity_type: ActivityType.LOGOUT,
+              status: ActivityStatus.SUCCESS,
+              ip_address: ipAddress,
+              user_agent: userAgent,
+              metadata: {
+                refresh_token_id: refreshTokenRecord.id,
+              },
+            });
+          } catch (error) {
+            console.error('Device activity logging error:', error);
+          }
+        }
+        
         await this.logSuccessfulLogout(payload.sub, ipAddress, userAgent, 'Token revoked');
       } else {
         await this.logFailedLogout(payload.sub, ipAddress, userAgent, 'Token not found');
