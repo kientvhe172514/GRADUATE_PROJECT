@@ -9,7 +9,7 @@ export const RoleSchema = new EntitySchema<RoleEntity>({
     code: { type: 'varchar', length: 100, unique: true },
     name: { type: 'varchar', length: 255 },
     description: { type: 'text', nullable: true },
-    level: { type: 'int', comment: '1=SUPER_ADMIN, 2=HR_ADMIN, 3=HR_STAFF, 4=MANAGER, 5=EMPLOYEE' },
+    level: { type: 'int', comment: '1=ADMIN (highest), 2=HR_MANAGER, 3=DEPARTMENT_MANAGER, 4=EMPLOYEE (lowest)' },
     is_system_role: { type: 'boolean', default: false },
     status: { type: 'varchar', length: 20, default: 'active' },
     created_at: { type: 'timestamp', createDate: true },

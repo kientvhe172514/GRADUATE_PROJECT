@@ -44,12 +44,12 @@ export class CreateAccountDto {
 
   @ApiProperty({ 
     required: false, 
-    example: 'MANAGER',
-    description: 'Role to assign (SUPER_ADMIN, HR_ADMIN, HR_STAFF, MANAGER, EMPLOYEE). Defaults to EMPLOYEE if not provided or invalid.' 
+    example: 'EMPLOYEE',
+    description: 'Role to assign (ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE). Defaults to EMPLOYEE if not provided or invalid.' 
   })
   @IsString()
   @IsOptional()
-  suggested_role?: string; // Role suggested from position (e.g., "MANAGER", "EMPLOYEE", "HR")
+  suggested_role?: string; // Role suggested from position (e.g., "DEPARTMENT_MANAGER", "EMPLOYEE", "HR_MANAGER")
 
   @ApiProperty({ 
     required: false, 

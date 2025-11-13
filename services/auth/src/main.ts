@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
@@ -24,7 +23,9 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1/auth');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useGlobalFilters(new HttpExceptionFilter());
+  
+  // ✅ Exception filter is registered globally in app.module.ts (APP_FILTER)
+  // No need to register again here
 
   // Hybrid setup: HTTP + RMQ listener for events (e.g., employee_created from Employee service)
   app.connectMicroservice<MicroserviceOptions>({

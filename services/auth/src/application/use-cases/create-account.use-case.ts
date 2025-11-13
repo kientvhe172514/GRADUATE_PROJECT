@@ -49,10 +49,10 @@ export class CreateAccountUseCase {
     let roleCode = dto.suggested_role || 'EMPLOYEE';
     
     // Validate role exists in AccountRole enum
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_HEAD','MANAGER', 'EMPLOYEE'];
-    if (!validRoles.includes(roleCode.toUpperCase())) {
-      console.warn(`⚠️ Invalid role "${roleCode}" from position, defaulting to EMPLOYEE`);
-      roleCode = 'EMPLOYEE';
+    const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
+    if (!validRoles.includes(assignedRole.toUpperCase())) {
+      console.warn(`⚠️ Invalid role "${assignedRole}" from position, defaulting to EMPLOYEE`);
+      assignedRole = 'EMPLOYEE';
     }
 
     // Lookup role_id from roles table

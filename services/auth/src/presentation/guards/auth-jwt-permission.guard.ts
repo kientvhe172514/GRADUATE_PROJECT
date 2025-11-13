@@ -79,9 +79,9 @@ export class AuthJwtPermissionGuard
       throw new UnauthorizedException('User not found in request');
     }
 
-    // ✅ SUPER_ADMIN bypass: Full access to all endpoints
-    if (user.role === 'SUPER_ADMIN') {
-      console.log('✅ SUPER_ADMIN detected - bypassing permission check');
+    // ✅ ADMIN bypass: Full access to all endpoints
+    if (user.role === 'ADMIN') {
+      console.log('✅ [PERMISSION GUARD] ADMIN detected - bypassing permission check');
       return true;
     }
 

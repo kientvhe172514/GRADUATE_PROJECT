@@ -559,17 +559,17 @@ const PERMISSIONS: Permission[] = [
 
 const ROLES: Role[] = [
   {
-    code: 'SUPER_ADMIN',
-    name: 'Super Administrator',
+    code: 'ADMIN',
+    name: 'System Administrator',
     description: 'Full system access with all permissions',
     level: 1,
     is_system_role: true,
     permissions: PERMISSIONS.map((p) => p.code), // All permissions
   },
   {
-    code: 'ADMIN',
-    name: 'Administrator',
-    description: 'System administrator with most permissions',
+    code: 'HR_MANAGER',
+    name: 'HR Manager',
+    description: 'Human Resources Manager - Full employee and HR management',
     level: 2,
     is_system_role: true,
     permissions: [
@@ -619,38 +619,10 @@ const ROLES: Role[] = [
     ],
   },
   {
-    code: 'HR_MANAGER',
-    name: 'HR Manager',
-    description: 'Human Resources Manager',
-    level: 3,
-    is_system_role: true,
-    permissions: [
-      'employee.create',
-      'employee.read',
-      'employee.update',
-      'employee.export',
-      'department.read',
-      'position.read',
-      'attendance.read',
-      'attendance.export',
-      'leave.read',
-      'leave.approve',
-      'face.register',
-      'face.update',
-      'device.read',
-      'report.attendance',
-      'report.leave',
-      'report.employee',
-      'report.export',
-      'notification.read',
-      'notification.send',
-    ],
-  },
-  {
     code: 'DEPARTMENT_MANAGER',
     name: 'Department Manager',
     description: 'Manager of a department',
-    level: 4,
+    level: 3,
     is_system_role: true,
     permissions: [
       'employee.read',
@@ -669,7 +641,7 @@ const ROLES: Role[] = [
     code: 'EMPLOYEE',
     name: 'Employee',
     description: 'Regular employee',
-    level: 5,
+    level: 4,
     is_system_role: true,
     permissions: [
       'auth.login',
@@ -771,18 +743,18 @@ export async function seedRBAC(dataSource: DataSource) {
     }
     console.log(`✅ Created ${assignmentCount} role-permission assignments`);
 
-    // 4. Create Super Admin Account (if not exists)
-    console.log('👤 Creating Super Admin account...');
+    // 4. Create Admin Account (if not exists)
+    console.log('👤 Creating Admin account...');
     const hashedPassword = await bcrypt.hash('Admin@123', 10);
 
     await queryRunner.query(
       `INSERT INTO accounts (email, password_hash, role, status, created_at, updated_at)
-       VALUES ($1, $2, 'SUPER_ADMIN', 'active', NOW(), NOW())
+       VALUES ($1, $2, 'ADMIN', 'active', NOW(), NOW())
        ON CONFLICT (email) DO NOTHING`,
       ['admin@zentry.com', hashedPassword],
     );
     console.log(
-      '✅ Super Admin account created (email: admin@zentry.com, password: Admin@123)',
+      '✅ Admin account created (email: admin@zentry.com, password: Admin@123)',
     );
 
     await queryRunner.commitTransaction();
