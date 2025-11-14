@@ -11,8 +11,8 @@ public class FaceIdVerifyRequest : AggregateRoot<Guid>
     private FaceIdVerifyRequest(
         Guid id,
         Guid requestGroupId,
-        Guid targetUserId,
-        Guid? initiatorUserId,
+        int targetUserId,
+        int? initiatorUserId,
         Guid? sessionId,
         Guid? classSectionId,
         float threshold,
@@ -31,8 +31,8 @@ public class FaceIdVerifyRequest : AggregateRoot<Guid>
     }
 
     public Guid RequestGroupId { get; private set; }
-    public Guid TargetUserId { get; private set; }
-    public Guid? InitiatorUserId { get; private set; }
+    public int TargetUserId { get; private set; }
+    public int? InitiatorUserId { get; private set; }
     public Guid? SessionId { get; private set; }
     public Guid? ClassSectionId { get; private set; }
     public float Threshold { get; private set; }
@@ -47,8 +47,8 @@ public class FaceIdVerifyRequest : AggregateRoot<Guid>
 
     public static FaceIdVerifyRequest Create(
         Guid requestGroupId,
-        Guid targetUserId,
-        Guid? initiatorUserId,
+        int targetUserId,
+        int? initiatorUserId,
         Guid? sessionId,
         Guid? classSectionId,
         float threshold,

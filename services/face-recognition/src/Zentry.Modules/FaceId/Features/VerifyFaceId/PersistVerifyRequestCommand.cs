@@ -5,8 +5,8 @@ namespace Zentry.Modules.FaceId.Features.VerifyFaceId;
 
 public record PersistVerifyRequestCommand(
     Guid RequestGroupId,
-    Guid TargetUserId,
-    Guid? InitiatorUserId,
+    int TargetUserId,
+    int? InitiatorUserId,
     Guid? SessionId,
     Guid? ClassSectionId,
     float Threshold,
@@ -31,7 +31,7 @@ public class PersistVerifyRequestCommandHandler(IFaceIdRepository repository)
 }
 
 public record CompleteVerifyRequestCommand(
-    Guid TargetUserId,
+    int TargetUserId,
     Guid? SessionId,
     Guid RequestGroupId, // ← Đổi từ RequestId thành RequestGroupId
     bool Matched,
@@ -61,7 +61,7 @@ public class CompleteVerifyRequestCommandHandler(IFaceIdRepository repository)
 // ✅ Thêm: Command để cập nhật NotificationId
 public record UpdateNotificationIdCommand(
     Guid RequestGroupId,
-    Guid TargetUserId,
+    int TargetUserId,
     string NotificationId) : ICommand<bool>;
 
 public class UpdateNotificationIdCommandHandler(IFaceIdRepository repository)

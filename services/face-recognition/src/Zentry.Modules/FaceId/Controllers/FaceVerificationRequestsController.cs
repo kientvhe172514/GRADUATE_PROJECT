@@ -44,7 +44,7 @@ public class FaceVerificationRequestsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateFaceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
-        if (request.LecturerId == Guid.Empty)
+        if (request.LecturerId == 0)
             return BadRequest(new { Message = "LecturerId is required" });
 
         if (request.SessionId == Guid.Empty)
@@ -65,7 +65,7 @@ public class FaceVerificationRequestsController : ControllerBase
             }
 
             // 2) Resolve recipients
-            List<Guid> recipients;
+            List<int> recipients;
             if (request.RecipientUserIds is not null && request.RecipientUserIds.Count > 0)
             {
                 recipients = request.RecipientUserIds.Distinct().ToList();
@@ -78,7 +78,14 @@ public class FaceVerificationRequestsController : ControllerBase
                 var resp = await _mediator.Send(
                     new GetStudentIdsByClassSectionIdIntegrationQuery(request.ClassSectionId!.Value),
                     cancellationToken);
-                recipients = resp.StudentIds.Distinct().ToList();
+                // Convert Guid to int by extracting the last 12 hex digits
+                recipients = resp.StudentIds
+                    .Select(guid => {
+                        var hex = guid.ToString("N").Substring(20, 12);
+                        return int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+                    })
+                    .Distinct()
+                    .ToList();
                 _logger.LogInformation(
                     "Resolved {RecipientCount} recipients from ClassSection {ClassSectionId} for Session {SessionId}",
                     recipients.Count, request.ClassSectionId, request.SessionId);
@@ -145,7 +152,7 @@ public class FaceVerificationRequestsController : ControllerBase
                 {
                     Title = title,
                     Body = body,
-                    RecipientUserId = userId,
+                    RecipientUserId = ConvertIntToGuid(userId),
                     Type = NotificationType.All,
                     Data = new Dictionary<string, string>
                     {
@@ -237,7 +244,12 @@ public class FaceVerificationRequestsController : ControllerBase
             }
 
             // 3) Validate user is recipient
-            var parsedUserId = Guid.Parse(userId);
+            if (!int.TryParse(userId, out var parsedUserId))
+            {
+                _logger.LogWarning("Invalid userId format: {UserId}", userId);
+                return BadRequest(new { Message = "Invalid userId format" });
+            }
+            
             if (!meta.Recipients.Contains(parsedUserId))
             {
                 _logger.LogWarning("User {UserId} is not a recipient of request {RequestId}", parsedUserId, requestId);
@@ -246,7 +258,7 @@ public class FaceVerificationRequestsController : ControllerBase
 
             // 4) Check if user has already verified for this request
             var verifiedKey = $"faceid:req:{requestId}:verified";
-            var verified = await _redis.GetAsync<List<Guid>>(verifiedKey) ?? new List<Guid>();
+            var verified = await _redis.GetAsync<List<int>>(verifiedKey) ?? new List<int>();
             if (verified.Contains(parsedUserId))
             {
                 _logger.LogInformation("User {UserId} has already verified for request {RequestId}", parsedUserId,
@@ -410,7 +422,7 @@ public class FaceVerificationRequestsController : ControllerBase
             {
                 Title = title,
                 Body = body,
-                RecipientUserId = userId,
+                RecipientUserId = ConvertIntToGuid(userId),
                 Type = NotificationType.All,
                 Data = new Dictionary<string, string>
                 {
@@ -473,7 +485,7 @@ public class FaceVerificationRequestsController : ControllerBase
             {
                 Title = title,
                 Body = body,
-                RecipientUserId = userId,
+                RecipientUserId = ConvertIntToGuid(userId),
                 Type = NotificationType.All,
                 Data = new Dictionary<string, string>
                 {
@@ -530,19 +542,28 @@ public class FaceVerificationRequestsController : ControllerBase
     private record FaceVerificationRequestMeta(
         Guid RequestId,
         Guid SessionId,
-        Guid LecturerId,
+        int LecturerId,
         Guid? ClassSectionId,
         DateTime ExpiresAt,
         string? Title,
         string? Body,
-        List<Guid> Recipients
+        List<int> Recipients
     );
 
     private record FaceVerificationReceipt(
         Guid RequestId,
-        Guid UserId,
+        int UserId,
         bool Success,
         float Similarity,
         DateTime VerifiedAt
     );
+    
+    /// <summary>
+    /// Convert int userId to Guid format (00000000-0000-0000-0000-{userId:x12})
+    /// This is used for compatibility with shared contracts that expect Guid
+    /// </summary>
+    private static Guid ConvertIntToGuid(int userId)
+    {
+        return new Guid($"00000000-0000-0000-0000-{userId:x12}");
+    }
 }

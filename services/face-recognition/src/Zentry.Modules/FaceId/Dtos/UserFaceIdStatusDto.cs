@@ -2,7 +2,7 @@ namespace Zentry.Modules.FaceId.Dtos;
 
 public class UserFaceIdStatusDto
 {
-    public UserFaceIdStatusDto(Guid userId, bool hasFaceId, DateTime? createdAt = null, DateTime? updatedAt = null)
+    public UserFaceIdStatusDto(int userId, bool hasFaceId, DateTime? createdAt = null, DateTime? updatedAt = null)
     {
         UserId = userId;
         HasFaceId = hasFaceId;
@@ -10,7 +10,7 @@ public class UserFaceIdStatusDto
         UpdatedAt = updatedAt;
     }
 
-    public Guid UserId { get; set; }
+    public int UserId { get; set; }
     public bool HasFaceId { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

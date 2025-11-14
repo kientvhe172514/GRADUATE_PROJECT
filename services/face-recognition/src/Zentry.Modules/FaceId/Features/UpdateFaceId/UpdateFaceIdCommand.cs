@@ -4,13 +4,13 @@ namespace Zentry.Modules.FaceId.Features.UpdateFaceId;
 
 public class UpdateFaceIdCommand : ICommand<UpdateFaceIdResponse>
 {
-    public UpdateFaceIdCommand(Guid userId, float[] embeddingArray)
+    public UpdateFaceIdCommand(int userId, float[] embeddingArray)
     {
         UserId = userId;
         EmbeddingArray = embeddingArray;
     }
 
-    public Guid UserId { get; init; }
+    public int UserId { get; init; }
     public float[] EmbeddingArray { get; init; }
 }
 

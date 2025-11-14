@@ -4,13 +4,13 @@ namespace Zentry.Modules.FaceId.Features.RegisterFaceId;
 
 public class RegisterFaceIdCommand : ICommand<RegisterFaceIdResponse>
 {
-    public RegisterFaceIdCommand(Guid userId, float[] embeddingArray)
+    public RegisterFaceIdCommand(int userId, float[] embeddingArray)
     {
         UserId = userId;
         EmbeddingArray = embeddingArray;
     }
 
-    public Guid UserId { get; init; }
+    public int UserId { get; init; }
     public float[] EmbeddingArray { get; init; }
 }
 

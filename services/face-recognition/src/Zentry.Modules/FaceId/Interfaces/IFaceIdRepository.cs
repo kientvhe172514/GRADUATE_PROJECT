@@ -6,22 +6,22 @@ namespace Zentry.Modules.FaceId.Interfaces;
 
 public interface IFaceIdRepository : IRepository<FaceEmbedding, Guid>
 {
-    Task<FaceEmbedding?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<FaceEmbedding?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
 
-    Task<(Guid UserId, DateTime CreatedAt, DateTime UpdatedAt)?> GetMetaByUserIdAsync(Guid userId,
+    Task<(int UserId, DateTime CreatedAt, DateTime UpdatedAt)?> GetMetaByUserIdAsync(int userId,
         CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<FaceEmbedding> CreateAsync(Guid userId, float[] embedding, CancellationToken cancellationToken = default);
-    Task<FaceEmbedding> UpdateAsync(Guid userId, float[] embedding, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<FaceEmbedding> CreateAsync(int userId, float[] embedding, CancellationToken cancellationToken = default);
+    Task<FaceEmbedding> UpdateAsync(int userId, float[] embedding, CancellationToken cancellationToken = default);
 
-    Task<(bool IsMatch, float Similarity)> VerifyAsync(Guid userId, float[] embedding, float threshold = 0.7f,
+    Task<(bool IsMatch, float Similarity)> VerifyAsync(int userId, float[] embedding, float threshold = 0.7f,
         CancellationToken cancellationToken = default);
 
     Task<FaceIdVerifyRequest> CreateVerifyRequestAsync(
         Guid requestGroupId,
-        Guid targetUserId,
-        Guid? initiatorUserId,
+        int targetUserId,
+        int? initiatorUserId,
         Guid? sessionId,
         Guid? classSectionId,
         float threshold,
@@ -48,7 +48,7 @@ public interface IFaceIdRepository : IRepository<FaceEmbedding, Guid>
     // ✅ Thêm method mới
     Task<FaceIdVerifyRequest?> GetVerifyRequestByGroupAndUserAsync(
         Guid requestGroupId,
-        Guid targetUserId,
+        int targetUserId,
         CancellationToken cancellationToken = default);
 
     // ✅ Thêm: Method để cập nhật verify request
@@ -57,12 +57,12 @@ public interface IFaceIdRepository : IRepository<FaceEmbedding, Guid>
     Task<IEnumerable<UserFaceIdStatusDto>> GetAllUsersWithFaceIdStatusAsync(
         CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<UserFaceIdStatusDto>> GetUsersFaceIdStatusAsync(IEnumerable<Guid> userIds,
+    Task<IEnumerable<UserFaceIdStatusDto>> GetUsersFaceIdStatusAsync(IEnumerable<int> userIds,
         CancellationToken cancellationToken = default);
 
     // Query verify requests by session and a set of students
     Task<List<FaceIdVerifyRequest>> GetVerifyRequestsBySessionAndUsersAsync(
         Guid sessionId,
-        IEnumerable<Guid> userIds,
+        IEnumerable<int> userIds,
         CancellationToken cancellationToken = default);
 }

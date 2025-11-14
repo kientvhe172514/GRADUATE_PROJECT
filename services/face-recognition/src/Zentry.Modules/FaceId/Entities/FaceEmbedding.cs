@@ -8,7 +8,7 @@ public class FaceEmbedding : AggregateRoot<Guid>
     {
     }
 
-    private FaceEmbedding(Guid id, Guid userId, byte[]? encryptedEmbedding) : base(id)
+    private FaceEmbedding(Guid id, int userId, byte[]? encryptedEmbedding) : base(id)
     {
         UserId = userId;
         EncryptedEmbedding = encryptedEmbedding;
@@ -16,12 +16,12 @@ public class FaceEmbedding : AggregateRoot<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public Guid UserId { get; private set; }
+    public int UserId { get; private set; }
     public byte[]? EncryptedEmbedding { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    public static FaceEmbedding Create(Guid userId, byte[]? encryptedEmbedding)
+    public static FaceEmbedding Create(int userId, byte[]? encryptedEmbedding)
     {
         return new FaceEmbedding(Guid.NewGuid(), userId, encryptedEmbedding);
     }

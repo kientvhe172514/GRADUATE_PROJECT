@@ -12,12 +12,20 @@ public class GetFaceIdResultByStudentIdsAndSessionIdQueryHandler(IFaceIdReposito
     public async Task<GetFaceIdResultByStudentIdsAndSessionIdIntegrationResponse> Handle(
         GetFaceIdResultByStudentIdsAndSessionIdIntegrationQuery request, CancellationToken cancellationToken)
     {
+        // Convert Guid StudentIds to int
+        var intStudentIds = request.StudentIds
+            .Select(guid => {
+                var hex = guid.ToString("N").Substring(20, 12);
+                return int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+            })
+            .ToList();
+            
         // Fetch all verify requests for the session and provided students
         var verifyRequests = await faceIdRepository.GetVerifyRequestsBySessionAndUsersAsync(
             request.SessionId,
-            request.StudentIds,
+            intStudentIds,
             cancellationToken);
-        var statusMap = new Dictionary<Guid, StudentFaceId>();
+        var statusMap = new Dictionary<int, StudentFaceId>();
 
         if (verifyRequests.Count is 0) return new GetFaceIdResultByStudentIdsAndSessionIdIntegrationResponse(statusMap);
 
@@ -43,7 +51,7 @@ public class GetFaceIdResultByStudentIdsAndSessionIdQueryHandler(IFaceIdReposito
         }
 
         // Ensure all requested students appear in result, even if no verify request rows exist
-        foreach (var sid in request.StudentIds)
+        foreach (var sid in intStudentIds)
             if (!statusMap.ContainsKey(sid))
                 statusMap[sid] = new StudentFaceId(sid, false);
 

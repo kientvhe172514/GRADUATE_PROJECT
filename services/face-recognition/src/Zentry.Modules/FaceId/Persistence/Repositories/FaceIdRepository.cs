@@ -22,14 +22,14 @@ public class FaceIdRepository : IFaceIdRepository
         return await _dbContext.FaceEmbeddings.FindAsync(new object[] { id }, cancellationToken);
     }
 
-    public async Task<FaceEmbedding?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<FaceEmbedding?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.FaceEmbeddings
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.UserId == userId, cancellationToken);
     }
 
-    public async Task<(Guid UserId, DateTime CreatedAt, DateTime UpdatedAt)?> GetMetaByUserIdAsync(Guid userId,
+    public async Task<(int UserId, DateTime CreatedAt, DateTime UpdatedAt)?> GetMetaByUserIdAsync(int userId,
         CancellationToken cancellationToken = default)
     {
         var res = await _dbContext.FaceEmbeddings
@@ -42,13 +42,13 @@ public class FaceIdRepository : IFaceIdRepository
         return (res.UserId, res.CreatedAt, res.UpdatedAt);
     }
 
-    public async Task<bool> ExistsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.FaceEmbeddings
             .AnyAsync(e => e.UserId == userId, cancellationToken);
     }
 
-    public async Task<FaceEmbedding> CreateAsync(Guid userId, float[] embedding,
+    public async Task<FaceEmbedding> CreateAsync(int userId, float[] embedding,
         CancellationToken cancellationToken = default)
     {
         // Encrypt embedding bytes
@@ -64,7 +64,7 @@ public class FaceIdRepository : IFaceIdRepository
         return entity;
     }
 
-    public async Task<FaceEmbedding> UpdateAsync(Guid userId, float[] embedding,
+    public async Task<FaceEmbedding> UpdateAsync(int userId, float[] embedding,
         CancellationToken cancellationToken = default)
     {
         // Check if user has a face ID
@@ -86,7 +86,7 @@ public class FaceIdRepository : IFaceIdRepository
         return existingEntity;
     }
 
-    public async Task<(bool IsMatch, float Similarity)> VerifyAsync(Guid userId, float[] embedding,
+    public async Task<(bool IsMatch, float Similarity)> VerifyAsync(int userId, float[] embedding,
         float threshold = 0.7f, CancellationToken cancellationToken = default)
     {
         try
@@ -130,8 +130,8 @@ public class FaceIdRepository : IFaceIdRepository
 
     public async Task<FaceIdVerifyRequest> CreateVerifyRequestAsync(
         Guid requestGroupId,
-        Guid targetUserId,
-        Guid? initiatorUserId,
+        int targetUserId,
+        int? initiatorUserId,
         Guid? sessionId,
         Guid? classSectionId,
         float threshold,
@@ -220,7 +220,7 @@ public class FaceIdRepository : IFaceIdRepository
 
     public async Task<List<FaceIdVerifyRequest>> GetVerifyRequestsBySessionAndUsersAsync(
         Guid sessionId,
-        IEnumerable<Guid> userIds,
+        IEnumerable<int> userIds,
         CancellationToken cancellationToken = default)
     {
         var userIdList = userIds.ToList();
@@ -283,7 +283,7 @@ public class FaceIdRepository : IFaceIdRepository
         return usersWithFaceId;
     }
 
-    public async Task<IEnumerable<UserFaceIdStatusDto>> GetUsersFaceIdStatusAsync(IEnumerable<Guid> userIds,
+    public async Task<IEnumerable<UserFaceIdStatusDto>> GetUsersFaceIdStatusAsync(IEnumerable<int> userIds,
         CancellationToken cancellationToken = default)
     {
         var userIdsList = userIds.ToList();
@@ -313,7 +313,7 @@ public class FaceIdRepository : IFaceIdRepository
     // ✅ Thêm method mới
     public async Task<FaceIdVerifyRequest?> GetVerifyRequestByGroupAndUserAsync(
         Guid requestGroupId,
-        Guid targetUserId,
+        int targetUserId,
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.FaceIdVerifyRequests

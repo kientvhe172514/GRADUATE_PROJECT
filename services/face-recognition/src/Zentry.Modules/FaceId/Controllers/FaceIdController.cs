@@ -21,22 +21,35 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
         try
         {
             if (string.IsNullOrEmpty(userId))
-                return BadRequest("User ID is required");
+                return BadRequest(new { Success = false, Message = "User ID is required" });
+
+            // Parse userId as int
+            if (!int.TryParse(userId, out var intUserId))
+            {
+                return BadRequest(new { Success = false, Message = $"Invalid User ID format. Expected int, received: {userId}" });
+            }
 
             if (embedding == null)
-                return BadRequest("Embedding file is required");
+                return BadRequest(new { Success = false, Message = "Embedding file is required" });
 
             // Read embedding bytes
             using var memoryStream = new MemoryStream();
             await embedding.CopyToAsync(memoryStream);
             var embeddingBytes = memoryStream.ToArray();
 
+            // Validate embedding size
+            if (embeddingBytes.Length == 0)
+                return BadRequest(new { Success = false, Message = "Embedding file is empty" });
+            
+            if (embeddingBytes.Length % 4 != 0)
+                return BadRequest(new { Success = false, Message = $"Invalid embedding size. Must be multiple of 4 bytes, received: {embeddingBytes.Length} bytes" });
+
             // Convert bytes to float array (4 bytes per float)
             var embeddingArray = new float[embeddingBytes.Length / 4];
             Buffer.BlockCopy(embeddingBytes, 0, embeddingArray, 0, embeddingBytes.Length);
 
             // Create and send command
-            var command = new RegisterFaceIdCommand(Guid.Parse(userId), embeddingArray);
+            var command = new RegisterFaceIdCommand(intUserId, embeddingArray);
             var result = await mediator.Send(command);
 
             if (result.Success)
@@ -45,29 +58,50 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
         }
         catch (Exception ex)
         {
+            // Log full exception với stack trace
+            Console.WriteLine($"❌ [FaceIdController.Register] Exception: {ex.GetType().Name}");
+            Console.WriteLine($"   Message: {ex.Message}");
+            Console.WriteLine($"   StackTrace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"   InnerException: {ex.InnerException.Message}");
+                Console.WriteLine($"   InnerStackTrace: {ex.InnerException.StackTrace}");
+            }
+            
             return StatusCode(500, new
             {
                 Success = false,
                 Message = "Internal server error: " + ex.Message,
+                Detail = ex.InnerException?.Message,
                 Timestamp = DateTime.UtcNow.ToString("o")
             });
         }
     }
 
-    [HttpGet("meta/{userId:guid}")]
+    [HttpGet("meta/{userId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMeta(Guid userId)
+    public async Task<IActionResult> GetMeta(string userId)
     {
-        var meta = await faceIdRepository.GetMetaByUserIdAsync(userId);
+        // Parse userId as int
+        if (!int.TryParse(userId, out var intUserId))
+        {
+            return BadRequest(new { Success = false, Message = $"Invalid User ID format. Expected int, received: {userId}" });
+        }
+
+        var meta = await faceIdRepository.GetMetaByUserIdAsync(intUserId);
         if (meta is null)
-            return NotFound(new { Message = "Face ID not found for user" });
+            return NotFound(new { Success = false, Message = "Face ID not found for user" });
 
         return Ok(new
         {
-            meta.Value.UserId,
-            meta.Value.CreatedAt,
-            meta.Value.UpdatedAt
+            Success = true,
+            Data = new
+            {
+                UserId = userId, // Return original format
+                meta.Value.CreatedAt,
+                meta.Value.UpdatedAt
+            }
         });
     }
 
@@ -143,22 +177,31 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
         try
         {
             if (string.IsNullOrEmpty(userId))
-                return BadRequest("User ID is required");
+                return BadRequest(new { Success = false, Message = "User ID is required" });
+
+            // Parse userId as int
+            if (!int.TryParse(userId, out var intUserId))
+            {
+                return BadRequest(new { Success = false, Message = $"Invalid User ID format. Expected int, received: {userId}" });
+            }
 
             if (embedding == null)
-                return BadRequest("Embedding file is required");
+                return BadRequest(new { Success = false, Message = "Embedding file is required" });
 
             // Read embedding bytes
             using var memoryStream = new MemoryStream();
             await embedding.CopyToAsync(memoryStream);
             var embeddingBytes = memoryStream.ToArray();
 
+            if (embeddingBytes.Length == 0 || embeddingBytes.Length % 4 != 0)
+                return BadRequest(new { Success = false, Message = $"Invalid embedding size: {embeddingBytes.Length} bytes" });
+
             // Convert bytes to float array (4 bytes per float)
             var embeddingArray = new float[embeddingBytes.Length / 4];
             Buffer.BlockCopy(embeddingBytes, 0, embeddingArray, 0, embeddingBytes.Length);
 
             // Create and send command
-            var command = new UpdateFaceIdCommand(Guid.Parse(userId), embeddingArray);
+            var command = new UpdateFaceIdCommand(intUserId, embeddingArray);
             var result = await mediator.Send(command);
 
             if (result.Success)
@@ -184,15 +227,24 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
         try
         {
             if (string.IsNullOrEmpty(userId))
-                return BadRequest("User ID is required");
+                return BadRequest(new { Success = false, Message = "User ID is required" });
+
+            // Parse userId as int
+            if (!int.TryParse(userId, out var intUserId))
+            {
+                return BadRequest(new { Success = false, Message = $"Invalid User ID format. Expected int, received: {userId}" });
+            }
 
             if (embedding == null)
-                return BadRequest("Embedding file is required");
+                return BadRequest(new { Success = false, Message = "Embedding file is required" });
 
             // Read embedding bytes
             using var memoryStream = new MemoryStream();
             await embedding.CopyToAsync(memoryStream);
             var embeddingBytes = memoryStream.ToArray();
+
+            if (embeddingBytes.Length == 0 || embeddingBytes.Length % 4 != 0)
+                return BadRequest(new { Success = false, Message = $"Invalid embedding size: {embeddingBytes.Length} bytes" });
 
             // Convert bytes to float array (4 bytes per float)
             var embeddingArray = new float[embeddingBytes.Length / 4];
@@ -200,7 +252,7 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
 
             // Create and send command
             var command = new VerifyFaceIdCommand(
-                Guid.Parse(userId),
+                intUserId,
                 embeddingArray,
                 threshold ?? 0.7f);
 
