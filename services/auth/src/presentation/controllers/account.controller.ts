@@ -25,6 +25,7 @@ import { ChangeTemporaryPasswordDto } from '../dto/change-temporary-password.dto
 import { ChangeTemporaryPasswordResponseDto } from '../../application/dto/change-temporary-password-response.dto';
 
 @ApiTags('auth')
+
 @Controller('')
 export class AccountController {
   constructor(
