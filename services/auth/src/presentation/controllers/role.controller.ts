@@ -87,16 +87,20 @@ export class RoleController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
+    // Get current user's role level
+    const currentUserRole = await this.roleRepository.findByCode(user.role);
+    const currentUserLevel = currentUserRole?.level || 999;
+
     const role = await this.createRoleUseCase.execute(
       {
         code: dto.code,
         name: dto.name,
         description: dto.description,
         level: dto.level,
-        status: dto.status,
+        status: 'active', // Default to active
         created_by: user.sub,
       },
-      user.roleLevel || 999, // Use user's role level
+      currentUserLevel,
     );
 
     return {
@@ -113,6 +117,10 @@ export class RoleController {
     @Body() dto: UpdateRoleDto,
     @CurrentUser() user: JwtPayload,
   ) {
+    // Get current user's role level
+    const currentUserRole = await this.roleRepository.findByCode(user.role);
+    const currentUserLevel = currentUserRole?.level || 999;
+
     const role = await this.updateRoleUseCase.execute(
       id,
       {
@@ -122,7 +130,7 @@ export class RoleController {
         status: dto.status,
         updated_by: user.sub,
       },
-      user.roleLevel || 999,
+      currentUserLevel,
     );
 
     return {
@@ -135,7 +143,11 @@ export class RoleController {
   @AuthPermissions('role:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteRole(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
-    await this.deleteRoleUseCase.execute(id, user.roleLevel || 999);
+    // Get current user's role level
+    const currentUserRole = await this.roleRepository.findByCode(user.role);
+    const currentUserLevel = currentUserRole?.level || 999;
+
+    await this.deleteRoleUseCase.execute(id, currentUserLevel);
     return { message: 'Role deleted successfully' };
   }
 
