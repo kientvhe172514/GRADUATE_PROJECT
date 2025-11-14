@@ -274,10 +274,8 @@ ValidateConfiguration(builder.Configuration);
 
 var app = builder.Build();
 
-// ===== CONFIGURE API ROUTING =====
 // Add global prefix to match other services: /api/v1/face
 app.UsePathBase("/api/v1/face");
-
 // ===== FILTER HEALTH CHECK LOGS =====
 app.Use(async (context, next) =>
 {
