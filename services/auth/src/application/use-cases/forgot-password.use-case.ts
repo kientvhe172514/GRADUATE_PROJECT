@@ -6,7 +6,7 @@ import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
 import { ACCOUNT_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
 import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 
 export class ForgotPasswordRequestDto {
   email: string;
@@ -28,8 +28,11 @@ export class ForgotPasswordUseCase {
   async execute(dto: ForgotPasswordRequestDto): Promise<ApiResponseDto<null>> {
     const account = await this.accountRepo.findByEmail(dto.email);
     if (!account) {
-      // Avoid account enumeration: exit silently
-      return ApiResponseDto.success(null, 'If the email exists, a reset link will be sent');
+      throw new BusinessException(
+        ErrorCodes.NOT_FOUND,
+        `Email not found`,
+        404,
+      );
     }
 
     // Generate reset token (random) and store hashed in temporary_passwords
@@ -53,7 +56,7 @@ export class ForgotPasswordUseCase {
       expires_at: temp.expires_at,
     });
 
-    return ApiResponseDto.success(null, 'If the email exists, a reset link will be sent');
+    return ApiResponseDto.success(null, 'Đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư.');
   }
 }
 

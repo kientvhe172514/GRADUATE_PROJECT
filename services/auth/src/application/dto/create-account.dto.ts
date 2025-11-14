@@ -1,4 +1,4 @@
-import { IsEmail, IsNumber, IsString, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+import { IsEmail, IsNumber, IsString, IsNotEmpty, IsOptional, MinLength, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAccountDto {
@@ -44,12 +44,15 @@ export class CreateAccountDto {
 
   @ApiProperty({ 
     required: false, 
-    example: 'MANAGER',
-    description: 'Role to assign (SUPER_ADMIN, HR_ADMIN, HR_STAFF, MANAGER, EMPLOYEE). Defaults to EMPLOYEE if not provided or invalid.' 
+    example: 'EMPLOYEE',
+    description: 'Role to assign. Valid values: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE. Defaults to EMPLOYEE if not provided or invalid.' 
   })
   @IsString()
   @IsOptional()
-  suggested_role?: string; // Role suggested from position (e.g., "MANAGER", "EMPLOYEE", "HR")
+  @IsIn(['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'], {
+    message: 'suggested_role must be one of: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE'
+  })
+  suggested_role?: string; // Role code from roles table
 
   @ApiProperty({ 
     required: false, 

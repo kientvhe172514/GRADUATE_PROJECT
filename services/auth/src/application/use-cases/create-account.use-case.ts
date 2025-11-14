@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { randomBytes } from 'crypto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { CreateAccountResponseDto } from '../dto/create-account-response.dto';
 import { Account } from '../../domain/entities/account.entity';
-import { AccountFactory } from '../../domain/factories/account.factory';
+import { AccountType } from '../../domain/value-objects/account-type.vo';
+import { AccountStatus } from '../../domain/value-objects/account-status.vo';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { RoleRepositoryPort } from '../ports/role.repository.port';
@@ -17,7 +17,6 @@ import {
   EVENT_PUBLISHER,
   TEMPORARY_PASSWORDS_REPOSITORY,
 } from '../tokens';
-import { UserRegisteredEvent } from '../../domain/events/user-registered.event';
 import { AccountCreatedEventDto } from '../dto/account-created.event.dto';
 
 @Injectable()
@@ -45,23 +44,28 @@ export class CreateAccountUseCase {
     const tempPass = dto.password || '1';
     const isCustomPassword = !!dto.password;
     const tempPasswordHash = await this.hashing.hash(tempPass);
-    // Determine role from suggested_role or default to EMPLOYEE
-    let roleCode = dto.suggested_role || 'EMPLOYEE';
     
-    // Validate role exists in AccountRole enum
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_HEAD','MANAGER', 'EMPLOYEE'];
-    if (!validRoles.includes(roleCode.toUpperCase())) {
-      console.warn(`⚠️ Invalid role "${roleCode}" from position, defaulting to EMPLOYEE`);
+    // Determine role from suggested_role or default to EMPLOYEE
+    // Only 4 roles are allowed: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE
+    let roleCode = dto.suggested_role?.toUpperCase() || 'EMPLOYEE';
+    const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
+    
+    if (!validRoles.includes(roleCode)) {
+      console.warn(`⚠️ Invalid role "${roleCode}", defaulting to EMPLOYEE`);
       roleCode = 'EMPLOYEE';
     }
 
-    // Lookup role_id from roles table
-    let role = await this.roleRepo.findByCode(roleCode.toUpperCase());
+    // Lookup role_id from roles table using role code
+    let role = await this.roleRepo.findByCode(roleCode);
     if (!role) {
       console.error(`❌ Role "${roleCode}" not found in roles table, defaulting to EMPLOYEE`);
       const employeeRole = await this.roleRepo.findByCode('EMPLOYEE');
       if (!employeeRole) {
-        throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'EMPLOYEE role not found in database');
+        throw new BusinessException(
+          ErrorCodes.ROLE_NOT_FOUND,
+          'EMPLOYEE role not found in database. Please ensure roles are seeded.',
+          500,
+        );
       }
       role = employeeRole;
       roleCode = 'EMPLOYEE';
@@ -69,22 +73,24 @@ export class CreateAccountUseCase {
 
     console.log(`🔐 Creating account with role_id: ${role.id} (${roleCode}), custom password: ${isCustomPassword}`);
 
-    // Create account using Factory Pattern
-    const account = AccountFactory.createEmployeeAccount({
-      email: dto.email,
-      password_hash: tempPasswordHash,
-      employee_id: dto.employee_id,
-      employee_code: dto.employee_code,
-      full_name: dto.full_name,
-      department_id: dto.department_id,
-      department_name: dto.department_name,
-      position_id: dto.position_id,
-      position_name: dto.position_name,
-      role: roleCode as any, // Store role_code for backward compatibility
-    });
-    
-    // Set role_id for database foreign key
-    account.role_id = role.id;
+    // Create account - role_id is required, role field will be populated from join
+    const account = new Account();
+    account.email = dto.email;
+    account.password_hash = tempPasswordHash;
+    account.role_id = role.id; // Required: Foreign key to roles table
+    account.employee_id = dto.employee_id;
+    account.employee_code = dto.employee_code;
+    account.full_name = dto.full_name;
+    account.department_id = dto.department_id;
+    account.department_name = dto.department_name;
+    account.position_id = dto.position_id;
+    account.position_name = dto.position_name;
+    account.account_type = AccountType.EMPLOYEE;
+    account.status = AccountStatus.ACTIVE;
+    account.sync_version = 1;
+    account.failed_login_attempts = 0;
+    account.created_at = new Date();
+    account.updated_at = new Date();
 
     const savedAccount = await this.accountRepo.create(account);
 
