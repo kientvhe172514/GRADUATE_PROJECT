@@ -1,0 +1,37 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+export class GetRoleResponseDto {
+  @ApiProperty({ example: 1, description: 'Role ID' })
+  id: number;
+
+  @ApiProperty({ example: 'MANAGER', description: 'Role code' })
+  code: string;
+
+  @ApiProperty({ example: 'Manager', description: 'Role name' })
+  name: string;
+
+  @ApiProperty({ example: 'Department manager role', required: false })
+  description?: string;
+
+  @ApiProperty({ example: 2, description: 'Role level (higher = more privileges)' })
+  level: number;
+
+  @ApiProperty({ example: false, description: 'System role cannot be deleted' })
+  is_system_role: boolean;
+
+  @ApiProperty({ example: 'active', enum: ['active', 'inactive'] })
+  status: string;
+
+  @ApiProperty({ example: '2024-01-01T08:00:00.000Z', required: false })
+  created_at?: Date;
+
+  @ApiProperty({ example: '2024-01-15T10:30:00.000Z', required: false })
+  updated_at?: Date;
+
+  @ApiProperty({ example: 1, required: false })
+  created_by?: number;
+
+  @ApiProperty({ example: 1, required: false })
+  updated_by?: number;
+}
+

@@ -1,6 +1,8 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import { CreateRoleResponseDto } from '../../dto/role/create-role-response.dto';
 
 export interface CreateRoleInput {
   code: string;
@@ -18,11 +20,14 @@ export class CreateRoleUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(input: CreateRoleInput): Promise<any> {
+  async execute(input: CreateRoleInput): Promise<ApiResponseDto<CreateRoleResponseDto>> {
     // Validate: code must be unique
     const existingRole = await this.roleRepo.findByCode(input.code);
     if (existingRole) {
-      throw new ConflictException(`Role with code '${input.code}' already exists`);
+      throw new BusinessException(
+        ErrorCodes.ROLE_CODE_ALREADY_EXISTS,
+        `Role with code '${input.code}' already exists`,
+      );
     }
 
     // Create role
@@ -38,6 +43,24 @@ export class CreateRoleUseCase {
       updated_at: new Date(),
     };
 
-    return await this.roleRepo.create(roleData);
+    const role = await this.roleRepo.create(roleData);
+
+    // Map entity to DTO
+    const response: CreateRoleResponseDto = {
+      id: role.id!,
+      code: role.code,
+      name: role.name,
+      description: role.description,
+      level: role.level,
+      is_system_role: role.is_system_role,
+      status: role.status as string,
+      created_at: role.created_at!,
+    };
+
+    return ApiResponseDto.success(
+      response,
+      'Role created successfully',
+      201,
+    );
   }
 }
