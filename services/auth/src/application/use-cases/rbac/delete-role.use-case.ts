@@ -12,7 +12,7 @@ export class DeleteRoleUseCase {
     private accountRepo: AccountRepositoryPort,
   ) {}
 
-  async execute(roleId: number, currentUserLevel: number): Promise<void> {
+  async execute(roleId: number): Promise<void> {
     // Get existing role
     const existingRole = await this.roleRepo.findById(roleId);
     if (!existingRole) {
@@ -22,13 +22,6 @@ export class DeleteRoleUseCase {
     // Validate: cannot delete system roles
     if (existingRole.is_system_role) {
       throw new ForbiddenException('Cannot delete system roles');
-    }
-
-    // Validate: level must be >= current user's role level
-    if (existingRole.level < currentUserLevel) {
-      throw new ForbiddenException(
-        `Cannot delete role with level ${existingRole.level} (higher than your level ${currentUserLevel})`,
-      );
     }
 
     // Validate: cannot delete role if accounts are using it

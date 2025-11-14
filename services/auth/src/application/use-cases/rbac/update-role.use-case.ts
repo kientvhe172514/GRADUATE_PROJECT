@@ -17,11 +17,7 @@ export class UpdateRoleUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(
-    roleId: number,
-    input: UpdateRoleInput,
-    currentUserLevel: number,
-  ): Promise<any> {
+  async execute(roleId: number, input: UpdateRoleInput): Promise<any> {
     // Get existing role
     const existingRole = await this.roleRepo.findById(roleId);
     if (!existingRole) {
@@ -31,20 +27,6 @@ export class UpdateRoleUseCase {
     // Validate: cannot update system roles
     if (existingRole.is_system_role) {
       throw new ForbiddenException('Cannot update system roles');
-    }
-
-    // Validate: level must be >= current user's role level
-    if (existingRole.level < currentUserLevel) {
-      throw new ForbiddenException(
-        `Cannot update role with level ${existingRole.level} (higher than your level ${currentUserLevel})`,
-      );
-    }
-
-    // Validate new level if provided
-    if (input.level !== undefined && input.level < currentUserLevel) {
-      throw new ForbiddenException(
-        `Cannot set role level to ${input.level} (lower than your level ${currentUserLevel})`,
-      );
     }
 
     // Update role

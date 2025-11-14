@@ -38,7 +38,7 @@ export class RoleController {
   ) {}
 
   @Get()
-  @AuthPermissions('role:read')
+  @AuthPermissions('role.read')
   @ApiOperation({ summary: 'Get all roles with pagination' })
   @ApiQuery({
     name: 'status',
@@ -60,19 +60,25 @@ export class RoleController {
   })
   async getAllRoles(
     @Query('status') status?: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
   ) {
-    const { roles, total } = await this.roleRepository.findAll({ status, page, limit });
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 20;
+    const { roles, total } = await this.roleRepository.findAll({ 
+      status, 
+      page: pageNum, 
+      limit: limitNum 
+    });
     return {
       message: 'Get all roles',
       data: roles,
-      pagination: { page, limit, total },
+      pagination: { page: pageNum, limit: limitNum, total },
     };
   }
 
   @Get(':id')
-  @AuthPermissions('role:read')
+  @AuthPermissions('role.read')
   @ApiOperation({ summary: 'Get role by ID with permissions' })
   async getRoleById(@Param('id') id: number) {
     const role = await this.roleRepository.findByIdWithPermissions(id);
@@ -83,25 +89,18 @@ export class RoleController {
   }
 
   @Post()
-  @AuthPermissions('role:create')
+  @AuthPermissions('role.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
-    // Get current user's role level
-    const currentUserRole = await this.roleRepository.findByCode(user.role);
-    const currentUserLevel = currentUserRole?.level || 999;
-
-    const role = await this.createRoleUseCase.execute(
-      {
-        code: dto.code,
-        name: dto.name,
-        description: dto.description,
-        level: dto.level,
-        status: 'active', // Default to active
-        created_by: user.sub,
-      },
-      currentUserLevel,
-    );
+    const role = await this.createRoleUseCase.execute({
+      code: dto.code,
+      name: dto.name,
+      description: dto.description,
+      level: dto.level,
+      status: 'active', // Default to active
+      created_by: user.sub,
+    });
 
     return {
       message: 'Role created successfully',
@@ -110,28 +109,20 @@ export class RoleController {
   }
 
   @Put(':id')
-  @AuthPermissions('role:update')
+  @AuthPermissions('role.update')
   @ApiOperation({ summary: 'Update role information' })
   async updateRole(
     @Param('id') id: number,
     @Body() dto: UpdateRoleDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    // Get current user's role level
-    const currentUserRole = await this.roleRepository.findByCode(user.role);
-    const currentUserLevel = currentUserRole?.level || 999;
-
-    const role = await this.updateRoleUseCase.execute(
-      id,
-      {
-        name: dto.name,
-        description: dto.description,
-        level: dto.level,
-        status: dto.status,
-        updated_by: user.sub,
-      },
-      currentUserLevel,
-    );
+    const role = await this.updateRoleUseCase.execute(id, {
+      name: dto.name,
+      description: dto.description,
+      level: dto.level,
+      status: dto.status,
+      updated_by: user.sub,
+    });
 
     return {
       message: 'Role updated successfully',
@@ -140,19 +131,15 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @AuthPermissions('role:delete')
+  @AuthPermissions('role.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteRole(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
-    // Get current user's role level
-    const currentUserRole = await this.roleRepository.findByCode(user.role);
-    const currentUserLevel = currentUserRole?.level || 999;
-
-    await this.deleteRoleUseCase.execute(id, currentUserLevel);
+  async deleteRole(@Param('id') id: number) {
+    await this.deleteRoleUseCase.execute(id);
     return { message: 'Role deleted successfully' };
   }
 
   @Post(':id/permissions')
-  @AuthPermissions('role:assign-permissions')
+  @AuthPermissions('role.assign_permissions')
   async assignPermissionsToRole(
     @Param('id') id: number,
     @Body() dto: AssignPermissionsToRoleDto,
@@ -168,7 +155,7 @@ export class RoleController {
   }
 
   @Delete(':id/permissions/:permissionId')
-  @AuthPermissions('role:assign-permissions')
+  @AuthPermissions('role.assign_permissions')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removePermissionFromRole(
     @Param('id') id: number,
@@ -179,7 +166,7 @@ export class RoleController {
   }
 
   @Get(':id/permissions')
-  @AuthPermissions('role:read')
+  @AuthPermissions('role.read')
   async getRolePermissions(@Param('id') id: number) {
     const permissions = await this.roleRepository.getRolePermissions(id);
     return {

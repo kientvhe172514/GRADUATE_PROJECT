@@ -1,4 +1,4 @@
-import { Injectable, Inject, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
 
@@ -18,18 +18,11 @@ export class CreateRoleUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(input: CreateRoleInput, currentUserLevel: number): Promise<any> {
+  async execute(input: CreateRoleInput): Promise<any> {
     // Validate: code must be unique
     const existingRole = await this.roleRepo.findByCode(input.code);
     if (existingRole) {
       throw new ConflictException(`Role with code '${input.code}' already exists`);
-    }
-
-    // Validate: level must be >= current user's role level (can't create higher role)
-    if (input.level < currentUserLevel) {
-      throw new ForbiddenException(
-        `Cannot create role with level ${input.level} (lower than your level ${currentUserLevel})`,
-      );
     }
 
     // Create role
