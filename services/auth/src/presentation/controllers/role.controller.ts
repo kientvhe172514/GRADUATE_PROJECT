@@ -21,6 +21,9 @@ import {
 } from '../dto/role.dto';
 import { RoleRepositoryPort } from '../../application/ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../application/tokens';
+import { CreateRoleUseCase } from '../../application/use-cases/rbac/create-role.use-case';
+import { UpdateRoleUseCase } from '../../application/use-cases/rbac/update-role.use-case';
+import { DeleteRoleUseCase } from '../../application/use-cases/rbac/delete-role.use-case';
 
 @ApiTags('roles')
 @Controller('roles')
@@ -29,6 +32,9 @@ export class RoleController {
   constructor(
     @Inject(ROLE_REPOSITORY)
     private roleRepository: RoleRepositoryPort,
+    private readonly createRoleUseCase: CreateRoleUseCase,
+    private readonly updateRoleUseCase: UpdateRoleUseCase,
+    private readonly deleteRoleUseCase: DeleteRoleUseCase,
   ) {}
 
   @Get()
@@ -81,12 +87,21 @@ export class RoleController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
-    // TODO: Implement create role
-    // Validate: code must be unique
-    // Validate: level must be >= current user's role level (can't create higher role)
+    const role = await this.createRoleUseCase.execute(
+      {
+        code: dto.code,
+        name: dto.name,
+        description: dto.description,
+        level: dto.level,
+        status: dto.status,
+        created_by: user.sub,
+      },
+      user.roleLevel || 999, // Use user's role level
+    );
+
     return {
       message: 'Role created successfully',
-      data: { id: 1, ...dto, created_by: user.sub },
+      data: role,
     };
   }
 
@@ -98,12 +113,21 @@ export class RoleController {
     @Body() dto: UpdateRoleDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    // TODO: Implement update role
-    // Validate: cannot update system roles (is_system_role = true)
-    // Validate: level must be >= current user's role level
+    const role = await this.updateRoleUseCase.execute(
+      id,
+      {
+        name: dto.name,
+        description: dto.description,
+        level: dto.level,
+        status: dto.status,
+        updated_by: user.sub,
+      },
+      user.roleLevel || 999,
+    );
+
     return {
       message: 'Role updated successfully',
-      data: { id, ...dto, updated_by: user.sub },
+      data: role,
     };
   }
 
@@ -111,9 +135,7 @@ export class RoleController {
   @AuthPermissions('role:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteRole(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
-    // TODO: Implement delete role
-    // Validate: cannot delete system roles
-    // Validate: cannot delete role if accounts are using it
+    await this.deleteRoleUseCase.execute(id, user.roleLevel || 999);
     return { message: 'Role deleted successfully' };
   }
 

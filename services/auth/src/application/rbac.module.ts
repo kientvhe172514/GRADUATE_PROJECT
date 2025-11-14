@@ -16,6 +16,9 @@ import { PostgresRoleRepository } from '../infrastructure/persistence/repositori
 import { PostgresPermissionRepository } from '../infrastructure/persistence/repositories/postgres-permission.repository';
 import { PostgresApiKeyRepository } from '../infrastructure/persistence/repositories/postgres-api-key.repository';
 import { ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY } from './tokens';
+import { CreateRoleUseCase } from './use-cases/rbac/create-role.use-case';
+import { UpdateRoleUseCase } from './use-cases/rbac/update-role.use-case';
+import { DeleteRoleUseCase } from './use-cases/rbac/delete-role.use-case';
 @Global() // <-- 2. THÊM @Global() VÀO ĐÂY
 @Module({
   imports: [
@@ -44,6 +47,9 @@ import { ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY } from './to
       provide: API_KEY_REPOSITORY,
       useClass: PostgresApiKeyRepository,
     },
+    CreateRoleUseCase,
+    UpdateRoleUseCase,
+    DeleteRoleUseCase,
   ],
   exports: [JwtStrategy, PassportModule, ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY],
 })
