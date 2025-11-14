@@ -1,15 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
+import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
+import { ACCOUNT_REPOSITORY, ROLE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
 import { AccountUpdatedEventDto } from '../dto/account-updated.event.dto';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { UpdateAccountResponseDto } from '../dto/update-account-response.dto';
 
 export interface UpdateAccountDto {
   email?: string;
-  role?: string;
+  role?: string; // Role code (ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE) - will be converted to role_id
   status?: string;
   employee_id?: number;
   employee_code?: string;
@@ -27,6 +28,8 @@ export class UpdateAccountUseCase {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private accountRepository: AccountRepositoryPort,
+    @Inject(ROLE_REPOSITORY)
+    private roleRepository: RoleRepositoryPort,
     @Inject(EVENT_PUBLISHER)
     private eventPublisher: EventPublisherPort,
   ) {}
@@ -34,7 +37,7 @@ export class UpdateAccountUseCase {
   async execute(id: number, dto: UpdateAccountDto): Promise<ApiResponseDto<UpdateAccountResponseDto>> {
     const existingAccount = await this.accountRepository.findById(id);
     if (!existingAccount) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
+      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found', 404);
     }
 
     // Check for duplicate email if email is being updated
@@ -45,7 +48,34 @@ export class UpdateAccountUseCase {
       }
     }
 
-    // Update account data
+    // If role is provided, lookup role_id from roles table
+    if (dto.role) {
+      const roleCode = dto.role.toUpperCase();
+      const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
+      
+      if (!validRoles.includes(roleCode)) {
+        throw new BusinessException(
+          ErrorCodes.BAD_REQUEST,
+          `Invalid role "${roleCode}". Valid roles are: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE`,
+        );
+      }
+
+      const role = await this.roleRepository.findByCode(roleCode);
+      if (!role) {
+        throw new BusinessException(
+          ErrorCodes.ROLE_NOT_FOUND,
+          `Role "${roleCode}" not found in database`,
+          404,
+        );
+      }
+
+      // Update role_id instead of role string
+      existingAccount.role_id = role.id;
+      // Remove role from dto to avoid setting it directly
+      delete dto.role;
+    }
+
+    // Update account data (excluding role, which is handled above)
     Object.assign(existingAccount, dto);
     existingAccount.updated_at = new Date();
     existingAccount.sync_version = (existingAccount.sync_version || 1) + 1;
@@ -60,7 +90,7 @@ export class UpdateAccountUseCase {
       id: updatedAccount.id!,
       email: updatedAccount.email,
       full_name: updatedAccount.full_name,
-      role: updatedAccount.role || '',
+      role: updatedAccount.role || '', // Role code from join with roles table
       status: updatedAccount.status,
       department_id: updatedAccount.department_id,
       department_name: updatedAccount.department_name,

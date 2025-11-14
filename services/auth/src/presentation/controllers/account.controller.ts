@@ -25,7 +25,6 @@ import { ChangeTemporaryPasswordDto } from '../dto/change-temporary-password.dto
 import { ChangeTemporaryPasswordResponseDto } from '../../application/dto/change-temporary-password-response.dto';
 
 @ApiTags('auth')
-
 @Controller('')
 export class AccountController {
   constructor(
@@ -289,12 +288,19 @@ export class AccountController {
       
       Features:
       - ✅ Create account with custom password (or temp password "1")
-      - ✅ Assign custom role (SUPER_ADMIN, HR_ADMIN, MANAGER, etc.)
+      - ✅ Assign role from roles table (ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE)
       - ✅ Optional employee linking (employee_id, employee_code)
       - ✅ No notification email sent if custom password provided
       
+      **Valid Roles:**
+      - ADMIN: System administrator
+      - HR_MANAGER: Human resources manager
+      - DEPARTMENT_MANAGER: Department manager
+      - EMPLOYEE: Regular employee (default)
+      
       **Use Cases:**
-      - Create SUPER_ADMIN account
+      - Create ADMIN account
+      - Create HR_MANAGER account
       - Create test accounts for development
       - Manual account creation by HR/Admin
       
@@ -304,23 +310,34 @@ export class AccountController {
   @ApiBody({
     type: CreateAccountDto,
     examples: {
-      superAdmin: {
-        summary: 'Create SUPER_ADMIN account',
+      admin: {
+        summary: 'Create ADMIN account',
         value: {
-          email: 'superadmin@zentry.com',
-          full_name: 'Super Administrator',
+          email: 'admin@zentry.com',
+          full_name: 'Administrator',
           password: 'SecurePassword123!',
-          suggested_role: 'SUPER_ADMIN'
+          suggested_role: 'ADMIN'
         }
       },
-      hrAdmin: {
-        summary: 'Create HR_ADMIN account',
+      hrManager: {
+        summary: 'Create HR_MANAGER account',
         value: {
           email: 'hr@zentry.com',
           full_name: 'HR Manager',
           password: 'HRPassword123!',
-          suggested_role: 'HR_ADMIN',
+          suggested_role: 'HR_MANAGER',
           department_name: 'Human Resources'
+        }
+      },
+      departmentManager: {
+        summary: 'Create DEPARTMENT_MANAGER account',
+        value: {
+          email: 'manager@zentry.com',
+          full_name: 'Department Manager',
+          password: 'ManagerPassword123!',
+          suggested_role: 'DEPARTMENT_MANAGER',
+          department_id: 1,
+          department_name: 'Engineering'
         }
       },
       employeeWithLink: {

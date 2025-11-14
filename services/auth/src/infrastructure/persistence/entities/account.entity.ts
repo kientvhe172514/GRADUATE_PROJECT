@@ -3,8 +3,8 @@ export class AccountEntity {
     email: string;
     password_hash: string;
     account_type: string;
-    role_id: number;
-    role_legacy?: string; // Kept for migration
+    role_id: number; // Required: Foreign key to roles table
+    role?: string; // Legacy field, populated from roles table join
     employee_id?: number;
     employee_code?: string;
     full_name?: string;

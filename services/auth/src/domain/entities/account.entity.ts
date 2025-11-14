@@ -6,9 +6,8 @@ export class Account {
   email: string;
   password_hash: string;
   account_type: AccountType = AccountType.EMPLOYEE;
-  role_id: number;
-  role?: AccountRole; // Populated from join with roles table
-  role_legacy?: string; // Kept for migration
+  role_id: number; // Required: Foreign key to roles table
+  role?: string; // Populated from join with roles table (role_code/code field)
   employee_id?: number;
   employee_code?: string;
   full_name?: string;

@@ -1,7 +1,8 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { AccountRepositoryPort } from '../../ports/account.repository.port';
 import { ROLE_REPOSITORY, ACCOUNT_REPOSITORY } from '../../tokens';
+import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 
 @Injectable()
 export class DeleteRoleUseCase {
@@ -12,16 +13,24 @@ export class DeleteRoleUseCase {
     private accountRepo: AccountRepositoryPort,
   ) {}
 
-  async execute(roleId: number): Promise<void> {
+  async execute(roleId: number): Promise<ApiResponseDto<null>> {
     // Get existing role
     const existingRole = await this.roleRepo.findById(roleId);
     if (!existingRole) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
+      throw new BusinessException(
+        ErrorCodes.ROLE_NOT_FOUND,
+        `Role with ID ${roleId} not found`,
+        404,
+      );
     }
 
     // Validate: cannot delete system roles
     if (existingRole.is_system_role) {
-      throw new ForbiddenException('Cannot delete system roles');
+      throw new BusinessException(
+        ErrorCodes.FORBIDDEN,
+        'Cannot delete system roles',
+        403,
+      );
     }
 
     // Validate: cannot delete role if accounts are using it
@@ -38,5 +47,11 @@ export class DeleteRoleUseCase {
     // For now, we'll delete anyway and let DB constraints handle it
 
     await this.roleRepo.delete(roleId);
+
+    return ApiResponseDto.success(
+      null,
+      'Role deleted successfully',
+      200,
+    );
   }
 }

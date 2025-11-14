@@ -10,7 +10,8 @@ import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  app.setGlobalPrefix('api/v1/employee');
+  // Use common API prefix so controllers like @Controller('employees') map to /api/v1/employees
+  app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
@@ -59,9 +60,10 @@ async function bootstrap() {
     },
   });
 
-  const port = process.env.APP_PORT || 3001;
+  // Default port for Employee service is 3002; allow override via APP_PORT
+  const port = process.env.APP_PORT || 3002;
   await app.listen(port);
   console.log(`Employee Service running on http://localhost:${port}`);
-  console.log(`Swagger at http://localhost:${port}/api/v1/employee`);
+  console.log(`Swagger at http://localhost:${port}/api/v1`);
 }
 bootstrap();

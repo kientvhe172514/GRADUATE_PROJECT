@@ -49,7 +49,7 @@ export class AccountFactory {
   static createManagerAccount(props: CreateAccountProps): Account {
     const account = this.createEmployeeAccount(props);
     account.account_type = AccountType.MANAGER;
-    account.role = AccountRole.DEPARTMENT_HEAD;
+    account.role = AccountRole.DEPARTMENT_MANAGER;
     
     return account;
   }

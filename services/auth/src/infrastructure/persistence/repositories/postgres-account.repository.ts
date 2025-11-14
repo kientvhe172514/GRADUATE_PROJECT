@@ -105,9 +105,20 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   }
 
   async update(account: Account): Promise<Account> {
+    if (!account.id) {
+      throw new Error('Cannot update account without id');
+    }
+
     const entity = AccountMapper.toPersistence(account);
-    const saved = await this.repository.save(entity);
-    return AccountMapper.toDomain(saved);
+    await this.repository.save(entity);
+    
+    // Reload account from DB with role join to get role_code
+    const updatedAccount = await this.findById(account.id);
+    if (!updatedAccount) {
+      throw new Error(`Account with id ${account.id} not found after update`);
+    }
+    
+    return updatedAccount;
   }
 
   async findByEmployeeId(employeeId: number): Promise<Account | null> {

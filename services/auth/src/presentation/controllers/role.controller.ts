@@ -9,91 +9,85 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  Inject,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload, ApiResponseDto } from '@graduate-project/shared-common';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import {
   CreateRoleDto,
   UpdateRoleDto,
   AssignPermissionsToRoleDto,
 } from '../dto/role.dto';
-import { RoleRepositoryPort } from '../../application/ports/role.repository.port';
-import { ROLE_REPOSITORY } from '../../application/tokens';
+import { ListRolesDto } from '../../application/dto/role/list-roles.dto';
 import { CreateRoleUseCase } from '../../application/use-cases/rbac/create-role.use-case';
 import { UpdateRoleUseCase } from '../../application/use-cases/rbac/update-role.use-case';
 import { DeleteRoleUseCase } from '../../application/use-cases/rbac/delete-role.use-case';
+import { GetRolesUseCase } from '../../application/use-cases/rbac/get-roles.use-case';
+import { GetRoleByIdUseCase } from '../../application/use-cases/rbac/get-role-by-id.use-case';
+import { GetRolePermissionsUseCase } from '../../application/use-cases/rbac/get-role-permissions.use-case';
+import { AssignPermissionsToRoleUseCase } from '../../application/use-cases/rbac/assign-permissions-to-role.use-case';
+import { RemovePermissionFromRoleUseCase } from '../../application/use-cases/rbac/remove-permission-from-role.use-case';
+import { GetRolesResponseDto } from '../../application/dto/role/get-roles-response.dto';
+import { GetRoleWithPermissionsResponseDto } from '../../application/dto/role/get-role-with-permissions-response.dto';
+import { CreateRoleResponseDto } from '../../application/dto/role/create-role-response.dto';
+import { UpdateRoleResponseDto } from '../../application/dto/role/update-role-response.dto';
+import { AssignPermissionsResponseDto } from '../../application/dto/role/assign-permissions-response.dto';
+import { GetRolePermissionsResponseDto } from '../../application/dto/role/get-role-permissions-response.dto';
 
 @ApiTags('roles')
 @Controller('roles')
 @ApiBearerAuth()
 export class RoleController {
   constructor(
-    @Inject(ROLE_REPOSITORY)
-    private roleRepository: RoleRepositoryPort,
+    private readonly getRolesUseCase: GetRolesUseCase,
+    private readonly getRoleByIdUseCase: GetRoleByIdUseCase,
     private readonly createRoleUseCase: CreateRoleUseCase,
     private readonly updateRoleUseCase: UpdateRoleUseCase,
     private readonly deleteRoleUseCase: DeleteRoleUseCase,
+    private readonly getRolePermissionsUseCase: GetRolePermissionsUseCase,
+    private readonly assignPermissionsToRoleUseCase: AssignPermissionsToRoleUseCase,
+    private readonly removePermissionFromRoleUseCase: RemovePermissionFromRoleUseCase,
   ) {}
 
   @Get()
   @AuthPermissions('role.read')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all roles with pagination' })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    example: 'active',
-    description: 'Filter by status: active, inactive',
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    example: 1,
-    description: 'Page number',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    example: 20,
-    description: 'Items per page',
-  })
+  @ApiResponse({ status: 200, type: GetRolesResponseDto, description: 'Roles retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
   async getAllRoles(
-    @Query('status') status?: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20',
-  ) {
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 20;
-    const { roles, total } = await this.roleRepository.findAll({ 
-      status, 
-      page: pageNum, 
-      limit: limitNum 
-    });
-    return {
-      message: 'Get all roles',
-      data: roles,
-      pagination: { page: pageNum, limit: limitNum, total },
-    };
+    @Query() filters?: ListRolesDto,
+  ): Promise<ApiResponseDto<GetRolesResponseDto>> {
+    return await this.getRolesUseCase.execute(filters);
   }
 
   @Get(':id')
   @AuthPermissions('role.read')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get role by ID with permissions' })
-  async getRoleById(@Param('id') id: number) {
-    const role = await this.roleRepository.findByIdWithPermissions(id);
-    return {
-      message: 'Get role by ID',
-      data: role,
-    };
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiResponse({ status: 200, type: GetRoleWithPermissionsResponseDto, description: 'Role retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
+  async getRoleById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<GetRoleWithPermissionsResponseDto>> {
+    return await this.getRoleByIdUseCase.execute(id);
   }
 
   @Post()
   @AuthPermissions('role.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
-  async createRole(@Body() dto: CreateRoleDto, @CurrentUser() user: JwtPayload) {
-    const role = await this.createRoleUseCase.execute({
+  @ApiResponse({ status: 201, type: CreateRoleResponseDto, description: 'Role created successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error or role code already exists' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
+  async createRole(
+    @Body() dto: CreateRoleDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<CreateRoleResponseDto>> {
+    return await this.createRoleUseCase.execute({
       code: dto.code,
       name: dto.name,
       description: dto.description,
@@ -101,77 +95,90 @@ export class RoleController {
       status: 'active', // Default to active
       created_by: user.sub,
     });
-
-    return {
-      message: 'Role created successfully',
-      data: role,
-    };
   }
 
   @Put(':id')
   @AuthPermissions('role.update')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update role information' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiResponse({ status: 200, type: UpdateRoleResponseDto, description: 'Role updated successfully' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied or cannot update system role' })
   async updateRole(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRoleDto,
     @CurrentUser() user: JwtPayload,
-  ) {
-    const role = await this.updateRoleUseCase.execute(id, {
+  ): Promise<ApiResponseDto<UpdateRoleResponseDto>> {
+    return await this.updateRoleUseCase.execute(id, {
       name: dto.name,
       description: dto.description,
       level: dto.level,
       status: dto.status,
       updated_by: user.sub,
     });
-
-    return {
-      message: 'Role updated successfully',
-      data: role,
-    };
   }
 
   @Delete(':id')
   @AuthPermissions('role.delete')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteRole(@Param('id') id: number) {
-    await this.deleteRoleUseCase.execute(id);
-    return { message: 'Role deleted successfully' };
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a role' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiResponse({ status: 200, description: 'Role deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied or cannot delete system role' })
+  async deleteRole(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<null>> {
+    return await this.deleteRoleUseCase.execute(id);
   }
 
   @Post(':id/permissions')
   @AuthPermissions('role.assign_permissions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Assign permissions to role' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiResponse({ status: 200, type: AssignPermissionsResponseDto, description: 'Permissions assigned successfully' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
   async assignPermissionsToRole(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: AssignPermissionsToRoleDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    // TODO: Implement assign permissions to role
-    // Bulk insert into role_permissions table
-    // Remove existing permissions first, then insert new ones
-    return {
-      message: 'Permissions assigned successfully',
-      data: { role_id: id, permission_ids: dto.permission_ids },
-    };
+  ): Promise<ApiResponseDto<AssignPermissionsResponseDto>> {
+    return await this.assignPermissionsToRoleUseCase.execute({
+      role_id: id,
+      permission_ids: dto.permission_ids,
+    });
   }
 
   @Delete(':id/permissions/:permissionId')
   @AuthPermissions('role.assign_permissions')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove permission from role' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiParam({ name: 'permissionId', type: 'number', description: 'Permission ID' })
+  @ApiResponse({ status: 200, description: 'Permission removed successfully' })
+  @ApiResponse({ status: 404, description: 'Role or permission not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
   async removePermissionFromRole(
-    @Param('id') id: number,
-    @Param('permissionId') permissionId: number,
-  ) {
-    // TODO: Implement remove permission from role
-    return { message: 'Permission removed successfully' };
+    @Param('id', ParseIntPipe) id: number,
+    @Param('permissionId', ParseIntPipe) permissionId: number,
+  ): Promise<ApiResponseDto<null>> {
+    return await this.removePermissionFromRoleUseCase.execute(id, permissionId);
   }
 
   @Get(':id/permissions')
   @AuthPermissions('role.read')
-  async getRolePermissions(@Param('id') id: number) {
-    const permissions = await this.roleRepository.getRolePermissions(id);
-    return {
-      message: 'Get role permissions',
-      data: { role_id: id, permissions },
-    };
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get role permissions' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
+  @ApiResponse({ status: 200, type: GetRolePermissionsResponseDto, description: 'Role permissions retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
+  async getRolePermissions(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<GetRolePermissionsResponseDto>> {
+    return await this.getRolePermissionsUseCase.execute(id);
   }
 }
