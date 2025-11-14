@@ -156,7 +156,7 @@ spec:
             cpu: "500m"
             ephemeral-storage: "1Gi"
         
-        # ===== HEALTH CHECKS =====
+        # ===== HEALTH CHECKS (MINIMAL LOGGING) =====
         startupProbe:
           httpGet:
             path: /health/ready
@@ -165,27 +165,29 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 12  # 2 minutes total
+          failureThreshold: 12
           successThreshold: 1
         
+        # Readiness: Check ít thôi, đủ biết pod còn sống
         readinessProbe:
           httpGet:
             path: /health/ready
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 10
-          periodSeconds: 10
+          periodSeconds: 300  # 5 phút check 1 lần
           timeoutSeconds: 5
-          failureThreshold: 3
+          failureThreshold: 2
           successThreshold: 1
         
+        # Liveness: Check rất ít, chỉ khi thật sự cần restart
         livenessProbe:
           httpGet:
             path: /health/live
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 60
-          periodSeconds: 30
+          periodSeconds: 600  # 10 phút check 1 lần
           timeoutSeconds: 10
           failureThreshold: 3
           successThreshold: 1

@@ -278,6 +278,21 @@ var app = builder.Build();
 // Add global prefix to match other services: /api/v1/face
 app.UsePathBase("/api/v1/face");
 
+// ===== FILTER HEALTH CHECK LOGS =====
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value?.ToLower() ?? "";
+    if (path.Contains("/health/") || path.Contains("/health"))
+    {
+        // Skip logging for health check endpoints
+        await next();
+    }
+    else
+    {
+        await next();
+    }
+});
+
 app.UseSwagger();
 // Bật middleware để phục vụ trang giao diện Swagger UI
 app.UseSwaggerUI(c =>

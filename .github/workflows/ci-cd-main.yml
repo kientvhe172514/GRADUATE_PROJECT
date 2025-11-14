@@ -567,7 +567,7 @@ jobs:
           github.event.inputs.service == 'all' ||
           github.event.inputs.service == 'employee'
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             cd ~/GRADUATE_PROJECT
             git pull origin main
@@ -584,8 +584,8 @@ jobs:
             # Force restart to pick up new deployment config
             kubectl rollout restart deployment/employee-depl -n graduate-project
             
-            # Wait for deployment to be ready
-            kubectl rollout status deployment/employee-depl -n graduate-project --timeout=5m
+            # Wait for deployment to be ready (increased timeout for stability)
+            kubectl rollout status deployment/employee-depl -n graduate-project --timeout=10m
             
             echo "✅ Employee service deployed"
           EOF

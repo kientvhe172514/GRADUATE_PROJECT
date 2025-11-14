@@ -66,7 +66,11 @@ data:
           "Default": "Information",
           "Microsoft": "Warning",
           "Microsoft.Hosting.Lifetime": "Information",
-          "System": "Warning"
+          "Microsoft.AspNetCore.Diagnostics.HealthChecks": "None",
+          "Microsoft.AspNetCore.Routing": "None",
+          "Microsoft.AspNetCore.Hosting": "Warning",
+          "System": "Warning",
+          "Zentry.Modules.FaceId": "Debug"
         },
         "Console": {
           "FormatterName": "json",
