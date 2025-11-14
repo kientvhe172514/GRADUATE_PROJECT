@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -63,7 +63,8 @@ import {
 
 @Module({
   imports: [
-    RbacModule,
+    // Prevent circular DI issues by using forwardRef when importing RbacModule
+    forwardRef(() => RbacModule),
     TypeOrmModule.forFeature([
       AccountSchema,
       RefreshTokensSchema,
@@ -189,6 +190,9 @@ import {
       provide: DEVICE_ACTIVITY_LOG_REPOSITORY,
       useClass: PostgresDeviceActivityLogRepository,
     },
+  ],
+  exports: [
+    ACCOUNT_REPOSITORY,
   ],
 })
 export class AccountModule {}

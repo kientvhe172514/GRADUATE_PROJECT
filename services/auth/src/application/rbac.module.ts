@@ -1,5 +1,5 @@
 // rbac.module.ts
-import { Module, Global } from '@nestjs/common'; // <-- 1. IMPORT 'Global'
+import { Module, Global, forwardRef } from '@nestjs/common'; // <-- add forwardRef
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule } from '@nestjs/config';
@@ -16,12 +16,15 @@ import { PostgresRoleRepository } from '../infrastructure/persistence/repositori
 import { PostgresPermissionRepository } from '../infrastructure/persistence/repositories/postgres-permission.repository';
 import { PostgresApiKeyRepository } from '../infrastructure/persistence/repositories/postgres-api-key.repository';
 import { ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY } from './tokens';
+import { AccountModule } from './account.module';
 import { CreateRoleUseCase } from './use-cases/rbac/create-role.use-case';
 import { UpdateRoleUseCase } from './use-cases/rbac/update-role.use-case';
 import { DeleteRoleUseCase } from './use-cases/rbac/delete-role.use-case';
 @Global() // <-- 2. THÊM @Global() VÀO ĐÂY
 @Module({
   imports: [
+    // Use forwardRef to allow AccountModule and RbacModule to reference each other
+    forwardRef(() => AccountModule),
     ConfigModule,
     TypeOrmModule.forFeature([
       RoleSchema,
