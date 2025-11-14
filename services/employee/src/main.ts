@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   // Use common API prefix so controllers like @Controller('employees') map to /api/v1/employees
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1/employee');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 

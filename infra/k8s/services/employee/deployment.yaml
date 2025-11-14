@@ -30,7 +30,6 @@ spec:
         prometheus.io/port: "3003"
     spec:
       serviceAccountName: employee-sa
-      terminationGracePeriodSeconds: 60
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -71,24 +70,20 @@ spec:
           httpGet:
             path: /api/v1/employee/health
             port: 3003
-          initialDelaySeconds: 15  # Optimized startup delay
-          periodSeconds: 5
-          failureThreshold: 12  # 15s + (5s * 12) = max 75s startup time
+          initialDelaySeconds: 30  # Increased to allow DNS propagation
+          periodSeconds: 10
+          failureThreshold: 6
         readinessProbe:
           httpGet:
             path: /api/v1/employee/health
             port: 3003
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /api/v1/employee/health
             port: 3003
-          initialDelaySeconds: 90
+          initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 3
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
