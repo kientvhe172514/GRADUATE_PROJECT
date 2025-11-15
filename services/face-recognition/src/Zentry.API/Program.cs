@@ -378,36 +378,34 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
         {
             var dbContext = (DbContext)serviceProvider.GetRequiredService(contextType);
 
-            if (environment.IsDevelopment())
+            // ✅ AUTO-MIGRATE: Luôn apply migrations trong mọi môi trường
+            logger.LogInformation("🔄 Checking migrations for {ContextName}...", contextName);
+            
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+            var hasPendingMigrations = pendingMigrations.Any();
+
+            if (hasPendingMigrations)
             {
-                // ✅ Kiểm tra xem có pending migrations không
-                var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-                var hasPendingMigrations = pendingMigrations.Any();
+                logger.LogWarning("� Found {Count} pending migration(s) for {ContextName}",
+                    pendingMigrations.Count(), contextName);
 
-                if (hasPendingMigrations)
+                if (environment.IsDevelopment())
                 {
-                    logger.LogWarning("🔥 Found pending migrations for {ContextName}. Dropping and recreating...",
-                        contextName);
-
-                    // Drop chỉ những tables của context này
+                    // Development: Drop và recreate nếu có pending migrations
+                    logger.LogWarning("🔥 [DEV] Dropping and recreating {ContextName}...", contextName);
                     await DropContextTablesAsync(dbContext, logger, contextName);
+                }
 
-                    // Recreate và apply migrations
-                    await dbContext.Database.MigrateAsync();
-                    logger.LogInformation("✅ {ContextName} recreated with new migrations.", contextName);
-                }
-                else
-                {
-                    logger.LogInformation("No pending migrations for {ContextName}. Skipping drop.", contextName);
-                    await dbContext.Database.MigrateAsync();
-                }
+                // Apply migrations
+                await dbContext.Database.MigrateAsync();
+                logger.LogInformation("✅ {ContextName} migrations applied successfully.", contextName);
             }
             else
             {
-                // Production: Chỉ apply migrations bình thường
-                logger.LogInformation("Applying migrations for {ContextName}...", contextName);
+                logger.LogInformation("✓ {ContextName} is up-to-date. No pending migrations.", contextName);
+                
+                // Ensure database exists (create if not exists)
                 await dbContext.Database.MigrateAsync();
-                logger.LogInformation("{ContextName} migrations applied successfully.", contextName);
             }
         });
     }
