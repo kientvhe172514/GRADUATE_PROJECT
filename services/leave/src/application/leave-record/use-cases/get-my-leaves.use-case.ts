@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { LeaveRecordEntity } from '../../../domain/entities/leave-record.entity';
-import { LeaveRecordRepositoryPort } from '../../ports/leave-record.repository.port';
+import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
+import { LEAVE_RECORD_REPOSITORY } from '../../tokens';
 
 export interface GetMyLeavesFilters {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
@@ -14,7 +15,8 @@ export interface GetMyLeavesFilters {
 @Injectable()
 export class GetMyLeavesUseCase {
   constructor(
-    private readonly leaveRecordRepository: LeaveRecordRepositoryPort,
+    @Inject(LEAVE_RECORD_REPOSITORY)
+    private readonly leaveRecordRepository: ILeaveRecordRepository,
   ) {}
 
   async execute(
