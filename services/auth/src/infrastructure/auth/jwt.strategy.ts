@@ -28,15 +28,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     console.log('TOKEN HỢP LỆ, PAYLOAD:', payload);
     console.log('------------------------------');
 
+    // ✅ Trả về TOÀN BỘ payload để @CurrentUser() có đủ thông tin
     return {
       sub: payload.sub,
       iat: payload.iat,
       exp: payload.exp,
       email: payload.email,
       employee_id: payload.employee_id,
+      employee_code: payload.employee_code, // ✅ THÊM
+      full_name: payload.full_name, // ✅ THÊM
       role: payload.role,
       permissions: payload.permissions || [],
       department_id: payload.department_id,
+      department_name: payload.department_name, // ✅ THÊM
+      position_id: payload.position_id, // ✅ THÊM
+      position_name: payload.position_name, // ✅ THÊM
       scope: payload.scope || {},
     };
   }

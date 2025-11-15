@@ -151,7 +151,8 @@ export class AccountController {
     @CurrentUser() user: any,
     @Body() dto: ChangeTemporaryPasswordDto,
   ): Promise<ApiResponseDto<ChangeTemporaryPasswordResponseDto>> {
-    return await this.changeTemporaryPasswordUseCase.execute(user.accountId, dto);
+    // ✅ FIX: Dùng user.sub (account_id từ JWT payload) thay vì user.accountId
+    return await this.changeTemporaryPasswordUseCase.execute(user.sub, dto);
   }
 
   @Public()

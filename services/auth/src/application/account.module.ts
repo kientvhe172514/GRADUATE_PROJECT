@@ -9,7 +9,7 @@ import { RbacModule } from './rbac.module';
 import { AccountController } from '../presentation/controllers/account.controller';
 import { AdminController } from '../presentation/controllers/admin.controller';
 import { VerifyController } from '../presentation/controllers/verify.controller';
-import { JwtStrategy } from '../presentation/strategies/jwt.strategy';
+import { JwtStrategy } from '../infrastructure/auth/jwt.strategy';
 import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';  // Add
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
