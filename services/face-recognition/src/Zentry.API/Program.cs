@@ -411,6 +411,8 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
     }
 }
 
+
+
 static async Task DropContextTablesAsync(DbContext dbContext, ILogger logger, string contextName)
 {
     try
