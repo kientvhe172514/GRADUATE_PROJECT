@@ -8,4 +8,8 @@ export interface DepartmentRepositoryPort {
   findAll(): Promise<Department[]>;
   findWithPagination(criteria: any): Promise<{ departments: Department[]; total: number }>;
   delete(id: number): Promise<void>;
+  getEmployeeCountByDepartment(departmentId: number): Promise<number>;
+  getEmployeeCountByStatus(departmentId: number): Promise<{ status: string; count: number }[]>;
+  getEmployeeCountByPosition(departmentId: number): Promise<{ position_id: number; position_name: string; count: number }[]>;
+  getSubDepartmentsCount(departmentId: number): Promise<number>;
 }
