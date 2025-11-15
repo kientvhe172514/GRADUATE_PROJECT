@@ -26,9 +26,14 @@ RUN dotnet build "./Zentry.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Zentry.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+# 🔥 FIX: Include EF Core migrations in publish output
+RUN dotnet publish "./Zentry.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish \
+    /p:UseAppHost=false \
+    /p:CopyBuildOutputToPublishDirectory=true \
+    /p:CopyOutputSymbolsToPublishDirectory=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
 ENTRYPOINT ["dotnet", "Zentry.API.dll"]
