@@ -38,7 +38,8 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
 
     const queryBuilder = this.repository.createQueryBuilder('role');
 
-    if (filters?.status) {
+    // Filter by status - check for truthy value and non-empty string
+    if (filters?.status !== undefined && filters?.status !== null && filters?.status !== '') {
       queryBuilder.where('role.status = :status', { status: filters.status });
     }
 

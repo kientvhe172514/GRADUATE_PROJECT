@@ -18,16 +18,16 @@ export class GetLeaveRecordsUseCase {
       let results = await this.leaveRecordRepository.findByDateRange(startDate, endDate);
 
       // Apply additional filters
-      if (filters.employee_id) {
+      if (filters.employee_id !== undefined && filters.employee_id !== null) {
         results = results.filter(r => r.employee_id === filters.employee_id);
       }
-      if (filters.status) {
+      if (filters.status !== undefined && filters.status !== null && filters.status !== '') {
         results = results.filter(r => r.status === filters.status);
       }
-      if (filters.leave_type_id) {
+      if (filters.leave_type_id !== undefined && filters.leave_type_id !== null) {
         results = results.filter(r => r.leave_type_id === filters.leave_type_id);
       }
-      if (filters.department_id) {
+      if (filters.department_id !== undefined && filters.department_id !== null) {
         results = results.filter(r => r.department_id === filters.department_id);
       }
 
@@ -36,12 +36,20 @@ export class GetLeaveRecordsUseCase {
 
     // Otherwise use findAll with filters
     const queryFilters: any = {};
-    if (filters.employee_id) queryFilters.employee_id = filters.employee_id;
-    if (filters.status) queryFilters.status = filters.status;
-    if (filters.leave_type_id) queryFilters.leave_type_id = filters.leave_type_id;
-    if (filters.department_id) queryFilters.department_id = filters.department_id;
+    if (filters.employee_id !== undefined && filters.employee_id !== null) {
+      queryFilters.employee_id = filters.employee_id;
+    }
+    if (filters.status !== undefined && filters.status !== null && filters.status !== '') {
+      queryFilters.status = filters.status;
+    }
+    if (filters.leave_type_id !== undefined && filters.leave_type_id !== null) {
+      queryFilters.leave_type_id = filters.leave_type_id;
+    }
+    if (filters.department_id !== undefined && filters.department_id !== null) {
+      queryFilters.department_id = filters.department_id;
+    }
 
-    const results = await this.leaveRecordRepository.findAll(queryFilters);
+    const results = await this.leaveRecordRepository.findAll(Object.keys(queryFilters).length > 0 ? queryFilters : undefined);
     return results as LeaveRecordResponseDto[];
   }
 }
