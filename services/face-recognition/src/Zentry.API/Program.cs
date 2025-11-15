@@ -381,18 +381,67 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
             // ✅ AUTO-MIGRATE: Luôn apply migrations trong mọi môi trường
             logger.LogInformation("🔄 Checking migrations for {ContextName}...", contextName);
             
+            // BƯỚC 1: Check nếu database không tồn tại → tạo mới
+            var canConnect = await dbContext.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                logger.LogWarning("🔧 Database not found. Creating database for {ContextName}...", contextName);
+                await dbContext.Database.MigrateAsync();
+                logger.LogInformation("✅ Database and tables created for {ContextName}.", contextName);
+                return;
+            }
+            
+            // BƯỚC 2: Check nếu database trống (không có tables) nhưng có migration history
+            // → Đây là corrupt state, cần reset
+            var tableNames = dbContext.Model.GetEntityTypes()
+                .Select(t => t.GetTableName())
+                .Where(name => !string.IsNullOrEmpty(name))
+                .ToList();
+            
+            if (tableNames.Any())
+            {
+                var firstTable = tableNames.First();
+                var tableExists = false;
+                try
+                {
+                    var result = await dbContext.Database.ExecuteSqlRawAsync(
+                        $"SELECT 1 FROM information_schema.tables WHERE table_name = '{firstTable}' LIMIT 1");
+                    tableExists = result >= 0;
+                }
+                catch
+                {
+                    tableExists = false;
+                }
+                
+                if (!tableExists)
+                {
+                    // Database exists but has no actual tables → reset migration history
+                    logger.LogWarning("⚠️  Database exists but has no tables. Resetting {ContextName}...", contextName);
+                    try
+                    {
+                        await dbContext.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS \"__EFMigrationsHistory\" CASCADE");
+                    }
+                    catch { }
+                    
+                    await dbContext.Database.MigrateAsync();
+                    logger.LogInformation("✅ {ContextName} reset and migrations applied.", contextName);
+                    return;
+                }
+            }
+            
+            // BƯỚC 3: Normal migration flow
             var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
             var hasPendingMigrations = pendingMigrations.Any();
 
             if (hasPendingMigrations)
             {
-                logger.LogWarning("� Found {Count} pending migration(s) for {ContextName}",
+                logger.LogWarning("📦 Found {Count} pending migration(s) for {ContextName}",
                     pendingMigrations.Count(), contextName);
 
                 if (environment.IsDevelopment())
                 {
                     // Development: Drop và recreate nếu có pending migrations
-                    logger.LogWarning("🔥 [DEV] Dropping and recreating {ContextName}...", contextName);
+                    logger.LogWarning("� [DEV] Dropping and recreating {ContextName}...", contextName);
                     await DropContextTablesAsync(dbContext, logger, contextName);
                 }
 
@@ -403,16 +452,6 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
             else
             {
                 logger.LogInformation("✓ {ContextName} is up-to-date. No pending migrations.", contextName);
-            }
-            
-            // ✅ FIX: LUÔN ĐẢM BẢO DATABASE VÀ TABLES TỒN TẠI
-            // Nếu database chưa có, MigrateAsync sẽ tạo database + apply tất cả migrations
-            var canConnect = await dbContext.Database.CanConnectAsync();
-            if (!canConnect)
-            {
-                logger.LogWarning("🔧 Database not found. Creating database and applying all migrations...");
-                await dbContext.Database.MigrateAsync();
-                logger.LogInformation("✅ Database and tables created successfully for {ContextName}.", contextName);
             }
         });
     }
