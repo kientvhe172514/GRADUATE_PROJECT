@@ -205,6 +205,7 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddHeartbeatConsumer();
     x.AddHealthCheckConsumer();
+    x.AddFaceIdMassTransitConsumers(); // NEW HR attendance system
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -260,6 +261,7 @@ builder.Services.AddMassTransit(x =>
         });
         cfg.ConfigureHeartbeatEndpoint(context);
         cfg.ConfigureHealthCheckEndpoint(context);
+        cfg.ConfigureFaceIdReceiveEndpoints(context); // NEW HR attendance face verification
     });
 });
 

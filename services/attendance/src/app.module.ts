@@ -64,6 +64,25 @@ import { HealthController } from './health.controller';
         },
         inject: [ConfigService],
       },
+      {
+        name: 'FACE_RECOGNITION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
+          const faceRecognitionQueue = configService.get<string>('RABBITMQ_FACE_RECOGNITION_QUEUE') || 'face_recognition_queue';
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl] as string[],
+              queue: faceRecognitionQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
     WorkScheduleModule,
     BeaconModule,
