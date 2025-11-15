@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class ListEmployeeDto {
+export class ListPositionDto {
   @ApiProperty({ required: false, default: 1, minimum: 1, type: Number })
   @IsOptional()
   @Type(() => Number)
@@ -18,18 +18,18 @@ export class ListEmployeeDto {
   @Max(100)
   limit?: number = 10;
 
+  @ApiProperty({ enum: ['ACTIVE', 'INACTIVE'], required: false, description: 'Filter by status' })
+  @IsOptional()
+  @IsEnum(['ACTIVE', 'INACTIVE'])
+  status?: string;
+
   @ApiProperty({ required: false, type: Number, description: 'Filter by department ID' })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   department_id?: number;
 
-  @ApiProperty({ enum: ['ACTIVE', 'INACTIVE', 'TERMINATED'], required: false, description: 'Filter by status' })
-  @IsOptional()
-  @IsEnum(['ACTIVE', 'INACTIVE', 'TERMINATED'])
-  status?: string;
-
-  @ApiProperty({ required: false, type: String, description: 'Search in employee code, email, or full name' })
+  @ApiProperty({ required: false, type: String, description: 'Search in position code or name' })
   @IsOptional()
   @IsString()
   search?: string;
@@ -45,23 +45,24 @@ export class ListEmployeeDto {
   sort_order?: 'ASC' | 'DESC' = 'DESC';
 }
 
-export class ListEmployeeResponseDto {
-  employees: EmployeeSummaryDto[];
+export class ListPositionResponseDto {
+  positions: PositionSummaryDto[];
   pagination: PaginationDto;
 }
 
-export class EmployeeSummaryDto {
+export class PositionSummaryDto {
   id: number;
-  employee_code: string;
-  full_name: string;
-  email: string;
-  phone?: string;
+  position_code: string;
+  position_name: string;
+  description?: string;
+  level: number;
   department_id?: number;
   department_name?: string;
-  position_id?: number;
-  position_name?: string;
+  suggested_role?: string;
+  salary_min?: number;
+  salary_max?: number;
+  currency: string;
   status: string;
-  onboarding_status?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -74,3 +75,4 @@ export class PaginationDto {
   has_next: boolean;
   has_prev: boolean;
 }
+

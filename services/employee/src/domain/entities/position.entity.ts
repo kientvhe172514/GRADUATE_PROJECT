@@ -5,6 +5,7 @@ export class Position {
   description?: string;
   level: number;
   department_id?: number;
+  department_name?: string; // Joined field from departments table
   suggested_role?: string;
   salary_min?: number;
   salary_max?: number;

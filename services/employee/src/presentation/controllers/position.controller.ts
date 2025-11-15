@@ -10,6 +10,7 @@ import { UpdatePositionDto } from '../../application/dto/update-position.dto';
 import { PositionResponseDto } from '../../application/dto/position-response.dto';
 import { PositionListResponseDto } from '../../application/dto/position-list-response.dto';
 import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ListPositionDto } from '../../application/dto/position/list-position.dto';
 
 @ApiTags('positions')
 @ApiBearerAuth('bearer')
@@ -24,38 +25,12 @@ export class PositionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách các chức vụ' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Trang hiện tại' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng mỗi trang' })
+  @ApiOperation({ summary: 'Lấy danh sách các chức vụ với filter và pagination' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách chức vụ thành công', type: PositionListResponseDto })
   async getAllPositions(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
-  ): Promise<ApiResponseDto<PositionListResponseDto>> {
-    const result = await this.getAllPositionsUseCase.execute(page, limit);
-    
-    const response: PositionListResponseDto = {
-      positions: result.positions.map(position => ({
-        id: position.id,
-        position_code: position.position_code,
-        position_name: position.position_name,
-        description: position.description,
-        level: position.level,
-        department_id: position.department_id,
-        suggested_role: position.suggested_role,
-        salary_min: position.salary_min,
-        salary_max: position.salary_max,
-        currency: position.currency,
-        status: position.status,
-        created_at: position.created_at || new Date(),
-        updated_at: position.updated_at || new Date(),
-      })),
-      total: result.total,
-      page,
-      limit,
-    };
-
-    return ApiResponseDto.success(response, 'Lấy danh sách chức vụ thành công');
+    @Query() filters?: ListPositionDto,
+  ): Promise<ApiResponseDto<any>> {
+    return await this.getAllPositionsUseCase.execute(filters || {});
   }
 
   @Get(':id')
