@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AttendanceCheckController } from '../../presentation/controllers/attendance-check.controller';
 import { AttendanceCheckRecordSchema } from '../../infrastructure/persistence/typeorm/attendance-check-record.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
@@ -22,6 +23,27 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
       BeaconSchema,
     ]),
     ConfigModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'FACE_RECOGNITION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const faceRecognitionQueue = configService.get<string>('RABBITMQ_FACE_RECOGNITION_QUEUE') || 'face_recognition_queue';
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: faceRecognitionQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
+    ]),
   ],
   controllers: [AttendanceCheckController],
   providers: [
