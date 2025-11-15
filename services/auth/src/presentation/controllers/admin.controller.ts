@@ -53,7 +53,7 @@ export class AdminController {
 
   @Get('accounts')
   @HttpCode(HttpStatus.OK)
-  @AuthPermissions('admin:accounts:read')
+  @AuthPermissions('admin.accounts.read')
   @ApiOperation({ summary: 'Get all accounts with pagination and search' })
   @ApiResponse({ status: 200, description: 'Accounts retrieved successfully' })
   @ApiQuery({
@@ -104,6 +104,7 @@ export class AdminController {
     enum: ['ASC', 'DESC'],
     description: 'Sort order (default: DESC)',
   })
+
   async listAccounts(
     @Query() query: ListAccountsRequestDto,
     @CurrentUser() user: any,
@@ -113,7 +114,7 @@ export class AdminController {
 
   @Get('accounts/:id')
   @HttpCode(HttpStatus.OK)
-  @AuthPermissions('admin:accounts:read')
+  @AuthPermissions('admin.accounts.read')
   @ApiOperation({ summary: 'Get account details by ID' })
   @ApiResponse({
     status: 200,
@@ -135,7 +136,7 @@ export class AdminController {
 
   @Put('accounts/:id/status')
   @HttpCode(HttpStatus.OK)
-  @AuthPermissions('admin:accounts:update')
+  @AuthPermissions('admin.accounts.update')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   @ApiOperation({ summary: 'Update account status' })
   @ApiResponse({
@@ -174,7 +175,7 @@ export class AdminController {
 
   @Get('audit-logs')
   @HttpCode(HttpStatus.OK)
-  @AuthPermissions('admin:audit-logs:read')
+  @AuthPermissions('admin.audit-logs.read')
   @ApiOperation({ summary: 'Get audit logs with pagination and filters' })
   @ApiResponse({
     status: 200,

@@ -12,8 +12,13 @@ export interface CreateCheckRecordDto {
   beacon_validated: boolean;
   beacon_rssi?: number;
   beacon_distance_meters?: number;
+  // GPS validation fields
+  gps_validated?: boolean;
   latitude?: number;
   longitude?: number;
+  location_accuracy?: number;
+  distance_from_office_meters?: number;
+  // Device info
   device_id?: string;
   ip_address?: string;
 }
@@ -38,7 +43,7 @@ export class AttendanceCheckRepository {
     const record = this.repository.create({
       ...dto,
       check_timestamp: new Date(),
-      gps_validated: false,
+      gps_validated: dto.gps_validated ?? false,
       face_verified: false,
       is_valid: false,
       is_manually_corrected: false,

@@ -70,6 +70,32 @@ const PERMISSIONS: Permission[] = [
     is_system_permission: false,
   },
 
+  // Admin Management
+  {
+    code: 'admin.accounts.read',
+    name: 'Read All Accounts',
+    resource: 'admin',
+    action: 'read',
+    description: 'View all user accounts (admin panel)',
+    is_system_permission: false,
+  },
+  {
+    code: 'admin.accounts.update',
+    name: 'Update Account Status',
+    resource: 'admin',
+    action: 'update',
+    description: 'Update account status (activate/deactivate)',
+    is_system_permission: false,
+  },
+  {
+    code: 'admin.audit-logs.read',
+    name: 'Read Audit Logs',
+    resource: 'admin',
+    action: 'read',
+    description: 'View system audit logs',
+    is_system_permission: false,
+  },
+
   // Employee Management
   {
     code: 'employee.create',
@@ -573,6 +599,10 @@ const ROLES: Role[] = [
     level: 2,
     is_system_role: true,
     permissions: [
+      // Admin Management
+      'admin.accounts.read',
+      'admin.accounts.update',
+      'admin.audit-logs.read',
       // Employee Management
       'employee.create',
       'employee.read',

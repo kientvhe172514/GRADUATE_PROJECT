@@ -25,6 +25,10 @@ class RequestFaceVerificationDto {
   department_id: number;
   session_token: string;
   check_type: 'check_in' | 'check_out';
+  shift_date: Date; // Format: YYYY-MM-DD
+  latitude?: number;
+  longitude?: number;
+  location_accuracy?: number;
   device_id?: string;
   ip_address?: string;
 }
@@ -63,6 +67,10 @@ export class AttendanceCheckController {
       department_id: dto.department_id,
       session_token: dto.session_token,
       check_type: dto.check_type,
+      shift_date: dto.shift_date,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      location_accuracy: dto.location_accuracy,
       device_id: dto.device_id,
       ip_address: dto.ip_address || req.ip,
     };
