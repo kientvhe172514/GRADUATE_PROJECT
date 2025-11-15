@@ -142,15 +142,26 @@ public class FinalAttendanceConsumer(
     {
         try
         {
-            var query = new GetFaceIdResultByStudentIdsAndSessionIdIntegrationQuery(studentIds, sessionId);
+            // Convert Guid studentIds to int for FaceId service
+            var intStudentIds = studentIds
+                .Select(ConvertGuidToInt)
+                .ToList();
+                
+            var query = new GetFaceIdResultByStudentIdsAndSessionIdIntegrationQuery(intStudentIds, sessionId);
 
             var response = await mediator.Send(query, cancellationToken);
 
+            // Convert response back to Guid-keyed dictionary for attendance processing
+            var guidKeyedResult = response.StudentStatus.ToDictionary(
+                kvp => ConvertIntToGuid(kvp.Key),
+                kvp => kvp.Value
+            );
+
             logger.LogInformation(
                 "Retrieved FaceID results for {StudentCount} students in session {SessionId}",
-                response.StudentStatus.Count, sessionId);
+                guidKeyedResult.Count, sessionId);
 
-            return response.StudentStatus;
+            return guidKeyedResult;
         }
         catch (Exception ex)
         {
@@ -341,5 +352,24 @@ public class FinalAttendanceConsumer(
             return AttendanceStatus.Absent;
 
         return Equals(faceIdStatus, FaceIdStatus.Failed) ? AttendanceStatus.Absent : AttendanceStatus.Present;
+    }
+    
+    /// <summary>
+    /// Convert int userId to Guid format (00000000-0000-0000-0000-{userId:x12})
+    /// This is used for compatibility between FaceId service (int) and Attendance service (Guid)
+    /// </summary>
+    private static Guid ConvertIntToGuid(int userId)
+    {
+        return new Guid($"00000000-0000-0000-0000-{userId:x12}");
+    }
+    
+    /// <summary>
+    /// Convert Guid userId to int by extracting last 12 hex characters
+    /// This is the reverse of ConvertIntToGuid
+    /// </summary>
+    private static int ConvertGuidToInt(Guid userId)
+    {
+        var hex = userId.ToString("N").Substring(20, 12);
+        return int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
     }
 }
