@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AttendanceCheckController } from '../../presentation/controllers/attendance-check.controller';
 import { AttendanceCheckRecordSchema } from '../../infrastructure/persistence/typeorm/attendance-check-record.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
 import { BeaconSchema } from '../../infrastructure/persistence/typeorm/beacon.schema';
 import { AttendanceCheckRepository } from '../../infrastructure/persistence/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/persistence/repositories/employee-shift.repository';
+import { BeaconRepository } from '../../infrastructure/persistence/repositories/beacon.repository';
 import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { RequestFaceVerificationUseCase } from './request-face-verification.use-case';
@@ -21,12 +23,34 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
       BeaconSchema,
     ]),
     ConfigModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'FACE_RECOGNITION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const faceRecognitionQueue = configService.get<string>('RABBITMQ_FACE_RECOGNITION_QUEUE') || 'face_recognition_queue';
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: faceRecognitionQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
+    ]),
   ],
   controllers: [AttendanceCheckController],
   providers: [
     // Repositories
     AttendanceCheckRepository,
     EmployeeShiftRepository,
+    BeaconRepository,
     // Use Cases
     ValidateBeaconUseCase,
     ValidateGpsUseCase,
@@ -37,6 +61,7 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
   exports: [
     AttendanceCheckRepository,
     EmployeeShiftRepository,
+    BeaconRepository,
     ValidateBeaconUseCase,
     ValidateGpsUseCase,
     UpdateEmployeeShiftUseCase,
