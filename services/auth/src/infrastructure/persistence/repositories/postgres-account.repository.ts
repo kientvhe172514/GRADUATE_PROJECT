@@ -154,62 +154,95 @@ export class PostgresAccountRepository implements AccountRepositoryPort {
   }
 
   async findWithPagination(criteria: any): Promise<{ accounts: Account[]; total: number }> {
+    // Debug: Log incoming criteria
+    console.log('🔍 PostgresAccountRepository - Incoming criteria:', JSON.stringify(criteria, null, 2));
+    console.log('🔍 criteria.status:', criteria.status, 'type:', typeof criteria.status);
+    
     // Use raw query to join with roles table
-    let whereConditions: string[] = ['1=1'];
-    const params: any[] = [];
+    let whereConditions: string[] = [];
+    const whereParams: any[] = [];
     let paramIndex = 1;
 
-    if (criteria.status) {
+    // Filter by status - check for truthy value and non-empty string
+    if (criteria.status !== undefined && criteria.status !== null && criteria.status !== '') {
       whereConditions.push(`a.status = $${paramIndex}`);
-      params.push(criteria.status);
+      whereParams.push(criteria.status);
+      console.log('✅ Repository: Status filter added to WHERE:', `a.status = $${paramIndex}`, 'value:', criteria.status);
       paramIndex++;
+    } else {
+      console.log('❌ Repository: Status filter NOT added. criteria.status:', criteria.status);
     }
     
-    if (criteria.role) {
+    // Filter by role (using role_code from roles table)
+    if (criteria.role !== undefined && criteria.role !== null && criteria.role !== '') {
       whereConditions.push(`r.code = $${paramIndex}`);
-      params.push(criteria.role);
+      whereParams.push(criteria.role);
       paramIndex++;
     }
     
-    if (criteria.department_id) {
+    // Filter by department_id - check for truthy value
+    if (criteria.department_id !== undefined && criteria.department_id !== null) {
       whereConditions.push(`a.department_id = $${paramIndex}`);
-      params.push(criteria.department_id);
+      whereParams.push(criteria.department_id);
       paramIndex++;
     }
 
-    if (criteria.search) {
-      whereConditions.push(`(a.email ILIKE $${paramIndex} OR a.full_name ILIKE $${paramIndex})`);
-      params.push(`%${criteria.search}%`);
-      paramIndex++;
+    // Search in email or full_name
+    if (criteria.search && criteria.search.trim()) {
+      const searchTerm = `%${criteria.search.trim()}%`;
+      whereConditions.push(`(a.email ILIKE $${paramIndex} OR a.full_name ILIKE $${paramIndex + 1})`);
+      whereParams.push(searchTerm, searchTerm);
+      paramIndex += 2;
     }
 
-    const sortBy = criteria.sortBy || 'created_at';
-    const sortOrder = criteria.sortOrder || 'DESC';
+    // Validate and sanitize sortBy to prevent SQL injection
+    const allowedSortFields = ['id', 'email', 'full_name', 'status', 'created_at', 'updated_at', 'last_login_at', 'department_id'];
+    const sortBy = allowedSortFields.includes(criteria.sortBy) ? criteria.sortBy : 'created_at';
+    const sortOrder = criteria.sortOrder === 'ASC' ? 'ASC' : 'DESC';
     const offset = criteria.offset || 0;
     const limit = criteria.limit || 10;
 
-    // Get total count
+    // Build WHERE clause
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    
+    console.log('🔍 WHERE conditions:', whereConditions);
+    console.log('🔍 WHERE clause:', whereClause);
+    console.log('🔍 WHERE params:', whereParams);
+
+    // Get total count - use separate params array
     const countQuery = `
       SELECT COUNT(*) as count
       FROM accounts a
       LEFT JOIN roles r ON r.id = a.role_id
-      WHERE ${whereConditions.join(' AND ')}
+      ${whereClause}
     `;
-    const countResult: any = await this.repository.query(countQuery, params);
+    console.log('🔍 Count Query:', countQuery);
+    console.log('🔍 Count Query Params:', whereParams);
+    
+    const countResult: any = await this.repository.query(countQuery, whereParams);
     const total = parseInt(countResult[0]?.count || '0', 10);
+    console.log('🔍 Total count result:', total);
 
-    // Get accounts with role_code
+    // Get accounts with role_code - build params array with limit and offset
+    const queryParams = [...whereParams];
+    const limitParamIndex = paramIndex;
+    const offsetParamIndex = paramIndex + 1;
+    
     const query = `
       SELECT a.*, r.code as role_code
       FROM accounts a
       LEFT JOIN roles r ON r.id = a.role_id
-      WHERE ${whereConditions.join(' AND ')}
+      ${whereClause}
       ORDER BY a.${sortBy} ${sortOrder}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `;
-    params.push(limit, offset);
+    queryParams.push(limit, offset);
     
-    const results: any = await this.repository.query(query, params);
+    console.log('🔍 Main Query:', query);
+    console.log('🔍 Main Query Params:', queryParams);
+    
+    const results: any = await this.repository.query(query, queryParams);
+    console.log('🔍 Query results count:', results.length);
     const accounts = results.map((entity: any) => {
       const account = AccountMapper.toDomain(entity);
       account.role = entity.role_code;
