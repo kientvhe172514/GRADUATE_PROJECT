@@ -403,9 +403,16 @@ static async Task RunSelectiveDatabaseMigrationsAsync(WebApplication app)
             else
             {
                 logger.LogInformation("✓ {ContextName} is up-to-date. No pending migrations.", contextName);
-                
-                // Ensure database exists (create if not exists)
+            }
+            
+            // ✅ FIX: LUÔN ĐẢM BẢO DATABASE VÀ TABLES TỒN TẠI
+            // Nếu database chưa có, MigrateAsync sẽ tạo database + apply tất cả migrations
+            var canConnect = await dbContext.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                logger.LogWarning("🔧 Database not found. Creating database and applying all migrations...");
                 await dbContext.Database.MigrateAsync();
+                logger.LogInformation("✅ Database and tables created successfully for {ContextName}.", contextName);
             }
         });
     }

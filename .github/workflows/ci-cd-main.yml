@@ -292,12 +292,15 @@ jobs:
     secrets: inherit
 
   # ==========================================
-  # JOB 10: DEPLOY INFRASTRUCTURE (RUN FIRST)
+  # JOB 10: DEPLOY INFRASTRUCTURE TO AWS EC2
   # ==========================================
   deploy-infrastructure:
-    name: 🏗️ Deploy Infrastructure First
+    name: 🏗️ Deploy Infrastructure to EC2
     needs: detect-changes
-    if: always()  # LUÔN CHẠY để đảm bảo infrastructure ready
+    # ✅ CHỈ CHẠY KHI CÓ THAY ĐỔI INFRASTRUCTURE HOẶC MANUAL TRIGGER
+    if: |
+      needs.detect-changes.outputs.infra == 'true' ||
+      github.event.inputs.service == 'all'
     runs-on: ubuntu-latest
     
     steps:
@@ -391,20 +394,9 @@ jobs:
               -n infrastructure
             
             # ============================================
-            # XÓA TẤT CẢ INFRASTRUCTURE CŨ (nếu có)
+            # APPLY INFRASTRUCTURE CHANGES (KHÔNG XÓA - CHỈ CẬP NHẬT)
             # ============================================
-            echo "🗑️  Cleaning up old infrastructure..."
-            kubectl delete deployment --all -n infrastructure --ignore-not-found=true
-            kubectl delete statefulset --all -n infrastructure --ignore-not-found=true
-            kubectl delete pod --all -n infrastructure --force --grace-period=0 --ignore-not-found=true
-            
-            echo "⏳ Waiting for cleanup to complete..."
-            sleep 10
-            
-            # ============================================
-            # DEPLOY INFRASTRUCTURE MỚI
-            # ============================================
-            echo "🚀 Deploying fresh infrastructure..."
+            echo "� Applying infrastructure changes (rolling update)..."
             # Deploy platform resources
             kubectl apply -f infra/k8s/platform/
             
@@ -456,7 +448,19 @@ jobs:
       - build-leave
       - build-notification
       - build-reporting
-    if: always()  # Vẫn luôn chạy nhưng phải chờ build xong
+    # ✅ CHỈ CHẠY NẾU INFRASTRUCTURE SUCCESS/SKIPPED + CÓ SERVICE THAY ĐỔI
+    if: |
+      always() && 
+      (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped') &&
+      (needs.detect-changes.outputs.auth == 'true' ||
+       needs.detect-changes.outputs.face-recognition == 'true' ||
+       needs.detect-changes.outputs.attendance == 'true' ||
+       needs.detect-changes.outputs.employee == 'true' ||
+       needs.detect-changes.outputs.leave == 'true' ||
+       needs.detect-changes.outputs.notification == 'true' ||
+       needs.detect-changes.outputs.reporting == 'true' ||
+       needs.detect-changes.outputs.shared == 'true' ||
+       github.event.inputs.service != '')
     runs-on: ubuntu-latest
     
     steps:
