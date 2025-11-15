@@ -11,4 +11,5 @@ export interface EmployeeRepositoryPort {
   updateAccountId(id: number, accountId: number): Promise<void>;
   updateOnboardingStatus(id: number, status: string): Promise<void>;
   findAll(filters?: ListEmployeeDto): Promise<Employee[]>;
+  findWithPagination(criteria: any): Promise<{ employees: Employee[]; total: number }>;
 }

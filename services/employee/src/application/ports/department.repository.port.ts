@@ -6,5 +6,6 @@ export interface DepartmentRepositoryPort {
   findById(id: number): Promise<Department | null>;
   update(id: number, department: Partial<Department>): Promise<Department>;
   findAll(): Promise<Department[]>;
+  findWithPagination(criteria: any): Promise<{ departments: Department[]; total: number }>;
   delete(id: number): Promise<void>;
 }

@@ -76,18 +76,12 @@ export class EmployeeController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all employees with filters' })
+  @ApiOperation({ summary: 'Get all employees with filters and pagination' })
   @ApiQuery({ type: ListEmployeeDto, required: false })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async getAll(@Query() filters?: ListEmployeeDto): Promise<ApiResponseDto<EmployeeDetailDto[]>> {
-    try {
-      const employees = await this.getEmployeesUseCase.execute(filters);
-      return ApiResponseDto.success(employees, 'Employees retrieved successfully');
-    } catch (error) {
-      console.error('Error in getAll:', error);
-      throw error; // Let the global exception filter handle it
-    }
+  async getAll(@Query() filters?: ListEmployeeDto): Promise<ApiResponseDto<any>> {
+    return await this.getEmployeesUseCase.execute(filters || {});
   }
 
   @Post(':id/terminate')

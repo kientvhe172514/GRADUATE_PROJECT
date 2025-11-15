@@ -4,6 +4,7 @@ export class Department {
   department_name: string;
   description?: string;
   parent_department_id?: number;
+  parent_department_name?: string; // Joined field from parent department
   parent?: Department;
   level: number = 1;
   path?: string;

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateDepartmentDto } from '../../application/dto/department/create-department.dto';
 import { UpdateDepartmentDto } from '../../application/dto/department/update-department.dto';
@@ -10,6 +10,7 @@ import { GetDepartmentDetailUseCase } from '../../application/use-cases/get-depa
 import { GetDepartmentsUseCase } from '../../application/use-cases/get-departments.use-case';
 import { DeleteDepartmentUseCase } from '../../application/use-cases/delete-department.use-case';
 import { ApiResponseDto, ResponseStatus } from '@graduate-project/shared-common';
+import { ListDepartmentDto } from '../../application/dto/department/list-department.dto';
 
 @ApiTags('departments')
 @ApiBearerAuth('bearer')
@@ -24,16 +25,10 @@ export class DepartmentController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all departments' })
+  @ApiOperation({ summary: 'Get all departments with filters and pagination' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
-  async getAll(): Promise<ApiResponseDto<DepartmentDetailDto[]>> {
-    const data = await this.getDepartmentsUseCase.execute();
-    return new ApiResponseDto(
-      ResponseStatus.SUCCESS,
-      200,
-      'Departments retrieved successfully',
-      data
-    );
+  async getAll(@Query() filters?: ListDepartmentDto): Promise<ApiResponseDto<any>> {
+    return await this.getDepartmentsUseCase.execute(filters || {});
   }
 
   @Post()
