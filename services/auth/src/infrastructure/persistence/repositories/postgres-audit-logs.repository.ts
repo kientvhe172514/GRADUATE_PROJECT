@@ -75,25 +75,25 @@ export class PostgresAuditLogsRepository implements AuditLogsRepositoryPort {
   async findWithPagination(criteria: any): Promise<{ logs: AuditLogs[]; total: number }> {
     const queryBuilder = this.repository.createQueryBuilder('audit_log');
 
-    // Apply filters
-    if (criteria.account_id) {
+    // Apply filters - explicitly check for values
+    if (criteria.account_id !== undefined && criteria.account_id !== null) {
       queryBuilder.andWhere('audit_log.account_id = :account_id', { account_id: criteria.account_id });
     }
     
-    if (criteria.action) {
+    if (criteria.action !== undefined && criteria.action !== null && criteria.action !== '') {
       queryBuilder.andWhere('audit_log.action = :action', { action: criteria.action });
     }
     
-    if (criteria.success !== undefined) {
+    if (criteria.success !== undefined && criteria.success !== null) {
       queryBuilder.andWhere('audit_log.success = :success', { success: criteria.success });
     }
 
     // Apply date filters
-    if (criteria.start_date) {
+    if (criteria.start_date !== undefined && criteria.start_date !== null) {
       queryBuilder.andWhere('audit_log.created_at >= :start_date', { start_date: criteria.start_date });
     }
     
-    if (criteria.end_date) {
+    if (criteria.end_date !== undefined && criteria.end_date !== null) {
       queryBuilder.andWhere('audit_log.created_at <= :end_date', { end_date: criteria.end_date });
     }
 

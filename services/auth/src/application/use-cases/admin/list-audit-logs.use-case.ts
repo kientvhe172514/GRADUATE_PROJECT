@@ -23,27 +23,27 @@ export class ListAuditLogsUseCase {
       const limit = Math.min(100, Math.max(1, dto.limit || 10));
       const offset = (page - 1) * limit;
 
-      // Build search criteria
+      // Build search criteria - explicitly check for values
       const searchCriteria: any = {};
       
-      if (dto.account_id) {
+      if (dto.account_id !== undefined && dto.account_id !== null) {
         searchCriteria.account_id = dto.account_id;
       }
       
-      if (dto.action) {
+      if (dto.action !== undefined && dto.action !== null && dto.action !== '') {
         searchCriteria.action = dto.action;
       }
       
-      if (dto.success !== undefined) {
+      if (dto.success !== undefined && dto.success !== null) {
         searchCriteria.success = dto.success;
       }
 
       // Parse date filters
-      if (dto.start_date) {
+      if (dto.start_date !== undefined && dto.start_date !== null && dto.start_date !== '') {
         searchCriteria.start_date = new Date(dto.start_date);
       }
       
-      if (dto.end_date) {
+      if (dto.end_date !== undefined && dto.end_date !== null && dto.end_date !== '') {
         searchCriteria.end_date = new Date(dto.end_date);
       }
 

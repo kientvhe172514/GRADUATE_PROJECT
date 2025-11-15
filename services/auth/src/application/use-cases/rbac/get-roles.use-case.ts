@@ -17,11 +17,17 @@ export class GetRolesUseCase {
     const page = filters?.page || 1;
     const limit = filters?.limit || 20;
 
-    const { roles, total } = await this.roleRepo.findAll({
-      status: filters?.status,
+    // Build filter criteria - explicitly check for values
+    const filterCriteria: any = {
       page,
       limit,
-    });
+    };
+    
+    if (filters?.status !== undefined && filters?.status !== null && filters?.status !== '') {
+      filterCriteria.status = filters.status;
+    }
+
+    const { roles, total } = await this.roleRepo.findAll(filterCriteria);
 
     // Map entities to DTOs
     const roleDtos: GetRoleResponseDto[] = roles.map((role) => ({

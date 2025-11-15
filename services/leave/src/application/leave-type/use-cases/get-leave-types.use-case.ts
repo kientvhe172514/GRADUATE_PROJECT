@@ -13,17 +13,25 @@ export class GetLeaveTypesUseCase {
   async execute(filters?: ListLeaveTypesQueryDto): Promise<LeaveTypeResponseDto[]> {
     let results;
     
-    if (filters?.status === LeaveTypeStatus.ACTIVE) {
-      // Optimization path
-      if (typeof filters.is_paid === 'undefined') {
+    // Check if status filter is provided and valid
+    const hasStatusFilter = filters?.status !== undefined && filters?.status !== null && filters?.status !== '';
+    const hasIsPaidFilter = filters?.is_paid !== undefined && filters?.is_paid !== null;
+    
+    if (hasStatusFilter && filters.status === LeaveTypeStatus.ACTIVE) {
+      // Optimization path for active status
+      if (!hasIsPaidFilter) {
         results = await this.leaveTypeRepository.findActive();
       } else {
         results = await this.leaveTypeRepository.findFiltered(LeaveTypeStatus.ACTIVE, filters.is_paid);
       }
-    } else if (!filters || (typeof filters.status === 'undefined' && typeof filters.is_paid === 'undefined')) {
+    } else if (!hasStatusFilter && !hasIsPaidFilter) {
+      // No filters - get all
       results = await this.leaveTypeRepository.findAll();
     } else {
-      results = await this.leaveTypeRepository.findFiltered(filters.status, filters.is_paid);
+      // Has filters - use filtered query
+      const status = hasStatusFilter ? filters.status : undefined;
+      const isPaid = hasIsPaidFilter ? filters.is_paid : undefined;
+      results = await this.leaveTypeRepository.findFiltered(status, isPaid);
     }
     
     return results as LeaveTypeResponseDto[];
