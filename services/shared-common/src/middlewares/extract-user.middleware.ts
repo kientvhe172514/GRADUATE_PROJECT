@@ -15,10 +15,17 @@ import { JwtPayload } from '../types/jwt-payload.type';
  *   5. Service uses req.user without JWT verification!
  * 
  * Headers Expected:
- *   - X-User-Id: User's ID
+ *   - X-User-Id: User's account ID
  *   - X-User-Email: User's email
- *   - X-User-Permissions: JSON array of permissions
  *   - X-User-Roles: User's role code
+ *   - X-User-Permissions: JSON array of permissions
+ *   - X-Employee-Id: Employee ID (if user is an employee)
+ *   - X-Employee-Code: Employee code
+ *   - X-Full-Name: User's full name
+ *   - X-Department-Id: Department ID
+ *   - X-Department-Name: Department name
+ *   - X-Position-Id: Position ID
+ *   - X-Position-Name: Position name
  * 
  * Usage:
  *   app.use(new ExtractUserFromHeadersMiddleware().use);
@@ -31,6 +38,14 @@ export class ExtractUserFromHeadersMiddleware implements NestMiddleware {
     const userEmail = req.headers['x-user-email'] as string;
     const userRole = req.headers['x-user-roles'] as string;
     const userPermissionsHeader = req.headers['x-user-permissions'] as string;
+    // ✅ NEW: Extract employee context from headers
+    const employeeId = req.headers['x-employee-id'] as string;
+    const employeeCode = req.headers['x-employee-code'] as string;
+    const fullName = req.headers['x-full-name'] as string;
+    const departmentId = req.headers['x-department-id'] as string;
+    const departmentName = req.headers['x-department-name'] as string;
+    const positionId = req.headers['x-position-id'] as string;
+    const positionName = req.headers['x-position-name'] as string;
 
     // If no user headers, skip (public endpoints or dev mode)
     if (!userId && !userEmail) {
@@ -43,7 +58,10 @@ export class ExtractUserFromHeadersMiddleware implements NestMiddleware {
       try {
         permissions = JSON.parse(userPermissionsHeader);
       } catch (error) {
-        console.warn('[ExtractUserMiddleware] Failed to parse permissions:', error);
+        console.warn(
+          '[ExtractUserMiddleware] Failed to parse permissions:',
+          error,
+        );
         permissions = [];
       }
     }
@@ -54,6 +72,14 @@ export class ExtractUserFromHeadersMiddleware implements NestMiddleware {
       email: userEmail,
       role: userRole,
       permissions: permissions,
+      // ✅ NEW: Add employee context
+      employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
+      employee_code: employeeCode || undefined,
+      full_name: fullName || undefined,
+      department_id: departmentId ? parseInt(departmentId, 10) : undefined,
+      department_name: departmentName || undefined,
+      position_id: positionId ? parseInt(positionId, 10) : undefined,
+      position_name: positionName || undefined,
     };
 
     // Attach user to request
@@ -83,6 +109,15 @@ export function extractUserFromHeaders(
   const userRole = req.headers['x-user-roles'] as string;
   const userPermissionsHeader = req.headers['x-user-permissions'] as string;
 
+  // ✅ NEW: Extract employee context from headers
+  const employeeId = req.headers['x-employee-id'] as string;
+  const employeeCode = req.headers['x-employee-code'] as string;
+  const fullName = req.headers['x-full-name'] as string;
+  const departmentId = req.headers['x-department-id'] as string;
+  const departmentName = req.headers['x-department-name'] as string;
+  const positionId = req.headers['x-position-id'] as string;
+  const positionName = req.headers['x-position-name'] as string;
+
   if (!userId && !userEmail) {
     return next();
   }
@@ -101,6 +136,14 @@ export function extractUserFromHeaders(
     email: userEmail,
     role: userRole,
     permissions: permissions,
+    // ✅ NEW: Add employee context
+    employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
+    employee_code: employeeCode || undefined,
+    full_name: fullName || undefined,
+    department_id: departmentId ? parseInt(departmentId, 10) : undefined,
+    department_name: departmentName || undefined,
+    position_id: positionId ? parseInt(positionId, 10) : undefined,
+    position_name: positionName || undefined,
   };
 
   (req as any).user = user;

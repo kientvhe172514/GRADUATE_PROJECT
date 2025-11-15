@@ -15,6 +15,7 @@ import { CancelLeaveUseCase } from './use-cases/cancel-leave.use-case';
 import { GetLeaveRecordsUseCase } from './use-cases/get-leave-records.use-case';
 import { GetLeaveRecordByIdUseCase } from './use-cases/get-leave-record-by-id.use-case';
 import { UpdateLeaveRequestUseCase } from './use-cases/update-leave-request.use-case';
+import { GetMyLeavesUseCase } from './use-cases/get-my-leaves.use-case';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { UpdateLeaveRequestUseCase } from './use-cases/update-leave-request.use-
     GetLeaveRecordsUseCase,
     GetLeaveRecordByIdUseCase,
     UpdateLeaveRequestUseCase,
+    GetMyLeavesUseCase,
   ],
   exports: [
     LEAVE_RECORD_REPOSITORY,
@@ -55,6 +57,7 @@ import { UpdateLeaveRequestUseCase } from './use-cases/update-leave-request.use-
     GetLeaveRecordsUseCase,
     GetLeaveRecordByIdUseCase,
     UpdateLeaveRequestUseCase,
+    GetMyLeavesUseCase,
   ],
 })
 export class LeaveRecordModule {}

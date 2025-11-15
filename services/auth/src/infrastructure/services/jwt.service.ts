@@ -15,18 +15,31 @@ export class JwtServiceImpl implements JwtServicePort {
   ) {}
 
   async generateAccessToken(account: Account): Promise<string> {
-    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+    const permissions =
+      await this.roleRepository.getPermissionsByRoleCode(account.role || '');
     const payload = {
       sub: account.id,
       email: account.email,
+      employee_id: account.employee_id, // ✅ Add employee_id to JWT payload
+      employee_code: account.employee_code, // ✅ Add employee_code to JWT payload
+      full_name: account.full_name,
+      department_id: account.department_id,
+      department_name: account.department_name,
+      position_id: account.position_id,
+      position_name: account.position_name,
       role: account.role || '',
-      permissions: permissions
+      permissions: permissions,
     };
     return this.jwtService.sign(payload, { expiresIn: '15m' }); // 15 minutes
   }
 
   generateRefreshToken(account: Account): string {
-    const payload = { sub: account.id, email: account.email, role: account.role || '' };
+    const payload = {
+      sub: account.id,
+      email: account.email,
+      employee_id: account.employee_id, // ✅ Add for refresh token too
+      role: account.role || '',
+    };
     return this.jwtService.sign(payload, { expiresIn: '7d' }); // 7 days
   }
 
@@ -43,12 +56,20 @@ export class JwtServiceImpl implements JwtServicePort {
 
   // Legacy method for backward compatibility
   async generateTokens(account: Account): Promise<LoginResponseDto> {
-    const permissions = await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+    const permissions =
+      await this.roleRepository.getPermissionsByRoleCode(account.role || '');
     const payload = {
       sub: account.id,
       email: account.email,
+      employee_id: account.employee_id, // ✅ Add employee_id
+      employee_code: account.employee_code, // ✅ Add employee_code
+      full_name: account.full_name,
+      department_id: account.department_id,
+      department_name: account.department_name,
+      position_id: account.position_id,
+      position_name: account.position_name,
       role: account.role || '',
-      permissions: permissions
+      permissions: permissions,
     };
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),

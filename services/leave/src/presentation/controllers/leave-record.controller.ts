@@ -1,7 +1,31 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, ParseIntPipe, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpStatus,
+  ParseIntPipe,
+  HttpCode,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  CurrentUser,
+  JwtPayload,
+} from '@graduate-project/shared-common';
 import {
   CreateLeaveRequestDto,
   UpdateLeaveRecordDto,
@@ -18,6 +42,7 @@ import { CancelLeaveUseCase } from '../../application/leave-record/use-cases/can
 import { GetLeaveRecordsUseCase } from '../../application/leave-record/use-cases/get-leave-records.use-case';
 import { GetLeaveRecordByIdUseCase } from '../../application/leave-record/use-cases/get-leave-record-by-id.use-case';
 import { UpdateLeaveRequestUseCase } from '../../application/leave-record/use-cases/update-leave-request.use-case';
+import { GetMyLeavesUseCase } from '../../application/leave-record/use-cases/get-my-leaves.use-case';
 
 @ApiTags('leave-records')
 @ApiBearerAuth('bearer')
@@ -31,22 +56,111 @@ export class LeaveRecordController {
     private readonly getLeaveRecordsUseCase: GetLeaveRecordsUseCase,
     private readonly getLeaveRecordByIdUseCase: GetLeaveRecordByIdUseCase,
     private readonly updateLeaveRequestUseCase: UpdateLeaveRequestUseCase,
+    private readonly getMyLeavesUseCase: GetMyLeavesUseCase,
   ) {}
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get my leave records (current employee)',
+    description:
+      'Get all leave records for the current logged-in employee. No need to pass employee_id - automatically extracted from JWT token.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'],
+  })
+  @ApiQuery({ name: 'leave_type_id', required: false, type: Number })
+  @ApiQuery({
+    name: 'start_date',
+    required: false,
+    type: String,
+    example: '2025-01-01',
+  })
+  @ApiQuery({
+    name: 'end_date',
+    required: false,
+    type: String,
+    example: '2025-12-31',
+  })
+  @ApiQuery({ name: 'year', required: false, type: Number, example: 2025 })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({
+    status: 401,
+    description: 'User not authenticated or no employee_id in token',
+  })
+  async getMyLeaves(
+    @CurrentUser() user: JwtPayload,
+    @Query('status') status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED',
+    @Query('leave_type_id', new ParseIntPipe({ optional: true }))
+    leaveTypeId?: number,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ): Promise<ApiResponseDto<LeaveRecordResponseDto[]>> {
+    // Check if user has employee_id in JWT token
+    if (!user || !user.employee_id) {
+      throw new UnauthorizedException(
+        'Employee ID not found in token. Only employees can access leave records.',
+      );
+    }
+
+    // Build filters
+    const filters: any = {};
+    if (status) filters.status = status;
+    if (leaveTypeId) filters.leave_type_id = leaveTypeId;
+    if (startDate) filters.start_date = new Date(startDate);
+    if (endDate) filters.end_date = new Date(endDate);
+    if (year) filters.year = year;
+
+    // Get leaves for this employee
+    const result = await this.getMyLeavesUseCase.execute(
+      user.employee_id,
+      filters,
+    );
+
+    // Transform each entity to DTO
+    const data = result.data!.map((entity) =>
+      plainToInstance(LeaveRecordResponseDto, entity),
+    );
+    return ApiResponseDto.success(
+      data,
+      result.message || 'Leave records retrieved successfully',
+    );
+  }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all leave records with filters',
-    description: 'Retrieve leave records filtered by employee, status, leave type, date range, or department'
+    description:
+      'Retrieve leave records filtered by employee, status, leave type, date range, or department',
   })
   @ApiQuery({ name: 'employee_id', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'],
+  })
   @ApiQuery({ name: 'leave_type_id', required: false, type: Number })
-  @ApiQuery({ name: 'start_date', required: false, type: String, example: '2025-01-01' })
-  @ApiQuery({ name: 'end_date', required: false, type: String, example: '2025-12-31' })
+  @ApiQuery({
+    name: 'start_date',
+    required: false,
+    type: String,
+    example: '2025-01-01',
+  })
+  @ApiQuery({
+    name: 'end_date',
+    required: false,
+    type: String,
+    example: '2025-12-31',
+  })
   @ApiQuery({ name: 'department_id', required: false, type: Number })
   @ApiResponse({ status: 200, type: ApiResponseDto })
-  async getAll(@Query() filters: GetLeaveRecordsQueryDto): Promise<ApiResponseDto<LeaveRecordResponseDto[]>> {
+  async getAll(
+    @Query() filters: GetLeaveRecordsQueryDto,
+  ): Promise<ApiResponseDto<LeaveRecordResponseDto[]>> {
     const result = await this.getLeaveRecordsUseCase.execute(filters);
     const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave records retrieved successfully');
