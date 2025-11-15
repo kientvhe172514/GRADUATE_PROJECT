@@ -77,30 +77,6 @@ export class VerifyController {
         description: 'Employee ID (if user has employee record)',
         schema: { type: 'string' },
       },
-      'X-Employee-Code': {
-        description: 'Employee code (if available)',
-        schema: { type: 'string' },
-      },
-      'X-Full-Name': {
-        description: 'Employee full name (if available)',
-        schema: { type: 'string' },
-      },
-      'X-Department-Id': {
-        description: 'Department ID (if available)',
-        schema: { type: 'string' },
-      },
-      'X-Department-Name': {
-        description: 'Department name (if available)',
-        schema: { type: 'string' },
-      },
-      'X-Position-Id': {
-        description: 'Position ID (if available)',
-        schema: { type: 'string' },
-      },
-      'X-Position-Name': {
-        description: 'Position name (if available)',
-        schema: { type: 'string' },
-      },
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired token' })
@@ -120,7 +96,7 @@ export class VerifyController {
       // Verify token manually
       const payload = await this.jwtService.verifyAsync(token);
 
-      // Set user info in response headers for Traefik to forward
+      // ✅ ONLY 5 HEADERS: X-User-Id, X-User-Email, X-User-Roles, X-User-Permissions, X-Employee-Id
       res.setHeader('X-User-Id', payload.sub.toString());
       res.setHeader('X-User-Email', payload.email);
       res.setHeader('X-User-Roles', payload.role || '');
@@ -131,27 +107,9 @@ export class VerifyController {
         : [];
       res.setHeader('X-User-Permissions', JSON.stringify(permissions));
 
-      // ✅ NEW: Add employee context headers (if available)
+      // Employee ID (if available)
       if (payload.employee_id) {
         res.setHeader('X-Employee-Id', payload.employee_id.toString());
-      }
-      if (payload.employee_code) {
-        res.setHeader('X-Employee-Code', payload.employee_code);
-      }
-      if (payload.full_name) {
-        res.setHeader('X-Full-Name', payload.full_name);
-      }
-      if (payload.department_id) {
-        res.setHeader('X-Department-Id', payload.department_id.toString());
-      }
-      if (payload.department_name) {
-        res.setHeader('X-Department-Name', payload.department_name);
-      }
-      if (payload.position_id) {
-        res.setHeader('X-Position-Id', payload.position_id.toString());
-      }
-      if (payload.position_name) {
-        res.setHeader('X-Position-Name', payload.position_name);
       }
 
       return { status: 'ok' };
@@ -184,12 +142,6 @@ export class VerifyController {
       'X-User-Permissions': { description: 'User permissions (JSON array)', schema: { type: 'string' } },
       'X-User-Roles': { description: 'User role code', schema: { type: 'string' } },
       'X-Employee-Id': { description: 'Employee ID (if user has employee record)', schema: { type: 'string' } },
-      'X-Employee-Code': { description: 'Employee code (if available)', schema: { type: 'string' } },
-      'X-Full-Name': { description: 'Employee full name (if available)', schema: { type: 'string' } },
-      'X-Department-Id': { description: 'Department ID (if available)', schema: { type: 'string' } },
-      'X-Department-Name': { description: 'Department name (if available)', schema: { type: 'string' } },
-      'X-Position-Id': { description: 'Position ID (if available)', schema: { type: 'string' } },
-      'X-Position-Name': { description: 'Position name (if available)', schema: { type: 'string' } },
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired token' })
@@ -208,6 +160,7 @@ export class VerifyController {
     try {
       const payload = await this.jwtService.verifyAsync(token);
 
+      // ✅ ONLY 5 HEADERS: X-User-Id, X-User-Email, X-User-Roles, X-User-Permissions, X-Employee-Id
       res.setHeader('X-User-Id', payload.sub.toString());
       res.setHeader('X-User-Email', payload.email);
       res.setHeader('X-User-Roles', payload.role || '');
@@ -217,27 +170,9 @@ export class VerifyController {
         : [];
       res.setHeader('X-User-Permissions', JSON.stringify(permissions));
 
-      // ✅ NEW: Add employee context headers (if available)
+      // Employee ID (if available)
       if (payload.employee_id) {
         res.setHeader('X-Employee-Id', payload.employee_id.toString());
-      }
-      if (payload.employee_code) {
-        res.setHeader('X-Employee-Code', payload.employee_code);
-      }
-      if (payload.full_name) {
-        res.setHeader('X-Full-Name', payload.full_name);
-      }
-      if (payload.department_id) {
-        res.setHeader('X-Department-Id', payload.department_id.toString());
-      }
-      if (payload.department_name) {
-        res.setHeader('X-Department-Name', payload.department_name);
-      }
-      if (payload.position_id) {
-        res.setHeader('X-Position-Id', payload.position_id.toString());
-      }
-      if (payload.position_name) {
-        res.setHeader('X-Position-Name', payload.position_name);
       }
 
       return { status: 'ok' };

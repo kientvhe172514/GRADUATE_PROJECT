@@ -4,32 +4,11 @@ export interface JwtPayload {
   iat?: number;
   exp?: number;
   
-  // User identification
+  // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
   email: string;
   employee_id?: number;
-  employee_code?: string;
-  
-  // Role & Permissions
   role: string; // Primary role code
   permissions: string[]; // Array of permission codes
-  
-  // Context
-  department_id?: number;
-  department_name?: string;
-  position_id?: number;
-  position_name?: string;
-  full_name?: string;
-  
-  // Device tracking
-  device_id?: string;
-  session_id?: string;
-  
-  // Scope restrictions (for ABAC)
-  scope?: {
-    department_ids?: number[];
-    location_ids?: number[];
-    employee_ids?: number[];
-  };
 }
 
 export interface RefreshTokenPayload {

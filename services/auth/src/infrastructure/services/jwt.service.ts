@@ -17,16 +17,11 @@ export class JwtServiceImpl implements JwtServicePort {
   async generateAccessToken(account: Account): Promise<string> {
     const permissions =
       await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+    // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
     const payload = {
       sub: account.id,
       email: account.email,
-      employee_id: account.employee_id, // ✅ Add employee_id to JWT payload
-      employee_code: account.employee_code, // ✅ Add employee_code to JWT payload
-      full_name: account.full_name,
-      department_id: account.department_id,
-      department_name: account.department_name,
-      position_id: account.position_id,
-      position_name: account.position_name,
+      employee_id: account.employee_id,
       role: account.role || '',
       permissions: permissions,
     };
@@ -34,10 +29,11 @@ export class JwtServiceImpl implements JwtServicePort {
   }
 
   generateRefreshToken(account: Account): string {
+    // ✅ ONLY 4 FIELDS for refresh token: sub, email, employee_id, role
     const payload = {
       sub: account.id,
       email: account.email,
-      employee_id: account.employee_id, // ✅ Add for refresh token too
+      employee_id: account.employee_id,
       role: account.role || '',
     };
     return this.jwtService.sign(payload, { expiresIn: '7d' }); // 7 days
@@ -58,16 +54,11 @@ export class JwtServiceImpl implements JwtServicePort {
   async generateTokens(account: Account): Promise<LoginResponseDto> {
     const permissions =
       await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+    // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
     const payload = {
       sub: account.id,
       email: account.email,
-      employee_id: account.employee_id, // ✅ Add employee_id
-      employee_code: account.employee_code, // ✅ Add employee_code
-      full_name: account.full_name,
-      department_id: account.department_id,
-      department_name: account.department_name,
-      position_id: account.position_id,
-      position_name: account.position_name,
+      employee_id: account.employee_id,
       role: account.role || '',
       permissions: permissions,
     };
