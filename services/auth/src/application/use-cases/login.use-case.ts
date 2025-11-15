@@ -33,6 +33,7 @@ import {
   ActivityType,
   ActivityStatus,
 } from '../../domain/entities/device-activity-log.entity';
+import { AccountStatus } from '../../domain/value-objects/account-status.vo';
 
 @Injectable()
 export class LoginUseCase {
@@ -66,7 +67,30 @@ export class LoginUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if account is locked
+    // 🔥 CHECK ACCOUNT STATUS - Only ACTIVE accounts can login
+    if (account.status !== AccountStatus.ACTIVE) {
+      const statusMessages = {
+        [AccountStatus.INACTIVE]:
+          'Account is inactive. Please contact administrator.',
+        [AccountStatus.LOCKED]:
+          'Account has been locked. Please contact administrator.',
+        [AccountStatus.SUSPENDED]:
+          'Account has been suspended. Please contact administrator.',
+      };
+      const message =
+        statusMessages[account.status] ||
+        'Account is not active. Please contact administrator.';
+      await this.logFailedAttempt(
+        account.id!,
+        loginDto.email,
+        ipAddress,
+        userAgent,
+        `Account status: ${account.status}`,
+      );
+      throw new UnauthorizedException(message);
+    }
+
+    // Check if account is locked (temporary lock due to failed login attempts)
     if (account.locked_until && account.locked_until > new Date()) {
       await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Account locked');
       throw new UnauthorizedException('Account is temporarily locked due to too many failed login attempts');
