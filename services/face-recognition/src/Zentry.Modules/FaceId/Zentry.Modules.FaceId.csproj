@@ -10,7 +10,14 @@
 		<!-- 🔥 FIX: Ensure EF Core migrations are included in published output -->
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<PreserveCompilationContext>true</PreserveCompilationContext>
+		<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
     </PropertyGroup>
+
+    <!-- 🔥 CRITICAL: Explicitly include migration files as compiled resources -->
+    <ItemGroup>
+        <Compile Include="Migrations\**\*.cs" />
+        <EmbeddedResource Include="Migrations\**\*.cs" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
