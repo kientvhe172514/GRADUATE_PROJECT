@@ -14,7 +14,7 @@ export class GetLeaveTypesUseCase {
     let results;
     
     // Check if status filter is provided and valid
-    const hasStatusFilter = filters?.status !== undefined && filters?.status !== null && filters?.status !== '';
+    const hasStatusFilter = filters?.status !== undefined && filters?.status !== null && (filters?.status as string) !== '';
     const hasIsPaidFilter = filters?.is_paid !== undefined && filters?.is_paid !== null;
     
     if (hasStatusFilter && filters.status === LeaveTypeStatus.ACTIVE) {

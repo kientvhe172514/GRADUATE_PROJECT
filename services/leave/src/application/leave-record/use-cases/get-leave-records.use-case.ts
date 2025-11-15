@@ -21,7 +21,7 @@ export class GetLeaveRecordsUseCase {
       if (filters.employee_id !== undefined && filters.employee_id !== null) {
         results = results.filter(r => r.employee_id === filters.employee_id);
       }
-      if (filters.status !== undefined && filters.status !== null && filters.status !== '') {
+      if (filters.status !== undefined && filters.status !== null && (filters.status as string) !== '') {
         results = results.filter(r => r.status === filters.status);
       }
       if (filters.leave_type_id !== undefined && filters.leave_type_id !== null) {
@@ -39,7 +39,7 @@ export class GetLeaveRecordsUseCase {
     if (filters.employee_id !== undefined && filters.employee_id !== null) {
       queryFilters.employee_id = filters.employee_id;
     }
-    if (filters.status !== undefined && filters.status !== null && filters.status !== '') {
+    if (filters.status !== undefined && filters.status !== null && (filters.status as string) !== '') {
       queryFilters.status = filters.status;
     }
     if (filters.leave_type_id !== undefined && filters.leave_type_id !== null) {
