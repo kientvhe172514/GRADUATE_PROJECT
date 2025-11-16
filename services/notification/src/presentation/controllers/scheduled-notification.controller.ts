@@ -7,13 +7,13 @@ import {
   Post,
   Put,
   Query,
-  Req,
   ParseIntPipe,
   DefaultValuePipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { CreateScheduledNotificationUseCase } from '../../application/use-cases/create-scheduled-notification.use-case';
 import { UpdateScheduledNotificationUseCase } from '../../application/use-cases/update-scheduled-notification.use-case';
 import { CancelScheduledNotificationUseCase } from '../../application/use-cases/cancel-scheduled-notification.use-case';
@@ -67,10 +67,10 @@ export class ScheduledNotificationController {
     },
   })
   async createScheduledNotification(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: CreateScheduledNotificationDto,
   ): Promise<ApiResponseDto<ScheduledNotificationResponseDto>> {
-    const userId = req.user.sub;
+    const userId = user.sub;
     const scheduled = await this.createScheduledNotificationUseCase.execute(dto, userId);
     return ApiResponseDto.success(
       ScheduledNotificationResponseDto.fromEntity(scheduled),
@@ -123,12 +123,12 @@ export class ScheduledNotificationController {
     },
   })
   async getMyScheduledNotifications(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
     @Query('status') status?: string,
   ): Promise<ApiResponseDto<any>> {
-    const userId = req.user.sub;
+    const userId = user.sub;
     const result = await this.getScheduledNotificationsUseCase.execute(userId, {
       limit,
       offset,
@@ -176,11 +176,11 @@ export class ScheduledNotificationController {
     },
   })
   async updateScheduledNotification(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateScheduledNotificationDto,
   ): Promise<ApiResponseDto<ScheduledNotificationResponseDto>> {
-    const userId = req.user.sub;
+    const userId = user.sub;
     const scheduled = await this.updateScheduledNotificationUseCase.execute(id, dto, userId);
     return ApiResponseDto.success(
       ScheduledNotificationResponseDto.fromEntity(scheduled),
@@ -204,10 +204,10 @@ export class ScheduledNotificationController {
     },
   })
   async cancelScheduledNotification(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponseDto<null>> {
-    const userId = req.user.sub;
+    const userId = user.sub;
     await this.cancelScheduledNotificationUseCase.execute(id, userId);
     return ApiResponseDto.success(null, 'Scheduled notification cancelled successfully');
   }

@@ -3,11 +3,11 @@ import {
   Controller,
   Get,
   Put,
-  Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { UpdateNotificationPreferenceUseCase } from '../../application/use-cases/update-notification-preference.use-case';
 import { GetNotificationPreferencesUseCase } from '../../application/use-cases/get-notification-preferences.use-case';
 import { UpdateNotificationPreferenceDto } from '../../application/dtos/update-notification-preference.dto';
@@ -46,8 +46,8 @@ export class NotificationPreferenceController {
       },
     },
   })
-  async getPreferences(@Req() req: any): Promise<ApiResponseDto<any>> {
-    const userId = req.user.sub; // user.sub = userId
+  async getPreferences(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<any>> {
+    const userId = user.sub;
     const preferences = await this.getPreferencesUseCase.execute(userId);
 
     return ApiResponseDto.success(preferences, 'Notification preferences retrieved successfully');
@@ -79,10 +79,10 @@ export class NotificationPreferenceController {
   })
   async updatePreference(
     @Body() dto: UpdateNotificationPreferenceDto,
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<any>> {
     // Ensure user can only update their own preferences
-    dto.employeeId = req.user.sub; // user.sub = userId
+    dto.employeeId = user.sub;
 
     const preference = await this.updatePreferenceUseCase.execute(dto);
 

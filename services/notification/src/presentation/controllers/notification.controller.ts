@@ -7,14 +7,15 @@ import {
   Post,
   Put,
   Query,
-  Req,
   ParseIntPipe,
   DefaultValuePipe,
   ParseBoolPipe,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.use-case';
@@ -169,29 +170,21 @@ export class NotificationController {
     }
   })
   async getUserNotifications(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
     @Query('unreadOnly', new DefaultValuePipe(false), ParseBoolPipe)
     unreadOnly: boolean,
     @Query('channelFilter') channelFilter?: ChannelType,
   ): Promise<ApiResponseDto<any>> {
-    // Debug logging
-    console.log('📋 [GET Notifications] Request Headers:', {
-      'x-user-id': req.headers['x-user-id'],
-      'x-user-email': req.headers['x-user-email'],
-      'x-user-roles': req.headers['x-user-roles'],
-      authorization: req.headers['authorization']?.substring(0, 20) + '...',
-    });
-    console.log('📋 [GET Notifications] req.user:', req.user);
-    console.log('📋 [GET Notifications] channelFilter:', channelFilter);
-
-    // Check if user exists (user.sub is the userId from JWT)
-    if (!req.user || !req.user.sub) {
-      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    // Check if user exists (user.sub is the userId from JWT via API Gateway headers)
+    if (!user || !user.sub) {
+      throw new UnauthorizedException(
+        'User not authenticated - missing user info from API Gateway',
+      );
     }
 
-    const userId = req.user.sub; // From JWT token via Ingress headers (user.sub = userId)
+    const userId = user.sub; // From JWT token via API Gateway headers (user.sub = userId)
     console.log('📋 [GET Notifications] Fetching notifications for userId:', userId);
 
     const result = await this.getUserNotificationsUseCase.execute(userId, {
@@ -219,8 +212,11 @@ export class NotificationController {
       },
     },
   })
-  async markAsRead(@Param('id', ParseIntPipe) id: number, @Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.sub; // user.sub = userId
+  async markAsRead(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<null>> {
+    const userId = user.sub;
     await this.markAsReadUseCase.execute(id, userId);
 
     return ApiResponseDto.success(null, 'Notification marked as read');
@@ -240,8 +236,8 @@ export class NotificationController {
       },
     },
   })
-  async markAllAsRead(@Req() req: any): Promise<ApiResponseDto<null>> {
-    const userId = req.user.sub; // user.sub = userId
+  async markAllAsRead(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<null>> {
+    const userId = user.sub;
     await this.markAllAsReadUseCase.execute(userId);
 
     return ApiResponseDto.success(null, 'All notifications marked as read');
@@ -303,13 +299,15 @@ export class NotificationController {
     },
   })
   async getMyNotificationStatistics(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<NotificationStatisticsResponseDto>> {
-    if (!req.user || !req.user.sub) {
-      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    if (!user || !user.sub) {
+      throw new UnauthorizedException(
+        'User not authenticated - missing user info from API Gateway',
+      );
     }
 
-    const userId = req.user.sub;
+    const userId = user.sub;
     const statistics = await this.getMyNotificationStatisticsUseCase.execute(userId);
 
     return ApiResponseDto.success(statistics, 'Notification statistics retrieved successfully');
@@ -337,12 +335,14 @@ export class NotificationController {
       },
     },
   })
-  async getMyUnreadCount(@Req() req: any): Promise<ApiResponseDto<UnreadCountResponseDto>> {
-    if (!req.user || !req.user.sub) {
-      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+  async getMyUnreadCount(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<UnreadCountResponseDto>> {
+    if (!user || !user.sub) {
+      throw new UnauthorizedException(
+        'User not authenticated - missing user info from API Gateway',
+      );
     }
 
-    const userId = req.user.sub;
+    const userId = user.sub;
     const unreadCount = await this.getUnreadCountUseCase.execute(userId);
 
     return ApiResponseDto.success(unreadCount, 'Unread count retrieved successfully');
@@ -393,13 +393,15 @@ export class NotificationController {
   })
   async bulkMarkAsRead(
     @Body() dto: BulkMarkAsReadDto,
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<{ marked_count: number }>> {
-    if (!req.user || !req.user.sub) {
-      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    if (!user || !user.sub) {
+      throw new UnauthorizedException(
+        'User not authenticated - missing user info from API Gateway',
+      );
     }
 
-    const userId = req.user.sub;
+    const userId = user.sub;
     const result = await this.bulkMarkAsReadUseCase.execute(dto, userId);
 
     return ApiResponseDto.success(result, 'Notifications marked as read successfully');
@@ -423,13 +425,15 @@ export class NotificationController {
     },
   })
   async deleteMyReadNotifications(
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<{ deleted_count: number }>> {
-    if (!req.user || !req.user.sub) {
-      throw new Error('User not authenticated - missing X-User-Id header from Ingress');
+    if (!user || !user.sub) {
+      throw new UnauthorizedException(
+        'User not authenticated - missing user info from API Gateway',
+      );
     }
 
-    const userId = req.user.sub;
+    const userId = user.sub;
     const result = await this.deleteMyReadNotificationsUseCase.execute(userId);
 
     return ApiResponseDto.success(result, 'Read notifications deleted successfully');
