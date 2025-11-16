@@ -5,9 +5,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiBea
 import { CreateEmployeeUseCase } from '../../application/use-cases/create-employee.use-case';
 import { GetEmployeeDetailUseCase } from '../../application/use-cases/get-employee-detail.use-case';
 import { UpdateEmployeeUseCase } from '../../application/use-cases/update-employee.use-case';
-import { AssignRoleUseCase } from '../../application/use-cases/assign-role.use-case';
-import { AssignDepartmentDto } from '../../application/dto/assign-department.dto';
-import { AssignRoleDto } from '../../application/dto/assign-role.dto';
 import { GetEmployeesUseCase } from '../../application/use-cases/get-employees.use-case';
 import { TerminateEmployeeUseCase } from '../../application/use-cases/terminate-employee.use-case';
 import { GetOnboardingStepsUseCase } from '../../application/use-cases/get-onboarding-steps.use-case';
@@ -17,11 +14,10 @@ import { EmployeeDetailDto } from '../../application/dto/employee/employee-detai
 import { ListEmployeeDto } from '../../application/dto/employee/list-employee.dto';
 import { TerminateEmployeeDto } from '../../application/dto/employee/terminate-employee.dto';
 import { UpdateOnboardingStepDto } from '../../application/dto/onboarding/update-onboarding-step.dto';
-import { Employee } from '../../domain/entities/employee.entity';
 import { EmployeeOnboardingStep } from '../../domain/entities/employee-onboarding-step.entity';
 import { CreateEmployeeResponseDto } from '../../application/dto/employee/create-employee-response.dto';
 import { CreateEmployeeDto } from '../../application/dto/employee/create-employee.dto';
-import { ApiResponseDto, Permissions } from '@graduate-project/shared-common';
+import { ApiResponseDto, Permissions, CurrentUser, JwtPayload, ResponseStatus } from '@graduate-project/shared-common';
 import { AssignEmployeeToDepartmentUseCase } from '../../application/use-cases/assign-employee-to-department.use-case';
 import { AssignEmployeeToPositionUseCase } from '../../application/use-cases/assign-employee-to-position.use-case';
 import { RemoveEmployeeFromDepartmentUseCase } from '../../application/use-cases/remove-employee-from-department.use-case';
@@ -71,10 +67,16 @@ export class EmployeeController {
   @Permissions('employee.read')
   @ApiOperation({ summary: 'Get employee detail by ID' })
   @ApiParam({ name: 'id', type: 'number', description: 'Employee ID' })
-  @ApiResponse({ status: 200, type: EmployeeDetailDto })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
-  async getDetail(@Param('id', ParseIntPipe) id: number): Promise<EmployeeDetailDto> {
-    return this.getEmployeeDetailUseCase.execute(id);
+  async getDetail(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<EmployeeDetailDto>> {
+    const data = await this.getEmployeeDetailUseCase.execute(id);
+    return new ApiResponseDto(
+      ResponseStatus.SUCCESS,
+      200,
+      'Employee retrieved successfully',
+      data
+    );
   }
 
   @Put(':id')
@@ -83,16 +85,22 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Update employee information' })
   @ApiParam({ name: 'id', type: 'number', description: 'Employee ID' })
   @ApiBody({ type: UpdateEmployeeDto })
-  @ApiResponse({ status: 200, type: Employee })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateEmployeeDto: UpdateEmployeeDto,
-  ): Promise<Employee> {
-    // TODO: Get updatedBy from authentication context
-    const updatedBy = undefined; // Replace with actual user ID from JWT
-    return this.updateEmployeeUseCase.execute(id, updateEmployeeDto, updatedBy);
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+    const employee = await this.updateEmployeeUseCase.execute(id, updateEmployeeDto, user.sub);
+    const employeeDetail = new EmployeeDetailDto(employee);
+    return new ApiResponseDto(
+      ResponseStatus.SUCCESS,
+      200,
+      'Employee updated successfully',
+      employeeDetail
+    );
   }
 
   @Get()
@@ -112,14 +120,15 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Terminate employee' })
   @ApiParam({ name: 'id', type: 'number', description: 'Employee ID' })
   @ApiBody({ type: TerminateEmployeeDto })
-  @ApiResponse({ status: 200, type: Employee })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
   async terminate(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: TerminateEmployeeDto,
-  ): Promise<ApiResponseDto<Employee>> {
+  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
     const employee = await this.terminateEmployeeUseCase.execute(id, dto);
-    return ApiResponseDto.success(employee, 'Employee terminated successfully');
+    const employeeDetail = new EmployeeDetailDto(employee);
+    return ApiResponseDto.success(employeeDetail, 'Employee terminated successfully');
   }
 
   @Get(':employeeId/onboarding-steps')
@@ -127,7 +136,8 @@ export class EmployeeController {
   @Permissions('employee.read')
   @ApiOperation({ summary: 'Get employee onboarding steps' })
   @ApiParam({ name: 'employeeId', type: 'number', description: 'Employee ID' })
-  @ApiResponse({ status: 200, type: [EmployeeOnboardingStep] })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Employee not found' })
   async getOnboardingSteps(
     @Param('employeeId', ParseIntPipe) employeeId: number,
   ): Promise<ApiResponseDto<EmployeeOnboardingStep[]>> {
@@ -142,7 +152,7 @@ export class EmployeeController {
   @ApiParam({ name: 'employeeId', type: 'number', description: 'Employee ID' })
   @ApiParam({ name: 'stepName', type: 'string', description: 'Onboarding Step Name' })
   @ApiBody({ type: UpdateOnboardingStepDto })
-  @ApiResponse({ status: 200, type: EmployeeOnboardingStep })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee or step not found' })
   async updateOnboardingStep(
     @Param('employeeId', ParseIntPipe) employeeId: number,

@@ -2,7 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_BALANCE_REPOSITORY } from '../../tokens';
+import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
+import { EventPublisherPort } from '../../ports/event.publisher.port';
+import { LEAVE_RECORD_REPOSITORY, LEAVE_BALANCE_REPOSITORY, LEAVE_TYPE_REPOSITORY, EVENT_PUBLISHER } from '../../tokens';
 import { RejectLeaveDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 
 @Injectable()
@@ -12,6 +14,10 @@ export class RejectLeaveUseCase {
     private readonly leaveRecordRepository: ILeaveRecordRepository,
     @Inject(LEAVE_BALANCE_REPOSITORY)
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
+    @Inject(LEAVE_TYPE_REPOSITORY)
+    private readonly leaveTypeRepository: ILeaveTypeRepository,
+    @Inject(EVENT_PUBLISHER)
+    private readonly eventPublisher: EventPublisherPort,
   ) {}
 
   async execute(leaveRecordId: number, dto: RejectLeaveDto): Promise<LeaveRecordResponseDto> {
@@ -68,6 +74,31 @@ export class RejectLeaveUseCase {
       approved_by: dto.rejected_by,
       approved_at: new Date(),
       rejection_reason: dto.rejection_reason,
+    });
+
+    // 6. Get leave type for notification
+    const leaveType = await this.leaveTypeRepository.findById(updated.leave_type_id);
+
+    // 7. Publish event to notify employee
+    this.eventPublisher.publish('leave.rejected', {
+      leaveId: updated.id,
+      employeeId: updated.employee_id,
+      employeeCode: updated.employee_code,
+      departmentId: updated.department_id,
+      leaveTypeId: leaveType?.id,
+      leaveType: leaveType?.leave_type_name || 'Leave',
+      leaveTypeCode: leaveType?.leave_type_code,
+      startDate: updated.start_date instanceof Date
+        ? updated.start_date.toISOString().split('T')[0]
+        : new Date(updated.start_date).toISOString().split('T')[0],
+      endDate: updated.end_date instanceof Date
+        ? updated.end_date.toISOString().split('T')[0]
+        : new Date(updated.end_date).toISOString().split('T')[0],
+      totalLeaveDays: updated.total_leave_days,
+      reason: dto.rejection_reason,
+      rejectedBy: dto.rejected_by,
+      rejectedAt: updated.approved_at?.toISOString(),
+      recipientType: 'EMPLOYEE', // Notify the employee who requested the leave
     });
 
     return updated as LeaveRecordResponseDto;
