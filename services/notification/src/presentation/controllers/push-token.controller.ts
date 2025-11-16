@@ -3,12 +3,12 @@ import {
   Controller,
   Post,
   Delete,
-  Req,
   HttpCode,
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { RegisterPushTokenUseCase } from '../../application/use-cases/register-push-token.use-case';
 import { UnregisterPushTokenUseCase } from '../../application/use-cases/unregister-push-token.use-case';
 import {
@@ -125,21 +125,26 @@ export class PushTokenController {
       },
     },
   })
-  async registerToken(@Body() dto: RegisterPushTokenDto, @Req() req: any): Promise<ApiResponseDto<any>> {
-    // ✅ Extract employee_id from JWT token (set by auth middleware)
-    // JWT payload: { sub: account_id, email, employee_id?, role, permissions }
-    let employeeId = req.user?.employee_id;
-    
+  async registerToken(
+    @Body() dto: RegisterPushTokenDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<any>> {
+    // ✅ Extract employee_id from JWT token (set by ExtractUserFromHeadersMiddleware)
+    // Headers from API Gateway: X-User-Id, X-User-Email, X-Employee-Id, X-User-Roles, X-User-Permissions
+    let employeeId = user?.employee_id;
+
     // ⚠️ FALLBACK: If account doesn't have employee_id yet, use account_id (sub)
     // This happens when account is created but not linked to employee yet
-    if (!employeeId && req.user?.sub) {
-      console.warn(`⚠️ Account ${req.user.sub} (${req.user.email}) has no employee_id. Using account_id as fallback.`);
-      employeeId = req.user.sub; // Fallback to account_id
+    if (!employeeId && user?.sub) {
+      console.warn(
+        `⚠️ Account ${user.sub} (${user.email}) has no employee_id. Using account_id as fallback.`,
+      );
+      employeeId = user.sub; // Fallback to account_id
     }
-    
+
     if (!employeeId) {
       throw new BadRequestException(
-        'Employee ID not found in token. Account may not be linked to an employee. Please contact administrator.'
+        'Employee ID not found in token. Account may not be linked to an employee. Please contact administrator.',
       );
     }
 
@@ -233,26 +238,24 @@ export class PushTokenController {
   })
   async unregisterToken(
     @Body() dto: UnregisterPushTokenDto,
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<null>> {
     // ✅ Validate at least one field provided
     if (!dto.deviceId && !dto.token) {
       throw new BadRequestException('At least one of deviceId or token must be provided');
     }
 
-    // ✅ Extract employee_id from JWT token
-    let employeeId = req.user?.employee_id;
-    
+    // ✅ Extract employee_id from JWT token (via headers from API Gateway)
+    let employeeId = user?.employee_id;
+
     // ⚠️ FALLBACK: Use account_id if employee_id not set
-    if (!employeeId && req.user?.sub) {
-      console.warn(`⚠️ Account ${req.user.sub} has no employee_id. Using account_id as fallback.`);
-      employeeId = req.user.sub;
+    if (!employeeId && user?.sub) {
+      console.warn(`⚠️ Account ${user.sub} has no employee_id. Using account_id as fallback.`);
+      employeeId = user.sub;
     }
-    
+
     if (!employeeId) {
-      throw new BadRequestException(
-        'Employee ID not found in token. Please login again.'
-      );
+      throw new BadRequestException('Employee ID not found in token. Please login again.');
     }
 
     // ✅ Execute use case

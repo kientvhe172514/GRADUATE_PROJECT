@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ExtractUserFromHeadersMiddleware } from '@graduate-project/shared-common';
 
 // Schemas
 import { NotificationSchema } from '../infrastructure/persistence/typeorm/schemas/notification.schema';
@@ -102,16 +103,22 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
       {
         name: 'AUTH_SERVICE',
         imports: [ConfigModule],
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.RMQ,
-          options: {
-            urls: [configService.get<string>('RABBITMQ_URL')],
-            queue: 'auth_queue',
-            queueOptions: {
-              durable: true,
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.get<string>('RABBITMQ_URL');
+          if (!rabbitmqUrl) {
+            throw new Error('RABBITMQ_URL is not defined in environment');
+          }
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: 'auth_queue',
+              queueOptions: {
+                durable: true,
+              },
             },
-          },
-        }),
+          };
+        },
         inject: [ConfigService],
       },
     ]),
@@ -242,4 +249,9 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
     SendNotificationFromTemplateUseCase,
   ],
 })
-export class NotificationModule {}
+export class NotificationModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply middleware to extract user info from headers set by API Gateway
+    consumer.apply(ExtractUserFromHeadersMiddleware).forRoutes('*');
+  }
+}
