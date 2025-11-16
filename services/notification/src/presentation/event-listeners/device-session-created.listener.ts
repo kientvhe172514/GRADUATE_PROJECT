@@ -44,12 +44,13 @@ export class DeviceSessionCreatedListener {
         platform = Platform.ANDROID;
       }
 
-      // Register/update FCM token
+      // ✅ Register/update FCM token
+      // NOTE: deviceSessionId will be auto-synced by use case, no need to pass it
       await this.registerPushTokenUseCase.execute(data.employeeId, {
         deviceId: data.deviceId,
-        deviceSessionId: data.deviceSessionId,
         token: data.fcmToken,
         platform: platform,
+        // ❌ REMOVED: deviceSessionId - Use case will auto-sync from Auth Service
       });
 
       this.logger.log(
