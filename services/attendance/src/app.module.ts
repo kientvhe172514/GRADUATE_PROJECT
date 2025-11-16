@@ -7,6 +7,7 @@ import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
 import { EmployeeShiftModule } from './application/employee-shift/employee-shift.module';
 import { ViolationModule } from './application/violation/violation.module';
+import { PresenceVerificationModule } from './application/presence-verification/presence-verification.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { HealthController } from './health.controller';
@@ -20,7 +21,7 @@ import { HealthController } from './health.controller';
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         entities: [__dirname + '/infrastructure/persistence/typeorm/**/*.schema{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize:true,
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
@@ -89,6 +90,7 @@ import { HealthController } from './health.controller';
     AttendanceCheckModule,
     EmployeeShiftModule,
     ViolationModule,
+    PresenceVerificationModule,
   ],
   controllers: [HealthController, EmployeeEventListener, LeaveEventListener],
 })

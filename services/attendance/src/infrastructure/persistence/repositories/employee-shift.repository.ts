@@ -112,6 +112,13 @@ export class EmployeeShiftRepository {
     });
   }
 
+  async findByStatus(status: string): Promise<EmployeeShiftSchema[]> {
+    return this.repository.find({
+      where: { status },
+      order: { shift_date: 'ASC' },
+    });
+  }
+
   async findPendingPresenceVerification(): Promise<EmployeeShiftSchema[]> {
     return this.repository.find({
       where: {

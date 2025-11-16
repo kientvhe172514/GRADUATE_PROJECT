@@ -48,8 +48,8 @@ export class PushTokenController {
     },
   })
   async registerToken(@Body() dto: RegisterPushTokenDto, @Req() req: any): Promise<ApiResponseDto<any>> {
-    const userId = req.user.sub; // user.sub = userId
-    const token = await this.registerTokenUseCase.execute(userId, dto);
+    const employeeId = req.user.employee_id; // Extract employee_id from JWT token
+    const token = await this.registerTokenUseCase.execute(employeeId, dto);
 
     return ApiResponseDto.success(token, 'Push token registered successfully', 201);
   }
@@ -72,8 +72,8 @@ export class PushTokenController {
     @Body() dto: UnregisterPushTokenDto,
     @Req() req: any,
   ): Promise<ApiResponseDto<null>> {
-    const userId = req.user.sub; // user.sub = userId
-    await this.unregisterTokenUseCase.execute(userId, dto);
+    const employeeId = req.user.employee_id; // Extract employee_id from JWT token
+    await this.unregisterTokenUseCase.execute(employeeId, dto);
 
     return ApiResponseDto.success(null, 'Push token unregistered successfully');
   }
