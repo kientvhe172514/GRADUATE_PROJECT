@@ -11,7 +11,7 @@ export class RabbitMQEventPublisher implements EventPublisherPort {
 
   publish(pattern: string, data: any): void {
     // Route auth events to notification service
-    if (pattern.startsWith('auth.')) {
+    if (pattern.startsWith('auth.') || pattern === 'device_session_created') {
       this.notificationClient.emit(pattern, data);
       return;
     }
