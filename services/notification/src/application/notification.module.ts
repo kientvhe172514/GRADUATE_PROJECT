@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 // Schemas
 import { NotificationSchema } from '../infrastructure/persistence/typeorm/schemas/notification.schema';
@@ -96,6 +97,23 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
       NotificationTemplateSchema,
       PushTokenSchema,
       ScheduledNotificationSchema,
+    ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'AUTH_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL')],
+            queue: 'auth_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [
