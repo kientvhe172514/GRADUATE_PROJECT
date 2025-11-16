@@ -3,7 +3,8 @@ import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_TYPE_REPOSITORY, LEAVE_BALANCE_REPOSITORY } from '../../tokens';
+import { EventPublisherPort } from '../../ports/event.publisher.port';
+import { LEAVE_RECORD_REPOSITORY, LEAVE_TYPE_REPOSITORY, LEAVE_BALANCE_REPOSITORY, EVENT_PUBLISHER } from '../../tokens';
 import { CreateLeaveRequestDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 import { LeaveRecordEntity } from '../../../domain/entities/leave-record.entity';
 
@@ -16,6 +17,8 @@ export class CreateLeaveRequestUseCase {
     private readonly leaveTypeRepository: ILeaveTypeRepository,
     @Inject(LEAVE_BALANCE_REPOSITORY)
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
+    @Inject(EVENT_PUBLISHER)
+    private readonly eventPublisher: EventPublisherPort,
   ) {}
 
   async execute(dto: CreateLeaveRequestDto): Promise<LeaveRecordResponseDto> {
@@ -113,6 +116,26 @@ export class CreateLeaveRequestUseCase {
     });
 
     const created = await this.leaveRecordRepository.create(leaveRecord);
+
+    // 7. Publish event to notify managers (HR_MANAGER or DEPARTMENT_MANAGER)
+    this.eventPublisher.publish('leave.requested', {
+      leaveId: created.id,
+      employeeId: created.employee_id,
+      employeeCode: created.employee_code,
+      departmentId: created.department_id,
+      leaveTypeId: leaveType.id,
+      leaveType: leaveType.leave_type_name,
+      leaveTypeCode: leaveType.leave_type_code,
+      startDate: created.start_date.toISOString().split('T')[0],
+      endDate: created.end_date.toISOString().split('T')[0],
+      totalLeaveDays: created.total_leave_days,
+      reason: created.reason,
+      status: created.status,
+      requestedAt: created.requested_at.toISOString(),
+      // Additional info for notification service to find managers
+      recipientType: 'MANAGER', // Notify HR_MANAGER or DEPARTMENT_MANAGER
+    });
+
     return created as LeaveRecordResponseDto;
   }
 

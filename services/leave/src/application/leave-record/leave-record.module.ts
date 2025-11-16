@@ -6,7 +6,8 @@ import { LeaveBalanceSchema } from '../../infrastructure/persistence/typeorm/lea
 import { PostgresLeaveRecordRepository } from '../../infrastructure/persistence/repositories/postgres-leave-record.repository';
 import { PostgresLeaveTypeRepository } from '../../infrastructure/persistence/repositories/postgres-leave-type.repository';
 import { PostgresLeaveBalanceRepository } from '../../infrastructure/persistence/repositories/postgres-leave-balance.repository';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_TYPE_REPOSITORY, LEAVE_BALANCE_REPOSITORY } from '../tokens';
+import { LEAVE_RECORD_REPOSITORY, LEAVE_TYPE_REPOSITORY, LEAVE_BALANCE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
+import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event.publisher';
 import { LeaveRecordController } from '../../presentation/controllers/leave-record.controller';
 import { CreateLeaveRequestUseCase } from './use-cases/create-leave-request.use-case';
 import { ApproveLeaveUseCase } from './use-cases/approve-leave.use-case';
@@ -38,6 +39,10 @@ import { GetMyLeavesUseCase } from './use-cases/get-my-leaves.use-case';
     {
       provide: LEAVE_BALANCE_REPOSITORY,
       useClass: PostgresLeaveBalanceRepository,
+    },
+    {
+      provide: EVENT_PUBLISHER,
+      useClass: RabbitMQEventPublisher,
     },
     CreateLeaveRequestUseCase,
     ApproveLeaveUseCase,

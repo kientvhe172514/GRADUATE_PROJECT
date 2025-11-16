@@ -65,6 +65,9 @@ import { MockEmailService } from '../infrastructure/external-services/mock-email
 import { MockSmsService } from '../infrastructure/external-services/mock-sms.service';
 import { MockPushService } from '../infrastructure/external-services/mock-push.service';
 
+// External Service Clients
+import { EmployeeServiceClient } from '../infrastructure/external-services/employee-service.client';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -174,6 +177,9 @@ import { MockPushService } from '../infrastructure/external-services/mock-push.s
       provide: EVENT_PUBLISHER,
       useClass: RabbitMQEventPublisher,
     },
+
+    // External Service Clients
+    EmployeeServiceClient,
   ],
   exports: [
     SendNotificationUseCase,

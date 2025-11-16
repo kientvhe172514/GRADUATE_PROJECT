@@ -30,6 +30,10 @@ export class GetEmployeesUseCase {
       if (dto.department_id !== undefined && dto.department_id !== null) {
         searchCriteria.department_id = dto.department_id;
       }
+
+      if (dto.position_id !== undefined && dto.position_id !== null) {
+        searchCriteria.position_id = dto.position_id;
+      }
       
       if (dto.status !== undefined && dto.status !== null && dto.status !== '') {
         searchCriteria.status = dto.status;

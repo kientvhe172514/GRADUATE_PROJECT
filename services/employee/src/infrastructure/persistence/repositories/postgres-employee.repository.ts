@@ -42,8 +42,46 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
       throw new Error('Employee not found');
     }
 
-    const updateEntity = EmployeeMapper.toPersistence(employee as Employee);
-    await this.repository.update(id, { ...updateEntity, updated_at: new Date() });
+    // Build update object with only fields that are explicitly provided (not undefined)
+    const updateFields: any = {
+      updated_at: new Date(),
+    };
+
+    // Only include fields that are explicitly set (not undefined)
+    if (employee.first_name !== undefined) updateFields.first_name = employee.first_name;
+    if (employee.last_name !== undefined) updateFields.last_name = employee.last_name;
+    if (employee.full_name !== undefined) updateFields.full_name = employee.full_name;
+    if (employee.date_of_birth !== undefined) updateFields.date_of_birth = employee.date_of_birth;
+    if (employee.gender !== undefined) updateFields.gender = employee.gender;
+    if (employee.national_id !== undefined) updateFields.national_id = employee.national_id;
+    if (employee.email !== undefined) updateFields.email = employee.email;
+    if (employee.phone_number !== undefined) updateFields.phone_number = employee.phone_number;
+    if (employee.personal_email !== undefined) updateFields.personal_email = employee.personal_email;
+    if (employee.address !== undefined) updateFields.address = employee.address;
+    if (employee.department_id !== undefined) updateFields.department_id = employee.department_id;
+    if (employee.position_id !== undefined) updateFields.position_id = employee.position_id;
+    if (employee.manager_id !== undefined) updateFields.manager_id = employee.manager_id;
+    if (employee.hire_date !== undefined) updateFields.hire_date = employee.hire_date;
+    if (employee.employment_type !== undefined) updateFields.employment_type = employee.employment_type;
+    if (employee.status !== undefined) updateFields.status = employee.status;
+    if (employee.termination_date !== undefined) updateFields.termination_date = employee.termination_date;
+    if (employee.termination_reason !== undefined) updateFields.termination_reason = employee.termination_reason;
+    if (employee.emergency_contact !== undefined) updateFields.emergency_contact = employee.emergency_contact;
+    if (employee.onboarding_status !== undefined) updateFields.onboarding_status = employee.onboarding_status;
+    if (employee.onboarding_completed_at !== undefined) updateFields.onboarding_completed_at = employee.onboarding_completed_at;
+    if (employee.profile_completion_percentage !== undefined) updateFields.profile_completion_percentage = employee.profile_completion_percentage;
+    if (employee.external_refs !== undefined) updateFields.external_refs = employee.external_refs;
+    if (employee.updated_by !== undefined) updateFields.updated_by = employee.updated_by;
+
+    // Handle null assignment for nullable fields
+    if ('department_id' in employee && employee.department_id === undefined) {
+      updateFields.department_id = null;
+    }
+    if ('position_id' in employee && employee.position_id === undefined) {
+      updateFields.position_id = null;
+    }
+
+    await this.repository.update(id, updateFields);
     
     const updatedEntity = await this.repository.findOne({ where: { id } });
     return EmployeeMapper.toDomain(updatedEntity!);
@@ -102,6 +140,13 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
     if (criteria.department_id !== undefined && criteria.department_id !== null) {
       whereConditions.push(`e.department_id = $${paramIndex}`);
       whereParams.push(criteria.department_id);
+      paramIndex++;
+    }
+
+    // Filter by position_id - check for truthy value
+    if (criteria.position_id !== undefined && criteria.position_id !== null) {
+      whereConditions.push(`e.position_id = $${paramIndex}`);
+      whereParams.push(criteria.position_id);
       paramIndex++;
     }
 

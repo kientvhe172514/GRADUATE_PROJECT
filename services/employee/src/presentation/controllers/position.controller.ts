@@ -9,7 +9,7 @@ import { CreatePositionDto } from '../../application/dto/create-position.dto';
 import { UpdatePositionDto } from '../../application/dto/update-position.dto';
 import { PositionResponseDto } from '../../application/dto/position-response.dto';
 import { PositionListResponseDto } from '../../application/dto/position-list-response.dto';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ApiResponseDto, Permissions } from '@graduate-project/shared-common';
 import { ListPositionDto } from '../../application/dto/position/list-position.dto';
 
 @ApiTags('positions')
@@ -25,6 +25,7 @@ export class PositionController {
   ) {}
 
   @Get()
+  @Permissions('position.read')
   @ApiOperation({ summary: 'Lấy danh sách các chức vụ với filter và pagination' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách chức vụ thành công', type: PositionListResponseDto })
   async getAllPositions(
@@ -34,6 +35,7 @@ export class PositionController {
   }
 
   @Get(':id')
+  @Permissions('position.read')
   @ApiOperation({ summary: 'Lấy thông tin chi tiết của một chức vụ' })
   @ApiParam({ name: 'id', type: Number, description: 'ID chức vụ' })
   @ApiResponse({ status: 200, description: 'Lấy thông tin chức vụ thành công', type: PositionResponseDto })
@@ -61,6 +63,7 @@ export class PositionController {
   }
 
   @Post()
+  @Permissions('position.create')
   @ApiOperation({ summary: '(Admin) Tạo một chức vụ mới' })
   @ApiResponse({ status: 201, description: 'Tạo chức vụ thành công', type: PositionResponseDto })
   @ApiResponse({ status: 400, description: 'Dữ liệu đầu vào không hợp lệ' })
@@ -88,6 +91,7 @@ export class PositionController {
   }
 
   @Put(':id')
+  @Permissions('position.update')
   @ApiOperation({ summary: '(Admin) Cập nhật thông tin một chức vụ' })
   @ApiParam({ name: 'id', type: Number, description: 'ID chức vụ' })
   @ApiResponse({ status: 200, description: 'Cập nhật chức vụ thành công', type: PositionResponseDto })
@@ -120,6 +124,7 @@ export class PositionController {
   }
 
   @Delete(':id')
+  @Permissions('position.delete')
   @ApiOperation({ summary: 'Xóa một chức vụ' })
   @ApiParam({ name: 'id', type: Number, description: 'ID chức vụ' })
   @ApiResponse({ status: 200, description: 'Xóa chức vụ thành công' })

@@ -36,6 +36,14 @@ import { PostgresDepartmentRepository } from '../infrastructure/persistence/repo
 import { PostgresOnboardingStepRepository } from '../infrastructure/persistence/repositories/postgres-onboarding-step.repository';
 import { DeleteDepartmentUseCase } from './use-cases/delete-department.use-case';
 import { GetDepartmentsUseCase } from './use-cases/get-departments.use-case';
+import { AssignEmployeeToDepartmentUseCase } from './use-cases/assign-employee-to-department.use-case';
+import { AssignEmployeeToPositionUseCase } from './use-cases/assign-employee-to-position.use-case';
+import { RemoveEmployeeFromDepartmentUseCase } from './use-cases/remove-employee-from-department.use-case';
+import { RemoveEmployeeFromPositionUseCase } from './use-cases/remove-employee-from-position.use-case';
+import { TransferEmployeeBetweenDepartmentsUseCase } from './use-cases/transfer-employee-between-departments.use-case';
+import { ValidatePositionBelongsToDepartmentUseCase } from './use-cases/validate-position-belongs-to-department.use-case';
+import { GetDepartmentStatisticsUseCase } from './use-cases/get-department-statistics.use-case';
+import { GetEmployeeAssignmentDetailsUseCase } from './use-cases/get-employee-assignment-details.use-case';
 
 @Module({
   imports: [
@@ -79,6 +87,14 @@ import { GetDepartmentsUseCase } from './use-cases/get-departments.use-case';
     UpdatePositionUseCase,
     DeletePositionUseCase,
     AccountCreatedHandler,
+    AssignEmployeeToDepartmentUseCase,
+    AssignEmployeeToPositionUseCase,
+    RemoveEmployeeFromDepartmentUseCase,
+    RemoveEmployeeFromPositionUseCase,
+    TransferEmployeeBetweenDepartmentsUseCase,
+    ValidatePositionBelongsToDepartmentUseCase,
+    GetDepartmentStatisticsUseCase,
+    GetEmployeeAssignmentDetailsUseCase,
 
     // Infrastructure
     RabbitMQEventSubscriber,

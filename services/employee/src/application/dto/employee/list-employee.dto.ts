@@ -24,6 +24,12 @@ export class ListEmployeeDto {
   @IsNumber()
   department_id?: number;
 
+  @ApiProperty({ required: false, type: Number, description: 'Filter by position ID' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  position_id?: number;
+
   @ApiProperty({ enum: ['ACTIVE', 'INACTIVE', 'TERMINATED'], required: false, description: 'Filter by status' })
   @IsOptional()
   @IsEnum(['ACTIVE', 'INACTIVE', 'TERMINATED'])

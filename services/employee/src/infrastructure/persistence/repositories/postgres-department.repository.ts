@@ -115,4 +115,54 @@ export class PostgresDepartmentRepository implements DepartmentRepositoryPort {
   async delete(id: number): Promise<void> {
     await this.repository.delete(id);
   }
+
+  async getEmployeeCountByDepartment(departmentId: number): Promise<number> {
+    const result = await this.repository.query(
+      `SELECT COUNT(*) as total FROM employees WHERE department_id = $1`,
+      [departmentId],
+    );
+    return parseInt(result[0]?.total || '0', 10);
+  }
+
+  async getEmployeeCountByStatus(departmentId: number): Promise<{ status: string; count: number }[]> {
+    const result = await this.repository.query(
+      `SELECT status, COUNT(*) as count 
+       FROM employees 
+       WHERE department_id = $1 
+       GROUP BY status`,
+      [departmentId],
+    );
+    return result.map((row: any) => ({
+      status: row.status,
+      count: parseInt(row.count, 10),
+    }));
+  }
+
+  async getEmployeeCountByPosition(departmentId: number): Promise<{ position_id: number; position_name: string; count: number }[]> {
+    const result = await this.repository.query(
+      `SELECT 
+        e.position_id,
+        p.position_name,
+        COUNT(*) as count
+       FROM employees e
+       LEFT JOIN positions p ON p.id = e.position_id
+       WHERE e.department_id = $1 AND e.position_id IS NOT NULL
+       GROUP BY e.position_id, p.position_name
+       ORDER BY count DESC`,
+      [departmentId],
+    );
+    return result.map((row: any) => ({
+      position_id: row.position_id,
+      position_name: row.position_name || 'Unknown',
+      count: parseInt(row.count, 10),
+    }));
+  }
+
+  async getSubDepartmentsCount(departmentId: number): Promise<number> {
+    const result = await this.repository.query(
+      `SELECT COUNT(*) as total FROM departments WHERE parent_department_id = $1`,
+      [departmentId],
+    );
+    return parseInt(result[0]?.total || '0', 10);
+  }
 }
