@@ -14,6 +14,8 @@ import { InitializeEmployeeBalancesUseCase } from './use-cases/initialize-employ
 import { AdjustLeaveBalanceUseCase } from './use-cases/adjust-leave-balance.use-case';
 import { CarryOverUseCase } from './use-cases/carry-over.use-case';
 import { ListExpiringCarryOverUseCase } from './use-cases/list-expiring-carry-over.use-case';
+import { GetMyTransactionsUseCase } from './use-cases/get-my-transactions.use-case';
+import { GetMyStatisticsUseCase } from './use-cases/get-my-statistics.use-case';
 
 @Module({
   imports: [TypeOrmModule.forFeature([LeaveBalanceSchema, LeaveBalanceTransactionSchema, LeaveTypeSchema])],
@@ -28,6 +30,8 @@ import { ListExpiringCarryOverUseCase } from './use-cases/list-expiring-carry-ov
     AdjustLeaveBalanceUseCase,
     CarryOverUseCase,
     ListExpiringCarryOverUseCase,
+    GetMyTransactionsUseCase,
+    GetMyStatisticsUseCase,
   ],
   exports: [LEAVE_BALANCE_REPOSITORY, LEAVE_BALANCE_TRANSACTION_REPOSITORY, LEAVE_TYPE_REPOSITORY],
 })

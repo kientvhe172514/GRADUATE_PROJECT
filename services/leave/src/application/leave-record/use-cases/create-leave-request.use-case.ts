@@ -3,8 +3,15 @@ import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
+import { ILeaveBalanceTransactionRepository } from '../../ports/leave-balance-transaction.repository.interface';
 import { EventPublisherPort } from '../../ports/event.publisher.port';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_TYPE_REPOSITORY, LEAVE_BALANCE_REPOSITORY, EVENT_PUBLISHER } from '../../tokens';
+import {
+  LEAVE_RECORD_REPOSITORY,
+  LEAVE_TYPE_REPOSITORY,
+  LEAVE_BALANCE_REPOSITORY,
+  LEAVE_BALANCE_TRANSACTION_REPOSITORY,
+  EVENT_PUBLISHER,
+} from '../../tokens';
 import { CreateLeaveRequestDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 import { LeaveRecordEntity } from '../../../domain/entities/leave-record.entity';
 
@@ -17,6 +24,8 @@ export class CreateLeaveRequestUseCase {
     private readonly leaveTypeRepository: ILeaveTypeRepository,
     @Inject(LEAVE_BALANCE_REPOSITORY)
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
+    @Inject(LEAVE_BALANCE_TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ILeaveBalanceTransactionRepository,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: EventPublisherPort,
   ) {}
@@ -92,6 +101,7 @@ export class CreateLeaveRequestUseCase {
       }
 
       // Update pending_days in balance
+      const balanceBefore = remainingDays;
       const newPendingDays = Number(balance.pending_days) + totalLeaveDays;
       const newRemainingDays = remainingDays - totalLeaveDays;
       
@@ -99,6 +109,16 @@ export class CreateLeaveRequestUseCase {
         pending_days: newPendingDays,
         remaining_days: newRemainingDays,
       });
+
+      // Store balance info for transaction creation after leave record
+      this['_transactionData'] = {
+        employee_id: dto.employee_id,
+        leave_type_id: dto.leave_type_id,
+        year: year,
+        balanceBefore: balanceBefore,
+        totalLeaveDays: totalLeaveDays,
+        reason: dto.reason,
+      };
     }
 
     // 6. Create leave record
@@ -116,6 +136,25 @@ export class CreateLeaveRequestUseCase {
     });
 
     const created = await this.leaveRecordRepository.create(leaveRecord);
+
+    // Record transaction for audit trail
+    if (this['_transactionData']) {
+      const txData = this['_transactionData'];
+      await this.transactionRepository.create({
+        employee_id: txData.employee_id,
+        leave_type_id: txData.leave_type_id,
+        year: txData.year,
+        transaction_type: 'LEAVE_PENDING',
+        amount: -txData.totalLeaveDays,
+        balance_before: txData.balanceBefore,
+        balance_after: txData.balanceBefore - txData.totalLeaveDays,
+        reference_type: 'LEAVE_RECORD',
+        reference_id: created.id,
+        description: `Leave request created (pending approval): ${txData.reason || 'No reason provided'}`,
+        created_by: txData.employee_id,
+      });
+      delete this['_transactionData'];
+    }
 
     // 7. Publish event to notify managers (HR_MANAGER or DEPARTMENT_MANAGER)
     this.eventPublisher.publish('leave.requested', {

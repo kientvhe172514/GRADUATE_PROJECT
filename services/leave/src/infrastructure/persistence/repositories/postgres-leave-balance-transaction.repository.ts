@@ -20,6 +20,51 @@ export class PostgresLeaveBalanceTransactionRepository implements ILeaveBalanceT
   async listByEmployeeAndYear(employeeId: number, year: number): Promise<LeaveBalanceTransactionEntity[]> {
     return this.repository.find({ where: { employee_id: employeeId, year }, order: { created_at: 'DESC' } });
   }
+
+  async findByEmployee(
+    employeeId: number,
+    filters?: {
+      year?: number;
+      leave_type_id?: number;
+      transaction_type?: string;
+      limit?: number;
+    },
+  ): Promise<LeaveBalanceTransactionEntity[]> {
+    const where: any = { employee_id: employeeId };
+    
+    if (filters?.year) {
+      where.year = filters.year;
+    }
+    
+    if (filters?.leave_type_id) {
+      where.leave_type_id = filters.leave_type_id;
+    }
+    
+    if (filters?.transaction_type) {
+      where.transaction_type = filters.transaction_type;
+    }
+
+    const queryOptions: any = {
+      where,
+      order: { created_at: 'DESC' },
+    };
+
+    if (filters?.limit) {
+      queryOptions.take = filters.limit;
+    }
+
+    return this.repository.find(queryOptions);
+  }
+
+  async findByLeaveRecord(leaveRecordId: number): Promise<LeaveBalanceTransactionEntity[]> {
+    return this.repository.find({
+      where: {
+        reference_type: 'LEAVE_RECORD',
+        reference_id: leaveRecordId,
+      },
+      order: { created_at: 'DESC' },
+    });
+  }
 }
 
 

@@ -2,7 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_BALANCE_REPOSITORY } from '../../tokens';
+import { ILeaveBalanceTransactionRepository } from '../../ports/leave-balance-transaction.repository.interface';
+import {
+  LEAVE_RECORD_REPOSITORY,
+  LEAVE_BALANCE_REPOSITORY,
+  LEAVE_BALANCE_TRANSACTION_REPOSITORY,
+} from '../../tokens';
 import { CancelLeaveDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 
 @Injectable()
@@ -12,6 +17,8 @@ export class CancelLeaveUseCase {
     private readonly leaveRecordRepository: ILeaveRecordRepository,
     @Inject(LEAVE_BALANCE_REPOSITORY)
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
+    @Inject(LEAVE_BALANCE_TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ILeaveBalanceTransactionRepository,
   ) {}
 
   async execute(leaveRecordId: number, dto: CancelLeaveDto): Promise<LeaveRecordResponseDto> {
@@ -74,6 +81,7 @@ export class CancelLeaveUseCase {
 
     if (balance) {
       const leaveDays = Number(leaveRecord.total_leave_days);
+      const balanceBefore = Number(balance.remaining_days);
       
       if (leaveRecord.status === 'PENDING') {
         // Restore from pending_days
@@ -84,6 +92,21 @@ export class CancelLeaveUseCase {
           pending_days: newPendingDays,
           remaining_days: newRemainingDays,
         });
+
+        // Record transaction for audit trail
+        await this.transactionRepository.create({
+          employee_id: leaveRecord.employee_id,
+          leave_type_id: leaveRecord.leave_type_id,
+          year: year,
+          transaction_type: 'LEAVE_CANCELLED',
+          amount: leaveDays, // positive = restored
+          balance_before: balanceBefore,
+          balance_after: balanceBefore + leaveDays,
+          reference_type: 'LEAVE_RECORD',
+          reference_id: leaveRecordId,
+          description: `Leave cancelled (was pending): ${dto.cancellation_reason || 'No reason provided'}`,
+          created_by: leaveRecord.employee_id,
+        });
       } else if (leaveRecord.status === 'APPROVED') {
         // Restore from used_days
         const newUsedDays = Number(balance.used_days) - leaveDays;
@@ -92,6 +115,21 @@ export class CancelLeaveUseCase {
         await this.leaveBalanceRepository.update(balance.id, {
           used_days: newUsedDays,
           remaining_days: newRemainingDays,
+        });
+
+        // Record transaction for audit trail
+        await this.transactionRepository.create({
+          employee_id: leaveRecord.employee_id,
+          leave_type_id: leaveRecord.leave_type_id,
+          year: year,
+          transaction_type: 'LEAVE_CANCELLED',
+          amount: leaveDays, // positive = restored
+          balance_before: balanceBefore,
+          balance_after: balanceBefore + leaveDays,
+          reference_type: 'LEAVE_RECORD',
+          reference_id: leaveRecordId,
+          description: `Leave cancelled (was approved): ${dto.cancellation_reason || 'No reason provided'}`,
+          created_by: leaveRecord.employee_id,
         });
       }
     }

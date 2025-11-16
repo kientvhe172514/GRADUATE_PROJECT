@@ -1,14 +1,30 @@
-import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query, UnauthorizedException } from '@nestjs/common';
+import { ApiResponseDto, CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { GetBalanceQueryDto, InitializeLeaveBalancesDto, AdjustLeaveBalanceDto, CarryOverDto, ExpiringCarryOverQueryDto, LeaveBalanceResponseDto, LeaveBalanceSummaryDto } from '../../application/leave-balance/dto/leave-balance.dto';
+import {
+  GetBalanceQueryDto,
+  InitializeLeaveBalancesDto,
+  AdjustLeaveBalanceDto,
+  CarryOverDto,
+  ExpiringCarryOverQueryDto,
+  LeaveBalanceResponseDto,
+  LeaveBalanceSummaryDto,
+  GetMyTransactionsQueryDto,
+  LeaveBalanceTransactionResponseDto,
+  LeaveBalanceStatisticsResponseDto,
+} from '../../application/leave-balance/dto/leave-balance.dto';
 import { GetEmployeeBalancesUseCase } from '../../application/leave-balance/use-cases/get-employee-balances.use-case';
 import { GetEmployeeBalanceSummaryUseCase } from '../../application/leave-balance/use-cases/get-employee-balance-summary.use-case';
 import { InitializeEmployeeBalancesUseCase } from '../../application/leave-balance/use-cases/initialize-employee-balances.use-case';
 import { AdjustLeaveBalanceUseCase } from '../../application/leave-balance/use-cases/adjust-leave-balance.use-case';
 import { CarryOverUseCase } from '../../application/leave-balance/use-cases/carry-over.use-case';
 import { ListExpiringCarryOverUseCase } from '../../application/leave-balance/use-cases/list-expiring-carry-over.use-case';
+import { GetMyTransactionsUseCase } from '../../application/leave-balance/use-cases/get-my-transactions.use-case';
+import { GetMyStatisticsUseCase } from '../../application/leave-balance/use-cases/get-my-statistics.use-case';
 
+@ApiTags('leave-balances')
+@ApiBearerAuth('bearer')
 @Controller('leave-balances')
 export class LeaveBalanceController {
   constructor(
@@ -18,6 +34,8 @@ export class LeaveBalanceController {
     private readonly adjustLeaveBalance: AdjustLeaveBalanceUseCase,
     private readonly carryOver: CarryOverUseCase,
     private readonly listExpiringCarryOver: ListExpiringCarryOverUseCase,
+    private readonly getMyTransactions: GetMyTransactionsUseCase,
+    private readonly getMyStatistics: GetMyStatisticsUseCase,
   ) {}
 
   @Get('employee/:employeeId')
@@ -29,6 +47,18 @@ export class LeaveBalanceController {
     const result = await this.getEmployeeBalances.execute(employeeId, year);
     const data = plainToInstance(LeaveBalanceResponseDto, result);
     return ApiResponseDto.success(data, 'Employee leave balances retrieved successfully');
+  }
+
+  @Get('me')
+  async getMyBalances(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: GetBalanceQueryDto,
+  ): Promise<ApiResponseDto<LeaveBalanceResponseDto[]>> {
+    if (!user || !user.employee_id) throw new UnauthorizedException();
+    const year = query.year ?? new Date().getFullYear();
+    const result = await this.getEmployeeBalances.execute(user.employee_id, year);
+    const data = plainToInstance(LeaveBalanceResponseDto, result);
+    return ApiResponseDto.success(data, 'Your leave balances retrieved successfully');
   }
 
   @Get('employee/:employeeId/summary')
@@ -75,6 +105,52 @@ export class LeaveBalanceController {
     const data = await this.listExpiringCarryOver.execute(year);
     return ApiResponseDto.success(data, 'Expiring carry-over balances retrieved successfully');
   }
+
+  // ========== EMPLOYEE SELF-SERVICE ENDPOINTS ==========
+
+  @Get('me/summary')
+  @ApiOperation({ summary: 'Get my leave balance summary for the current year' })
+  @ApiQuery({ name: 'year', required: false, type: Number, description: 'Year (default: current year)' })
+  async getMySummary(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: GetBalanceQueryDto,
+  ): Promise<ApiResponseDto<LeaveBalanceSummaryDto>> {
+    if (!user || !user.employee_id) throw new UnauthorizedException();
+    const year = query.year ?? new Date().getFullYear();
+    const result = await this.getEmployeeBalanceSummary.execute(user.employee_id, year);
+    const data = plainToInstance(LeaveBalanceSummaryDto, result);
+    return ApiResponseDto.success(data, 'Your leave balance summary retrieved successfully');
+  }
+
+  @Get('me/statistics')
+  @ApiOperation({ summary: 'Get my detailed leave statistics' })
+  @ApiQuery({ name: 'year', required: false, type: Number, description: 'Year (default: current year)' })
+  async getMyLeaveStatistics(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: GetBalanceQueryDto,
+  ): Promise<ApiResponseDto<LeaveBalanceStatisticsResponseDto>> {
+    if (!user || !user.employee_id) throw new UnauthorizedException();
+    const year = query.year ?? new Date().getFullYear();
+    const result = await this.getMyStatistics.execute(user.employee_id, year);
+    return ApiResponseDto.success(result, 'Your leave statistics retrieved successfully');
+  }
+
+  @Get('transactions/me')
+  @ApiOperation({ summary: 'Get my leave balance transaction history' })
+  @ApiQuery({ name: 'year', required: false, type: Number })
+  @ApiQuery({ name: 'leave_type_id', required: false, type: Number })
+  @ApiQuery({ name: 'transaction_type', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getMyLeaveTransactions(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: GetMyTransactionsQueryDto,
+  ): Promise<ApiResponseDto<LeaveBalanceTransactionResponseDto[]>> {
+    if (!user || !user.employee_id) throw new UnauthorizedException();
+    const result = await this.getMyTransactions.execute(user.employee_id, query);
+    const data = plainToInstance(LeaveBalanceTransactionResponseDto, result);
+    return ApiResponseDto.success(data, 'Your transaction history retrieved successfully');
+  }
 }
+
 
 

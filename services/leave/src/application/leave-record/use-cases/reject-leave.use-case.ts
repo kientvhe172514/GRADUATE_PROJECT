@@ -2,9 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
+import { ILeaveBalanceTransactionRepository } from '../../ports/leave-balance-transaction.repository.interface';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
 import { EventPublisherPort } from '../../ports/event.publisher.port';
-import { LEAVE_RECORD_REPOSITORY, LEAVE_BALANCE_REPOSITORY, LEAVE_TYPE_REPOSITORY, EVENT_PUBLISHER } from '../../tokens';
+import {
+  LEAVE_RECORD_REPOSITORY,
+  LEAVE_BALANCE_REPOSITORY,
+  LEAVE_BALANCE_TRANSACTION_REPOSITORY,
+  LEAVE_TYPE_REPOSITORY,
+  EVENT_PUBLISHER,
+} from '../../tokens';
 import { RejectLeaveDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 
 @Injectable()
@@ -14,6 +21,8 @@ export class RejectLeaveUseCase {
     private readonly leaveRecordRepository: ILeaveRecordRepository,
     @Inject(LEAVE_BALANCE_REPOSITORY)
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
+    @Inject(LEAVE_BALANCE_TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ILeaveBalanceTransactionRepository,
     @Inject(LEAVE_TYPE_REPOSITORY)
     private readonly leaveTypeRepository: ILeaveTypeRepository,
     @Inject(EVENT_PUBLISHER)
@@ -59,12 +68,28 @@ export class RejectLeaveUseCase {
 
     if (balance) {
       const leaveDays = Number(leaveRecord.total_leave_days);
+      const balanceBefore = Number(balance.remaining_days);
       const newPendingDays = Number(balance.pending_days) - leaveDays;
       const newRemainingDays = Number(balance.remaining_days) + leaveDays;
       
       await this.leaveBalanceRepository.update(balance.id, {
         pending_days: newPendingDays,
         remaining_days: newRemainingDays,
+      });
+
+      // 4.1. Record transaction for audit trail
+      await this.transactionRepository.create({
+        employee_id: leaveRecord.employee_id,
+        leave_type_id: leaveRecord.leave_type_id,
+        year: year,
+        transaction_type: 'LEAVE_REJECTED',
+        amount: leaveDays, // positive = restored
+        balance_before: balanceBefore,
+        balance_after: balanceBefore + leaveDays,
+        reference_type: 'LEAVE_RECORD',
+        reference_id: leaveRecordId,
+        description: `Leave rejected: ${dto.rejection_reason || 'No reason provided'}`,
+        created_by: dto.rejected_by,
       });
     }
 
