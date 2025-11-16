@@ -17,6 +17,7 @@ import { GetLeaveRecordsUseCase } from './use-cases/get-leave-records.use-case';
 import { GetLeaveRecordByIdUseCase } from './use-cases/get-leave-record-by-id.use-case';
 import { UpdateLeaveRequestUseCase } from './use-cases/update-leave-request.use-case';
 import { GetMyLeavesUseCase } from './use-cases/get-my-leaves.use-case';
+import { LeaveBalanceModule } from '../leave-balance/leave-balance.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GetMyLeavesUseCase } from './use-cases/get-my-leaves.use-case';
       LeaveTypeSchema,
       LeaveBalanceSchema,
     ]),
+    LeaveBalanceModule, // Import to get LEAVE_BALANCE_TRANSACTION_REPOSITORY
   ],
   controllers: [LeaveRecordController],
   providers: [
