@@ -69,8 +69,6 @@ export class CreateDeviceSessionUseCase {
       existingDevice.login_count += 1;
       existingDevice.failed_login_attempts = 0;
 
-      const fcmTokenUpdated = !!dto.fcm_token && dto.fcm_token !== existingDevice.fcm_token;
-
       if (dto.fcm_token) {
         existingDevice.fcm_token = dto.fcm_token;
         existingDevice.fcm_token_updated_at = new Date();
@@ -82,16 +80,17 @@ export class CreateDeviceSessionUseCase {
         existingDevice,
       );
 
-      // Publish event if FCM token was updated
-      if (fcmTokenUpdated && updatedDevice.employee_id) {
+      // ✅ ALWAYS publish event if FCM token exists and employee_id exists
+      // This ensures notification service always has the latest FCM token
+      if (updatedDevice.fcm_token && updatedDevice.employee_id) {
         try {
-          console.log('🚀 [EVENT] Publishing device_session_created event (FCM token updated)...');
+          console.log('🚀 [EVENT] Publishing device_session_created event (update with FCM token)...');
           const eventData = new DeviceSessionCreatedEvent(
             updatedDevice.id!,
             updatedDevice.account_id,
             updatedDevice.employee_id,
             updatedDevice.device_id,
-            updatedDevice.fcm_token!,
+            updatedDevice.fcm_token,
             updatedDevice.platform,
           );
           console.log('📤 [EVENT] Event payload:', JSON.stringify(eventData, null, 2));
@@ -103,7 +102,10 @@ export class CreateDeviceSessionUseCase {
           console.error('❌ [EVENT] Failed to publish device session created event:', error);
         }
       } else {
-        console.log('⏭️ [EVENT] Skipping event publish for update (no FCM token change or missing employee_id)');
+        console.log('⏭️ [EVENT] Skipping event publish - missing fcm_token or employee_id:', {
+          has_fcm_token: !!updatedDevice.fcm_token,
+          has_employee_id: !!updatedDevice.employee_id,
+        });
       }
 
       return updatedDevice;
