@@ -25,13 +25,18 @@ export class DeviceSessionCreatedListener {
     @Payload() data: DeviceSessionCreatedPayload,
   ): Promise<void> {
     this.logger.log(
+      `🔔 [DEVICE_SESSION_CREATED] Received event:`,
+      JSON.stringify(data, null, 2),
+    );
+    this.logger.log(
       `Received device_session_created event for employee ${data.employeeId}, device: ${data.deviceId}`,
     );
 
     if (!data.fcmToken || !data.employeeId) {
       this.logger.warn(
-        `Skipping FCM token registration - missing fcmToken or employeeId`,
+        `⚠️ Skipping FCM token registration - missing fcmToken (${!!data.fcmToken}) or employeeId (${!!data.employeeId})`,
       );
+      this.logger.warn(`Full payload:`, JSON.stringify(data, null, 2));
       return;
     }
 
