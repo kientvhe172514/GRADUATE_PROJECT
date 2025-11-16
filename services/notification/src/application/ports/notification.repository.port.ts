@@ -1,5 +1,13 @@
 import { Notification } from '../../domain/entities/notification.entity';
 import { NotificationType } from '../../domain/enums/notification-type.enum';
+import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
+
+export interface NotificationStatistics {
+  total: number;
+  unread: number;
+  read: number;
+  byType: Array<{ type: NotificationType; total: number; unread: number }>;
+}
 
 export interface NotificationRepositoryPort {
   create(notification: Notification): Promise<Notification>;
@@ -10,6 +18,7 @@ export interface NotificationRepositoryPort {
       limit?: number;
       offset?: number;
       unreadOnly?: boolean;
+      channelFilter?: ChannelType;
     },
   ): Promise<Notification[]>;
   update(notification: Notification): Promise<Notification>;
@@ -21,4 +30,8 @@ export interface NotificationRepositoryPort {
     recipientId: number,
     type: NotificationType,
   ): Promise<number>;
+  getStatistics(recipientId: number): Promise<NotificationStatistics>;
+  getUnreadCountByType(recipientId: number): Promise<Array<{ type: NotificationType; count: number }>>;
+  deleteReadByRecipient(recipientId: number): Promise<number>;
+  deleteOldNotifications(olderThanDays: number, onlyRead: boolean): Promise<number>;
 }

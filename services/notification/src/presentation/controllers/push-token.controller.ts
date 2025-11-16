@@ -28,7 +28,25 @@ export class PushTokenController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a push notification token' })
-  @ApiResponse({ status: 201, description: 'Push token registered successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Push token registered successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Push token registered successfully',
+        data: {
+          id: 1,
+          employeeId: 123,
+          token: 'fcm-token-abc123xyz',
+          deviceType: 'ANDROID',
+          deviceId: 'device-uuid-12345',
+          createdAt: '2024-01-15T10:30:00Z',
+          updatedAt: '2024-01-15T10:30:00Z',
+        },
+      },
+    },
+  })
   async registerToken(@Body() dto: RegisterPushTokenDto, @Req() req: any): Promise<ApiResponseDto<any>> {
     const userId = req.user.sub; // user.sub = userId
     const token = await this.registerTokenUseCase.execute(userId, dto);
@@ -39,7 +57,17 @@ export class PushTokenController {
   @Delete('unregister')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unregister a push notification token' })
-  @ApiResponse({ status: 200, description: 'Push token unregistered successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Push token unregistered successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Push token unregistered successfully',
+        data: null,
+      },
+    },
+  })
   async unregisterToken(
     @Body() dto: UnregisterPushTokenDto,
     @Req() req: any,

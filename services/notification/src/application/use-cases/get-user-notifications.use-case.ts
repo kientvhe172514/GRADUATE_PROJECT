@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Notification } from '../../domain/entities/notification.entity';
 import { NotificationRepositoryPort } from '../ports/notification.repository.port';
 import { NOTIFICATION_REPOSITORY } from './send-notification.use-case';
+import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
 
 export interface GetUserNotificationsResult {
   notifications: Notification[];
@@ -25,6 +26,7 @@ export class GetUserNotificationsUseCase {
       limit?: number;
       offset?: number;
       unreadOnly?: boolean;
+      channelFilter?: ChannelType;
     },
   ): Promise<GetUserNotificationsResult> {
     this.logger.log(`Getting notifications for user ${userId}`);
@@ -37,6 +39,7 @@ export class GetUserNotificationsUseCase {
         limit: limit + 1, // Fetch one extra to check if there are more
         offset,
         unreadOnly: options?.unreadOnly,
+        channelFilter: options?.channelFilter,
       }),
       this.notificationRepo.countUnread(userId),
     ]);

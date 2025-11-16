@@ -3,6 +3,7 @@ export enum ChannelType {
   PUSH = 'PUSH',
   SMS = 'SMS',
   IN_APP = 'IN_APP',
+  WEB = 'WEB',
 }
 
 export class DeliveryChannel {
@@ -39,5 +40,9 @@ export class DeliveryChannel {
 
   isInApp(): boolean {
     return this.type === ChannelType.IN_APP;
+  }
+
+  isWeb(): boolean {
+    return this.type === ChannelType.WEB;
   }
 }

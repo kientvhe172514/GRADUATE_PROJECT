@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // Schemas
 import { NotificationSchema } from '../infrastructure/persistence/typeorm/schemas/notification.schema';
@@ -14,6 +15,10 @@ import { NotificationController } from '../presentation/controllers/notification
 import { NotificationPreferenceController } from '../presentation/controllers/notification-preference.controller';
 import { PushTokenController } from '../presentation/controllers/push-token.controller';
 import { HealthController } from '../presentation/controllers/health.controller';
+import { ScheduledNotificationController } from '../presentation/controllers/scheduled-notification.controller';
+
+// Cron Processors
+import { ScheduledNotificationProcessor } from '../infrastructure/cron/scheduled-notification.processor';
 
 // Event Listeners
 import { AttendanceEventListener } from '../presentation/event-listeners/attendance-event.listener';
@@ -47,12 +52,25 @@ import {
   SendNotificationFromTemplateUseCase,
   NOTIFICATION_TEMPLATE_REPOSITORY,
 } from './use-cases/send-notification-from-template.use-case';
+import { GetMyNotificationStatisticsUseCase } from './use-cases/get-my-notification-statistics.use-case';
+import { GetUnreadCountUseCase } from './use-cases/get-unread-count.use-case';
+import { SendBulkNotificationUseCase } from './use-cases/send-bulk-notification.use-case';
+import { BulkMarkAsReadUseCase } from './use-cases/bulk-mark-as-read.use-case';
+import { DeleteMyReadNotificationsUseCase } from './use-cases/delete-my-read-notifications.use-case';
+import { CreateScheduledNotificationUseCase } from './use-cases/create-scheduled-notification.use-case';
+import { UpdateScheduledNotificationUseCase } from './use-cases/update-scheduled-notification.use-case';
+import { CancelScheduledNotificationUseCase } from './use-cases/cancel-scheduled-notification.use-case';
+import { GetScheduledNotificationsUseCase } from './use-cases/get-scheduled-notifications.use-case';
+import { ProcessScheduledNotificationsUseCase } from './use-cases/process-scheduled-notifications.use-case';
 
 // Repositories
 import { PostgresNotificationRepository } from '../infrastructure/persistence/postgres-notification.repository';
 import { PostgresNotificationPreferenceRepository } from '../infrastructure/persistence/postgres-notification-preference.repository';
 import { PostgresPushTokenRepository } from '../infrastructure/persistence/postgres-push-token.repository';
+import { PostgresScheduledNotificationRepository } from '../infrastructure/persistence/postgres-scheduled-notification.repository';
+import { PostgresNotificationTemplateRepository } from '../infrastructure/persistence/postgres-notification-template.repository';
 import { PushTokenRepositoryPort } from './ports/push-token.repository.port';
+import { SCHEDULED_NOTIFICATION_REPOSITORY } from './ports/scheduled-notification.repository.port';
 
 // Services - Real Implementations
 import { FirebasePushNotificationService } from '../infrastructure/external-services/firebase-push-notification.service';
@@ -71,6 +89,7 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([
       NotificationSchema,
       NotificationPreferenceSchema,
@@ -84,6 +103,7 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
     NotificationPreferenceController,
     PushTokenController,
     HealthController,
+    ScheduledNotificationController,
     // Event Listeners (Controllers với @EventPattern)
     AttendanceEventListener,
     LeaveEventListener,
@@ -103,6 +123,19 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
     RegisterPushTokenUseCase,
     UnregisterPushTokenUseCase,
     SendNotificationFromTemplateUseCase,
+    GetMyNotificationStatisticsUseCase,
+    GetUnreadCountUseCase,
+    SendBulkNotificationUseCase,
+    BulkMarkAsReadUseCase,
+    DeleteMyReadNotificationsUseCase,
+    CreateScheduledNotificationUseCase,
+    UpdateScheduledNotificationUseCase,
+    CancelScheduledNotificationUseCase,
+    GetScheduledNotificationsUseCase,
+    ProcessScheduledNotificationsUseCase,
+
+    // Cron Processors
+    ScheduledNotificationProcessor,
 
     // Repositories
     {
@@ -119,7 +152,11 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
     },
     {
       provide: NOTIFICATION_TEMPLATE_REPOSITORY,
-      useClass: PostgresNotificationRepository, // TODO: Create template repository
+      useClass: PostgresNotificationTemplateRepository,
+    },
+    {
+      provide: SCHEDULED_NOTIFICATION_REPOSITORY,
+      useClass: PostgresScheduledNotificationRepository,
     },
 
     // External Services - Environment-based selection

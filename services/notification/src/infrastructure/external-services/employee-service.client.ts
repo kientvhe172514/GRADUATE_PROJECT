@@ -206,5 +206,70 @@ export class EmployeeServiceClient {
       return null;
     }
   }
+
+  /**
+   * Get all employees in a department
+   * @param departmentId Department ID
+   * @returns Array of employee IDs
+   */
+  async getEmployeesByDepartment(departmentId: number): Promise<number[]> {
+    try {
+      const url = `${this.employeeServiceUrl}/employees?departmentId=${departmentId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data?.status === 'SUCCESS' && data?.data) {
+        return data.data.map((emp: any) => emp.id || emp.employeeId);
+      }
+
+      return [];
+    } catch (error) {
+      this.logger.error(`Error fetching employees by department ${departmentId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all employees in the system
+   * @returns Array of employee IDs
+   */
+  async getAllEmployees(): Promise<number[]> {
+    try {
+      const url = `${this.employeeServiceUrl}/employees`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data?.status === 'SUCCESS' && data?.data) {
+        return data.data.map((emp: any) => emp.id || emp.employeeId);
+      }
+
+      return [];
+    } catch (error) {
+      this.logger.error(`Error fetching all employees:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get employees by role
+   * @param role Role name (e.g., 'HR_MANAGER', 'DEPARTMENT_MANAGER')
+   * @returns Array of employee IDs
+   */
+  async getEmployeesByRole(role: string): Promise<number[]> {
+    try {
+      const url = `${this.employeeServiceUrl}/employees?role=${role}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data?.status === 'SUCCESS' && data?.data) {
+        return data.data.map((emp: any) => emp.id || emp.employeeId);
+      }
+
+      return [];
+    } catch (error) {
+      this.logger.error(`Error fetching employees by role ${role}:`, error);
+      return [];
+    }
+  }
 }
 

@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsBoolean, IsEnum } from 'class-validator';
+import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
 
 export class GetUserNotificationsDto {
   @IsNotEmpty()
@@ -16,4 +17,8 @@ export class GetUserNotificationsDto {
   @IsOptional()
   @IsBoolean()
   unreadOnly?: boolean;
+
+  @IsOptional()
+  @IsEnum(ChannelType)
+  channelFilter?: ChannelType;
 }

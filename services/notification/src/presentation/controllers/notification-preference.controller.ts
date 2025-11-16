@@ -25,7 +25,27 @@ export class NotificationPreferenceController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user notification preferences' })
-  @ApiResponse({ status: 200, description: 'Notification preferences retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification preferences retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Notification preferences retrieved successfully',
+        data: {
+          id: 1,
+          employeeId: 123,
+          emailEnabled: true,
+          pushEnabled: true,
+          smsEnabled: false,
+          inAppEnabled: true,
+          doNotDisturbStart: '22:00',
+          doNotDisturbEnd: '07:00',
+          preferredChannels: ['EMAIL', 'IN_APP'],
+        },
+      },
+    },
+  })
   async getPreferences(@Req() req: any): Promise<ApiResponseDto<any>> {
     const userId = req.user.sub; // user.sub = userId
     const preferences = await this.getPreferencesUseCase.execute(userId);
@@ -36,7 +56,27 @@ export class NotificationPreferenceController {
   @Put()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update notification preferences' })
-  @ApiResponse({ status: 200, description: 'Notification preferences updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification preferences updated successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Notification preferences updated successfully',
+        data: {
+          id: 1,
+          employeeId: 123,
+          emailEnabled: true,
+          pushEnabled: true,
+          smsEnabled: false,
+          inAppEnabled: true,
+          doNotDisturbStart: '22:00',
+          doNotDisturbEnd: '07:00',
+          preferredChannels: ['EMAIL', 'IN_APP', 'PUSH'],
+        },
+      },
+    },
+  })
   async updatePreference(
     @Body() dto: UpdateNotificationPreferenceDto,
     @Req() req: any,

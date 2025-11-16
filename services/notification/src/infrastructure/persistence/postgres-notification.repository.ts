@@ -29,7 +29,12 @@ export class PostgresNotificationRepository
 
   async findByRecipientId(
     recipientId: number,
-    options?: { limit?: number; offset?: number; unreadOnly?: boolean },
+    options?: {
+      limit?: number;
+      offset?: number;
+      unreadOnly?: boolean;
+      channelFilter?: string;
+    },
   ): Promise<Notification[]> {
     const query = this.repository
       .createQueryBuilder('notification')
@@ -38,6 +43,17 @@ export class PostgresNotificationRepository
 
     if (options?.unreadOnly) {
       query.andWhere('notification.is_read = false');
+    }
+
+    // Filter by channel - check if notification's channels array contains the filter channel
+    if (options?.channelFilter) {
+      query.andWhere(
+        `EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(notification.channels) AS channel
+          WHERE channel = :channelFilter
+        )`,
+        { channelFilter: options.channelFilter }
+      );
     }
 
     if (options?.limit) {
@@ -101,5 +117,90 @@ export class PostgresNotificationRepository
         notification_type: type,
       },
     });
+  }
+
+  async getStatistics(recipientId: number): Promise<{
+    total: number;
+    unread: number;
+    read: number;
+    byType: Array<{ type: NotificationType; total: number; unread: number }>;
+  }> {
+    // Get total counts
+    const [total, unread] = await Promise.all([
+      this.repository.count({ where: { recipient_id: recipientId } }),
+      this.repository.count({ where: { recipient_id: recipientId, is_read: false } }),
+    ]);
+
+    // Get counts by type
+    const byTypeResults = await this.repository
+      .createQueryBuilder('notification')
+      .select('notification.notification_type', 'type')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect('SUM(CASE WHEN notification.is_read = false THEN 1 ELSE 0 END)', 'unread')
+      .where('notification.recipient_id = :recipientId', { recipientId })
+      .groupBy('notification.notification_type')
+      .getRawMany();
+
+    const byType = byTypeResults.map((row) => ({
+      type: row.type as NotificationType,
+      total: parseInt(row.total, 10),
+      unread: parseInt(row.unread, 10),
+    }));
+
+    return {
+      total,
+      unread,
+      read: total - unread,
+      byType,
+    };
+  }
+
+  async getUnreadCountByType(
+    recipientId: number,
+  ): Promise<Array<{ type: NotificationType; count: number }>> {
+    const results = await this.repository
+      .createQueryBuilder('notification')
+      .select('notification.notification_type', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .where('notification.recipient_id = :recipientId', { recipientId })
+      .andWhere('notification.is_read = false')
+      .groupBy('notification.notification_type')
+      .getRawMany();
+
+    return results.map((row) => ({
+      type: row.type as NotificationType,
+      count: parseInt(row.count, 10),
+    }));
+  }
+
+  async deleteReadByRecipient(recipientId: number): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .delete()
+      .where('recipient_id = :recipientId', { recipientId })
+      .andWhere('is_read = true')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  async deleteOldNotifications(
+    olderThanDays: number,
+    onlyRead: boolean,
+  ): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+    const query = this.repository
+      .createQueryBuilder()
+      .delete()
+      .where('created_at < :cutoffDate', { cutoffDate });
+
+    if (onlyRead) {
+      query.andWhere('is_read = true');
+    }
+
+    const result = await query.execute();
+    return result.affected || 0;
   }
 }

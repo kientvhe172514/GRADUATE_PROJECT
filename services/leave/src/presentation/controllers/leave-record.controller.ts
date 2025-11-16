@@ -184,7 +184,28 @@ export class LeaveRecordController {
     summary: 'Create a new leave request',
     description: 'Submit a new leave request. Will check for overlapping leaves and sufficient balance.'
   })
-  @ApiResponse({ status: 201, type: ApiResponseDto })
+  @ApiResponse({
+    status: 201,
+    type: ApiResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Leave request created successfully',
+        data: {
+          id: 1,
+          employee_id: 123,
+          leave_type_id: 2,
+          start_date: '2024-01-20',
+          end_date: '2024-01-22',
+          total_days: 3,
+          reason: 'Family vacation',
+          status: 'PENDING',
+          created_at: '2024-01-15T10:30:00Z',
+          updated_at: '2024-01-15T10:30:00Z',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Overlapping leave or insufficient balance' })
   @ApiResponse({ status: 404, description: 'Leave type or balance not found' })
   async create(@Body() dto: CreateLeaveRequestDto): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
@@ -219,7 +240,31 @@ export class LeaveRecordController {
     description: 'Approve a PENDING leave request. Updates balance from pending to used.'
   })
   @ApiParam({ name: 'id', type: Number, description: 'Leave record ID' })
-  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({
+    status: 200,
+    type: ApiResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Leave request approved successfully',
+        data: {
+          id: 1,
+          employee_id: 123,
+          leave_type_id: 2,
+          start_date: '2024-01-20',
+          end_date: '2024-01-22',
+          total_days: 3,
+          reason: 'Family vacation',
+          status: 'APPROVED',
+          approver_id: 456,
+          approval_comment: 'Approved. Enjoy your vacation!',
+          approved_at: '2024-01-16T09:00:00Z',
+          created_at: '2024-01-15T10:30:00Z',
+          updated_at: '2024-01-16T09:00:00Z',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Leave is not in PENDING status' })
   @ApiResponse({ status: 404, description: 'Leave record not found' })
   async approve(
@@ -238,7 +283,31 @@ export class LeaveRecordController {
     description: 'Reject a PENDING leave request. Restores balance from pending to remaining.'
   })
   @ApiParam({ name: 'id', type: Number, description: 'Leave record ID' })
-  @ApiResponse({ status: 200, type: ApiResponseDto })
+  @ApiResponse({
+    status: 200,
+    type: ApiResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Leave request rejected successfully',
+        data: {
+          id: 1,
+          employee_id: 123,
+          leave_type_id: 2,
+          start_date: '2024-01-20',
+          end_date: '2024-01-22',
+          total_days: 3,
+          reason: 'Family vacation',
+          status: 'REJECTED',
+          approver_id: 456,
+          rejection_reason: 'Insufficient coverage during that period',
+          rejected_at: '2024-01-16T09:00:00Z',
+          created_at: '2024-01-15T10:30:00Z',
+          updated_at: '2024-01-16T09:00:00Z',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Leave is not in PENDING status' })
   @ApiResponse({ status: 404, description: 'Leave record not found' })
   async reject(

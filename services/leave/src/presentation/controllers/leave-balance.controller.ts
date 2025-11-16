@@ -39,6 +39,32 @@ export class LeaveBalanceController {
   ) {}
 
   @Get('employee/:employeeId')
+  @ApiOperation({ summary: 'Get employee leave balances by year' })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      example: {
+        success: true,
+        message: 'Employee leave balances retrieved successfully',
+        data: [
+          {
+            id: 1,
+            employee_id: 123,
+            leave_type_id: 1,
+            year: 2024,
+            annual_entitlement: 12,
+            remaining_balance: 9,
+            used_balance: 3,
+            pending_balance: 0,
+            carry_over_from_previous_year: 2,
+            carry_over_expiry_date: '2024-03-31',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-15T10:30:00Z',
+          },
+        ],
+      },
+    },
+  })
   async getBalances(
     @Param('employeeId', ParseIntPipe) employeeId: number,
     @Query() query: GetBalanceQueryDto,
