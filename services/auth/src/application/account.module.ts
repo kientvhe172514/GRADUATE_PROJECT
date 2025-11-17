@@ -50,6 +50,7 @@ import { DeviceSessionSchema } from '../infrastructure/persistence/typeorm/devic
 import { DeviceActivityLogSchema } from '../infrastructure/persistence/typeorm/device-activity-log.schema';
 import { DeviceSecurityAlertSchema } from '../infrastructure/persistence/typeorm/device-security-alert.schema';
 import { DeviceController } from '../presentation/controllers/device.controller';
+import { AccountMessageController } from '../presentation/controllers/account-message.controller';
 import { 
   ACCOUNT_REPOSITORY, 
   HASHING_SERVICE, 
@@ -129,6 +130,7 @@ import {
     AdminController, 
     VerifyController, 
     DeviceController,
+    AccountMessageController,
     EmployeeCreatedListener,
   ],
   providers: [
