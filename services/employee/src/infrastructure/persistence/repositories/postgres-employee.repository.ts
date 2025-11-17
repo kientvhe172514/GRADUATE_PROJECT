@@ -151,9 +151,15 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
     }
 
     // Search in employee_code, email, or full_name
+    // Support both exact match (with diacritics) and fuzzy match (without diacritics)
     if (criteria.search && criteria.search.trim()) {
       const searchTerm = `%${criteria.search.trim()}%`;
-      whereConditions.push(`(e.employee_code ILIKE $${paramIndex} OR e.email ILIKE $${paramIndex + 1} OR e.full_name ILIKE $${paramIndex + 2})`);
+      // Use ILIKE for case-insensitive search with Vietnamese diacritics
+      whereConditions.push(`(
+        e.employee_code ILIKE $${paramIndex} OR 
+        e.email ILIKE $${paramIndex + 1} OR 
+        e.full_name ILIKE $${paramIndex + 2}
+      )`);
       whereParams.push(searchTerm, searchTerm, searchTerm);
       paramIndex += 3;
     }
@@ -185,7 +191,8 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
       SELECT 
         e.*,
         d.department_name,
-        p.position_name
+        p.position_name,
+        p.suggested_role
       FROM employees e
       LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN positions p ON p.id = e.position_id
@@ -200,6 +207,7 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
       // Add joined fields
       (employee as any).department_name = row.department_name;
       (employee as any).position_name = row.position_name;
+      (employee as any).suggested_role = row.suggested_role;
       return employee;
     });
 

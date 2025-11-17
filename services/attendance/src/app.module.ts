@@ -5,7 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 // import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
-// import { EmployeeShiftModule } from './application/employee-shift/employee-shift.module';
+import { EmployeeShiftModule } from './application/employee-shift/employee-shift.module';
 import { ViolationModule } from './application/violation/violation.module';
 // import { PresenceVerificationModule } from './application/presence-verification/presence-verification.module';
 import { OvertimeModule } from './application/overtime/overtime.module';
@@ -100,7 +100,7 @@ import { HealthController } from './health.controller';
     WorkScheduleModule,
     BeaconModule,
     // AttendanceCheckModule, // TODO: Has dependencies on presence-verification
-    // EmployeeShiftModule, // TODO: Check dependencies
+    EmployeeShiftModule,
     ViolationModule,
     // PresenceVerificationModule, // TODO: Fix fromDomain/toDomain in schemas
     OvertimeModule,

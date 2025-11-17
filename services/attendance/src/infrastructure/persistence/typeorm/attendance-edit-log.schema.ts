@@ -10,7 +10,6 @@ import {
 @Index(['shift_id', 'edited_at'])
 @Index(['employee_id', 'edited_at'])
 @Index(['edited_by_user_id', 'edited_at'])
-@Index(['edited_at'])
 export class AttendanceEditLogSchema {
   @PrimaryGeneratedColumn('increment')
   id: number;

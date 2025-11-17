@@ -1,4 +1,4 @@
-import { EmployeeShiftEntity } from '../../domain/entities/employee-shift.entity';
+import { EmployeeShift } from '../../domain/entities/employee-shift.entity';
 
 /**
  * Employee Shift Repository Port (Interface)
@@ -13,33 +13,38 @@ export interface IEmployeeShiftRepository {
   findByEmployeeIdAndDate(
     employeeId: number,
     date: Date,
-  ): Promise<EmployeeShiftEntity | null>;
+  ): Promise<EmployeeShift | null>;
 
   /**
    * Find all shifts by status
    */
-  findByStatus(status: string): Promise<EmployeeShiftEntity[]>;
+  findByStatus(status: string): Promise<EmployeeShift[]>;
 
   /**
    * Find shift by ID
    */
-  findById(id: number): Promise<EmployeeShiftEntity | null>;
+  findById(id: number): Promise<EmployeeShift | null>;
 
   /**
    * Find active shifts (currently in progress)
    */
-  findActiveShifts(): Promise<EmployeeShiftEntity[]>;
+  findActiveShifts(): Promise<EmployeeShift[]>;
+
+  /**
+   * Find shifts by date range (optionally filtered by employee)
+   */
+  findByDateRange(startDate: Date, endDate: Date): Promise<EmployeeShift[]>;
 
   /**
    * Create new shift
    */
-  create(shift: EmployeeShiftEntity): Promise<EmployeeShiftEntity>;
+  create(shift: EmployeeShift): Promise<EmployeeShift>;
 
   /**
    * Update shift
    */
   update(
     id: number,
-    data: Partial<EmployeeShiftEntity>,
-  ): Promise<EmployeeShiftEntity>;
+    data: Partial<EmployeeShift>,
+  ): Promise<EmployeeShift>;
 }

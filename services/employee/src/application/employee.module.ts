@@ -44,6 +44,7 @@ import { TransferEmployeeBetweenDepartmentsUseCase } from './use-cases/transfer-
 import { ValidatePositionBelongsToDepartmentUseCase } from './use-cases/validate-position-belongs-to-department.use-case';
 import { GetDepartmentStatisticsUseCase } from './use-cases/get-department-statistics.use-case';
 import { GetEmployeeAssignmentDetailsUseCase } from './use-cases/get-employee-assignment-details.use-case';
+import { GetManagersUseCase } from './use-cases/get-managers.use-case';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { GetEmployeeAssignmentDetailsUseCase } from './use-cases/get-employee-as
     ValidatePositionBelongsToDepartmentUseCase,
     GetDepartmentStatisticsUseCase,
     GetEmployeeAssignmentDetailsUseCase,
+    GetManagersUseCase,
 
     // Infrastructure
     RabbitMQEventSubscriber,

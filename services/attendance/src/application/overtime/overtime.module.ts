@@ -5,6 +5,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OvertimeRequestSchema } from '../../infrastructure/persistence/typeorm/overtime-request.schema';
 import { OvertimeRequestRepository } from '../../infrastructure/repositories/overtime-request.repository';
 import { OvertimeRequestController } from '../../presentation/controllers/overtime-request.controller';
+import { CreateOvertimeRequestUseCase } from '../use-cases/overtime/create-overtime-request.use-case';
+import { GetMyOvertimeRequestsUseCase } from '../use-cases/overtime/get-my-overtime-requests.use-case';
+import { ListOvertimeRequestsUseCase } from '../use-cases/overtime/list-overtime-requests.use-case';
+import { GetPendingOvertimeRequestsUseCase } from '../use-cases/overtime/get-pending-overtime-requests.use-case';
+import { GetOvertimeRequestByIdUseCase } from '../use-cases/overtime/get-overtime-request-by-id.use-case';
+import { UpdateOvertimeRequestUseCase } from '../use-cases/overtime/update-overtime-request.use-case';
+import { ApproveOvertimeRequestUseCase } from '../use-cases/overtime/approve-overtime-request.use-case';
+import { RejectOvertimeRequestUseCase } from '../use-cases/overtime/reject-overtime-request.use-case';
 
 @Module({
   imports: [
@@ -34,7 +42,17 @@ import { OvertimeRequestController } from '../../presentation/controllers/overti
     ]),
   ],
   controllers: [OvertimeRequestController],
-  providers: [OvertimeRequestRepository],
+  providers: [
+    OvertimeRequestRepository,
+    CreateOvertimeRequestUseCase,
+    GetMyOvertimeRequestsUseCase,
+    ListOvertimeRequestsUseCase,
+    GetPendingOvertimeRequestsUseCase,
+    GetOvertimeRequestByIdUseCase,
+    UpdateOvertimeRequestUseCase,
+    ApproveOvertimeRequestUseCase,
+    RejectOvertimeRequestUseCase,
+  ],
   exports: [OvertimeRequestRepository],
 })
 export class OvertimeModule {}
