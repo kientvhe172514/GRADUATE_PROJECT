@@ -23,6 +23,7 @@ import { UpdateAccountUseCase } from './use-cases/update-account.use-case';
 import { ListAccountsUseCase } from './use-cases/admin/list-accounts.use-case';
 import { GetAccountDetailUseCase } from './use-cases/admin/get-account-detail.use-case';
 import { UpdateAccountStatusUseCase } from './use-cases/admin/update-account-status.use-case';
+import { AdminUpdateAccountUseCase } from './use-cases/admin/update-account.use-case';
 import { ListAuditLogsUseCase } from './use-cases/admin/list-audit-logs.use-case';
 import { CreateDeviceSessionUseCase } from './use-cases/device/create-device-session.use-case';
 import { LogDeviceActivityUseCase } from './use-cases/device/log-device-activity.use-case';
@@ -144,6 +145,7 @@ import {
     ListAccountsUseCase,
     GetAccountDetailUseCase,
     UpdateAccountStatusUseCase,
+    AdminUpdateAccountUseCase,
     ListAuditLogsUseCase,
     // Device management use cases
     CreateDeviceSessionUseCase,
