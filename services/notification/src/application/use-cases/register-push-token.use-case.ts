@@ -22,33 +22,39 @@ export class RegisterPushTokenUseCase {
   async execute(employeeId: number, dto: RegisterPushTokenDto): Promise<PushToken> {
     this.logger.log(`Registering push token for employee ${employeeId}, device: ${dto.deviceId}`);
 
-    // ✅ AUTO-SYNC: Try to get device_session_id from Auth Service
-    let deviceSessionId: number | undefined;
-    try {
-      this.logger.debug(`Querying Auth Service for device_session_id (employee: ${employeeId}, device: ${dto.deviceId})`);
-      
-      const response = await firstValueFrom(
-        this.authServiceClient.send('get_device_session', {
-          employeeId,
-          deviceId: dto.deviceId,
-        }).pipe(
-          timeout(3000), // 3s timeout
-          catchError((error) => {
-            this.logger.warn(`Auth Service RPC error: ${error.message}`);
-            return [null]; // Return null if error
-          })
-        )
-      );
+    // ✅ Use deviceSessionId from DTO if provided (from event), otherwise query Auth Service
+    let deviceSessionId: number | undefined = dto.deviceSessionId;
+    
+    if (!deviceSessionId) {
+      // Fallback: Query Auth Service if deviceSessionId not provided
+      try {
+        this.logger.debug(`Querying Auth Service for device_session_id (employee: ${employeeId}, device: ${dto.deviceId})`);
+        
+        const response = await firstValueFrom(
+          this.authServiceClient.send('get_device_session', {
+            employeeId,
+            deviceId: dto.deviceId,
+          }).pipe(
+            timeout(3000), // 3s timeout
+            catchError((error) => {
+              this.logger.warn(`Auth Service RPC error: ${error.message}`);
+              return [null]; // Return null if error
+            })
+          )
+        );
 
-      if (response && response.device_session_id) {
-        deviceSessionId = response.device_session_id;
-        this.logger.log(`✅ Found device_session_id: ${deviceSessionId} for device ${dto.deviceId}`);
-      } else {
-        this.logger.warn(`⚠️ Device session not found in Auth Service for device ${dto.deviceId}. Will proceed without linking.`);
+        if (response && response.device_session_id) {
+          deviceSessionId = response.device_session_id;
+          this.logger.log(`✅ Found device_session_id: ${deviceSessionId} for device ${dto.deviceId}`);
+        } else {
+          this.logger.warn(`⚠️ Device session not found in Auth Service for device ${dto.deviceId}. Will proceed without linking.`);
+        }
+      } catch (error) {
+        this.logger.warn(`⚠️ Could not fetch device_session_id from Auth Service: ${error.message}`);
+        // Continue without device_session_id - device might not have logged in yet
       }
-    } catch (error) {
-      this.logger.warn(`⚠️ Could not fetch device_session_id from Auth Service: ${error.message}`);
-      // Continue without device_session_id - device might not have logged in yet
+    } else {
+      this.logger.log(`✅ Using deviceSessionId from event: ${deviceSessionId}`);
     }
 
     // Check if device already registered

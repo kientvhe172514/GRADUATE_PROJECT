@@ -31,7 +31,14 @@ export class RegisterPushTokenDto {
   @IsEnum(Platform)
   platform: Platform;
 
-  // ❌ REMOVED: deviceSessionId - Backend will auto-sync with Auth Service
+  @ApiProperty({
+    description: 'Device session ID from Auth Service (optional - used for internal sync)',
+    example: 123,
+    required: false,
+  })
+  @IsOptional()
+  deviceSessionId?: number;
+
   // ❌ REMOVED: employeeId - Extracted from JWT token
 }
 
