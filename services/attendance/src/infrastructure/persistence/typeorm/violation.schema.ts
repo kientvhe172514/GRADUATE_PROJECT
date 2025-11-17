@@ -17,14 +17,12 @@ export class ViolationSchema {
   id: number;
 
   @Column({ type: 'bigint' })
-  @Index()
   employee_id: number;
 
   @Column({ type: 'int', nullable: true })
   shift_id: number | null;
 
   @Column({ type: 'varchar', length: 50 })
-  @Index()
   violation_type: string;
 
   @Column({ type: 'varchar', length: 20 })
@@ -37,7 +35,6 @@ export class ViolationSchema {
   evidence_data: any;
 
   @CreateDateColumn()
-  @Index()
   detected_at: Date;
 
   @Column({ type: 'boolean', default: false })
