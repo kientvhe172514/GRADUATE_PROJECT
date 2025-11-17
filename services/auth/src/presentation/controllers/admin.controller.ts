@@ -25,6 +25,7 @@ import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { ListAccountsUseCase } from '../../application/use-cases/admin/list-accounts.use-case';
 import { GetAccountDetailUseCase } from '../../application/use-cases/admin/get-account-detail.use-case';
 import { UpdateAccountStatusUseCase } from '../../application/use-cases/admin/update-account-status.use-case';
+import { AdminUpdateAccountUseCase } from '../../application/use-cases/admin/update-account.use-case';
 import { ListAuditLogsUseCase } from '../../application/use-cases/admin/list-audit-logs.use-case';
 import {
   ListAccountsRequestDto,
@@ -35,6 +36,10 @@ import {
   UpdateAccountStatusDto,
   UpdateAccountStatusResponseDto,
 } from '../../application/dto/admin/update-account-status.dto';
+import {
+  AdminUpdateAccountDto,
+  AdminUpdateAccountResponseDto,
+} from '../../application/dto/admin/update-account.dto';
 import {
   ListAuditLogsRequestDto,
   ListAuditLogsResponseDto,
@@ -48,6 +53,7 @@ export class AdminController {
     private listAccountsUseCase: ListAccountsUseCase,
     private getAccountDetailUseCase: GetAccountDetailUseCase,
     private updateAccountStatusUseCase: UpdateAccountStatusUseCase,
+    private adminUpdateAccountUseCase: AdminUpdateAccountUseCase,
     private listAuditLogsUseCase: ListAuditLogsUseCase,
   ) {}
 
@@ -134,11 +140,101 @@ export class AdminController {
     return this.getAccountDetailUseCase.execute(accountId);
   }
 
+  @Put('accounts/:id')
+  @HttpCode(HttpStatus.OK)
+  @AuthPermissions('admin.accounts.update')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({ 
+    summary: 'Update account information including role assignment',
+    description: `
+      **Admin endpoint to update account information**
+      
+      Features:
+      - ✅ Update email (with duplicate check)
+      - ✅ Assign/change role (SUPER_ADMIN, ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE)
+      - ✅ Update account status (ACTIVE, INACTIVE, LOCKED, SUSPENDED)
+      - ✅ Update employee linking (employee_id, employee_code)
+      - ✅ Update department and position
+      - ✅ Update external IDs and metadata
+      - ✅ Audit logging for all changes
+      - ✅ Event publishing for integration
+      
+      **Valid Roles:**
+      - SUPER_ADMIN: Full system access
+      - ADMIN: System administrator
+      - HR_MANAGER: Human resources manager
+      - DEPARTMENT_MANAGER: Department manager
+      - EMPLOYEE: Regular employee
+      
+      **Valid Statuses:**
+      - ACTIVE: Account is active
+      - INACTIVE: Account is disabled
+      - LOCKED: Account is temporarily locked
+      - SUSPENDED: Account is suspended
+      
+      **Required Permission:** admin.accounts.update
+    `
+  })
+  @ApiResponse({
+    status: 200,
+    type: AdminUpdateAccountResponseDto,
+    description: 'Account updated successfully',
+    schema: {
+      example: {
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: 'Account updated successfully',
+        data: {
+          id: 1,
+          email: 'user@zentry.com',
+          full_name: 'Nguyễn Văn A',
+          role: 'HR_MANAGER',
+          status: 'ACTIVE',
+          employee_id: 123,
+          employee_code: 'EMP001',
+          department_id: 1,
+          department_name: 'Human Resources',
+          position_id: 5,
+          position_name: 'HR Manager',
+          sync_version: 2,
+          updated_at: '2025-11-17T10:30:00.000Z'
+        },
+        timestamp: '2025-11-17T10:30:00.000Z'
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Account not found' })
+  @ApiResponse({ status: 409, description: 'Email already in use' })
+  @ApiResponse({ status: 400, description: 'Invalid role or validation error' })
+  @ApiParam({ name: 'id', type: Number, description: 'Account ID' })
+  async updateAccount(
+    @Param('id') id: string,
+    @Body() body: AdminUpdateAccountDto,
+    @CurrentUser() user: any,
+    @Req() req: any,
+  ): Promise<ApiResponseDto<AdminUpdateAccountResponseDto>> {
+    const accountId = parseInt(id, 10);
+    if (isNaN(accountId)) {
+      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Invalid account ID');
+    }
+
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    return this.adminUpdateAccountUseCase.execute(
+      accountId,
+      body,
+      user.sub,
+      ipAddress,
+      userAgent,
+    );
+  }
+
   @Put('accounts/:id/status')
   @HttpCode(HttpStatus.OK)
   @AuthPermissions('admin.accounts.update')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiOperation({ summary: 'Update account status' })
+  @ApiOperation({ summary: 'Update account status only (quick action)' })
   @ApiResponse({
     status: 200,
     description: 'Account status updated successfully',

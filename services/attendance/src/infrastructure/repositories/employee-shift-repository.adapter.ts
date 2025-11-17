@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { IEmployeeShiftRepository } from '../../application/ports/employee-shift.repository.port';
-import { EmployeeShiftEntity } from '../../domain/entities/employee-shift.entity';
+import { EmployeeShift, EmployeeShiftProps } from '../../domain/entities/employee-shift.entity';
 import { EmployeeShiftRepository } from './employee-shift.repository';
+import { EmployeeShiftSchema } from '../persistence/typeorm/employee-shift.schema';
 
 /**
  * Adapter: Adapts existing EmployeeShiftRepository to IEmployeeShiftRepository interface
@@ -9,100 +10,72 @@ import { EmployeeShiftRepository } from './employee-shift.repository';
  * This allows the existing repository to work with new Clean Architecture use cases
  */
 @Injectable()
-export class EmployeeShiftRepositoryAdapter
-  implements IEmployeeShiftRepository
-{
+export class EmployeeShiftRepositoryAdapter implements IEmployeeShiftRepository {
   constructor(private readonly repository: EmployeeShiftRepository) {}
+
+  private mapSchemaToDomain(schema: EmployeeShiftSchema): EmployeeShift {
+    const props: EmployeeShiftProps = {
+      id: schema.id,
+      employee_id: schema.employee_id,
+      employee_code: schema.employee_code,
+      department_id: schema.department_id,
+      shift_date: schema.shift_date,
+      work_schedule_id: schema.work_schedule_id ?? 0,
+      scheduled_start_time: schema.scheduled_start_time,
+      scheduled_end_time: schema.scheduled_end_time,
+      check_in_time: schema.check_in_time,
+      check_in_record_id: schema.check_in_record_id,
+      check_out_time: schema.check_out_time,
+      check_out_record_id: schema.check_out_record_id,
+      status: schema.status as any,
+      notes: schema.notes,
+      is_manually_edited: schema.is_manually_edited,
+      created_at: schema.created_at,
+      updated_at: schema.updated_at,
+    };
+    return new EmployeeShift(props);
+  }
 
   async findByEmployeeIdAndDate(
     employeeId: number,
     date: Date,
-  ): Promise<EmployeeShiftEntity | null> {
-    const schema = await this.repository.findByEmployeeAndDate(
-      employeeId,
-      date,
-    );
-
+  ): Promise<EmployeeShift | null> {
+    const schema = await this.repository.findByEmployeeAndDate(employeeId, date);
     if (!schema) return null;
-
-    // Map schema to domain entity
-    return new EmployeeShiftEntity({
-      id: schema.id,
-      employee_id: schema.employee_id,
-      actual_check_in: schema.check_in_time,
-      actual_check_out: schema.check_out_time,
-      status: schema.status as any,
-      shift_date: schema.shift_date,
-      start_time: schema.scheduled_start_time,
-      end_time: schema.scheduled_end_time,
-    });
+    return this.mapSchemaToDomain(schema);
   }
 
-  async findByStatus(status: string): Promise<EmployeeShiftEntity[]> {
+  async findByStatus(status: string): Promise<EmployeeShift[]> {
     const schemas = await this.repository.findByStatus(status);
-
-    return schemas.map(
-      (schema) =>
-        new EmployeeShiftEntity({
-          id: schema.id,
-          employee_id: schema.employee_id,
-          actual_check_in: schema.check_in_time,
-          actual_check_out: schema.check_out_time,
-          status: schema.status as any,
-          shift_date: schema.shift_date,
-          start_time: schema.scheduled_start_time,
-          end_time: schema.scheduled_end_time,
-        }),
-    );
+    return schemas.map(this.mapSchemaToDomain);
   }
 
-  async findById(id: number): Promise<EmployeeShiftEntity | null> {
+  async findById(id: number): Promise<EmployeeShift | null> {
     const schema = await this.repository.findById(id);
-
     if (!schema) return null;
-
-    return new EmployeeShiftEntity({
-      id: schema.id,
-      employee_id: schema.employee_id,
-      actual_check_in: schema.check_in_time,
-      actual_check_out: schema.check_out_time,
-      status: schema.status as any,
-      shift_date: schema.shift_date,
-      start_time: schema.scheduled_start_time,
-      end_time: schema.scheduled_end_time,
-    });
+    return this.mapSchemaToDomain(schema);
   }
 
-  async findActiveShifts(): Promise<EmployeeShiftEntity[]> {
-    const schemas = await this.repository.findByStatus('ACTIVE');
-
-    return schemas.map(
-      (schema) =>
-        new EmployeeShiftEntity({
-          id: schema.id,
-          employee_id: schema.employee_id,
-          actual_check_in: schema.check_in_time,
-          actual_check_out: schema.check_out_time,
-          status: schema.status as any,
-          shift_date: schema.shift_date,
-          start_time: schema.scheduled_start_time,
-          end_time: schema.scheduled_end_time,
-        }),
-    );
+  async findActiveShifts(): Promise<EmployeeShift[]> {
+    const schemas = await this.repository.findByStatus('IN_PROGRESS');
+    return schemas.map(this.mapSchemaToDomain);
   }
 
-  async create(shift: EmployeeShiftEntity): Promise<EmployeeShiftEntity> {
-    throw new Error(
-      'Create not implemented in adapter - use original repository',
-    );
+  async findByDateRange(startDate: Date, endDate: Date): Promise<EmployeeShift[]> {
+    const schemas = await this.repository.findByDateRange(startDate, endDate);
+    return schemas.map(this.mapSchemaToDomain);
+  }
+
+  async create(shift: EmployeeShift): Promise<EmployeeShift> {
+    // This adapter is read-only for now. Write operations should be handled by a new TypeORM repository.
+    throw new Error('Create not implemented in adapter. Use a dedicated TypeORM repository for write operations.');
   }
 
   async update(
     id: number,
-    data: Partial<EmployeeShiftEntity>,
-  ): Promise<EmployeeShiftEntity> {
-    throw new Error(
-      'Update not implemented in adapter - use original repository',
-    );
+    data: Partial<EmployeeShift>,
+  ): Promise<EmployeeShift> {
+    // This adapter is read-only for now. Write operations should be handled by a new TypeORM repository.
+    throw new Error('Update not implemented in adapter. Use a dedicated TypeORM repository for write operations.');
   }
 }

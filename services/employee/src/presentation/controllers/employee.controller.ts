@@ -30,6 +30,8 @@ import { RemoveEmployeeFromDepartmentDto } from '../../application/dto/employee/
 import { RemoveEmployeeFromPositionDto } from '../../application/dto/employee/remove-employee-from-position.dto';
 import { TransferEmployeeBetweenDepartmentsDto } from '../../application/dto/employee/transfer-employee-between-departments.dto';
 import { EmployeeAssignmentDto } from '../../application/dto/employee/employee-assignment.dto';
+import { GetManagersUseCase } from '../../application/use-cases/get-managers.use-case';
+import { ListManagersDto, ListManagersResponseDto } from '../../application/dto/employee/manager-list.dto';
 
 @ApiTags('employees')
 @ApiBearerAuth('bearer')
@@ -49,6 +51,7 @@ export class EmployeeController {
     private readonly removeEmployeeFromPositionUseCase: RemoveEmployeeFromPositionUseCase,
     private readonly transferEmployeeBetweenDepartmentsUseCase: TransferEmployeeBetweenDepartmentsUseCase,
     private readonly getEmployeeAssignmentDetailsUseCase: GetEmployeeAssignmentDetailsUseCase,
+    private readonly getManagersUseCase: GetManagersUseCase,
   ) {}
 
   @Post()
@@ -60,6 +63,18 @@ export class EmployeeController {
   @ApiResponse({ status: 400, description: 'Validation or duplicate error' })
   async create(@Body() createEmployeeDto: CreateEmployeeDto): Promise<ApiResponseDto<CreateEmployeeResponseDto>> {
     return this.createEmployeeUseCase.execute(createEmployeeDto);
+  }
+
+  @Get('managers/list')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('employee.read')
+  @ApiOperation({ summary: 'Get list of managers for department assignment' })
+  @ApiQuery({ type: ListManagersDto, required: false })
+  @ApiResponse({ status: 200, description: 'Managers retrieved successfully', type: ListManagersResponseDto })
+  async getManagers(
+    @Query() dto?: ListManagersDto,
+  ): Promise<ApiResponseDto<ListManagersResponseDto>> {
+    return this.getManagersUseCase.execute(dto || {});
   }
 
   @Get(':id')
