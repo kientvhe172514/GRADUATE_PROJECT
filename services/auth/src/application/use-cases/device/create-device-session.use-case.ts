@@ -68,6 +68,15 @@ export class CreateDeviceSessionUseCase {
       existingDevice.app_version = dto.app_version;
       existingDevice.login_count += 1;
       existingDevice.failed_login_attempts = 0;
+      
+      // ✅ FIX: Update employee_id if provided (in case it was missing before)
+      if (dto.employee_id && !existingDevice.employee_id) {
+        console.log('🔧 [FIX] Updating missing employee_id:', {
+          old: existingDevice.employee_id,
+          new: dto.employee_id,
+        });
+        existingDevice.employee_id = dto.employee_id;
+      }
 
       if (dto.fcm_token) {
         existingDevice.fcm_token = dto.fcm_token;

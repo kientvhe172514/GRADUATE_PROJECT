@@ -72,6 +72,12 @@ export class CreateAccountUseCase {
     }
 
     console.log(`🔐 Creating account with role_id: ${role.id} (${roleCode}), custom password: ${isCustomPassword}`);
+    console.log('📝 [DEBUG] CreateAccountDto data:', {
+      email: dto.email,
+      employee_id: dto.employee_id,
+      employee_id_type: typeof dto.employee_id,
+      has_employee_id: !!dto.employee_id,
+    });
 
     // Create account - role_id is required, role field will be populated from join
     const account = new Account();

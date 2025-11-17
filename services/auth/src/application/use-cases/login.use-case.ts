@@ -140,9 +140,16 @@ export class LoginUseCase {
     // Create or update device session
     let deviceSession;
     try {
+      console.log('🔍 [DEBUG] Account data before creating device session:', {
+        account_id: account.id,
+        employee_id: account.employee_id,
+        employee_id_type: typeof account.employee_id,
+        has_fcm_token: !!loginDto.fcm_token,
+      });
+      
       deviceSession = await this.createDeviceSessionUseCase.execute({
         account_id: account.id!,
-        employee_id: account.employee_id || undefined,
+        employee_id: account.employee_id ?? undefined,
         device_id: loginDto.device_id || `web_${Date.now()}`,
         device_name: loginDto.device_name,
         device_os: loginDto.device_os,
