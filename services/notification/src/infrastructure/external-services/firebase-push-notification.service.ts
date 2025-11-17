@@ -141,18 +141,46 @@ export class FirebasePushNotificationService
 
       // Handle failed tokens
       const failedTokens: string[] = [];
+      const tokensToDeactivate: string[] = [];
+      
       if (response.failureCount > 0) {
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
-            failedTokens.push(deviceTokens[idx]);
+            const token = deviceTokens[idx];
+            const errorCode = resp.error?.code;
+            const errorMessage = resp.error?.message || '';
+            
+            failedTokens.push(token);
             this.logger.error(
-              `Failed to send to token: ${deviceTokens[idx]}, error: ${resp.error?.message}`,
+              `Failed to send to token: ${token}, error: ${errorMessage} (code: ${errorCode})`,
             );
+            
+            // ✅ Only deactivate tokens that are truly invalid
+            // Don't deactivate for payload/data errors (our code's fault, not token's fault)
+            const isTokenInvalid = 
+              errorCode === 'messaging/invalid-registration-token' ||
+              errorCode === 'messaging/registration-token-not-registered' ||
+              errorMessage.includes('Requested entity was not found') ||
+              errorMessage.includes('registration token is not a valid');
+            
+            const isPayloadError = 
+              errorMessage.includes('data must only contain string values') ||
+              errorMessage.includes('Invalid JSON payload') ||
+              errorCode === 'messaging/invalid-argument';
+            
+            if (isTokenInvalid && !isPayloadError) {
+              tokensToDeactivate.push(token);
+              this.logger.warn(`Token ${token} is invalid and will be deactivated`);
+            } else if (isPayloadError) {
+              this.logger.warn(`Payload error for token ${token} - token is still valid, not deactivating`);
+            }
           }
         });
 
-        // Remove invalid tokens from database
-        await this.removeInvalidTokens(failedTokens);
+        // Only remove truly invalid tokens from database
+        if (tokensToDeactivate.length > 0) {
+          await this.removeInvalidTokens(tokensToDeactivate);
+        }
       }
 
       return {

@@ -190,15 +190,27 @@ export class SendNotificationUseCase {
   private async sendPushNotification(notification: Notification): Promise<void> {
     try {
       this.logger.log(`Sending push notification for notification ${notification.id}`);
+      
+      // ✅ FIX: Convert all data values to strings (Firebase requirement)
+      const dataPayload: Record<string, string> = {
+        notificationId: notification.id?.toString() || '',
+        type: notification.notificationType,
+      };
+      
+      // Convert metadata to strings
+      if (notification.metadata) {
+        Object.entries(notification.metadata).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            dataPayload[key] = typeof value === 'string' ? value : JSON.stringify(value);
+          }
+        });
+      }
+      
       await this.pushService.sendToUser(
         notification.recipientId,
         notification.title,
         notification.message,
-        {
-          notificationId: notification.id?.toString() || '',
-          type: notification.notificationType,
-          ...notification.metadata,
-        },
+        dataPayload,
       );
 
       notification.markChannelAsSent('push');

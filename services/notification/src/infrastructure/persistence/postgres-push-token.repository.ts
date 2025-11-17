@@ -27,12 +27,36 @@ export class PostgresPushTokenRepository implements PushTokenRepositoryPort {
   }
 
   async findActiveByEmployeeId(employeeId: number): Promise<PushToken[]> {
+    console.log(`🔍 [PUSH_TOKEN_REPO] Searching for active tokens: employee_id = ${employeeId}`);
+    
     const schemas = await this.repository.find({
       where: {
         employee_id: employeeId,
         is_active: true,
       },
     });
+    
+    console.log(`🔍 [PUSH_TOKEN_REPO] Found ${schemas.length} active tokens for employee ${employeeId}`);
+    
+    if (schemas.length > 0) {
+      schemas.forEach((s, i) => {
+        console.log(`   Token ${i + 1}: device_id=${s.device_id}, platform=${s.platform}, device_session_id=${s.device_session_id}, token_preview=${s.token?.substring(0, 20)}...`);
+      });
+    } else {
+      // Debug: Check if ANY tokens exist for this employee (even inactive ones)
+      const allTokens = await this.repository.find({
+        where: { employee_id: employeeId },
+      });
+      console.log(`   ℹ️ Total tokens (including inactive) for employee ${employeeId}: ${allTokens.length}`);
+      
+      if (allTokens.length > 0) {
+        console.log(`   ⚠️ Found ${allTokens.length} inactive tokens:`);
+        allTokens.forEach((t, i) => {
+          console.log(`      Token ${i + 1}: device_id=${t.device_id}, is_active=${t.is_active}, device_session_id=${t.device_session_id}`);
+        });
+      }
+    }
+    
     return schemas.map(PushTokenMapper.toDomain);
   }
 
