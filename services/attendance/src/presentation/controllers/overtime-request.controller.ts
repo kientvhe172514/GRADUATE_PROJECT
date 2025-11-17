@@ -1,301 +1,145 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Query,
   HttpCode,
   HttpStatus,
-  ParseIntPipe,
   Inject,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ClientProxy } from '@nestjs/microservices';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
-import { OvertimeRequestRepository } from '../../infrastructure/repositories/overtime-request.repository';
+import { ApiResponseDto, CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import {
   CreateOvertimeRequestDto,
-  UpdateOvertimeRequestDto,
-  ApproveOvertimeDto,
-  RejectOvertimeDto,
   OvertimeQueryDto,
-} from '../dtos/overtime-request.dto';
+  RejectOvertimeDto,
+  UpdateOvertimeRequestDto,
+} from '../../application/dtos/overtime-request.dto';
+import { CreateOvertimeRequestUseCase } from '../../application/use-cases/overtime/create-overtime-request.use-case';
+import { GetMyOvertimeRequestsUseCase } from '../../application/use-cases/overtime/get-my-overtime-requests.use-case';
+import { ListOvertimeRequestsUseCase } from '../../application/use-cases/overtime/list-overtime-requests.use-case';
+import { GetPendingOvertimeRequestsUseCase } from '../../application/use-cases/overtime/get-pending-overtime-requests.use-case';
+import { GetOvertimeRequestByIdUseCase } from '../../application/use-cases/overtime/get-overtime-request-by-id.use-case';
+import { UpdateOvertimeRequestUseCase } from '../../application/use-cases/overtime/update-overtime-request.use-case';
+import { ApproveOvertimeRequestUseCase } from '../../application/use-cases/overtime/approve-overtime-request.use-case';
+import { RejectOvertimeRequestUseCase } from '../../application/use-cases/overtime/reject-overtime-request.use-case';
 
 @ApiTags('Overtime Requests')
+@ApiBearerAuth()
 @Controller('overtime-requests')
 export class OvertimeRequestController {
   constructor(
-    private readonly overtimeRepository: OvertimeRequestRepository,
-    @Inject('NOTIFICATION_SERVICE')
-    private readonly notificationClient: ClientProxy,
+    private readonly createOvertimeRequestUseCase: CreateOvertimeRequestUseCase,
+    private readonly getMyOvertimeRequestsUseCase: GetMyOvertimeRequestsUseCase,
+    private readonly listOvertimeRequestsUseCase: ListOvertimeRequestsUseCase,
+    private readonly getPendingOvertimeRequestsUseCase: GetPendingOvertimeRequestsUseCase,
+    private readonly getOvertimeRequestByIdUseCase: GetOvertimeRequestByIdUseCase,
+    private readonly updateOvertimeRequestUseCase: UpdateOvertimeRequestUseCase,
+    private readonly approveOvertimeRequestUseCase: ApproveOvertimeRequestUseCase,
+    private readonly rejectOvertimeRequestUseCase: RejectOvertimeRequestUseCase,
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Permissions('attendance.overtime.create')
   @ApiOperation({ summary: 'Create overtime request (Employee)' })
-  @ApiResponse({ status: 201, description: 'OT request created successfully' })
+  @ApiResponse({ status: 201, type: ApiResponseDto })
   async createRequest(
     @Body() dto: CreateOvertimeRequestDto,
     @CurrentUser() user: JwtPayload,
-  ) {
-    const request = await this.overtimeRepository.createRequest({
-      employee_id: user.employee_id!,
-      shift_id: dto.shift_id,
-      overtime_date: new Date(dto.overtime_date),
-      start_time: new Date(dto.start_time),
-      end_time: new Date(dto.end_time),
-      estimated_hours: dto.estimated_hours,
-      reason: dto.reason,
-      requested_by: user.employee_id!,
-    });
-
-    // Emit notification event
-    this.notificationClient.emit('overtime.requested', {
-      employee_id: user.employee_id!,
-      overtime_date: dto.overtime_date,
-      estimated_hours: dto.estimated_hours,
-    });
-
-    return {
-      success: true,
-      message: 'Overtime request submitted successfully',
-      data: request,
-    };
+  ): Promise<ApiResponseDto<any>> {
+    return this.createOvertimeRequestUseCase.execute(dto, user);
   }
 
   @Get('my-requests')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.read')
   @ApiOperation({ summary: 'Get my overtime requests (Employee)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Your OT requests retrieved successfully',
-  })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyRequests(
     @CurrentUser() user: JwtPayload,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 20,
     @Query('offset', new ParseIntPipe({ optional: true })) offset = 0,
-  ) {
-    const requests = await this.overtimeRepository.findByEmployeeId(
-      user.employee_id!,
-      limit,
-      offset,
-    );
-
-    return {
-      success: true,
-      message: 'Your overtime requests retrieved successfully',
-      data: requests,
-      pagination: {
-        limit,
-        offset,
-        total: requests.length,
-      },
-    };
+  ): Promise<ApiResponseDto<{ data: any[]; total: number }>> {
+    return this.getMyOvertimeRequestsUseCase.execute(user, limit, offset);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.read')
   @ApiOperation({ summary: 'Get all overtime requests (HR/Manager)' })
-  @ApiResponse({
-    status: 200,
-    description: 'OT requests retrieved successfully',
-  })
-  async getAllRequests(@Query() query: OvertimeQueryDto) {
-    const requests = query.status
-      ? await this.overtimeRepository.findByStatus(
-          query.status,
-          query.limit ?? 50,
-          query.offset ?? 0,
-        )
-      : await this.overtimeRepository.find({
-          take: query.limit ?? 50,
-          skip: query.offset ?? 0,
-          order: { created_at: 'DESC' },
-        });
-
-    return {
-      success: true,
-      message: 'Overtime requests retrieved successfully',
-      data: requests,
-      pagination: {
-        limit: query.limit ?? 50,
-        offset: query.offset ?? 0,
-        total: requests.length,
-      },
-    };
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async getAllRequests(
+    @Query() query: OvertimeQueryDto,
+  ): Promise<ApiResponseDto<{ data: any[]; total: number }>> {
+    return this.listOvertimeRequestsUseCase.execute(query);
   }
 
   @Get('pending')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.read')
   @ApiOperation({ summary: 'Get pending overtime requests (HR/Manager)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Pending OT requests retrieved successfully',
-  })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   async getPendingRequests(
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 50,
     @Query('offset', new ParseIntPipe({ optional: true })) offset = 0,
-  ) {
-    const requests = await this.overtimeRepository.findPendingRequests(
-      limit,
-      offset,
-    );
-
-    return {
-      success: true,
-      message: 'Pending overtime requests retrieved successfully',
-      data: requests,
-      pagination: {
-        limit,
-        offset,
-        total: requests.length,
-      },
-    };
+  ): Promise<ApiResponseDto<{ data: any[]; total: number }>> {
+    return this.getPendingOvertimeRequestsUseCase.execute(limit, offset);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.read')
   @ApiOperation({ summary: 'Get overtime request details' })
-  @ApiResponse({
-    status: 200,
-    description: 'OT request retrieved successfully',
-  })
-  async getRequestById(@Param('id', ParseIntPipe) id: number) {
-    const request = await this.overtimeRepository.findOne({ where: { id } });
-
-    if (!request) {
-      return {
-        success: false,
-        message: 'Overtime request not found',
-      };
-    }
-
-    return {
-      success: true,
-      message: 'Overtime request retrieved successfully',
-      data: request,
-    };
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async getRequestById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<any>> {
+    return this.getOvertimeRequestByIdUseCase.execute(id);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.update')
   @ApiOperation({
     summary: 'Update overtime request (Employee - before approval)',
   })
-  @ApiResponse({ status: 200, description: 'OT request updated successfully' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   async updateRequest(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateOvertimeRequestDto,
     @CurrentUser() user: JwtPayload,
-  ) {
-    // Check if request belongs to user and is still pending
-    const request = await this.overtimeRepository.findOne({ where: { id } });
-
-    if (!request) {
-      return {
-        success: false,
-        message: 'Overtime request not found',
-      };
-    }
-
-    if (request.employee_id !== user.employee_id!) {
-      return {
-        success: false,
-        message: 'You can only update your own requests',
-      };
-    }
-
-    if (request.status !== 'PENDING') {
-      return {
-        success: false,
-        message: 'Cannot update request that is already approved/rejected',
-      };
-    }
-
-    // Convert string dates to Date objects for schema
-    const updateData = {
-      ...dto,
-      start_time: dto.start_time ? new Date(dto.start_time) : undefined,
-      end_time: dto.end_time ? new Date(dto.end_time) : undefined,
-    };
-
-    const updated = await this.overtimeRepository.updateRequest(
-      id,
-      updateData as any,
-    );
-
-    return {
-      success: updated,
-      message: updated
-        ? 'Overtime request updated successfully'
-        : 'Update failed',
-    };
+  ): Promise<ApiResponseDto<void>> {
+    return this.updateOvertimeRequestUseCase.execute(id, dto, user);
   }
 
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.approve')
   @ApiOperation({ summary: 'Approve overtime request (HR/Manager)' })
-  @ApiResponse({ status: 200, description: 'OT request approved successfully' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   async approveRequest(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
-  ) {
-    const approved = await this.overtimeRepository.approveRequest(
-      id,
-      user.employee_id!,
-    );
-
-    if (!approved) {
-      return {
-        success: false,
-        message: 'Overtime request not found or approval failed',
-      };
-    }
-
-    // Get request details for notification
-    const request = await this.overtimeRepository.findOne({ where: { id } });
-
-    if (request) {
-      this.notificationClient.emit('overtime.approved', {
-        employee_id: request.employee_id,
-        overtime_date: request.overtime_date,
-        estimated_hours: request.estimated_hours,
-      });
-    }
-
-    return {
-      success: true,
-      message: 'Overtime request approved successfully',
-    };
+  ): Promise<ApiResponseDto<void>> {
+    return this.approveOvertimeRequestUseCase.execute(id, user);
   }
 
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
+  @Permissions('attendance.overtime.approve')
   @ApiOperation({ summary: 'Reject overtime request (HR/Manager)' })
-  @ApiResponse({ status: 200, description: 'OT request rejected successfully' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
   async rejectRequest(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RejectOvertimeDto,
     @CurrentUser() user: JwtPayload,
-  ) {
-    const rejected = await this.overtimeRepository.rejectRequest(
-      id,
-      user.employee_id!,
-      dto.rejection_reason || 'No reason provided',
-    );
-
-    if (!rejected) {
-      return {
-        success: false,
-        message: 'Overtime request not found or rejection failed',
-      };
-    }
-
-    return {
-      success: true,
-      message: 'Overtime request rejected successfully',
-    };
+  ): Promise<ApiResponseDto<void>> {
+    return this.rejectOvertimeRequestUseCase.execute(id, dto, user);
   }
 }

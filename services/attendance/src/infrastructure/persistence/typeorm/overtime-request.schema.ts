@@ -8,9 +8,6 @@ import {
 } from 'typeorm';
 
 @Entity('overtime_requests')
-@Index(['employee_id'])
-@Index(['status'])
-@Index(['overtime_date'])
 export class OvertimeRequestSchema {
   @PrimaryGeneratedColumn()
   id: number;

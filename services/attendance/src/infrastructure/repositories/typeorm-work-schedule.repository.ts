@@ -1,0 +1,97 @@
+import { Injectable } from '@nestjs/common';
+import { DataSource, Repository } from 'typeorm';
+import { WorkScheduleSchema, EmployeeWorkScheduleSchema } from '../persistence/typeorm/work-schedule.schema';
+import { IWorkScheduleRepository, IEmployeeWorkScheduleRepository } from '../../application/ports/work-schedule.repository.port';
+import { WorkSchedule } from '../../domain/entities/work-schedule.entity';
+import { EmployeeWorkSchedule } from '../../domain/entities/employee-work-schedule.entity';
+import { WorkScheduleMapper } from '../persistence/mappers/work-schedule.mapper';
+import { EmployeeWorkScheduleMapper } from '../persistence/mappers/employee-work-schedule.mapper';
+import { ListWorkScheduleDto } from '../../application/dtos/work-schedule.dto';
+
+@Injectable()
+export class TypeOrmWorkScheduleRepository implements IWorkScheduleRepository {
+  private readonly repository: Repository<WorkScheduleSchema>;
+
+  constructor(private dataSource: DataSource) {
+    this.repository = dataSource.getRepository(WorkScheduleSchema);
+  }
+
+  async save(schedule: WorkSchedule): Promise<WorkSchedule> {
+    const persistenceEntity = WorkScheduleMapper.toPersistence(schedule);
+    const savedSchema = await this.repository.save(persistenceEntity);
+    return WorkScheduleMapper.toDomain(savedSchema);
+  }
+
+  async findById(id: number): Promise<WorkSchedule | null> {
+    const schema = await this.repository.findOneBy({ id });
+    return schema ? WorkScheduleMapper.toDomain(schema) : null;
+  }
+
+  async findByName(name: string): Promise<WorkSchedule | null> {
+    const schema = await this.repository.findOneBy({ schedule_name: name });
+    return schema ? WorkScheduleMapper.toDomain(schema) : null;
+  }
+
+  async findAll(options: ListWorkScheduleDto): Promise<{ data: WorkSchedule[]; total: number }> {
+    const where: any = {};
+    if (options.status) where.status = options.status;
+    if (options.schedule_type) where.schedule_type = options.schedule_type;
+
+    const [schemas, total] = await this.repository.findAndCount({
+      where,
+      order: { created_at: 'DESC' },
+      take: options.limit,
+      skip: options.offset,
+    });
+
+    return {
+      data: schemas.map(WorkScheduleMapper.toDomain),
+      total,
+    };
+  }
+}
+
+@Injectable()
+export class TypeOrmEmployeeWorkScheduleRepository implements IEmployeeWorkScheduleRepository {
+  private readonly repository: Repository<EmployeeWorkScheduleSchema>;
+
+  constructor(private dataSource: DataSource) {
+    this.repository = dataSource.getRepository(EmployeeWorkScheduleSchema);
+  }
+
+  async save(assignment: EmployeeWorkSchedule): Promise<EmployeeWorkSchedule> {
+    const persistenceEntity = EmployeeWorkScheduleMapper.toPersistence(assignment);
+    const savedSchema = await this.repository.save(persistenceEntity);
+    return EmployeeWorkScheduleMapper.toDomain(savedSchema);
+  }
+
+  async saveMany(assignments: EmployeeWorkSchedule[]): Promise<EmployeeWorkSchedule[]> {
+    const persistenceEntities = assignments.map(EmployeeWorkScheduleMapper.toPersistence);
+    const savedSchemas = await this.repository.save(persistenceEntities);
+    return savedSchemas.map(EmployeeWorkScheduleMapper.toDomain);
+  }
+
+  async findByEmployeeIdAndDate(employeeId: number, date: Date): Promise<EmployeeWorkSchedule | null> {
+    const dateStr = date.toISOString().split('T')[0];
+
+    const schema = await this.repository.createQueryBuilder('ews')
+      .where('ews.employee_id = :employeeId', { employeeId })
+      .andWhere('ews.effective_from <= :date', { date: dateStr })
+      .andWhere('(ews.effective_to IS NULL OR ews.effective_to >= :date)', { date: dateStr })
+      .orderBy('ews.effective_from', 'DESC')
+      .getOne();
+
+    return schema ? EmployeeWorkScheduleMapper.toDomain(schema) : null;
+  }
+
+  async findAssignmentsByScheduleId(scheduleId: number): Promise<EmployeeWorkSchedule[]> {
+    const schemas = await this.repository.findBy({ work_schedule_id: scheduleId });
+    return schemas.map(EmployeeWorkScheduleMapper.toDomain);
+  }
+
+  async findAssignmentsByEmployeeId(employeeId: number): Promise<EmployeeWorkSchedule[]> {
+    const schemas = await this.repository.findBy({ employee_id: employeeId });
+    return schemas.map(EmployeeWorkScheduleMapper.toDomain);
+  }
+}
+
