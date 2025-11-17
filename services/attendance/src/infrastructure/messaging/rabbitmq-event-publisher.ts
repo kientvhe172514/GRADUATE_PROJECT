@@ -5,7 +5,7 @@ import { Inject } from '@nestjs/common';
 
 /**
  * RabbitMQ Event Publisher Implementation
- * 
+ *
  * Publishes domain events to RabbitMQ message broker
  */
 @Injectable()

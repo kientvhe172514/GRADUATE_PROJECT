@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { AttendanceCheckRecordSchema } from '../typeorm/attendance-check-record.schema';
+import { AttendanceCheckRecordSchema } from '../persistence/typeorm/attendance-check-record.schema';
 
 export interface CreateCheckRecordDto {
   employee_id: number;
@@ -39,7 +39,9 @@ export class AttendanceCheckRepository {
     private readonly repository: Repository<AttendanceCheckRecordSchema>,
   ) {}
 
-  async create(dto: CreateCheckRecordDto): Promise<AttendanceCheckRecordSchema> {
+  async create(
+    dto: CreateCheckRecordDto,
+  ): Promise<AttendanceCheckRecordSchema> {
     const record = this.repository.create({
       ...dto,
       check_timestamp: new Date(),
@@ -68,11 +70,11 @@ export class AttendanceCheckRepository {
     record.face_verified = dto.face_verified;
     record.face_confidence = dto.face_confidence;
     record.photo_url = dto.photo_url;
-    
+
     if (dto.verified_at !== undefined) {
       record.verified_at = dto.verified_at;
     }
-    
+
     if (dto.notes !== undefined) {
       record.notes = dto.notes;
     }

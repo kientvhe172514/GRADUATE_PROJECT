@@ -2,7 +2,13 @@ export class ViolationEntity {
   id?: number;
   employee_id?: number;
   shift_id?: number;
-  violation_type?: 'LATE' | 'EARLY_LEAVE' | 'MISSING_CHECKIN' | 'MISSING_CHECKOUT' | 'ABSENT' | 'OTHER';
+  violation_type?:
+    | 'LATE'
+    | 'EARLY_LEAVE'
+    | 'MISSING_CHECKIN'
+    | 'MISSING_CHECKOUT'
+    | 'ABSENT'
+    | 'OTHER';
   violation_date?: Date;
   severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   description?: string;

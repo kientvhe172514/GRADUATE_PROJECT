@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, IsNull } from 'typeorm';
 import { GpsAnomalyRepositoryPort } from '../../application/ports/gps-anomaly.repository.port';
 import { GpsAnomalyEntity } from '../../domain/entities/gps-anomaly.entity';
-import { GpsAnomalySchema } from '../database/schemas/gps-anomaly.schema';
+import { GpsAnomalySchema } from '../persistence/typeorm/gps-anomaly.schema';
 
 /**
  * PostgreSQL implementation of GPS Anomaly Repository
@@ -22,13 +22,13 @@ export class PostgresGpsAnomalyRepository implements GpsAnomalyRepositoryPort {
   }
 
   async findById(id: number): Promise<GpsAnomalyEntity | null> {
-    const schema = await this.repository.findOne({ where: { id: String(id) } });
+    const schema = await this.repository.findOne({ where: { id } });
     return schema ? schema.toDomain() : null;
   }
 
   async findByEmployeeId(employeeId: number): Promise<GpsAnomalyEntity[]> {
     const schemas = await this.repository.find({
-      where: { employee_id: String(employeeId) },
+      where: { employee_id: employeeId },
       order: { detected_at: 'DESC' },
     });
     return schemas.map((schema) => schema.toDomain());
@@ -36,7 +36,7 @@ export class PostgresGpsAnomalyRepository implements GpsAnomalyRepositoryPort {
 
   async findByShiftId(shiftId: number): Promise<GpsAnomalyEntity[]> {
     const schemas = await this.repository.find({
-      where: { shift_id: String(shiftId) },
+      where: { shift_id: shiftId },
       order: { detected_at: 'ASC' },
     });
     return schemas.map((schema) => schema.toDomain());
@@ -53,7 +53,10 @@ export class PostgresGpsAnomalyRepository implements GpsAnomalyRepositoryPort {
     return schemas.map((schema) => schema.toDomain());
   }
 
-  async findByDateRange(startDate: Date, endDate: Date): Promise<GpsAnomalyEntity[]> {
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<GpsAnomalyEntity[]> {
     const schemas = await this.repository.find({
       where: {
         detected_at: Between(startDate, endDate),
@@ -63,9 +66,14 @@ export class PostgresGpsAnomalyRepository implements GpsAnomalyRepositoryPort {
     return schemas.map((schema) => schema.toDomain());
   }
 
-  async update(id: number, data: Partial<GpsAnomalyEntity>): Promise<GpsAnomalyEntity> {
-    await this.repository.update(String(id), data as any);
-    const updated = await this.repository.findOne({ where: { id: String(id) } });
+  async update(
+    id: number,
+    data: Partial<GpsAnomalyEntity>,
+  ): Promise<GpsAnomalyEntity> {
+    await this.repository.update(id, data as any);
+    const updated = await this.repository.findOne({
+      where: { id },
+    });
     if (!updated) {
       throw new Error(`GPS anomaly ${id} not found`);
     }
@@ -75,11 +83,13 @@ export class PostgresGpsAnomalyRepository implements GpsAnomalyRepositoryPort {
   async markAsNotified(id: number): Promise<void> {
     await this.repository.update(id, {
       notified: true,
-      notified_at: new Date(),
     });
   }
 
-  async countByEmployeeAndType(employeeId: number, anomalyType: string): Promise<number> {
+  async countByEmployeeAndType(
+    employeeId: number,
+    anomalyType: string,
+  ): Promise<number> {
     return await this.repository.count({
       where: {
         employee_id: employeeId as any,

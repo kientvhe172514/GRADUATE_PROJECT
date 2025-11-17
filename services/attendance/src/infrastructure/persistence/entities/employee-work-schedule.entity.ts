@@ -1,9 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { WorkScheduleEntity } from './work-schedule.entity';
 
 /**
  * EmployeeWorkScheduleEntity - Link nhân viên với work schedule
- * 
+ *
  * Business Rules:
  * - Một employee có thể có nhiều work schedules theo thời gian
  * - effective_from/effective_to xác định khoảng thời gian áp dụng
@@ -29,7 +36,11 @@ export class EmployeeWorkScheduleEntity {
   @Column({ type: 'date', comment: 'Ngày bắt đầu áp dụng lịch làm việc' })
   effective_from: Date;
 
-  @Column({ type: 'date', nullable: true, comment: 'Ngày kết thúc (null = vô thời hạn)' })
+  @Column({
+    type: 'date',
+    nullable: true,
+    comment: 'Ngày kết thúc (null = vô thời hạn)',
+  })
   effective_to: Date | null;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

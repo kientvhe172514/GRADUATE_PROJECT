@@ -13,10 +13,7 @@ export interface GpsAnomalyRepositoryPort {
 
   findRequiringInvestigation(): Promise<GpsAnomalyEntity[]>;
 
-  findByDateRange(
-    startDate: Date,
-    endDate: Date,
-  ): Promise<GpsAnomalyEntity[]>;
+  findByDateRange(startDate: Date, endDate: Date): Promise<GpsAnomalyEntity[]>;
 
   update(
     id: number,

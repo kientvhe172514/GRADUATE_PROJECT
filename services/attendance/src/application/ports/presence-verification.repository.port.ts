@@ -17,7 +17,9 @@ export interface PresenceVerificationRepositoryPort {
     roundNumber: number,
   ): Promise<PresenceVerificationRoundEntity | null>;
 
-  findByEmployeeId(employeeId: number): Promise<PresenceVerificationRoundEntity[]>;
+  findByEmployeeId(
+    employeeId: number,
+  ): Promise<PresenceVerificationRoundEntity[]>;
 
   countByShiftId(shiftId: number): Promise<number>;
 
@@ -28,5 +30,7 @@ export interface PresenceVerificationRepositoryPort {
 
   delete(id: number): Promise<void>;
 
-  findInvalidRounds(shiftId: number): Promise<PresenceVerificationRoundEntity[]>;
+  findInvalidRounds(
+    shiftId: number,
+  ): Promise<PresenceVerificationRoundEntity[]>;
 }

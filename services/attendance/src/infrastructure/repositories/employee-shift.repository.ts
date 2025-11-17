@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { EmployeeShiftSchema } from '../typeorm/employee-shift.schema';
+import { EmployeeShiftSchema } from '../persistence/typeorm/employee-shift.schema';
 
 export interface CreateShiftDto {
   employee_id: number;

@@ -5,38 +5,38 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // Schemas
-import { PresenceVerificationRoundSchema } from '../../infrastructure/database/schemas/presence-verification-round.schema';
-import { GpsAnomalySchema } from '../../infrastructure/database/schemas/gps-anomaly.schema';
+import { PresenceVerificationRoundSchema } from '../../infrastructure/persistence/typeorm/presence-verification-round.schema';
+import { GpsAnomalySchema } from '../../infrastructure/persistence/typeorm/gps-anomaly.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
 
 // Repositories
 import { PostgresPresenceVerificationRepository } from '../../infrastructure/repositories/postgres-presence-verification.repository';
 import { PostgresGpsAnomalyRepository } from '../../infrastructure/repositories/postgres-gps-anomaly.repository';
-import { EmployeeShiftRepositoryAdapter } from '../../infrastructure/persistence/repositories/employee-shift-repository.adapter';
-import { EmployeeShiftRepository } from '../../infrastructure/persistence/repositories/employee-shift.repository';
+import { EmployeeShiftRepositoryAdapter } from '../../infrastructure/repositories/employee-shift-repository.adapter';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
 // Messaging
 import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event-publisher';
 
 // Use Cases
 import { CapturePresenceVerificationUseCase } from './use-cases/capture-presence-verification.use-case';
-import { GetVerificationScheduleUseCase } from '../use-cases/get-verification-schedule.use-case';
-import { ScheduleVerificationRemindersUseCase } from '../use-cases/schedule-verification-reminders.use-case';
+import { GetVerificationScheduleUseCase } from './use-cases/get-verification-schedule.use-case';
+import { ScheduleVerificationRemindersUseCase } from './use-cases/schedule-verification-reminders.use-case';
 
 // Controllers
 import { PresenceVerificationController } from '../../presentation/controllers/presence-verification.controller';
 
 /**
  * Presence Verification Module
- * 
+ *
  * Implements GPS-based presence verification system using Clean Architecture
- * 
+ *
  * Features:
  * - GPS location capture during shifts (3 rounds per shift)
  * - Automatic anomaly detection (teleportation, spoofing, out of range)
  * - Scheduled reminders via cron job (every 5 minutes)
  * - Event-driven communication with other services
- * 
+ *
  * Clean Architecture Layers:
  * - Domain: Entities (PresenceVerificationRound, GpsAnomaly) + Events
  * - Application: Use Cases + DTOs + Repository Ports
@@ -64,7 +64,9 @@ import { PresenceVerificationController } from '../../presentation/controllers/p
           transport: Transport.RMQ,
           options: {
             urls: [configService.getOrThrow<string>('RABBITMQ_URL')],
-            queue: configService.getOrThrow<string>('RABBITMQ_ATTENDANCE_QUEUE'),
+            queue: configService.getOrThrow<string>(
+              'RABBITMQ_ATTENDANCE_QUEUE',
+            ),
             queueOptions: {
               durable: true,
             },
@@ -78,7 +80,7 @@ import { PresenceVerificationController } from '../../presentation/controllers/p
   providers: [
     // Existing repository
     EmployeeShiftRepository,
-    
+
     // Repositories (Infrastructure → Application Port)
     {
       provide: 'IPresenceVerificationRepository',
@@ -107,9 +109,6 @@ import { PresenceVerificationController } from '../../presentation/controllers/p
 
   controllers: [PresenceVerificationController],
 
-  exports: [
-    CapturePresenceVerificationUseCase,
-    GetVerificationScheduleUseCase,
-  ],
+  exports: [CapturePresenceVerificationUseCase, GetVerificationScheduleUseCase],
 })
 export class PresenceVerificationModule {}

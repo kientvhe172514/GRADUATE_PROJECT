@@ -1,8 +1,13 @@
-import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { AttendanceCheckRepository } from '../../infrastructure/persistence/repositories/attendance-check.repository';
-import { EmployeeShiftRepository } from '../../infrastructure/persistence/repositories/employee-shift.repository';
+import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
@@ -46,12 +51,16 @@ export class RequestFaceVerificationUseCase {
     private readonly validateGpsUseCase: ValidateGpsUseCase,
     private readonly updateEmployeeShiftUseCase: UpdateEmployeeShiftUseCase,
     private readonly configService: ConfigService,
-    @Inject('FACE_RECOGNITION_SERVICE') private readonly faceRecognitionClient: ClientProxy,
+    @Inject('FACE_RECOGNITION_SERVICE')
+    private readonly faceRecognitionClient: ClientProxy,
   ) {
     // Load office GPS coordinates from config
-    this.OFFICE_LATITUDE = this.configService.get<number>('OFFICE_LATITUDE') || 10.762622;
-    this.OFFICE_LONGITUDE = this.configService.get<number>('OFFICE_LONGITUDE') || 106.660172;
-    this.MAX_DISTANCE_METERS = this.configService.get<number>('MAX_OFFICE_DISTANCE_METERS') || 500;
+    this.OFFICE_LATITUDE =
+      this.configService.get<number>('OFFICE_LATITUDE') || 10.762622;
+    this.OFFICE_LONGITUDE =
+      this.configService.get<number>('OFFICE_LONGITUDE') || 106.660172;
+    this.MAX_DISTANCE_METERS =
+      this.configService.get<number>('MAX_OFFICE_DISTANCE_METERS') || 500;
   }
 
   async execute(command: RequestFaceVerificationCommand): Promise<{
@@ -162,7 +171,8 @@ export class RequestFaceVerificationUseCase {
       success: true,
       attendance_check_id: attendanceCheck.id,
       shift_id: shift.id,
-      message: `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} initiated. ` +
+      message:
+        `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} initiated. ` +
         `Beacon: ✅ ${gpsValidated ? '| GPS: ✅' : '| GPS: ⏭️ (skipped)'} | Face: ⏳ (pending verification)`,
     };
   }

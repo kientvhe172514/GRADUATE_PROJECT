@@ -1,9 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { EmployeeShiftEntity } from './employee-shift.entity';
 
 /**
  * PresenceVerificationRoundEntity - GPS verification rounds trong ca làm việc
- * 
+ *
  * Purpose:
  * - Verify nhân viên vẫn ở văn phòng trong suốt ca làm việc
  * - Chống gian lận: check-in rồi rời đi
@@ -37,17 +44,35 @@ export class PresenceVerificationRoundEntity {
   @Column({ type: 'decimal', precision: 11, scale: 8 })
   longitude: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: 'GPS accuracy in meters' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    comment: 'GPS accuracy in meters',
+  })
   location_accuracy: number | null;
 
   // Validation
   @Column({ type: 'boolean', default: false })
   is_valid: boolean;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: 'Khoảng cách từ văn phòng (meters)' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    comment: 'Khoảng cách từ văn phòng (meters)',
+  })
   distance_from_office_meters: number | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: 'Khoảng cách từ vị trí check-in (meters)' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    comment: 'Khoảng cách từ vị trí check-in (meters)',
+  })
   distance_from_check_in_meters: number | null;
 
   // Device Info
@@ -60,7 +85,12 @@ export class PresenceVerificationRoundEntity {
   @Column({ type: 'timestamptz', comment: 'Thời điểm capture GPS' })
   captured_at: Date;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, comment: 'VALID, INVALID, OUT_OF_RANGE, SUSPICIOUS' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    comment: 'VALID, INVALID, OUT_OF_RANGE, SUSPICIOUS',
+  })
   validation_status: string | null;
 
   @Column({ type: 'text', nullable: true })

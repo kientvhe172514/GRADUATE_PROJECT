@@ -14,12 +14,12 @@ export class RabbitMQEventPublisher implements EventPublisherPort {
     if (pattern.startsWith('attendance.')) {
       this.notificationClient.emit(pattern, data);
     }
-    
+
     // Route violations and anomalies to notification service
     if (pattern.includes('violation') || pattern.includes('anomaly')) {
       this.notificationClient.emit(pattern, data);
     }
-    
+
     // Also notify employee service for attendance data sync
     if (pattern.includes('checked') || pattern.includes('shift-completed')) {
       this.employeeClient.emit(pattern, data);

@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { EmployeeShiftRepository } from '../../infrastructure/persistence/repositories/employee-shift.repository';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
 export interface UpdateShiftOnCheckInCommand {
   shift_id: number;

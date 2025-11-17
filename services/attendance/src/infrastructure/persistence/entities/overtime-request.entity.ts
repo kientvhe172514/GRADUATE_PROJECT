@@ -1,9 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { EmployeeShiftEntity } from './employee-shift.entity';
 
 /**
  * OvertimeRequestEntity - Quản lý đơn xin làm thêm giờ
- * 
+ *
  * Workflow:
  * 1. Employee tạo OT request trước khi làm
  * 2. Manager approve/reject
@@ -21,7 +28,10 @@ export class OvertimeRequestEntity {
   @Column({ type: 'bigint', comment: 'References employee_db.employees.id' })
   employee_id: number;
 
-  @Column({ nullable: true, comment: 'Link to shift nếu OT trong ngày làm việc thường' })
+  @Column({
+    nullable: true,
+    comment: 'Link to shift nếu OT trong ngày làm việc thường',
+  })
   shift_id: number | null;
 
   @ManyToOne(() => EmployeeShiftEntity, { nullable: true })
@@ -37,16 +47,32 @@ export class OvertimeRequestEntity {
   @Column({ type: 'timestamptz', comment: 'Giờ kết thúc OT dự kiến' })
   end_time: Date;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, comment: 'Số giờ OT dự kiến' })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    comment: 'Số giờ OT dự kiến',
+  })
   estimated_hours: number;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, comment: 'Số giờ OT thực tế (từ attendance)' })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+    comment: 'Số giờ OT thực tế (từ attendance)',
+  })
   actual_hours: number | null;
 
   @Column({ type: 'text', comment: 'Lý do làm OT' })
   reason: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'PENDING', comment: 'PENDING, APPROVED, REJECTED' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'PENDING',
+    comment: 'PENDING, APPROVED, REJECTED',
+  })
   status: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
@@ -71,7 +97,11 @@ export class OvertimeRequestEntity {
   @Column({ type: 'bigint', nullable: true })
   created_by: number | null;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updated_at: Date;
 
   @Column({ type: 'bigint', nullable: true })

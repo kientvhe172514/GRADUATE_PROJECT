@@ -7,8 +7,14 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ValidateBeaconUseCase, ValidateBeaconCommand } from '../../application/attendance-check/validate-beacon.use-case';
-import { RequestFaceVerificationUseCase, RequestFaceVerificationCommand } from '../../application/attendance-check/request-face-verification.use-case';
+import {
+  ValidateBeaconUseCase,
+  ValidateBeaconCommand,
+} from '../../application/attendance-check/validate-beacon.use-case';
+import {
+  RequestFaceVerificationUseCase,
+  RequestFaceVerificationCommand,
+} from '../../application/attendance-check/request-face-verification.use-case';
 
 class ValidateBeaconDto {
   employee_id: number;

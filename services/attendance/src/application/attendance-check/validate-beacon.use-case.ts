@@ -1,5 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { BeaconRepository } from '../../infrastructure/persistence/repositories/beacon.repository';
+import { Injectable } from '@nestjs/common';
+import { BeaconRepository } from '../../infrastructure/repositories/beacon.repository';
 
 export interface ValidateBeaconCommand {
   employee_id: number;
@@ -81,7 +81,10 @@ export class ValidateBeaconUseCase {
     };
   }
 
-  validateSession(sessionToken: string, employeeId: number): {
+  validateSession(
+    sessionToken: string,
+    employeeId: number,
+  ): {
     valid: boolean;
     beaconId?: number;
     error?: string;
@@ -98,7 +101,10 @@ export class ValidateBeaconUseCase {
 
     if (new Date() > session.expiresAt) {
       this.beaconSessions.delete(sessionToken);
-      return { valid: false, error: 'Session expired. Please scan beacon again' };
+      return {
+        valid: false,
+        error: 'Session expired. Please scan beacon again',
+      };
     }
 
     return { valid: true, beaconId: session.beaconId };

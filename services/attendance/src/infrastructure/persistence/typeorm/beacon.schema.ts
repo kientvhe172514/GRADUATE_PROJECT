@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Index,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity('beacons')
 @Index(['beacon_uuid', 'beacon_major', 'beacon_minor'], { unique: true })

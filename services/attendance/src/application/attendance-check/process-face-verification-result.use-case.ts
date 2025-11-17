@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AttendanceCheckRepository } from '../../infrastructure/persistence/repositories/attendance-check.repository';
+import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 
 export interface FaceVerificationResultEvent {
   attendance_check_id: number;
@@ -13,7 +13,9 @@ export interface FaceVerificationResultEvent {
 
 @Injectable()
 export class ProcessFaceVerificationResultUseCase {
-  private readonly logger = new Logger(ProcessFaceVerificationResultUseCase.name);
+  private readonly logger = new Logger(
+    ProcessFaceVerificationResultUseCase.name,
+  );
   private readonly MINIMUM_CONFIDENCE = 0.85;
 
   constructor(
@@ -57,7 +59,7 @@ export class ProcessFaceVerificationResultUseCase {
       this.logger.log(
         `✅ Attendance check ${event.attendance_check_id} completed successfully for employee ${event.employee_code}`,
       );
-      
+
       // TODO: Mark employee shift presence_verified = true
       // TODO: Trigger notification to employee
       // TODO: Update employee work hours
@@ -66,7 +68,7 @@ export class ProcessFaceVerificationResultUseCase {
         `❌ Attendance check ${event.attendance_check_id} failed for employee ${event.employee_code}: ` +
           (event.error_message || `Low confidence ${event.face_confidence}`),
       );
-      
+
       // TODO: Trigger alert to HR department
       // TODO: Create anomaly record for investigation
     }

@@ -1,9 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { EmployeeShiftEntity } from './employee-shift.entity';
 
 /**
  * GpsAnomalyDetectionEntity - Phát hiện gian lận GPS
- * 
+ *
  * Anomaly Types:
  * - TELEPORTATION: Di chuyển quá nhanh (> 100km/h)
  * - OUT_OF_RANGE: Quá xa văn phòng trong ca làm
@@ -21,20 +28,35 @@ export class GpsAnomalyDetectionEntity {
   @Column({ type: 'bigint', comment: 'References employee_db.employees.id' })
   employee_id: number;
 
-  @Column({ nullable: true, comment: 'References employee_shifts.id nếu xảy ra trong ca' })
+  @Column({
+    nullable: true,
+    comment: 'References employee_shifts.id nếu xảy ra trong ca',
+  })
   shift_id: number | null;
 
   @ManyToOne(() => EmployeeShiftEntity, { nullable: true })
   @JoinColumn({ name: 'shift_id' })
   shift: EmployeeShiftEntity | null;
 
-  @Column({ type: 'varchar', length: 50, comment: 'TELEPORTATION, OUT_OF_RANGE, GPS_SPOOFING, IMPOSSIBLE_SPEED' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    comment: 'TELEPORTATION, OUT_OF_RANGE, GPS_SPOOFING, IMPOSSIBLE_SPEED',
+  })
   anomaly_type: string;
 
-  @Column({ type: 'varchar', length: 20, comment: 'LOW, MEDIUM, HIGH, CRITICAL' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    comment: 'LOW, MEDIUM, HIGH, CRITICAL',
+  })
   severity: string;
 
-  @Column({ type: 'jsonb', nullable: true, comment: 'Chi tiết bằng chứng: locations, speeds, timestamps...' })
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+    comment: 'Chi tiết bằng chứng: locations, speeds, timestamps...',
+  })
   evidence_data: object | null;
 
   @Column({ type: 'text', nullable: true })
@@ -44,10 +66,18 @@ export class GpsAnomalyDetectionEntity {
   detected_at: Date;
 
   // Auto flagging
-  @Column({ type: 'boolean', default: false, comment: 'Auto-detected bởi algorithm' })
+  @Column({
+    type: 'boolean',
+    default: false,
+    comment: 'Auto-detected bởi algorithm',
+  })
   auto_flagged: boolean;
 
-  @Column({ type: 'boolean', default: false, comment: 'Đã notify HR/Manager chưa' })
+  @Column({
+    type: 'boolean',
+    default: false,
+    comment: 'Đã notify HR/Manager chưa',
+  })
   notified: boolean;
 
   @Column({ type: 'boolean', default: false, comment: 'Cần điều tra thủ công' })
@@ -63,6 +93,11 @@ export class GpsAnomalyDetectionEntity {
   @Column({ type: 'text', nullable: true })
   investigation_notes: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, comment: 'CONFIRMED_FRAUD, FALSE_POSITIVE, TECHNICAL_ERROR' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    comment: 'CONFIRMED_FRAUD, FALSE_POSITIVE, TECHNICAL_ERROR',
+  })
   investigation_result: string | null;
 }
