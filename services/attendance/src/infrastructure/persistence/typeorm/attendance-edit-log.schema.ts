@@ -16,11 +16,9 @@ export class AttendanceEditLogSchema {
   id: number;
 
   @Column({ type: 'int' })
-  @Index()
   shift_id: number;
 
   @Column({ type: 'bigint' })
-  @Index()
   employee_id: number;
 
   @Column({ type: 'varchar', length: 50 })
@@ -30,7 +28,6 @@ export class AttendanceEditLogSchema {
   shift_date: Date;
 
   @Column({ type: 'bigint' })
-  @Index()
   edited_by_user_id: number;
 
   @Column({ type: 'varchar', length: 255 })
@@ -55,6 +52,5 @@ export class AttendanceEditLogSchema {
   ip_address?: string;
 
   @CreateDateColumn()
-  @Index()
   edited_at: Date;
 }

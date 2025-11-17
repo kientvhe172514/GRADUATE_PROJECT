@@ -16,14 +16,12 @@ export class OvertimeRequestSchema {
   id: number;
 
   @Column({ type: 'bigint' })
-  @Index()
   employee_id: number;
 
   @Column({ type: 'int', nullable: true })
   shift_id: number | null;
 
   @Column({ type: 'date' })
-  @Index()
   overtime_date: Date;
 
   @Column({ type: 'timestamptz' })
@@ -46,7 +44,6 @@ export class OvertimeRequestSchema {
     length: 20,
     default: 'PENDING',
   })
-  @Index()
   status: string;
 
   @CreateDateColumn()
