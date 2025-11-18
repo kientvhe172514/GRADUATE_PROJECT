@@ -2,17 +2,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { APP_GUARD } from '@nestjs/core';
+import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
-// import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
+import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
 import { EmployeeShiftModule } from './application/employee-shift/employee-shift.module';
 import { ViolationModule } from './application/violation/violation.module';
-// import { PresenceVerificationModule } from './application/presence-verification/presence-verification.module';
+import { PresenceVerificationModule } from './application/presence-verification/presence-verification.module';
 import { OvertimeModule } from './application/overtime/overtime.module';
 import { AttendanceEditLogModule } from './application/edit-log/edit-log.module';
 import { ReportModule } from './application/report/report.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
+import { FaceVerificationResultConsumer } from './presentation/consumers/face-verification-result.consumer';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -99,14 +102,25 @@ import { HealthController } from './health.controller';
     ]),
     WorkScheduleModule,
     BeaconModule,
-    // AttendanceCheckModule, // TODO: Has dependencies on presence-verification
+    AttendanceCheckModule,
     EmployeeShiftModule,
     ViolationModule,
-    // PresenceVerificationModule, // TODO: Fix fromDomain/toDomain in schemas
+    PresenceVerificationModule,
     OvertimeModule,
     AttendanceEditLogModule,
     ReportModule,
   ],
-  controllers: [HealthController, EmployeeEventListener, LeaveEventListener],
+  controllers: [
+    HealthController,
+    EmployeeEventListener,
+    LeaveEventListener,
+    FaceVerificationResultConsumer,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: HeaderBasedPermissionGuard,
+    },
+  ],
 })
 export class AppModule {}

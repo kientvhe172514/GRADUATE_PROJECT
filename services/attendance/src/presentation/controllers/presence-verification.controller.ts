@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Permissions } from '@graduate-project/shared-common';
 import { CapturePresenceVerificationUseCase } from '../../application/presence-verification/use-cases/capture-presence-verification.use-case';
 import { GetVerificationScheduleUseCase } from '../../application/presence-verification/use-cases/get-verification-schedule.use-case';
 
@@ -13,6 +14,7 @@ export class PresenceVerificationController {
   ) {}
 
   @Post('capture')
+  @Permissions('attendance.presence.create')
   @ApiOperation({ summary: 'Capture presence verification with GPS location' })
   @ApiResponse({ status: 201, description: 'Verification captured successfully' })
   async capture(@Body() data: {
@@ -26,6 +28,7 @@ export class PresenceVerificationController {
   }
 
   @Get('schedule/:shiftId')
+  @Permissions('attendance.presence.read')
   @ApiOperation({ summary: 'Get verification schedule for a shift' })
   @ApiResponse({ status: 200, description: 'Schedule retrieved successfully' })
   async getSchedule(@Param('shiftId') shiftId: string) {

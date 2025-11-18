@@ -7,6 +7,8 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '@graduate-project/shared-common';
 import {
   ValidateBeaconUseCase,
   ValidateBeaconCommand,
@@ -39,6 +41,8 @@ class RequestFaceVerificationDto {
   ip_address?: string;
 }
 
+@ApiTags('Attendance Check')
+@ApiBearerAuth()
 @Controller('attendance-check')
 export class AttendanceCheckController {
   constructor(
@@ -46,8 +50,11 @@ export class AttendanceCheckController {
     private readonly requestFaceVerificationUseCase: RequestFaceVerificationUseCase,
   ) {}
 
+  @Public()
   @Post('validate-beacon')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Validate beacon proximity (Public - Mobile App)' })
+  @ApiResponse({ status: 200, description: 'Beacon validation result' })
   async validateBeacon(@Body() dto: ValidateBeaconDto) {
     const command: ValidateBeaconCommand = {
       employee_id: dto.employee_id,
@@ -61,8 +68,11 @@ export class AttendanceCheckController {
     return this.validateBeaconUseCase.execute(command);
   }
 
+  @Public()
   @Post('request-face-verification')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request face verification for attendance (Public - Mobile App)' })
+  @ApiResponse({ status: 200, description: 'Face verification requested' })
   async requestFaceVerification(
     @Body() dto: RequestFaceVerificationDto,
     @Req() req: any,
