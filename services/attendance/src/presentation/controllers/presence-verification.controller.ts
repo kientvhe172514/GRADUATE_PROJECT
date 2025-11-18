@@ -1,10 +1,11 @@
 import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { Permissions } from '@graduate-project/shared-common';
+import { Permissions, Public } from '@graduate-project/shared-common';
 import { CapturePresenceVerificationUseCase } from '../../application/presence-verification/use-cases/capture-presence-verification.use-case';
 import { GetVerificationScheduleUseCase } from '../../application/presence-verification/use-cases/get-verification-schedule.use-case';
 
 @ApiTags('Presence Verification')
+@Public()
 @Controller('presence-verification')
 @ApiBearerAuth()
 export class PresenceVerificationController {

@@ -12,7 +12,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
 import { BeaconRepository } from '../../infrastructure/repositories/beacon.repository';
 import {
   CreateBeaconDto,
@@ -22,6 +22,7 @@ import {
 
 @ApiTags('Beacons')
 @ApiBearerAuth()
+@Public()
 @Controller('beacons')
 export class BeaconController {
   constructor(private readonly beaconRepository: BeaconRepository) {}

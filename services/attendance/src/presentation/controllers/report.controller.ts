@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
-import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
 import {
   DailyReportQueryDto,
   MonthlyReportQueryDto,
@@ -18,6 +18,7 @@ import {
 
 @ApiTags('Reports & Analytics')
 @ApiBearerAuth()
+@Public()
 @Controller('reports')
 export class ReportController {
   constructor(private readonly dataSource: DataSource) {}

@@ -28,9 +28,11 @@ import { GetOvertimeRequestByIdUseCase } from '../../application/use-cases/overt
 import { UpdateOvertimeRequestUseCase } from '../../application/use-cases/overtime/update-overtime-request.use-case';
 import { ApproveOvertimeRequestUseCase } from '../../application/use-cases/overtime/approve-overtime-request.use-case';
 import { RejectOvertimeRequestUseCase } from '../../application/use-cases/overtime/reject-overtime-request.use-case';
+import { Public } from '@graduate-project/shared-common';
 
 @ApiTags('Overtime Requests')
 @ApiBearerAuth()
+@Public()
 @Controller('overtime-requests')
 export class OvertimeRequestController {
   constructor(

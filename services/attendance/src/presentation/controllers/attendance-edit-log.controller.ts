@@ -8,12 +8,13 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
 import { AttendanceEditLogRepository } from '../../infrastructure/repositories/attendance-edit-log.repository';
 import { EditLogQueryDto } from '../dtos/edit-log.dto';
 
 @ApiTags('Attendance Edit Logs')
 @ApiBearerAuth()
+@Public()
 @Controller('attendance-edit-logs')
 export class AttendanceEditLogController {
   constructor(

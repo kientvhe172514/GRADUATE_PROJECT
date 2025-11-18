@@ -11,7 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions, ApiResponseDto } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, ApiResponseDto, Public } from '@graduate-project/shared-common';
 import { EmployeeShiftFilterDto, EmployeeShiftDto } from '../../application/dtos/employee-shift.dto';
 import { GetEmployeeShiftsUseCase } from '../../application/use-cases/employee-shift/get-employee-shifts.use-case';
 import { GetShiftByIdUseCase } from '../../application/use-cases/employee-shift/get-shift-by-id.use-case';
@@ -20,6 +20,7 @@ import { ManualEditShiftDto } from '../dtos/employee-shift-edit.dto';
 
 @ApiTags('Employee Shifts')
 @ApiBearerAuth()
+@Public()
 @Controller('employee-shifts')
 export class EmployeeShiftController {
   constructor(

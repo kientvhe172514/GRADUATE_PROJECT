@@ -12,7 +12,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions, ApiResponseDto } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, ApiResponseDto, Public } from '@graduate-project/shared-common';
 import {
   CreateWorkScheduleDto,
   UpdateWorkScheduleDto,
@@ -29,6 +29,7 @@ import { AssignScheduleToEmployeesUseCase } from '../../application/use-cases/wo
 
 @ApiTags('Work Schedules')
 @ApiBearerAuth()
+@Public()
 @Controller('work-schedules')
 export class WorkScheduleController {
   constructor(

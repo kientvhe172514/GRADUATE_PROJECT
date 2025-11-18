@@ -10,12 +10,13 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
 import { ViolationRepository } from '../../infrastructure/repositories/violation.repository';
 import { ResolveViolationDto, ViolationQueryDto } from '../dtos/violation.dto';
 
 @ApiTags('Violations')
 @ApiBearerAuth()
+@Public()
 @Controller('violations')
 export class ViolationController {
   constructor(private readonly violationRepository: ViolationRepository) {}
