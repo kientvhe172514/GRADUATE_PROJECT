@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PresenceVerificationRepositoryPort } from '../../ports/presence-verification.repository.port';
 import { PresenceVerificationRoundEntity } from '../../../domain/entities/presence-verification-round.entity';
 
@@ -7,6 +7,7 @@ export class GetVerificationScheduleUseCase {
   private readonly logger = new Logger(GetVerificationScheduleUseCase.name);
 
   constructor(
+    @Inject('IPresenceVerificationRepository')
     private readonly verificationRepository: PresenceVerificationRepositoryPort,
   ) {}
 

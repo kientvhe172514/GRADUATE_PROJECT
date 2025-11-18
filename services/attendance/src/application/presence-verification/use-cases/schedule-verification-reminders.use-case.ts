@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PresenceVerificationRepositoryPort } from '../../ports/presence-verification.repository.port';
 import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
@@ -10,7 +10,9 @@ export class ScheduleVerificationRemindersUseCase {
   );
 
   constructor(
+    @Inject('IPresenceVerificationRepository')
     private readonly verificationRepository: PresenceVerificationRepositoryPort,
+    @Inject('IEmployeeShiftRepository')
     private readonly employeeShiftRepository: IEmployeeShiftRepository,
   ) {}
 
