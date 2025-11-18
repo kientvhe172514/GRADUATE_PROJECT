@@ -22,6 +22,26 @@ export class UpdateOvertimeRequestUseCase {
       );
     }
 
+    // Debug log - check sub values
+    console.log('[UpdateOvertimeRequest] Debug sub check:', {
+      request_requested_by: request.requested_by,
+      request_requested_by_type: typeof request.requested_by,
+      currentUser_sub: currentUser.sub,
+      currentUser_sub_type: typeof currentUser.sub,
+      sub_strict_equal: request.requested_by === currentUser.sub,
+      sub_loose_equal: request.requested_by == currentUser.sub,
+    });
+
+    // Actual check uses employee_id
+    console.log('[UpdateOvertimeRequest] Permission check:', {
+      request_employee_id: request.employee_id,
+      request_employee_id_type: typeof request.employee_id,
+      currentUser_employee_id: currentUser.employee_id,
+      currentUser_employee_id_type: typeof currentUser.employee_id,
+      strict_equal: request.employee_id === currentUser.employee_id,
+      loose_equal: request.employee_id == currentUser.employee_id,
+    });
+
     if (request.employee_id !== currentUser.employee_id) {
       throw new BusinessException(
         ErrorCodes.PERMISSION_DENIED,
