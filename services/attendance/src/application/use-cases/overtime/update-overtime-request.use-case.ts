@@ -22,7 +22,7 @@ export class UpdateOvertimeRequestUseCase {
       );
     }
 
-    if (request.requested_by !== currentUser.sub) {
+    if (request.employee_id !== currentUser.employee_id) {
       throw new BusinessException(
         ErrorCodes.PERMISSION_DENIED,
         'You can only update your own requests.',

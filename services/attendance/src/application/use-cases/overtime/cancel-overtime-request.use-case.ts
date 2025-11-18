@@ -26,8 +26,8 @@ export class CancelOvertimeRequestUseCase {
       );
     }
 
-    // Only the person who created the request can cancel it
-    if (request.requested_by !== currentUser.sub) {
+    // Only the employee who owns the overtime request can cancel it
+    if (request.employee_id !== currentUser.employee_id) {
       throw new BusinessException(
         ErrorCodes.PERMISSION_DENIED,
         'You can only cancel your own requests.',
