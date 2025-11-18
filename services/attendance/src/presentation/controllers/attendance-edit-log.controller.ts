@@ -7,12 +7,13 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { AttendanceEditLogRepository } from '../../infrastructure/repositories/attendance-edit-log.repository';
 import { EditLogQueryDto } from '../dtos/edit-log.dto';
 
 @ApiTags('Attendance Edit Logs')
+@ApiBearerAuth()
 @Controller('attendance-edit-logs')
 export class AttendanceEditLogController {
   constructor(
@@ -21,6 +22,7 @@ export class AttendanceEditLogController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get all edit logs (HR/Admin)' })
   @ApiResponse({ status: 200, description: 'Edit logs retrieved successfully' })
   async getAllLogs(@Query() query: EditLogQueryDto) {
@@ -55,6 +57,7 @@ export class AttendanceEditLogController {
 
   @Get('shift/:shiftId')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get edit history for a shift (HR/Admin)' })
   @ApiResponse({
     status: 200,
@@ -72,6 +75,7 @@ export class AttendanceEditLogController {
 
   @Get('employee/:employeeId')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get edit history for employee (HR/Admin)' })
   @ApiResponse({
     status: 200,
@@ -104,6 +108,7 @@ export class AttendanceEditLogController {
 
   @Get('editor/:editorId')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get logs by editor (HR/Admin)' })
   @ApiResponse({
     status: 200,
@@ -136,6 +141,7 @@ export class AttendanceEditLogController {
 
   @Get('recent')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get recent edits (HR/Admin)' })
   @ApiResponse({
     status: 200,
@@ -156,6 +162,7 @@ export class AttendanceEditLogController {
 
   @Get('statistics')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get edit statistics (HR/Admin)' })
   @ApiResponse({
     status: 200,

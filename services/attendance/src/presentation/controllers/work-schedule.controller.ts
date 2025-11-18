@@ -42,7 +42,7 @@ export class WorkScheduleController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Permissions('attendance.schedule.create')
+
   @ApiOperation({ summary: 'Create a new work schedule' })
   @ApiResponse({ status: 201, description: 'Schedule created successfully', type: ApiResponseDto })
   async create(
@@ -54,7 +54,7 @@ export class WorkScheduleController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.schedule.read')
+
   @ApiOperation({ summary: 'Get all work schedules with pagination and filters' })
   @ApiResponse({ status: 200, description: 'Schedules retrieved successfully', type: ApiResponseDto })
   async findAll(@Query() dto: ListWorkScheduleDto): Promise<ApiResponseDto<{ data: WorkScheduleDto[]; total: number }>> {
@@ -63,7 +63,7 @@ export class WorkScheduleController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.schedule.read')
+
   @ApiOperation({ summary: 'Get work schedule by ID' })
   @ApiResponse({ status: 200, description: 'Schedule retrieved successfully', type: ApiResponseDto })
   async findById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<WorkScheduleDto>> {
@@ -72,7 +72,7 @@ export class WorkScheduleController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.schedule.update')
+
   @ApiOperation({ summary: 'Update work schedule' })
   @ApiResponse({ status: 200, description: 'Schedule updated successfully', type: ApiResponseDto })
   async update(
@@ -85,7 +85,7 @@ export class WorkScheduleController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.schedule.delete')
+
   @ApiOperation({ summary: 'Deactivate a work schedule' })
   @ApiResponse({ status: 200, description: 'Schedule deactivated successfully', type: ApiResponseDto })
   async remove(
@@ -97,7 +97,7 @@ export class WorkScheduleController {
 
   @Post(':id/assign')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.schedule.assign')
+
   @ApiOperation({ summary: 'Assign a work schedule to employees' })
   @ApiResponse({ status: 200, description: 'Schedule assigned successfully', type: ApiResponseDto })
   async assign(

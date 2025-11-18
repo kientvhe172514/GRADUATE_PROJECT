@@ -46,7 +46,7 @@ export class OvertimeRequestController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Permissions('attendance.overtime.create')
+
   @ApiOperation({ summary: 'Create overtime request (Employee)' })
   @ApiResponse({ status: 201, type: ApiResponseDto })
   async createRequest(
@@ -58,7 +58,7 @@ export class OvertimeRequestController {
 
   @Get('my-requests')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.read')
+
   @ApiOperation({ summary: 'Get my overtime requests (Employee)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyRequests(
@@ -71,7 +71,7 @@ export class OvertimeRequestController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.read')
+
   @ApiOperation({ summary: 'Get all overtime requests (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getAllRequests(
@@ -82,7 +82,7 @@ export class OvertimeRequestController {
 
   @Get('pending')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.read')
+
   @ApiOperation({ summary: 'Get pending overtime requests (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getPendingRequests(
@@ -94,7 +94,7 @@ export class OvertimeRequestController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.read')
+
   @ApiOperation({ summary: 'Get overtime request details' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getRequestById(
@@ -105,7 +105,7 @@ export class OvertimeRequestController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.update')
+
   @ApiOperation({
     summary: 'Update overtime request (Employee - before approval)',
   })
@@ -120,7 +120,7 @@ export class OvertimeRequestController {
 
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.approve')
+
   @ApiOperation({ summary: 'Approve overtime request (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async approveRequest(
@@ -132,7 +132,7 @@ export class OvertimeRequestController {
 
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.overtime.approve')
+
   @ApiOperation({ summary: 'Reject overtime request (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async rejectRequest(

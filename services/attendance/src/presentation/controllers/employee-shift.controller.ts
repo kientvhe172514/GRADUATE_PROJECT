@@ -30,7 +30,7 @@ export class EmployeeShiftController {
 
   @Get('my')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.shift.read')
+
   @ApiOperation({ summary: 'Get current employee shifts within date range' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyShifts(
@@ -47,7 +47,7 @@ export class EmployeeShiftController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.shift.read')
+
   @ApiOperation({ summary: 'Get shifts by filters (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getShifts(
@@ -59,7 +59,7 @@ export class EmployeeShiftController {
 
   @Get('department/:departmentId')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.shift.read')
+
   @ApiOperation({ summary: 'Get shifts for a department within date range' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getDepartmentShifts(
@@ -76,7 +76,7 @@ export class EmployeeShiftController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.shift.read')
+
   @ApiOperation({ summary: 'Get shift details by ID' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getById(
@@ -87,7 +87,7 @@ export class EmployeeShiftController {
 
   @Patch(':id/manual-edit')
   @HttpCode(HttpStatus.OK)
-  @Permissions('attendance.shift.edit')
+
   @ApiOperation({ summary: 'Manually edit a shift (HR/Admin) and log changes' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async manualEditShift(

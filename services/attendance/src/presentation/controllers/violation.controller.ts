@@ -9,18 +9,20 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { ViolationRepository } from '../../infrastructure/repositories/violation.repository';
 import { ResolveViolationDto, ViolationQueryDto } from '../dtos/violation.dto';
 
 @ApiTags('Violations')
+@ApiBearerAuth()
 @Controller('violations')
 export class ViolationController {
   constructor(private readonly violationRepository: ViolationRepository) {}
 
   @Get('my-violations')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get my violations (Employee)' })
   @ApiResponse({
     status: 200,
@@ -55,6 +57,7 @@ export class ViolationController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get all violations (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -96,6 +99,7 @@ export class ViolationController {
 
   @Get('statistics')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get violation statistics (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -117,6 +121,7 @@ export class ViolationController {
 
   @Get('top-violators')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get top violators (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -136,6 +141,7 @@ export class ViolationController {
 
   @Get('employee/:employeeId')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get violations by employee (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -168,6 +174,7 @@ export class ViolationController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Get violation details' })
   @ApiResponse({ status: 200, description: 'Violation retrieved successfully' })
   async getViolationById(@Param('id', ParseIntPipe) id: number) {
@@ -189,6 +196,7 @@ export class ViolationController {
 
   @Post(':id/resolve')
   @HttpCode(HttpStatus.OK)
+
   @ApiOperation({ summary: 'Resolve violation (HR/Manager)' })
   @ApiResponse({ status: 200, description: 'Violation resolved successfully' })
   async resolveViolation(
