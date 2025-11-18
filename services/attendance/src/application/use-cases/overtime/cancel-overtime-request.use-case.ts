@@ -1,15 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes, JwtPayload } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+  JwtPayload,
+  ResponseStatus,
+} from '@graduate-project/shared-common';
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
-import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 @Injectable()
-export class UpdateOvertimeRequestUseCase {
+export class CancelOvertimeRequestUseCase {
   constructor(private readonly overtimeRepo: OvertimeRequestRepository) {}
 
   async execute(
     id: number,
-    dto: UpdateOvertimeRequestDto,
     currentUser: JwtPayload,
   ): Promise<ApiResponseDto<void>> {
     const request = await this.overtimeRepo.findOne({ where: { id } });
@@ -22,43 +26,46 @@ export class UpdateOvertimeRequestUseCase {
       );
     }
 
+    // Only the person who created the request can cancel it
     if (request.requested_by !== currentUser.sub) {
       throw new BusinessException(
         ErrorCodes.PERMISSION_DENIED,
-        'You can only update your own requests.',
+        'You can only cancel your own requests.',
         403,
       );
     }
 
+    // Can only cancel PENDING requests
     if (request.status !== 'PENDING') {
       throw new BusinessException(
         ErrorCodes.INVALID_STATE_TRANSITION,
-        'Cannot update request that is already approved/rejected.',
+        'Cannot cancel request that is already approved/rejected.',
         400,
       );
     }
 
-    const updateData = {
-      ...dto,
-      start_time: dto.start_time ? new Date(dto.start_time) : undefined,
-      end_time: dto.end_time ? new Date(dto.end_time) : undefined,
-    };
-
-    const updated = await this.overtimeRepo.updateRequest(id, updateData as any);
+    // Update status to CANCELLED
+    const updated = await this.overtimeRepo.updateRequest(id, {
+      status: 'CANCELLED',
+      updated_at: new Date(),
+    });
 
     if (!updated) {
       throw new BusinessException(
         ErrorCodes.INTERNAL_SERVER_ERROR,
-        'Failed to update overtime request.',
+        'Failed to cancel overtime request',
         500,
       );
     }
 
-    return ApiResponseDto.success(
-      undefined,
-      'Overtime request updated successfully',
-    );
+    return {
+      status: ResponseStatus.SUCCESS,
+      statusCode: 200,
+      message: 'Overtime request cancelled successfully',
+      data: undefined,
+      errorCode: 'SUCCESS',
+      timestamp: new Date().toISOString(),
+      path: '',
+    };
   }
 }
-
-

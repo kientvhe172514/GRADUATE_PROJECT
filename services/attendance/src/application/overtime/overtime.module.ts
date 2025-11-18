@@ -13,6 +13,7 @@ import { GetOvertimeRequestByIdUseCase } from '../use-cases/overtime/get-overtim
 import { UpdateOvertimeRequestUseCase } from '../use-cases/overtime/update-overtime-request.use-case';
 import { ApproveOvertimeRequestUseCase } from '../use-cases/overtime/approve-overtime-request.use-case';
 import { RejectOvertimeRequestUseCase } from '../use-cases/overtime/reject-overtime-request.use-case';
+import { CancelOvertimeRequestUseCase } from '../use-cases/overtime/cancel-overtime-request.use-case';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { RejectOvertimeRequestUseCase } from '../use-cases/overtime/reject-overt
     UpdateOvertimeRequestUseCase,
     ApproveOvertimeRequestUseCase,
     RejectOvertimeRequestUseCase,
+    CancelOvertimeRequestUseCase,
   ],
   exports: [OvertimeRequestRepository],
 })

@@ -31,7 +31,7 @@ export class EmployeeShiftController {
 
   @Get('my')
   @HttpCode(HttpStatus.OK)
-
+  
   @ApiOperation({ summary: 'Get current employee shifts within date range' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyShifts(

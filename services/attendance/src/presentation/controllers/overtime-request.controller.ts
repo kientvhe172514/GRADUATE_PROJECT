@@ -28,6 +28,7 @@ import { GetOvertimeRequestByIdUseCase } from '../../application/use-cases/overt
 import { UpdateOvertimeRequestUseCase } from '../../application/use-cases/overtime/update-overtime-request.use-case';
 import { ApproveOvertimeRequestUseCase } from '../../application/use-cases/overtime/approve-overtime-request.use-case';
 import { RejectOvertimeRequestUseCase } from '../../application/use-cases/overtime/reject-overtime-request.use-case';
+import { CancelOvertimeRequestUseCase } from '../../application/use-cases/overtime/cancel-overtime-request.use-case';
 import { Public } from '@graduate-project/shared-common';
 
 @ApiTags('Overtime Requests')
@@ -44,6 +45,7 @@ export class OvertimeRequestController {
     private readonly updateOvertimeRequestUseCase: UpdateOvertimeRequestUseCase,
     private readonly approveOvertimeRequestUseCase: ApproveOvertimeRequestUseCase,
     private readonly rejectOvertimeRequestUseCase: RejectOvertimeRequestUseCase,
+    private readonly cancelOvertimeRequestUseCase: CancelOvertimeRequestUseCase,
   ) {}
 
   @Post()
@@ -143,5 +145,17 @@ export class OvertimeRequestController {
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<void>> {
     return this.rejectOvertimeRequestUseCase.execute(id, dto, user);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+
+  @ApiOperation({ summary: 'Cancel your own overtime request (Employee)' })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async cancelRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<void>> {
+    return this.cancelOvertimeRequestUseCase.execute(id, user);
   }
 }
