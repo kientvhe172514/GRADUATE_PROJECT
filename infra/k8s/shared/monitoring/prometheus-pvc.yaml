@@ -12,5 +12,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 2Gi  # Keep current size (PVC already bound, cannot change)
+      storage: 3Gi  # 3GB for metrics (worker node has +5GB disk)
   storageClassName: local-path  # K3s default, change if using different storage class
