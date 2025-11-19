@@ -8,6 +8,34 @@ metadata:
     tier: monitoring
 data:
   grafana.ini: |
-    # Nội dung file grafana.ini ở đây
     [server]
     http_port = 3030
+    root_url = %(protocol)s://%(domain)s:%(http_port)s/
+    
+    [security]
+    admin_user = admin
+    admin_password = admin
+    # Disable gravatar for privacy
+    disable_gravatar = true
+    
+    [users]
+    # Allow users to sign up
+    allow_sign_up = false
+    # Allow users to create organizations
+    allow_org_create = false
+    # Default role for new users
+    auto_assign_org_role = Viewer
+    
+    [auth.anonymous]
+    enabled = false
+    
+    [auth.basic]
+    enabled = true
+    
+    [analytics]
+    reporting_enabled = false
+    check_for_updates = false
+    
+    [log]
+    mode = console
+    level = info

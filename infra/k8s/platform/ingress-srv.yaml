@@ -194,37 +194,40 @@ spec:
 
 ---
 # ============================================
-# MONITORING INGRESS (Separate namespace)
+# MONITORING INGRESS - Grafana (Traefik)
 # ============================================
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
 metadata:
-  name: monitoring-ingress
+  name: grafana-ingressroute
   namespace: monitoring
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: monitoring-auth
-    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Monitoring'
 spec:
-  rules:
-  - host: grafana.microservices.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: grafana-srv
-            port:
-              number: 3030
-  - host: prometheus.microservices.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: prometheus-srv
-            port:
-              number: 9090
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`grafana.microservices.local`) || Host(`grafana.localhost`) || PathPrefix(`/grafana`)
+    kind: Rule
+    services:
+    - name: grafana-srv
+      namespace: monitoring
+      port: 3030
+
+---
+# ============================================
+# MONITORING INGRESS - Prometheus (Traefik)
+# ============================================
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus-ingressroute
+  namespace: monitoring
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`prometheus.microservices.local`) || Host(`prometheus.localhost`) || PathPrefix(`/prometheus`)
+    kind: Rule
+    services:
+    - name: prometheus-srv
+      namespace: monitoring
+      port: 9090

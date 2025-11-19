@@ -30,25 +30,32 @@ data:
       bearer_token_file /var/run/secrets/kubernetes.io/serviceaccount/token
     </filter>
 
+    # NOTE: Elasticsearch is not deployed yet, using stdout for now
+    # Uncomment Elasticsearch config below when elasticsearch-srv is deployed
     <match kubernetes.**>
-      @type elasticsearch
-      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
-      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
-      scheme http
-      logstash_prefix microservices
-      logstash_format true
-      suppress_type_name true
-      <buffer>
-        @type file
-        path /tmp/fluentd-buffers/kubernetes.buffer
-        flush_mode interval
-        flush_interval 30s
-        flush_thread_count 2
-        retry_type exponential_backoff
-        retry_wait 1s
-        retry_max_interval 60s
-        chunk_limit_size 8MB
-        total_limit_size 512MB
-        overflow_action drop_oldest_chunk
-      </buffer>
+      @type stdout
     </match>
+
+    # TODO: Uncomment when Elasticsearch is deployed
+    # <match kubernetes.**>
+    #   @type elasticsearch
+    #   host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+    #   port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+    #   scheme http
+    #   logstash_prefix microservices
+    #   logstash_format true
+    #   suppress_type_name true
+    #   <buffer>
+    #     @type file
+    #     path /tmp/fluentd-buffers/kubernetes.buffer
+    #     flush_mode interval
+    #     flush_interval 30s
+    #     flush_thread_count 2
+    #     retry_type exponential_backoff
+    #     retry_wait 1s
+    #     retry_max_interval 60s
+    #     chunk_limit_size 8MB
+    #     total_limit_size 512MB
+    #     overflow_action drop_oldest_chunk
+    #   </buffer>
+    # </match>

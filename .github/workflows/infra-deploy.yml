@@ -29,13 +29,29 @@ jobs:
             set -e
             cd ~/GRADUATE_PROJECT
             git pull origin main
-            kubectl apply -f infra/k8s/platform/
-            kubectl apply -f infra/k8s/shared/
-            echo "\n=== StatefulSets in graduate-project namespace ==="
-            kubectl get statefulset -n graduate-project || echo "No StatefulSet found."
-            echo "\n=== PVCs in graduate-project namespace ==="
-            kubectl get pvc -n graduate-project || echo "No PVC found."
-            echo "\n=== PVs in graduate-project namespace ==="
-            kubectl get pv || echo "No PV found."
-            echo "\n=== WARNING: Nếu chưa dùng StatefulSet cho database, hãy chuyển sang StatefulSet để tránh mất dữ liệu khi update! ==="
+            
+            echo "=== 1. Creating Namespaces ==="
+            kubectl apply -f infra/k8s/platform/namespace.yaml
+            
+            echo "=== 2. Deploying Platform Resources ==="
+            kubectl apply -f infra/k8s/platform/ --recursive
+            
+            echo "=== 3. Deploying Shared Infrastructure ==="
+            kubectl apply -f infra/k8s/shared/ --recursive
+            
+            echo "=== 4. Waiting for critical deployments ==="
+            kubectl wait --for=condition=available --timeout=120s deployment/prometheus-depl -n monitoring || true
+            kubectl wait --for=condition=available --timeout=120s deployment/grafana-depl -n monitoring || true
+            
+            echo "\n=== 5. Deployment Status ==="
+            echo "\n--- Monitoring Namespace ---"
+            kubectl get all -n monitoring || echo "Monitoring namespace not ready yet"
+            
+            echo "\n--- Infrastructure Namespace ---"
+            kubectl get statefulset -n infrastructure || echo "No StatefulSet in infrastructure"
+            kubectl get pvc -n infrastructure || echo "No PVC in infrastructure"
+            
+            echo "\n--- Graduate Project Namespace ---"
+            kubectl get deployment -n graduate-project || echo "No deployments in graduate-project"
+            kubectl get statefulset -n graduate-project || echo "No StatefulSet in graduate-project"
           EOF
