@@ -17,6 +17,18 @@ spec:
         app: grafana
         tier: monitoring
     spec:
+      # Schedule on worker node (has more disk space)
+      nodeSelector:
+        node-role.kubernetes.io/worker: "true"
+      # Fallback: schedule on non-master nodes
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: grafana
         image: grafana/grafana:10.1.0
@@ -77,7 +89,7 @@ spec:
       volumes:
       - name: grafana-storage
         persistentVolumeClaim:
-          claimName: grafana-storage  # 500MB PVC for dashboards persistence
+          claimName: grafana-storage  # 500MB PVC on worker node
       - name: grafana-datasources
         configMap:
           name: grafana-datasources

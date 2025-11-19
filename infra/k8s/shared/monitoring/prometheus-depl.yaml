@@ -17,6 +17,18 @@ spec:
         app: prometheus
         tier: monitoring
     spec:
+      # Schedule on worker node (has more disk space)
+      nodeSelector:
+        node-role.kubernetes.io/worker: "true"
+      # Fallback: schedule on non-master nodes
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       serviceAccountName: prometheus
       containers:
       - name: prometheus
@@ -68,7 +80,7 @@ spec:
           name: prometheus-config
       - name: prometheus-storage
         persistentVolumeClaim:
-          claimName: prometheus-storage  # 2GB PVC for metrics persistence
+          claimName: prometheus-storage  # 2GB PVC on worker node
 
 ---
 apiVersion: v1
