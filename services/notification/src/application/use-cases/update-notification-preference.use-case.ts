@@ -14,6 +14,10 @@ export class UpdateNotificationPreferenceUseCase {
   ) {}
 
   async execute(dto: UpdateNotificationPreferenceDto): Promise<NotificationPreference> {
+    if (!dto.employeeId) {
+      throw new Error('Employee ID is required');
+    }
+
     this.logger.log(
       `Updating notification preference for employee ${dto.employeeId}, type: ${dto.notificationType}`,
     );
