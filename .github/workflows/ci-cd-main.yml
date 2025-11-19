@@ -418,6 +418,10 @@ jobs:
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
             
+            # Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager, Fluentd)
+            echo "📊 Deploying Monitoring Stack..."
+            kubectl apply -f infra/k8s/shared/monitoring/ --recursive
+            
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
             kubectl wait --for=condition=ready pod -l app=postgres -n infrastructure --timeout=5m || echo "⚠️ Postgres not ready"
@@ -425,11 +429,21 @@ jobs:
             kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
             kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
             
+            # Wait for monitoring deployments
+            kubectl wait --for=condition=available --timeout=3m deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus not ready"
+            kubectl wait --for=condition=available --timeout=3m deployment/grafana-depl -n monitoring || echo "⚠️ Grafana not ready"
+            kubectl wait --for=condition=available --timeout=3m deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager not ready"
+            
             echo "✅ Infrastructure secrets and deployments updated"
             echo "📊 Checking infrastructure pods..."
             kubectl get pods -n infrastructure
             kubectl get statefulset -n infrastructure || echo "⚠️ No StatefulSet found"
             kubectl get pvc -n infrastructure || echo "No PVC found"
+            
+            echo ""
+            echo "📈 Checking monitoring pods..."
+            kubectl get pods -n monitoring || echo "⚠️ No monitoring pods found"
+            kubectl get svc -n monitoring || echo "⚠️ No monitoring services found"
           EOF
 
   # ==========================================
