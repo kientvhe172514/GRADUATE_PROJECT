@@ -16,14 +16,13 @@ import { ResolveViolationDto, ViolationQueryDto } from '../dtos/violation.dto';
 
 @ApiTags('Violations')
 @ApiBearerAuth()
-@Public()
 @Controller('violations')
 export class ViolationController {
   constructor(private readonly violationRepository: ViolationRepository) {}
 
   @Get('my-violations')
+  @Permissions('attendance.read_own')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get my violations (Employee)' })
   @ApiResponse({
     status: 200,
@@ -57,8 +56,8 @@ export class ViolationController {
   }
 
   @Get()
+  @Permissions('attendance.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get all violations (HR/Manager)' })
   @ApiResponse({
     status: 200,

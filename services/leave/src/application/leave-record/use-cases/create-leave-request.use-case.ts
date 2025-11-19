@@ -30,7 +30,9 @@ export class CreateLeaveRequestUseCase {
     private readonly eventPublisher: EventPublisherPort,
   ) {}
 
-  async execute(dto: CreateLeaveRequestDto): Promise<LeaveRecordResponseDto> {
+  async execute(dto: CreateLeaveRequestDto, employeeId: number): Promise<LeaveRecordResponseDto> {
+    // ✅ employeeId extracted from JWT token in controller
+    
     // 1. Validate leave type exists
     const leaveType = await this.leaveTypeRepository.findById(dto.leave_type_id);
     if (!leaveType) {
@@ -56,7 +58,7 @@ export class CreateLeaveRequestUseCase {
     // 3. Check for overlapping leave requests
     const overlappingLeaves = await this.leaveRecordRepository.findByDateRange(startDate, endDate);
     const hasOverlap = overlappingLeaves.some(
-      leave => leave.employee_id === dto.employee_id && 
+      leave => leave.employee_id === employeeId && 
                (leave.status === 'PENDING' || leave.status === 'APPROVED')
     );
 
@@ -77,7 +79,7 @@ export class CreateLeaveRequestUseCase {
     if (leaveType.deducts_from_balance) {
       const year = startDate.getFullYear();
       const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
-        dto.employee_id,
+        employeeId,
         dto.leave_type_id,
         year
       );
@@ -112,7 +114,7 @@ export class CreateLeaveRequestUseCase {
 
       // Store balance info for transaction creation after leave record
       this['_transactionData'] = {
-        employee_id: dto.employee_id,
+        employee_id: employeeId,
         leave_type_id: dto.leave_type_id,
         year: year,
         balanceBefore: balanceBefore,
@@ -121,9 +123,10 @@ export class CreateLeaveRequestUseCase {
       };
     }
 
-    // 6. Create leave record
+    // 6. Create leave record with employeeId from token
     const leaveRecord = new LeaveRecordEntity({
       ...dto,
+      employee_id: employeeId,
       start_date: startDate,
       end_date: endDate,
       total_calendar_days: totalCalendarDays,

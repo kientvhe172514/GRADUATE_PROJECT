@@ -25,6 +25,7 @@ import {
   ApiResponseDto,
   CurrentUser,
   JwtPayload,
+  Permissions,
 } from '@graduate-project/shared-common';
 import {
   CreateLeaveRequestDto,
@@ -60,6 +61,7 @@ export class LeaveRecordController {
   ) {}
 
   @Get('me')
+  @Permissions('leave.request.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Get my leave records (current employee)',
@@ -131,6 +133,7 @@ export class LeaveRecordController {
   }
 
   @Get()
+  @Permissions('leave.request.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Get all leave records with filters',
@@ -167,6 +170,7 @@ export class LeaveRecordController {
   }
 
   @Get(':id')
+  @Permissions('leave.request.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get leave record by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Leave record ID' })
@@ -179,6 +183,7 @@ export class LeaveRecordController {
   }
 
   @Post()
+  @Permissions('leave.request.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Create a new leave request',
@@ -208,13 +213,20 @@ export class LeaveRecordController {
   })
   @ApiResponse({ status: 400, description: 'Overlapping leave or insufficient balance' })
   @ApiResponse({ status: 404, description: 'Leave type or balance not found' })
-  async create(@Body() dto: CreateLeaveRequestDto): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
-    const result = await this.createLeaveRequestUseCase.execute(dto);
+  async create(
+    @Body() dto: CreateLeaveRequestDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<LeaveRecordResponseDto>> {
+    if (!user || !user.employee_id) {
+      throw new UnauthorizedException('Employee ID not found in token');
+    }
+    const result = await this.createLeaveRequestUseCase.execute(dto, user.employee_id);
     const data = plainToInstance(LeaveRecordResponseDto, result);
     return ApiResponseDto.success(data, 'Leave request created successfully', HttpStatus.CREATED);
   }
 
   @Put(':id')
+  @Permissions('leave.request.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Update a pending leave request',
@@ -234,6 +246,7 @@ export class LeaveRecordController {
   }
 
   @Post(':id/approve')
+  @Permissions('leave.request.approve')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Approve a leave request',
@@ -277,6 +290,7 @@ export class LeaveRecordController {
   }
 
   @Post(':id/reject')
+  @Permissions('leave.request.reject')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Reject a leave request',
@@ -320,6 +334,7 @@ export class LeaveRecordController {
   }
 
   @Post(':id/cancel')
+  @Permissions('leave.request.cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Cancel a leave request',

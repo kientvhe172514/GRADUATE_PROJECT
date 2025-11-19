@@ -2,9 +2,9 @@ import { IsNotEmpty, IsNumber, IsEnum, IsOptional, IsBoolean, IsString, Matches 
 import { NotificationType } from '../../domain/enums/notification-type.enum';
 
 export class UpdateNotificationPreferenceDto {
-  @IsNotEmpty()
-  @IsNumber()
-  employeeId: number;
+  // ❌ REMOVED from request body validation
+  // ✅ employeeId will be set by controller from @CurrentUser token
+  employeeId?: number;
 
   @IsNotEmpty()
   @IsEnum(NotificationType)

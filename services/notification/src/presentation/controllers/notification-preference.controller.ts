@@ -7,7 +7,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { UpdateNotificationPreferenceUseCase } from '../../application/use-cases/update-notification-preference.use-case';
 import { GetNotificationPreferencesUseCase } from '../../application/use-cases/get-notification-preferences.use-case';
 import { UpdateNotificationPreferenceDto } from '../../application/dtos/update-notification-preference.dto';
@@ -23,6 +23,7 @@ export class NotificationPreferenceController {
   ) {}
 
   @Get()
+  @Permissions('notification.preference.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user notification preferences' })
   @ApiResponse({
@@ -54,6 +55,7 @@ export class NotificationPreferenceController {
   }
 
   @Put()
+  @Permissions('notification.preference.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update notification preferences' })
   @ApiResponse({

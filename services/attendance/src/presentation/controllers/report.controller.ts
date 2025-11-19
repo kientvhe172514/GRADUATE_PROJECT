@@ -18,14 +18,13 @@ import {
 
 @ApiTags('Reports & Analytics')
 @ApiBearerAuth()
-@Public()
 @Controller('reports')
 export class ReportController {
   constructor(private readonly dataSource: DataSource) {}
 
   @Get('daily')
+  @Permissions('report.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get daily attendance report (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -63,8 +62,8 @@ export class ReportController {
   }
 
   @Get('daily/:date')
+  @Permissions('report.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get daily report for specific date (HR/Manager)' })
   @ApiResponse({
     status: 200,

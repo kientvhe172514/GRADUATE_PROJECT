@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { SharedModule } from './shared/shared.module';
 import { LeaveTypeModule } from './application/leave-type/leave-type.module';
 import { HolidayModule } from './application/holiday/holiday.module';
@@ -30,5 +32,11 @@ import { HealthController } from './health.controller';
     LeaveBalanceModule,
   ],
   controllers: [HealthController, EmployeeEventListener],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: HeaderBasedPermissionGuard,
+    },
+  ],
 })
 export class AppModule {}

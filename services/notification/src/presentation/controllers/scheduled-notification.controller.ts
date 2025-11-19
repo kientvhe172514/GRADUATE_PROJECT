@@ -13,7 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { CreateScheduledNotificationUseCase } from '../../application/use-cases/create-scheduled-notification.use-case';
 import { UpdateScheduledNotificationUseCase } from '../../application/use-cases/update-scheduled-notification.use-case';
 import { CancelScheduledNotificationUseCase } from '../../application/use-cases/cancel-scheduled-notification.use-case';
@@ -37,6 +37,7 @@ export class ScheduledNotificationController {
   ) {}
 
   @Post()
+  @Permissions('notification.schedule.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a scheduled notification' })
   @ApiResponse({
@@ -80,6 +81,7 @@ export class ScheduledNotificationController {
   }
 
   @Get('me')
+  @Permissions('notification.schedule.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get my scheduled notifications' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
@@ -145,6 +147,7 @@ export class ScheduledNotificationController {
   }
 
   @Put(':id')
+  @Permissions('notification.schedule.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a scheduled notification' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
@@ -189,6 +192,7 @@ export class ScheduledNotificationController {
   }
 
   @Delete(':id')
+  @Permissions('notification.schedule.delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel a scheduled notification' })
   @ApiParam({ name: 'id', type: Number, example: 1 })

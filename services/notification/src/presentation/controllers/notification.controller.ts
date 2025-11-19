@@ -15,7 +15,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.use-case';
@@ -53,6 +53,7 @@ export class NotificationController {
   ) {}
 
   @Post()
+  @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Send a notification' })
   @ApiResponse({
@@ -97,6 +98,7 @@ export class NotificationController {
   }
 
   @Post('template')
+  @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Send notification from template' })
   @ApiResponse({
@@ -129,6 +131,7 @@ export class NotificationController {
   }
 
   @Get()
+  @Permissions('notification.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user notifications' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
@@ -199,6 +202,7 @@ export class NotificationController {
   }
 
   @Put(':id/read')
+  @Permissions('notification.update_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({
@@ -223,6 +227,7 @@ export class NotificationController {
   }
 
   @Put('read-all')
+  @Permissions('notification.update_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({
@@ -244,6 +249,7 @@ export class NotificationController {
   }
 
   @Get('me/statistics')
+  @Permissions('notification.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get my notification statistics' })
   @ApiResponse({
@@ -314,6 +320,7 @@ export class NotificationController {
   }
 
   @Get('me/unread-count')
+  @Permissions('notification.read_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get my unread notification count' })
   @ApiResponse({
@@ -349,6 +356,7 @@ export class NotificationController {
   }
 
   @Post('bulk')
+  @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Send bulk notification to multiple recipients' })
   @ApiResponse({
@@ -375,6 +383,7 @@ export class NotificationController {
   }
 
   @Put('bulk/mark-as-read')
+  @Permissions('notification.update_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark multiple notifications as read' })
   @ApiResponse({
@@ -408,6 +417,7 @@ export class NotificationController {
   }
 
   @Delete('me/read')
+  @Permissions('notification.delete_own')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete all my read notifications' })
   @ApiResponse({

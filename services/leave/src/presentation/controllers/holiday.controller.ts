@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, ParseIntPipe, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ApiResponseDto, Permissions } from '@graduate-project/shared-common';
 import { 
   CreateHolidayDto, 
   UpdateHolidayDto, 
@@ -32,6 +32,7 @@ export class HolidayController {
   ) {}
 
   @Get()
+  @Permissions('holiday.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all holidays with optional filters' })
   @ApiQuery({ name: 'year', required: false, type: Number })
@@ -45,6 +46,7 @@ export class HolidayController {
   }
 
   @Get('calendar/:year')
+  @Permissions('holiday.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get holiday calendar by year' })
   @ApiParam({ name: 'year', type: Number, description: 'Year (e.g., 2025)' })
@@ -56,6 +58,7 @@ export class HolidayController {
   }
 
   @Get(':id')
+  @Permissions('holiday.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get holiday by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Holiday ID' })
@@ -68,6 +71,7 @@ export class HolidayController {
   }
 
   @Post()
+  @Permissions('holiday.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new holiday' })
   @ApiResponse({ status: 201, type: ApiResponseDto })
@@ -79,6 +83,7 @@ export class HolidayController {
   }
 
   @Post('bulk-create')
+  @Permissions('holiday.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Bulk create holidays',
@@ -96,6 +101,7 @@ export class HolidayController {
   }
 
   @Put(':id')
+  @Permissions('holiday.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update holiday' })
   @ApiParam({ name: 'id', type: Number, description: 'Holiday ID' })
@@ -111,6 +117,7 @@ export class HolidayController {
   }
 
   @Delete(':id')
+  @Permissions('holiday.delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete holiday' })
   @ApiParam({ name: 'id', type: Number, description: 'Holiday ID' })

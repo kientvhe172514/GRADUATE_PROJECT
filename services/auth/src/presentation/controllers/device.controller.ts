@@ -13,6 +13,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../decorators/current-user.decorator';
+import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { GetMyDevicesUseCase } from '../../application/use-cases/device/get-my-devices.use-case';
 import { RevokeDeviceUseCase } from '../../application/use-cases/device/revoke-device.use-case';
 import { GetDeviceActivitiesUseCase } from '../../application/use-cases/device/get-device-activities.use-case';
@@ -28,6 +29,7 @@ export class DeviceController {
   ) {}
 
   @Get('my-devices')
+  @AuthPermissions('auth.device.read_own')
   @ApiOperation({ summary: 'Get my registered devices' })
   @ApiResponse({
     status: 200,
@@ -38,6 +40,7 @@ export class DeviceController {
   }
 
   @Delete(':id/revoke')
+  @AuthPermissions('auth.device.delete')
   @ApiOperation({ summary: 'Revoke a specific device' })
   @ApiResponse({
     status: 200,
@@ -56,6 +59,7 @@ export class DeviceController {
   }
 
   @Get('my-activities')
+  @AuthPermissions('auth.device.read_own')
   @ApiOperation({ summary: 'Get my device activities' })
   @ApiResponse({
     status: 200,

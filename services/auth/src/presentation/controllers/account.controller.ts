@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../../application/dto/login-response.dto';
 import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import { ApiResponseDto, BusinessException, ErrorCodes, Permissions } from '@graduate-project/shared-common';
 import { Public } from '../decorators/public.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
@@ -374,6 +374,7 @@ export class AccountController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
+  @Permissions('auth.account.read_own')
   @ApiOperation({ summary: 'Get current account profile' })
   @ApiResponse({ status: 200, type: GetAccountResponseDto })
   async me(@CurrentUser() user: any): Promise<ApiResponseDto<GetAccountResponseDto>> {
@@ -384,6 +385,7 @@ export class AccountController {
   @Put('me/password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
+  @Permissions('auth.account.change_password')
   @ApiOperation({ summary: 'Change current account password' })
   @ApiBody({ type: ChangePasswordRequestDto })
   async changeMyPassword(

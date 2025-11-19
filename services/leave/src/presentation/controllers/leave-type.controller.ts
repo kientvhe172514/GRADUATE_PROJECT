@@ -6,7 +6,7 @@ import { UpdateLeaveTypeUseCase } from '../../application/leave-type/use-cases/u
 import { GetLeaveTypeByIdUseCase } from '../../application/leave-type/use-cases/get-leave-type-by-id.use-case';
 import { DeleteLeaveTypeUseCase } from '../../application/leave-type/use-cases/delete-leave-type.use-case';
 import { CreateLeaveTypeDto, UpdateLeaveTypeDto, ListLeaveTypesQueryDto, LeaveTypeResponseDto, LeaveTypeStatus } from '../../application/leave-type/dto/leave-type.dto';
-import { ApiResponseDto } from '@graduate-project/shared-common';
+import { ApiResponseDto, Permissions } from '@graduate-project/shared-common';
 
 @ApiTags('leave-types')
 @ApiBearerAuth('bearer')
@@ -21,36 +21,42 @@ export class LeaveTypeController {
   ) {}
 
   @Get()
+  @Permissions('leave.type.read')
   async getLeaveTypes(@Query() query: ListLeaveTypesQueryDto): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
     const data = await this.getLeaveTypesUseCase.execute(query);
     return ApiResponseDto.success(data, 'Leave types retrieved successfully');
   }
 
   @Post()
+  @Permissions('leave.type.create')
   async createLeaveType(@Body() dto: CreateLeaveTypeDto): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
     const data = await this.createLeaveTypeUseCase.execute(dto);
     return ApiResponseDto.success(data, 'Leave type created successfully', HttpStatus.CREATED);
   }
 
   @Put(':id')
+  @Permissions('leave.type.update')
   async updateLeaveType(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateLeaveTypeDto): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
     const data = await this.updateLeaveTypeUseCase.execute(id, dto);
     return ApiResponseDto.success(data, 'Leave type updated successfully');
   }
 
   @Get(':id')
+  @Permissions('leave.type.read')
   async getById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<LeaveTypeResponseDto>> {
     const data = await this.getLeaveTypeByIdUseCase.execute(id);
     return ApiResponseDto.success(data, 'Leave type retrieved successfully');
   }
 
   @Delete(':id')
+  @Permissions('leave.type.delete')
   async delete(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<null>> {
     await this.deleteLeaveTypeUseCase.execute(id);
     return ApiResponseDto.success(null, 'Leave type deleted successfully');
   }
 
   @Get('active')
+  @Permissions('leave.type.read')
   async getActive(): Promise<ApiResponseDto<LeaveTypeResponseDto[]>> {
     const data = await this.getLeaveTypesUseCase.execute({ status: LeaveTypeStatus.ACTIVE });
     return ApiResponseDto.success(data, 'Active leave types retrieved successfully');

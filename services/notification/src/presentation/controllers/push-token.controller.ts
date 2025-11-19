@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { RegisterPushTokenUseCase } from '../../application/use-cases/register-push-token.use-case';
 import { UnregisterPushTokenUseCase } from '../../application/use-cases/unregister-push-token.use-case';
 import {
@@ -27,6 +27,7 @@ export class PushTokenController {
   ) {}
 
   @Post('register')
+  @Permissions('notification.device.register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Register or update FCM push notification token',
@@ -155,6 +156,7 @@ export class PushTokenController {
   }
 
   @Delete('unregister')
+  @Permissions('notification.device.unregister')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Unregister FCM push notification token',

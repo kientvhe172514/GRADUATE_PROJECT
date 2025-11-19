@@ -10,20 +10,9 @@ export enum LeaveRecordStatus {
 }
 
 export class CreateLeaveRequestDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @Min(1)
-  employee_id: number;
-
-  @ApiProperty({ example: 'EMP001' })
-  @IsString()
-  employee_code: string;
-
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @Min(1)
-  department_id: number;
-
+  // ❌ REMOVED: employee_id, employee_code, department_id
+  // ✅ These will be extracted from JWT token (@CurrentUser)
+  
   @ApiProperty({ example: 1 })
   @IsInt()
   @Min(1)

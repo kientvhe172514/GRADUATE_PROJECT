@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { NotificationModule } from './application/notification.module';
 import { HealthController } from './health.controller';
 
@@ -27,5 +29,11 @@ import { HealthController } from './health.controller';
     NotificationModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: HeaderBasedPermissionGuard,
+    },
+  ],
 })
 export class AppModule {}

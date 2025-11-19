@@ -31,7 +31,7 @@ export class PermissionController {
   ) {}
 
   @Get()
-  @AuthPermissions('permission:read')
+  @AuthPermissions('auth.permission.read')
   @ApiOperation({ summary: 'Get all permissions with filters' })
   @ApiQuery({
     name: 'resource',
@@ -78,7 +78,7 @@ export class PermissionController {
   }
 
   @Get('by-resource/:resource')
-  @AuthPermissions('permission:read')
+  @AuthPermissions('auth.permission.read')
   async getPermissionsByResource(@Param('resource') resource: string) {
     const permissions = await this.permissionRepository.findByResource(resource);
     return {
@@ -88,7 +88,7 @@ export class PermissionController {
   }
 
   @Get(':id')
-  @AuthPermissions('permission:read')
+  @AuthPermissions('auth.permission.read')
   async getPermissionById(@Param('id') id: number) {
     const permission = await this.permissionRepository.findById(id);
     return {
@@ -98,7 +98,7 @@ export class PermissionController {
   }
 
   @Post()
-  @AuthPermissions('permission:create')
+  @AuthPermissions('auth.permission.create')
   @HttpCode(HttpStatus.CREATED)
   async createPermission(
     @Body() dto: CreatePermissionDto,
@@ -114,7 +114,7 @@ export class PermissionController {
   }
 
   @Put(':id')
-  @AuthPermissions('permission:update')
+  @AuthPermissions('auth.permission.update')
   async updatePermission(
     @Param('id') id: number,
     @Body() dto: UpdatePermissionDto,
@@ -130,7 +130,7 @@ export class PermissionController {
   }
 
   @Delete(':id')
-  @AuthPermissions('permission:delete')
+  @AuthPermissions('auth.permission.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePermission(@Param('id') id: number) {
     // TODO: Implement delete permission

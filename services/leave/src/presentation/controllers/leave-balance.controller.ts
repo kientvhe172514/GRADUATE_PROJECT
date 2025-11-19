@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query, UnauthorizedException } from '@nestjs/common';
-import { ApiResponseDto, CurrentUser, JwtPayload } from '@graduate-project/shared-common';
+import { ApiResponseDto, CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import {
@@ -39,6 +39,7 @@ export class LeaveBalanceController {
   ) {}
 
   @Get('employee/:employeeId')
+  @Permissions('leave.balance.read')
   @ApiOperation({ summary: 'Get employee leave balances by year' })
   @ApiResponse({
     status: 200,
@@ -76,6 +77,7 @@ export class LeaveBalanceController {
   }
 
   @Get('me')
+  @Permissions('leave.balance.read_own')
   async getMyBalances(
     @CurrentUser() user: JwtPayload,
     @Query() query: GetBalanceQueryDto,
@@ -88,6 +90,7 @@ export class LeaveBalanceController {
   }
 
   @Get('employee/:employeeId/summary')
+  @Permissions('leave.balance.read')
   async getSummary(
     @Param('employeeId', ParseIntPipe) employeeId: number,
     @Query() query: GetBalanceQueryDto,
@@ -99,6 +102,7 @@ export class LeaveBalanceController {
   }
 
   @Post('initialize')
+  @Permissions('leave.balance.update')
   async initialize(@Body() dto: InitializeLeaveBalancesDto): Promise<ApiResponseDto<LeaveBalanceResponseDto[]>> {
     const result = await this.initializeEmployeeBalances.execute(dto.employee_id, dto.year);
     const data = plainToInstance(LeaveBalanceResponseDto, result);
@@ -106,6 +110,7 @@ export class LeaveBalanceController {
   }
 
   @Post('adjust')
+  @Permissions('leave.balance.update')
   async adjust(@Body() dto: AdjustLeaveBalanceDto): Promise<ApiResponseDto<LeaveBalanceResponseDto>> {
     const result = await this.adjustLeaveBalance.execute(
       dto.employee_id,
@@ -120,12 +125,14 @@ export class LeaveBalanceController {
   }
 
   @Post('carry-over')
+  @Permissions('leave.balance.update')
   async carryOverEndpoint(@Body() dto: CarryOverDto): Promise<ApiResponseDto<any[]>> {
     const data = await this.carryOver.execute(dto.year);
     return ApiResponseDto.success(data, 'Carry over processed successfully');
   }
 
   @Get('expiring')
+  @Permissions('leave.balance.read')
   async expiring(@Query() query: ExpiringCarryOverQueryDto): Promise<ApiResponseDto<any[]>> {
     const year = query.year ?? new Date().getFullYear();
     const data = await this.listExpiringCarryOver.execute(year);
@@ -135,6 +142,7 @@ export class LeaveBalanceController {
   // ========== EMPLOYEE SELF-SERVICE ENDPOINTS ==========
 
   @Get('me/summary')
+  @Permissions('leave.balance.read_own')
   @ApiOperation({ summary: 'Get my leave balance summary for the current year' })
   @ApiQuery({ name: 'year', required: false, type: Number, description: 'Year (default: current year)' })
   async getMySummary(
@@ -149,6 +157,7 @@ export class LeaveBalanceController {
   }
 
   @Get('me/statistics')
+  @Permissions('leave.balance.read_own')
   @ApiOperation({ summary: 'Get my detailed leave statistics' })
   @ApiQuery({ name: 'year', required: false, type: Number, description: 'Year (default: current year)' })
   async getMyLeaveStatistics(
@@ -162,6 +171,7 @@ export class LeaveBalanceController {
   }
 
   @Get('transactions/me')
+  @Permissions('leave.balance.read_own')
   @ApiOperation({ summary: 'Get my leave balance transaction history' })
   @ApiQuery({ name: 'year', required: false, type: Number })
   @ApiQuery({ name: 'leave_type_id', required: false, type: Number })

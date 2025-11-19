@@ -29,11 +29,8 @@ import { UpdateOvertimeRequestUseCase } from '../../application/use-cases/overti
 import { ApproveOvertimeRequestUseCase } from '../../application/use-cases/overtime/approve-overtime-request.use-case';
 import { RejectOvertimeRequestUseCase } from '../../application/use-cases/overtime/reject-overtime-request.use-case';
 import { CancelOvertimeRequestUseCase } from '../../application/use-cases/overtime/cancel-overtime-request.use-case';
-import { Public } from '@graduate-project/shared-common';
-
 @ApiTags('Overtime Requests')
 @ApiBearerAuth()
-@Public()
 @Controller('overtime-requests')
 export class OvertimeRequestController {
   constructor(
@@ -49,8 +46,8 @@ export class OvertimeRequestController {
   ) {}
 
   @Post()
+  @Permissions('overtime.create')
   @HttpCode(HttpStatus.CREATED)
-
   @ApiOperation({ summary: 'Create overtime request (Employee)' })
   @ApiResponse({ status: 201, type: ApiResponseDto })
   async createRequest(
@@ -61,8 +58,8 @@ export class OvertimeRequestController {
   }
 
   @Get('my-requests')
+  @Permissions('overtime.read_own')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get my overtime requests (Employee)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyRequests(
@@ -74,8 +71,8 @@ export class OvertimeRequestController {
   }
 
   @Get()
+  @Permissions('overtime.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get all overtime requests (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getAllRequests(
@@ -85,8 +82,8 @@ export class OvertimeRequestController {
   }
 
   @Get('pending')
+  @Permissions('overtime.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get pending overtime requests (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getPendingRequests(
@@ -97,8 +94,8 @@ export class OvertimeRequestController {
   }
 
   @Get(':id')
+  @Permissions('overtime.read')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get overtime request details' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getRequestById(
@@ -108,8 +105,8 @@ export class OvertimeRequestController {
   }
 
   @Put(':id')
+  @Permissions('overtime.update')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({
     summary: 'Update overtime request (Employee - before approval)',
   })
@@ -123,8 +120,8 @@ export class OvertimeRequestController {
   }
 
   @Post(':id/approve')
+  @Permissions('overtime.approve')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Approve overtime request (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async approveRequest(
@@ -135,8 +132,8 @@ export class OvertimeRequestController {
   }
 
   @Post(':id/reject')
+  @Permissions('overtime.reject')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Reject overtime request (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async rejectRequest(
@@ -148,8 +145,8 @@ export class OvertimeRequestController {
   }
 
   @Post(':id/cancel')
+  @Permissions('overtime.cancel')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Cancel your own overtime request (Employee)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async cancelRequest(
