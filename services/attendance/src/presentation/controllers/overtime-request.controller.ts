@@ -94,7 +94,7 @@ export class OvertimeRequestController {
   }
 
   @Get(':id')
-  @Permissions('overtime.read')
+  @Permissions('overtime.read_detail')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get overtime request details' })
   @ApiResponse({ status: 200, type: ApiResponseDto })

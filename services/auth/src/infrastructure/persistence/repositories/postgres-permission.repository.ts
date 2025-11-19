@@ -46,6 +46,10 @@ export class PostgresPermissionRepository implements PermissionRepositoryPort {
     return await this.repository.findOne({ where: { id } });
   }
 
+  async findByCode(code: string): Promise<any | null> {
+    return await this.repository.findOne({ where: { code } });
+  }
+
   async findByResource(resource: string): Promise<any[]> {
     return await this.repository.find({
       where: { resource, status: 'active' },

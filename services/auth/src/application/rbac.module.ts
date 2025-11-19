@@ -25,6 +25,9 @@ import { GetRoleByIdUseCase } from './use-cases/rbac/get-role-by-id.use-case';
 import { GetRolePermissionsUseCase } from './use-cases/rbac/get-role-permissions.use-case';
 import { AssignPermissionsToRoleUseCase } from './use-cases/rbac/assign-permissions-to-role.use-case';
 import { RemovePermissionFromRoleUseCase } from './use-cases/rbac/remove-permission-from-role.use-case';
+import { CreatePermissionUseCase } from './use-cases/create-permission.use-case';
+import { UpdatePermissionUseCase } from './use-cases/update-permission.use-case';
+import { DeletePermissionUseCase } from './use-cases/delete-permission.use-case';
 @Global() // <-- 2. THÊM @Global() VÀO ĐÂY
 @Module({
   imports: [
@@ -63,6 +66,9 @@ import { RemovePermissionFromRoleUseCase } from './use-cases/rbac/remove-permiss
     GetRolePermissionsUseCase,
     AssignPermissionsToRoleUseCase,
     RemovePermissionFromRoleUseCase,
+    CreatePermissionUseCase,
+    UpdatePermissionUseCase,
+    DeletePermissionUseCase,
   ],
   exports: [JwtStrategy, PassportModule, ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY],
 })

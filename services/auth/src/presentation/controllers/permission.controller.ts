@@ -20,6 +20,9 @@ import {
 } from '../dto/permission.dto';
 import { PermissionRepositoryPort } from '../../application/ports/permission.repository.port';
 import { PERMISSION_REPOSITORY } from '../../application/tokens';
+import { CreatePermissionUseCase } from '../../application/use-cases/create-permission.use-case';
+import { UpdatePermissionUseCase } from '../../application/use-cases/update-permission.use-case';
+import { DeletePermissionUseCase } from '../../application/use-cases/delete-permission.use-case';
 
 @ApiTags('permissions')
 @Controller('permissions')
@@ -28,6 +31,9 @@ export class PermissionController {
   constructor(
     @Inject(PERMISSION_REPOSITORY)
     private permissionRepository: PermissionRepositoryPort,
+    private readonly createPermissionUseCase: CreatePermissionUseCase,
+    private readonly updatePermissionUseCase: UpdatePermissionUseCase,
+    private readonly deletePermissionUseCase: DeletePermissionUseCase,
   ) {}
 
   @Get()
@@ -104,12 +110,14 @@ export class PermissionController {
     @Body() dto: CreatePermissionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    // TODO: Implement create permission
-    // Validate: code must be unique
-    // Validate: code format must be "resource.action" or "resource.action.scope"
+    const permission = await this.createPermissionUseCase.execute({
+      ...dto,
+      created_by: user.sub,
+    });
+
     return {
       message: 'Permission created successfully',
-      data: { id: 1, ...dto, created_by: user.sub },
+      data: permission,
     };
   }
 
@@ -120,12 +128,15 @@ export class PermissionController {
     @Body() dto: UpdatePermissionDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    // TODO: Implement update permission
-    // Validate: cannot update system permissions (is_system_permission = true)
-    // Only allow update description and status
+    const updated = await this.updatePermissionUseCase.execute({
+      id,
+      ...dto,
+      updated_by: String(user.sub),
+    });
+
     return {
       message: 'Permission updated successfully',
-      data: { id, ...dto, updated_by: user.sub },
+      data: updated,
     };
   }
 
@@ -133,9 +144,7 @@ export class PermissionController {
   @AuthPermissions('auth.permission.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePermission(@Param('id') id: number) {
-    // TODO: Implement delete permission
-    // Validate: cannot delete system permissions
-    // Validate: remove from role_permissions and account_permissions first
+    await this.deletePermissionUseCase.execute({ id });
     return { message: 'Permission deleted successfully' };
   }
 }
