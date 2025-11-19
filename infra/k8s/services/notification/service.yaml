@@ -10,6 +10,10 @@ metadata:
   labels:
     app: notification
     tier: application
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3005"
+    prometheus.io/path: "/metrics"
 spec:
   type: ClusterIP
   sessionAffinity: ClientIP

@@ -14,6 +14,9 @@ import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { RequestFaceVerificationUseCase } from './request-face-verification.use-case';
 import { ProcessFaceVerificationResultUseCase } from './process-face-verification-result.use-case';
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
+import { ValidateEmployeeLocationUseCase } from './validate-employee-location.use-case';
+import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event.publisher';
+import { PresenceVerificationModule } from '../presence-verification/presence-verification.module';
 
 @Module({
   imports: [
@@ -23,6 +26,7 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
       BeaconSchema,
     ]),
     ConfigModule,
+    PresenceVerificationModule,
     ClientsModule.registerAsync([
       {
         name: 'FACE_RECOGNITION_SERVICE',
@@ -59,6 +63,12 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
     UpdateEmployeeShiftUseCase,
     RequestFaceVerificationUseCase,
     ProcessFaceVerificationResultUseCase,
+    ValidateEmployeeLocationUseCase,
+    // Event Publisher
+    {
+      provide: 'IEventPublisher',
+      useClass: RabbitMQEventPublisher,
+    },
   ],
   exports: [
     AttendanceCheckRepository,
@@ -69,6 +79,7 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
     UpdateEmployeeShiftUseCase,
     RequestFaceVerificationUseCase,
     ProcessFaceVerificationResultUseCase,
+    ValidateEmployeeLocationUseCase,
   ],
 })
 export class AttendanceCheckModule {}
