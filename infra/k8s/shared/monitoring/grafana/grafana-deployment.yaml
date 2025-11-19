@@ -53,14 +53,14 @@ spec:
             value: "true"
           - name: GF_SECURITY_ALLOW_EMBEDDING
             value: "false"  # Prevent clickjacking
-        # ULTRA-OPTIMIZED RESOURCES FOR T2.MICRO
+        # INCREASED RESOURCES (Exit Code 2 crashes with 32Mi/64Mi)
         resources:
           requests:
-            cpu: 25m       # Ultra-optimized for t2.micro (was 50m)
-            memory: 32Mi   # Ultra-optimized for t2.micro (was 64Mi)
+            cpu: 50m       
+            memory: 128Mi  # Increased: Grafana needs more for DB + UI
           limits:
-            cpu: 100m      # Ultra-optimized for t2.micro (was 200m)
-            memory: 64Mi   # Ultra-optimized for t2.micro (was 128Mi)
+            cpu: 200m      
+            memory: 256Mi  # Increased: Prevent Exit Code 2 crashes
         # THÊM HEALTH CHECKS
         readinessProbe:
           httpGet:

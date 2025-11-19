@@ -53,11 +53,11 @@ spec:
           mountPath: /prometheus/
         resources:
           requests:
-            memory: "64Mi"   # Ultra-optimized for t2.micro (was 128Mi)
-            cpu: "25m"       # Ultra-optimized for t2.micro (was 50m)
+            memory: "256Mi"  # Increased: OOMKilled with 64Mi (WAL replay needs more)
+            cpu: "50m"       
           limits:
-            memory: "128Mi"  # Ultra-optimized for t2.micro (was 256Mi)
-            cpu: "100m"      # Ultra-optimized for t2.micro (was 200m)
+            memory: "512Mi"  # Increased: OOMKilled with 128Mi during WAL replay
+            cpu: "200m"
         readinessProbe:
           httpGet:
             path: /-/ready
