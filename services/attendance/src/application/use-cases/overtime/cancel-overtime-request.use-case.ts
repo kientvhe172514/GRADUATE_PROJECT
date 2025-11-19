@@ -15,7 +15,7 @@ export class CancelOvertimeRequestUseCase {
   async execute(
     id: number,
     currentUser: JwtPayload,
-  ): Promise<ApiResponseDto<void>> {
+  ): Promise<ApiResponseDto<any>> {
     const request = await this.overtimeRepo.findOne({ where: { id } });
 
     if (!request) {
@@ -78,14 +78,9 @@ export class CancelOvertimeRequestUseCase {
       );
     }
 
-    return {
-      status: ResponseStatus.SUCCESS,
-      statusCode: 200,
-      message: 'Overtime request cancelled successfully',
-      data: undefined,
-      errorCode: 'SUCCESS',
-      timestamp: new Date().toISOString(),
-      path: '',
-    };
+    return ApiResponseDto.success(
+      updated,
+      'Overtime request cancelled successfully',
+    );
   }
 }

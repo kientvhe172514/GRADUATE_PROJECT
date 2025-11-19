@@ -11,7 +11,7 @@ export class UpdateOvertimeRequestUseCase {
     id: number,
     dto: UpdateOvertimeRequestDto,
     currentUser: JwtPayload,
-  ): Promise<ApiResponseDto<void>> {
+  ): Promise<ApiResponseDto<any>> {
     const request = await this.overtimeRepo.findOne({ where: { id } });
 
     if (!request) {
