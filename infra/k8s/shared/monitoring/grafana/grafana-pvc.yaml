@@ -12,5 +12,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi  # Increased from 500Mi (cannot decrease PVC size)
+      storage: 500Mi  # Keep current size (PVC already bound, cannot change)
   storageClassName: local-path  # K3s default, change if using different storage class
