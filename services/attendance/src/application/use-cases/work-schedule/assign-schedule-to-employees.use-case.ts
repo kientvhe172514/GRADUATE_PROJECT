@@ -1,8 +1,18 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { AssignWorkScheduleDto } from '../../dtos/work-schedule.dto';
-import { IWorkScheduleRepository, IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { WORK_SCHEDULE_REPOSITORY, EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../../application/tokens';
-import { BusinessException, ErrorCodes, ApiResponseDto } from '@graduate-project/shared-common';
+import {
+  IWorkScheduleRepository,
+  IEmployeeWorkScheduleRepository,
+} from '../../ports/work-schedule.repository.port';
+import {
+  WORK_SCHEDULE_REPOSITORY,
+  EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+} from '../../../application/tokens';
+import {
+  BusinessException,
+  ErrorCodes,
+  ApiResponseDto,
+} from '@graduate-project/shared-common';
 import { JwtPayload } from '@graduate-project/shared-common';
 import { EmployeeWorkSchedule } from '../../../domain/entities/employee-work-schedule.entity';
 
@@ -15,13 +25,21 @@ export class AssignScheduleToEmployeesUseCase {
     private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
   ) {}
 
-  async execute(scheduleId: number, dto: AssignWorkScheduleDto, currentUser: JwtPayload): Promise<ApiResponseDto<void>> {
+  async execute(
+    scheduleId: number,
+    dto: AssignWorkScheduleDto,
+    currentUser: JwtPayload,
+  ): Promise<ApiResponseDto<void>> {
     const workSchedule = await this.workScheduleRepository.findById(scheduleId);
     if (!workSchedule) {
-      throw new BusinessException(ErrorCodes.SCHEDULE_NOT_FOUND, 'Work schedule not found.', 404);
+      throw new BusinessException(
+        ErrorCodes.SCHEDULE_NOT_FOUND,
+        'Work schedule not found.',
+        404,
+      );
     }
 
-    const assignments = dto.employee_ids.map(employeeId => {
+    const assignments = dto.employee_ids.map((employeeId) => {
       return new EmployeeWorkSchedule({
         employee_id: employeeId,
         work_schedule_id: scheduleId,
@@ -33,7 +51,9 @@ export class AssignScheduleToEmployeesUseCase {
 
     await this.employeeWorkScheduleRepository.saveMany(assignments);
 
-    return ApiResponseDto.success(undefined, 'Work schedule assigned to employees successfully.');
+    return ApiResponseDto.success(
+      undefined,
+      'Work schedule assigned to employees successfully.',
+    );
   }
 }
-

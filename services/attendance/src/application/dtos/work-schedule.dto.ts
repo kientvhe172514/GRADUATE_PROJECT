@@ -13,7 +13,11 @@ import {
   Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { ScheduleStatus, ScheduleType, WorkSchedule } from '../../domain/entities/work-schedule.entity';
+import {
+  ScheduleStatus,
+  ScheduleType,
+  WorkSchedule,
+} from '../../domain/entities/work-schedule.entity';
 import { EmployeeWorkSchedule } from '../../domain/entities/employee-work-schedule.entity';
 
 // =======================================
@@ -21,7 +25,10 @@ import { EmployeeWorkSchedule } from '../../domain/entities/employee-work-schedu
 // =======================================
 
 export class CreateWorkScheduleDto {
-  @ApiProperty({ example: 'Standard Office Hours', description: 'Name of the work schedule' })
+  @ApiProperty({
+    example: 'Standard Office Hours',
+    description: 'Name of the work schedule',
+  })
   @IsString()
   @IsNotEmpty()
   schedule_name: string;
@@ -38,12 +45,18 @@ export class CreateWorkScheduleDto {
   @IsString()
   work_days?: string;
 
-  @ApiPropertyOptional({ example: '08:00:00', description: 'Start time in HH:mm:ss format' })
+  @ApiPropertyOptional({
+    example: '08:00:00',
+    description: 'Start time in HH:mm:ss format',
+  })
   @IsOptional()
   @IsString()
   start_time?: string;
 
-  @ApiPropertyOptional({ example: '17:00:00', description: 'End time in HH:mm:ss format' })
+  @ApiPropertyOptional({
+    example: '17:00:00',
+    description: 'End time in HH:mm:ss format',
+  })
   @IsOptional()
   @IsString()
   end_time?: string;
@@ -102,7 +115,11 @@ export class ListWorkScheduleDto {
 }
 
 export class AssignWorkScheduleDto {
-  @ApiProperty({ type: [Number], example: [101, 102], description: 'List of Employee IDs' })
+  @ApiProperty({
+    type: [Number],
+    example: [101, 102],
+    description: 'List of Employee IDs',
+  })
   @IsArray()
   @ArrayNotEmpty()
   @IsInt({ each: true })
@@ -112,7 +129,10 @@ export class AssignWorkScheduleDto {
   @IsDateString()
   effective_from: string;
 
-  @ApiPropertyOptional({ example: '2024-12-31', description: 'Optional effective end date' })
+  @ApiPropertyOptional({
+    example: '2024-12-31',
+    description: 'Optional effective end date',
+  })
   @IsOptional()
   @IsDateString()
   effective_to?: string;
@@ -163,7 +183,8 @@ export class WorkScheduleDto {
     this.end_time = props.end_time;
     this.break_duration_minutes = props.break_duration_minutes ?? 60;
     this.late_tolerance_minutes = props.late_tolerance_minutes ?? 15;
-    this.early_leave_tolerance_minutes = props.early_leave_tolerance_minutes ?? 15;
+    this.early_leave_tolerance_minutes =
+      props.early_leave_tolerance_minutes ?? 15;
     this.status = props.status ?? ScheduleStatus.ACTIVE;
   }
 }
@@ -193,4 +214,3 @@ export class EmployeeWorkScheduleDto {
     this.effective_to = props.effective_to;
   }
 }
-

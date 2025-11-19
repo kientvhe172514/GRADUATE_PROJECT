@@ -15,7 +15,11 @@ export class EmployeeWorkSchedule {
   private props: EmployeeWorkScheduleProps;
 
   constructor(props: EmployeeWorkScheduleProps) {
-    if (!props.employee_id || !props.work_schedule_id || !props.effective_from) {
+    if (
+      !props.employee_id ||
+      !props.work_schedule_id ||
+      !props.effective_from
+    ) {
       throw new BusinessException(
         ErrorCodes.MISSING_REQUIRED_FIELDS,
         'Employee ID, Work Schedule ID, and Effective From date are required.',
@@ -87,4 +91,3 @@ export class EmployeeWorkSchedule {
     return { id: this.id, ...this.props };
   }
 }
-

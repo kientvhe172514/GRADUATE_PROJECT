@@ -4,9 +4,7 @@ import { PresenceVerificationRoundEntity } from '../../../domain/entities/presen
 
 @Injectable()
 export class CapturePresenceVerificationUseCase {
-  private readonly logger = new Logger(
-    CapturePresenceVerificationUseCase.name,
-  );
+  private readonly logger = new Logger(CapturePresenceVerificationUseCase.name);
 
   constructor(
     @Inject('IPresenceVerificationRepository')
@@ -20,7 +18,9 @@ export class CapturePresenceVerificationUseCase {
     imageUrl: string;
     location: { latitude: number; longitude: number };
   }): Promise<PresenceVerificationRoundEntity> {
-    this.logger.log(`Capturing presence verification for employee ${data.employeeId}, shift ${data.shiftId}, round ${data.roundNumber}`);
+    this.logger.log(
+      `Capturing presence verification for employee ${data.employeeId}, shift ${data.shiftId}, round ${data.roundNumber}`,
+    );
 
     const verification = new PresenceVerificationRoundEntity({
       employee_id: Number(data.employeeId),

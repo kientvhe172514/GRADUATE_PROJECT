@@ -11,8 +11,19 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions, ApiResponseDto, Public } from '@graduate-project/shared-common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import {
+  CurrentUser,
+  JwtPayload,
+  Permissions,
+  ApiResponseDto,
+  Public,
+} from '@graduate-project/shared-common';
 import {
   CreateWorkScheduleDto,
   UpdateWorkScheduleDto,
@@ -43,9 +54,12 @@ export class WorkScheduleController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-
   @ApiOperation({ summary: 'Create a new work schedule' })
-  @ApiResponse({ status: 201, description: 'Schedule created successfully', type: ApiResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Schedule created successfully',
+    type: ApiResponseDto,
+  })
   async create(
     @Body() dto: CreateWorkScheduleDto,
     @CurrentUser() user: JwtPayload,
@@ -55,27 +69,42 @@ export class WorkScheduleController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-
-  @ApiOperation({ summary: 'Get all work schedules with pagination and filters' })
-  @ApiResponse({ status: 200, description: 'Schedules retrieved successfully', type: ApiResponseDto })
-  async findAll(@Query() dto: ListWorkScheduleDto): Promise<ApiResponseDto<{ data: WorkScheduleDto[]; total: number }>> {
+  @ApiOperation({
+    summary: 'Get all work schedules with pagination and filters',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Schedules retrieved successfully',
+    type: ApiResponseDto,
+  })
+  async findAll(
+    @Query() dto: ListWorkScheduleDto,
+  ): Promise<ApiResponseDto<{ data: WorkScheduleDto[]; total: number }>> {
     return this.listWorkSchedulesUseCase.execute(dto);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get work schedule by ID' })
-  @ApiResponse({ status: 200, description: 'Schedule retrieved successfully', type: ApiResponseDto })
-  async findById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<WorkScheduleDto>> {
+  @ApiResponse({
+    status: 200,
+    description: 'Schedule retrieved successfully',
+    type: ApiResponseDto,
+  })
+  async findById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<WorkScheduleDto>> {
     return this.getWorkScheduleByIdUseCase.execute(id);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Update work schedule' })
-  @ApiResponse({ status: 200, description: 'Schedule updated successfully', type: ApiResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Schedule updated successfully',
+    type: ApiResponseDto,
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateWorkScheduleDto,
@@ -86,9 +115,12 @@ export class WorkScheduleController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Deactivate a work schedule' })
-  @ApiResponse({ status: 200, description: 'Schedule deactivated successfully', type: ApiResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Schedule deactivated successfully',
+    type: ApiResponseDto,
+  })
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
@@ -98,9 +130,12 @@ export class WorkScheduleController {
 
   @Post(':id/assign')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Assign a work schedule to employees' })
-  @ApiResponse({ status: 200, description: 'Schedule assigned successfully', type: ApiResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Schedule assigned successfully',
+    type: ApiResponseDto,
+  })
   async assign(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AssignWorkScheduleDto,

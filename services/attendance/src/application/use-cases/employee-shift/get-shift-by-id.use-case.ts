@@ -1,5 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { EMPLOYEE_SHIFT_REPOSITORY } from '../../tokens';
 import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
 import { EmployeeShiftDto } from '../../dtos/employee-shift.dto';
@@ -27,5 +31,3 @@ export class GetShiftByIdUseCase {
     );
   }
 }
-
-

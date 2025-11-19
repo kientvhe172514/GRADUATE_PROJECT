@@ -22,14 +22,16 @@ export class ScheduleVerificationRemindersUseCase {
 
     try {
       // Get active shifts that need verification
-      const activeShifts = await this.employeeShiftRepository.findActiveShifts();
+      const activeShifts =
+        await this.employeeShiftRepository.findActiveShifts();
 
       for (const shift of activeShifts) {
         if (!shift.id) continue;
 
         // Check if verification is pending for this shift
-        const verifications =
-          await this.verificationRepository.findByShiftId(shift.id);
+        const verifications = await this.verificationRepository.findByShiftId(
+          shift.id,
+        );
 
         // Logic to determine if reminder is needed
         // This can be expanded based on business requirements

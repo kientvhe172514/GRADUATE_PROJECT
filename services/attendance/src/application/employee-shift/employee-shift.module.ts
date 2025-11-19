@@ -11,7 +11,10 @@ import { EmployeeShiftController } from '../../presentation/controllers/employee
 import { AttendanceEditLogModule } from '../edit-log/edit-log.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EmployeeShiftSchema]), AttendanceEditLogModule],
+  imports: [
+    TypeOrmModule.forFeature([EmployeeShiftSchema]),
+    AttendanceEditLogModule,
+  ],
   controllers: [EmployeeShiftController],
   providers: [
     EmployeeShiftRepository,

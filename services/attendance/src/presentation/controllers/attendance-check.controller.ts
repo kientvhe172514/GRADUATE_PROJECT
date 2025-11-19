@@ -7,7 +7,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Permissions } from '@graduate-project/shared-common';
 import {
   ValidateBeaconUseCase,
@@ -71,7 +76,9 @@ export class AttendanceCheckController {
   @Post('request-face-verification')
   @Permissions('attendance.checkin')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request face verification for attendance (Mobile App)' })
+  @ApiOperation({
+    summary: 'Request face verification for attendance (Mobile App)',
+  })
   @ApiResponse({ status: 200, description: 'Face verification requested' })
   async requestFaceVerification(
     @Body() dto: RequestFaceVerificationDto,

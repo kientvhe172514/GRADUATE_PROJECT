@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
 
 @Injectable()
@@ -23,5 +27,3 @@ export class GetOvertimeRequestByIdUseCase {
     );
   }
 }
-
-

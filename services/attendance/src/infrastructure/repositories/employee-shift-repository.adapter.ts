@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { IEmployeeShiftRepository } from '../../application/ports/employee-shift.repository.port';
-import { EmployeeShift, EmployeeShiftProps } from '../../domain/entities/employee-shift.entity';
+import {
+  EmployeeShift,
+  EmployeeShiftProps,
+} from '../../domain/entities/employee-shift.entity';
 import { EmployeeShiftRepository } from './employee-shift.repository';
 import { EmployeeShiftSchema } from '../persistence/typeorm/employee-shift.schema';
 
@@ -10,7 +13,9 @@ import { EmployeeShiftSchema } from '../persistence/typeorm/employee-shift.schem
  * This allows the existing repository to work with new Clean Architecture use cases
  */
 @Injectable()
-export class EmployeeShiftRepositoryAdapter implements IEmployeeShiftRepository {
+export class EmployeeShiftRepositoryAdapter
+  implements IEmployeeShiftRepository
+{
   constructor(private readonly repository: EmployeeShiftRepository) {}
 
   private mapSchemaToDomain(schema: EmployeeShiftSchema): EmployeeShift {
@@ -40,7 +45,10 @@ export class EmployeeShiftRepositoryAdapter implements IEmployeeShiftRepository 
     employeeId: number,
     date: Date,
   ): Promise<EmployeeShift | null> {
-    const schema = await this.repository.findByEmployeeAndDate(employeeId, date);
+    const schema = await this.repository.findByEmployeeAndDate(
+      employeeId,
+      date,
+    );
     if (!schema) return null;
     return this.mapSchemaToDomain(schema);
   }
@@ -61,14 +69,19 @@ export class EmployeeShiftRepositoryAdapter implements IEmployeeShiftRepository 
     return schemas.map(this.mapSchemaToDomain);
   }
 
-  async findByDateRange(startDate: Date, endDate: Date): Promise<EmployeeShift[]> {
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EmployeeShift[]> {
     const schemas = await this.repository.findByDateRange(startDate, endDate);
     return schemas.map(this.mapSchemaToDomain);
   }
 
   async create(shift: EmployeeShift): Promise<EmployeeShift> {
     // This adapter is read-only for now. Write operations should be handled by a new TypeORM repository.
-    throw new Error('Create not implemented in adapter. Use a dedicated TypeORM repository for write operations.');
+    throw new Error(
+      'Create not implemented in adapter. Use a dedicated TypeORM repository for write operations.',
+    );
   }
 
   async update(
@@ -76,6 +89,8 @@ export class EmployeeShiftRepositoryAdapter implements IEmployeeShiftRepository 
     data: Partial<EmployeeShift>,
   ): Promise<EmployeeShift> {
     // This adapter is read-only for now. Write operations should be handled by a new TypeORM repository.
-    throw new Error('Update not implemented in adapter. Use a dedicated TypeORM repository for write operations.');
+    throw new Error(
+      'Update not implemented in adapter. Use a dedicated TypeORM repository for write operations.',
+    );
   }
 }

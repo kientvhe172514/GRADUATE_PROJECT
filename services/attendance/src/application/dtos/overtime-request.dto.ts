@@ -17,12 +17,18 @@ export enum OvertimeStatus {
 }
 
 export class CreateOvertimeRequestDto {
-  @ApiPropertyOptional({ example: 123, description: 'Related shift ID (optional)' })
+  @ApiPropertyOptional({
+    example: 123,
+    description: 'Related shift ID (optional)',
+  })
   @IsOptional()
   @IsInt()
   shift_id?: number;
 
-  @ApiProperty({ example: '2025-01-15', description: 'Overtime date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2025-01-15',
+    description: 'Overtime date (YYYY-MM-DD)',
+  })
   @IsDateString()
   overtime_date: string;
 
@@ -92,5 +98,3 @@ export class OvertimeQueryDto {
   @Min(0)
   offset?: number;
 }
-
-

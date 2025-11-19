@@ -5,7 +5,7 @@ import { ClientProxy } from '@nestjs/microservices';
 
 /**
  * Processor to check for employees who haven't checked in after 10 minutes of their shift start time.
- * 
+ *
  * HOW IT WORKS:
  * 1. Runs every 10 minutes (configurable via CRON expression)
  * 2. Queries all active shifts that should have started 10+ minutes ago
@@ -15,7 +15,7 @@ import { ClientProxy } from '@nestjs/microservices';
  *    - Haven't checked in yet
  *    - Don't have an approved leave request
  * 4. Sends push notification reminder to those employees
- * 
+ *
  * EXAMPLE:
  * - Employee A has shift 8:00-17:00
  * - Employee B has shift 9:00-18:00
@@ -47,17 +47,22 @@ export class CheckMissingAttendanceProcessor {
 
     try {
       const currentTime = new Date();
-      const thresholdTime = new Date(currentTime.getTime() - this.MINUTES_THRESHOLD * 60 * 1000);
+      const thresholdTime = new Date(
+        currentTime.getTime() - this.MINUTES_THRESHOLD * 60 * 1000,
+      );
 
       // Query employees who should have checked in by now but haven't
-      const missingEmployees = await this.findEmployeesWithMissingCheckIn(thresholdTime);
+      const missingEmployees =
+        await this.findEmployeesWithMissingCheckIn(thresholdTime);
 
       if (missingEmployees.length === 0) {
         this.logger.log('✅ [CRON] No employees missing check-in at this time');
         return;
       }
 
-      this.logger.log(`📊 [CRON] Found ${missingEmployees.length} employees without check-in`);
+      this.logger.log(
+        `📊 [CRON] Found ${missingEmployees.length} employees without check-in`,
+      );
 
       // Send reminder notification to each employee
       let successCount = 0;
@@ -69,7 +74,10 @@ export class CheckMissingAttendanceProcessor {
           successCount++;
         } catch (error) {
           failCount++;
-          this.logger.error(`❌ [CRON] Failed to send reminder to employee ${employee.employee_id}:`, error.message);
+          this.logger.error(
+            `❌ [CRON] Failed to send reminder to employee ${employee.employee_id}:`,
+            error.message,
+          );
         }
       }
 
@@ -89,7 +97,9 @@ export class CheckMissingAttendanceProcessor {
    * 3. Haven't checked in yet
    * 4. Don't have an approved leave request
    */
-  private async findEmployeesWithMissingCheckIn(thresholdTime: Date): Promise<any[]> {
+  private async findEmployeesWithMissingCheckIn(
+    thresholdTime: Date,
+  ): Promise<any[]> {
     const query = `
       WITH active_shifts_today AS (
         SELECT 
@@ -177,11 +187,18 @@ export class CheckMissingAttendanceProcessor {
   /**
    * Manual trigger for testing (call via API endpoint if needed)
    */
-  async triggerManually(): Promise<{ sent: number; failed: number; employees: any[] }> {
+  async triggerManually(): Promise<{
+    sent: number;
+    failed: number;
+    employees: any[];
+  }> {
     this.logger.log('🔧 [MANUAL] Manually triggered missing attendance check');
-    
-    const thresholdTime = new Date(Date.now() - this.MINUTES_THRESHOLD * 60 * 1000);
-    const missingEmployees = await this.findEmployeesWithMissingCheckIn(thresholdTime);
+
+    const thresholdTime = new Date(
+      Date.now() - this.MINUTES_THRESHOLD * 60 * 1000,
+    );
+    const missingEmployees =
+      await this.findEmployeesWithMissingCheckIn(thresholdTime);
 
     let successCount = 0;
     let failCount = 0;

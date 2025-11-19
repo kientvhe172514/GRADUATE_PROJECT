@@ -93,14 +93,26 @@ export class WorkSchedule {
 
   // --- Business Logic ---
 
-  public update(updateProps: Partial<WorkScheduleProps>, updated_by: number): void {
-    this.props = { ...this.props, ...updateProps, updated_by, updated_at: new Date() };
+  public update(
+    updateProps: Partial<WorkScheduleProps>,
+    updated_by: number,
+  ): void {
+    this.props = {
+      ...this.props,
+      ...updateProps,
+      updated_by,
+      updated_at: new Date(),
+    };
     this.validate();
   }
 
   public activate(updated_by: number): void {
     if (this.props.status === ScheduleStatus.ACTIVE) {
-      throw new BusinessException(ErrorCodes.SCHEDULE_ALREADY_ACTIVE, 'Schedule is already active.', 409);
+      throw new BusinessException(
+        ErrorCodes.SCHEDULE_ALREADY_ACTIVE,
+        'Schedule is already active.',
+        409,
+      );
     }
     this.props.status = ScheduleStatus.ACTIVE;
     this.props.updated_by = updated_by;
@@ -109,7 +121,11 @@ export class WorkSchedule {
 
   public deactivate(updated_by: number): void {
     if (this.props.status === ScheduleStatus.INACTIVE) {
-      throw new BusinessException(ErrorCodes.SCHEDULE_ALREADY_INACTIVE, 'Schedule is already inactive.', 409);
+      throw new BusinessException(
+        ErrorCodes.SCHEDULE_ALREADY_INACTIVE,
+        'Schedule is already inactive.',
+        409,
+      );
     }
     this.props.status = ScheduleStatus.INACTIVE;
     this.props.updated_by = updated_by;
@@ -118,7 +134,11 @@ export class WorkSchedule {
 
   private validate(): void {
     if (!this.props.schedule_name) {
-      throw new BusinessException(ErrorCodes.SCHEDULE_NAME_REQUIRED, 'Schedule name is required.', 400);
+      throw new BusinessException(
+        ErrorCodes.SCHEDULE_NAME_REQUIRED,
+        'Schedule name is required.',
+        400,
+      );
     }
   }
 
@@ -126,4 +146,3 @@ export class WorkSchedule {
     return { id: this.id, ...this.props };
   }
 }
-

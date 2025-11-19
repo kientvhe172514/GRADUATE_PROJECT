@@ -5,7 +5,9 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-missing-attendance.processor';
+import { ScheduledGpsCheckProcessor } from './infrastructure/cron/scheduled-gps-check.processor';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
@@ -19,10 +21,17 @@ import { EmployeeEventListener } from './presentation/event-listeners/employee-e
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { FaceVerificationResultConsumer } from './presentation/consumers/face-verification-result.consumer';
 import { HealthController } from './health.controller';
+import { GpsController } from './presentation/controllers/gps.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -115,6 +124,7 @@ import { HealthController } from './health.controller';
   ],
   controllers: [
     HealthController,
+    GpsController,
     EmployeeEventListener,
     LeaveEventListener,
     FaceVerificationResultConsumer,
@@ -125,6 +135,7 @@ import { HealthController } from './health.controller';
       useClass: HeaderBasedPermissionGuard,
     },
     CheckMissingAttendanceProcessor,
+    ScheduledGpsCheckProcessor,
   ],
 })
 export class AppModule {}

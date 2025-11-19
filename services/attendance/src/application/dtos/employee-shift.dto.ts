@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
-import { EmployeeShift, EmployeeShiftProps, ShiftStatus } from '../../domain/entities/employee-shift.entity';
+import {
+  EmployeeShift,
+  EmployeeShiftProps,
+  ShiftStatus,
+} from '../../domain/entities/employee-shift.entity';
 
 export class EmployeeShiftFilterDto {
   @ApiProperty({ example: '2025-01-01' })
@@ -112,5 +116,3 @@ export class EmployeeShiftDto {
     this.notes = props.notes;
   }
 }
-
-

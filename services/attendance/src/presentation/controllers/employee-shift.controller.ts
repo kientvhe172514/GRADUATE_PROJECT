@@ -10,9 +10,23 @@ import {
   Body,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions, ApiResponseDto, Public } from '@graduate-project/shared-common';
-import { EmployeeShiftFilterDto, EmployeeShiftDto } from '../../application/dtos/employee-shift.dto';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  CurrentUser,
+  JwtPayload,
+  Permissions,
+  ApiResponseDto,
+  Public,
+} from '@graduate-project/shared-common';
+import {
+  EmployeeShiftFilterDto,
+  EmployeeShiftDto,
+} from '../../application/dtos/employee-shift.dto';
 import { GetEmployeeShiftsUseCase } from '../../application/use-cases/employee-shift/get-employee-shifts.use-case';
 import { GetShiftByIdUseCase } from '../../application/use-cases/employee-shift/get-shift-by-id.use-case';
 import { ManualEditShiftUseCase } from '../../application/use-cases/employee-shift/manual-edit-shift.use-case';
@@ -31,7 +45,6 @@ export class EmployeeShiftController {
 
   @Get('my')
   @HttpCode(HttpStatus.OK)
-  
   @ApiOperation({ summary: 'Get current employee shifts within date range' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getMyShifts(
@@ -48,7 +61,6 @@ export class EmployeeShiftController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get shifts by filters (HR/Manager)' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getShifts(
@@ -60,7 +72,6 @@ export class EmployeeShiftController {
 
   @Get('department/:departmentId')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get shifts for a department within date range' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getDepartmentShifts(
@@ -77,7 +88,6 @@ export class EmployeeShiftController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get shift details by ID' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getById(
@@ -88,7 +98,6 @@ export class EmployeeShiftController {
 
   @Patch(':id/manual-edit')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Manually edit a shift (HR/Admin) and log changes' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async manualEditShift(
@@ -104,5 +113,3 @@ export class EmployeeShiftController {
     return this.manualEditShiftUseCase.execute(id, dto, user, String(ip || ''));
   }
 }
-
-

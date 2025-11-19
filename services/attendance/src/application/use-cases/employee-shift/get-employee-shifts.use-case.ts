@@ -2,7 +2,10 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { EMPLOYEE_SHIFT_REPOSITORY } from '../../tokens';
 import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
-import { EmployeeShiftFilterDto, EmployeeShiftDto } from '../../dtos/employee-shift.dto';
+import {
+  EmployeeShiftFilterDto,
+  EmployeeShiftDto,
+} from '../../dtos/employee-shift.dto';
 import { JwtPayload } from '@graduate-project/shared-common';
 import { ShiftStatus } from '../../../domain/entities/employee-shift.entity';
 
@@ -30,7 +33,10 @@ export class GetEmployeeShiftsUseCase {
       if (effectiveEmployeeId && props.employee_id !== effectiveEmployeeId) {
         return false;
       }
-      if (filter.department_id && props.department_id !== filter.department_id) {
+      if (
+        filter.department_id &&
+        props.department_id !== filter.department_id
+      ) {
         return false;
       }
       if (filter.status && props.status !== filter.status) {
@@ -52,5 +58,3 @@ export class GetEmployeeShiftsUseCase {
     );
   }
 }
-
-

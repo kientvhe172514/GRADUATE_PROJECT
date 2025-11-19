@@ -43,8 +43,5 @@ export interface IEmployeeShiftRepository {
   /**
    * Update shift
    */
-  update(
-    id: number,
-    data: Partial<EmployeeShift>,
-  ): Promise<EmployeeShift>;
+  update(id: number, data: Partial<EmployeeShift>): Promise<EmployeeShift>;
 }

@@ -90,7 +90,11 @@ export class EmployeeShift {
       );
     }
     if (!this.props.check_in_time) {
-      throw new BusinessException(ErrorCodes.CHECK_IN_MISSING, 'Cannot check-out without a check-in record.', 400);
+      throw new BusinessException(
+        ErrorCodes.CHECK_IN_MISSING,
+        'Cannot check-out without a check-in record.',
+        400,
+      );
     }
 
     this.props.check_out_time = check_out_time;
@@ -126,7 +130,15 @@ export class EmployeeShift {
     this.props.overtime_hours = values.overtime_hours;
   }
 
-  public manual_edit(data: Partial<Pick<EmployeeShiftProps, 'check_in_time' | 'check_out_time' | 'status' | 'notes'>>, updated_by: number): void {
+  public manual_edit(
+    data: Partial<
+      Pick<
+        EmployeeShiftProps,
+        'check_in_time' | 'check_out_time' | 'status' | 'notes'
+      >
+    >,
+    updated_by: number,
+  ): void {
     if (data.check_in_time !== undefined) {
       this.props.check_in_time = data.check_in_time;
     }

@@ -420,6 +420,12 @@ jobs:
             
             # Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager, Fluentd)
             echo "📊 Deploying Monitoring Stack..."
+            
+            # Delete old PVCs to recreate with new size (data will be lost)
+            echo "🗑️  Deleting old monitoring PVCs..."
+            kubectl delete pvc prometheus-storage grafana-storage -n monitoring --ignore-not-found=true
+            
+            # Apply monitoring stack with new PVCs
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
             
             # Force rollout restart to pick up new changes (nodeSelector, PVC, etc)

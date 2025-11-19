@@ -14,7 +14,9 @@ export class EmployeeWorkScheduleMapper {
     });
   }
 
-  static toPersistence(domain: EmployeeWorkSchedule): Partial<EmployeeWorkScheduleSchema> {
+  static toPersistence(
+    domain: EmployeeWorkSchedule,
+  ): Partial<EmployeeWorkScheduleSchema> {
     const props = domain.toJSON();
     return {
       id: props.id,
@@ -26,4 +28,3 @@ export class EmployeeWorkScheduleMapper {
     };
   }
 }
-

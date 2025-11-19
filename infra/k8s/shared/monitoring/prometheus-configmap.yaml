@@ -90,6 +90,7 @@ data:
             namespaces:
               names:
                 - default
+                - graduate-project  # Added: Scrape services in graduate-project namespace
         relabel_configs:
           - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
             action: keep
@@ -107,6 +108,12 @@ data:
             target_label: __address__
             regex: ([^:]+)(?::\d+)?;(\d+)
             replacement: $1:$2
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
 
       - job_name: 'infrastructure'
         kubernetes_sd_configs:

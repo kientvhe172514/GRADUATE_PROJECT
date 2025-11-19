@@ -11,8 +11,18 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import {
+  CurrentUser,
+  JwtPayload,
+  Permissions,
+  Public,
+} from '@graduate-project/shared-common';
 import { BeaconRepository } from '../../infrastructure/repositories/beacon.repository';
 import {
   CreateBeaconDto,
@@ -29,7 +39,6 @@ export class BeaconController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-
   @ApiOperation({ summary: 'Register new beacon (HR/Admin only)' })
   @ApiResponse({ status: 201, description: 'Beacon registered successfully' })
   async createBeacon(
@@ -69,7 +78,6 @@ export class BeaconController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get all beacons' })
   @ApiResponse({ status: 200, description: 'Beacons retrieved successfully' })
   async getBeacons(@Query() query: BeaconQueryDto) {
@@ -94,7 +102,6 @@ export class BeaconController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get beacon by ID' })
   @ApiResponse({ status: 200, description: 'Beacon retrieved successfully' })
   async getBeaconById(@Param('id', ParseIntPipe) id: number) {
@@ -116,7 +123,6 @@ export class BeaconController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Update beacon (HR/Admin only)' })
   @ApiResponse({ status: 200, description: 'Beacon updated successfully' })
   async updateBeacon(
@@ -145,7 +151,6 @@ export class BeaconController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Delete beacon (HR/Admin only)' })
   @ApiResponse({ status: 200, description: 'Beacon deleted successfully' })
   async deleteBeacon(

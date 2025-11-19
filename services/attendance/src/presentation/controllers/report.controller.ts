@@ -7,9 +7,19 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
-import { CurrentUser, JwtPayload, Permissions, Public } from '@graduate-project/shared-common';
+import {
+  CurrentUser,
+  JwtPayload,
+  Permissions,
+  Public,
+} from '@graduate-project/shared-common';
 import {
   DailyReportQueryDto,
   MonthlyReportQueryDto,
@@ -103,7 +113,6 @@ export class ReportController {
 
   @Get('monthly/:year/:month')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get monthly attendance report (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -149,7 +158,6 @@ export class ReportController {
 
   @Get('monthly/employee/:employeeId')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get monthly report for specific employee' })
   @ApiResponse({
     status: 200,
@@ -196,7 +204,6 @@ export class ReportController {
 
   @Get('analytics/attendance-rate')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get attendance rate analytics (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -240,7 +247,6 @@ export class ReportController {
 
   @Get('analytics/punctuality')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get punctuality analytics (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -287,7 +293,6 @@ export class ReportController {
 
   @Get('analytics/overtime-trends')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get overtime trends (HR/Manager)' })
   @ApiResponse({
     status: 200,
@@ -331,7 +336,6 @@ export class ReportController {
 
   @Get('dashboard/today')
   @HttpCode(HttpStatus.OK)
-
   @ApiOperation({ summary: 'Get today dashboard (HR/Manager)' })
   @ApiResponse({
     status: 200,

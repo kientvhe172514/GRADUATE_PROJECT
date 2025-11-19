@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes, JwtPayload } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+  JwtPayload,
+} from '@graduate-project/shared-common';
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
@@ -64,7 +69,10 @@ export class UpdateOvertimeRequestUseCase {
       end_time: dto.end_time ? new Date(dto.end_time) : undefined,
     };
 
-    const updated = await this.overtimeRepo.updateRequest(id, updateData as any);
+    const updated = await this.overtimeRepo.updateRequest(
+      id,
+      updateData as any,
+    );
 
     if (!updated) {
       throw new BusinessException(
@@ -80,5 +88,3 @@ export class UpdateOvertimeRequestUseCase {
     );
   }
 }
-
-

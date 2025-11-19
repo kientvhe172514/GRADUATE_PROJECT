@@ -34,10 +34,18 @@ export class OvertimeRequest {
 
   constructor(props: OvertimeRequestProps) {
     if (props.start_time >= props.end_time) {
-      throw new BusinessException(ErrorCodes.INVALID_DATE_RANGE, 'Start time must be before end time.', 400);
+      throw new BusinessException(
+        ErrorCodes.INVALID_DATE_RANGE,
+        'Start time must be before end time.',
+        400,
+      );
     }
     if (props.estimated_hours <= 0) {
-      throw new BusinessException(ErrorCodes.INVALID_INPUT, 'Estimated hours must be positive.', 400);
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        'Estimated hours must be positive.',
+        400,
+      );
     }
 
     this.id = props.id ?? 0;
@@ -61,7 +69,11 @@ export class OvertimeRequest {
 
   public approve(approved_by: number): void {
     if (this.props.status !== OvertimeRequestStatus.PENDING) {
-      throw new BusinessException(ErrorCodes.INVALID_STATE_TRANSITION, 'Only pending requests can be approved.', 409);
+      throw new BusinessException(
+        ErrorCodes.INVALID_STATE_TRANSITION,
+        'Only pending requests can be approved.',
+        409,
+      );
     }
     this.props.status = OvertimeRequestStatus.APPROVED;
     this.props.approved_by = approved_by;
@@ -72,10 +84,18 @@ export class OvertimeRequest {
 
   public reject(rejected_by: number, reason: string): void {
     if (this.props.status !== OvertimeRequestStatus.PENDING) {
-      throw new BusinessException(ErrorCodes.INVALID_STATE_TRANSITION, 'Only pending requests can be rejected.', 409);
+      throw new BusinessException(
+        ErrorCodes.INVALID_STATE_TRANSITION,
+        'Only pending requests can be rejected.',
+        409,
+      );
     }
     if (!reason) {
-      throw new BusinessException(ErrorCodes.REASON_REQUIRED, 'Rejection reason is required.', 400);
+      throw new BusinessException(
+        ErrorCodes.REASON_REQUIRED,
+        'Rejection reason is required.',
+        400,
+      );
     }
     this.props.status = OvertimeRequestStatus.REJECTED;
     this.props.rejection_reason = reason;
@@ -85,9 +105,16 @@ export class OvertimeRequest {
     this.props.updated_at = new Date();
   }
 
-  public update_details(data: { start_time?: Date; end_time?: Date; reason?: string }, updated_by: number): void {
+  public update_details(
+    data: { start_time?: Date; end_time?: Date; reason?: string },
+    updated_by: number,
+  ): void {
     if (this.props.status !== OvertimeRequestStatus.PENDING) {
-      throw new BusinessException(ErrorCodes.INVALID_STATE_TRANSITION, 'Can only update pending requests.', 409);
+      throw new BusinessException(
+        ErrorCodes.INVALID_STATE_TRANSITION,
+        'Can only update pending requests.',
+        409,
+      );
     }
     this.props = { ...this.props, ...data, updated_by, updated_at: new Date() };
   }
@@ -96,4 +123,3 @@ export class OvertimeRequest {
     return { id: this.id, ...this.props };
   }
 }
-
