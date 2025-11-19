@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '@graduate-project/shared-common';
 
 @Controller()
 export class HealthController {
+  @Public()
   @Get('health')
   health() {
     return {
@@ -11,6 +13,7 @@ export class HealthController {
     };
   }
 
+  @Public()
   @Get('readiness')
   readiness() {
     return {
@@ -19,6 +22,7 @@ export class HealthController {
     };
   }
 
+  @Public()
   @Get('liveness')
   liveness() {
     return {
