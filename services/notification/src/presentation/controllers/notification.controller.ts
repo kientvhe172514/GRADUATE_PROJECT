@@ -14,7 +14,7 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { SendNotificationUseCase } from '../../application/use-cases/send-notification.use-case';
 import { GetUserNotificationsUseCase } from '../../application/use-cases/get-user-notifications.use-case';
@@ -55,7 +55,38 @@ export class NotificationController {
   @Post()
   @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Send a notification' })
+  @ApiOperation({
+    summary: 'Send a notification',
+    description: 'Send a notification to a specific user through selected channels (IN_APP, EMAIL, PUSH, SMS). This API allows internal services to trigger notifications for various events like leave approvals, attendance reminders, etc.'
+  })
+  @ApiBody({
+    type: SendNotificationDto,
+    description: 'Notification details including recipient, title, message, type, and delivery channels',
+    examples: {
+      leaveApproved: {
+        summary: 'Leave Request Approved',
+        value: {
+          recipientId: 123,
+          title: 'Leave Request Approved',
+          message: 'Your leave request from 2024-01-20 to 2024-01-22 has been approved by your manager',
+          notificationType: 'LEAVE_APPROVED',
+          priority: 'MEDIUM',
+          channels: ['IN_APP', 'EMAIL', 'PUSH']
+        }
+      },
+      attendanceReminder: {
+        summary: 'Attendance Check-in Reminder',
+        value: {
+          recipientId: 456,
+          title: 'Remember to Check In',
+          message: 'You haven\'t checked in today. Please check in before 9:00 AM',
+          notificationType: 'ATTENDANCE_REMINDER',
+          priority: 'HIGH',
+          channels: ['PUSH', 'IN_APP']
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'Notification sent successfully',
@@ -100,7 +131,44 @@ export class NotificationController {
   @Post('template')
   @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Send notification from template' })
+  @ApiOperation({
+    summary: 'Send notification from template',
+    description: 'Send a notification using a predefined template with variable placeholders. Templates allow consistent messaging and support internationalization. Use placeholders like {{employeeName}}, {{startDate}}, etc. in your templates.'
+  })
+  @ApiBody({
+    type: SendNotificationFromTemplateDto,
+    description: 'Template-based notification details with variable substitution',
+    examples: {
+      welcomeNewEmployee: {
+        summary: 'Welcome New Employee',
+        value: {
+          recipientId: 123,
+          templateCode: 'WELCOME_NEW_EMPLOYEE',
+          variables: {
+            employeeName: 'John Doe',
+            employeeId: 'EMP001',
+            startDate: '2024-01-20'
+          },
+          channels: ['IN_APP', 'EMAIL']
+        }
+      },
+      leaveApprovalNotification: {
+        summary: 'Leave Approval Template',
+        value: {
+          recipientId: 456,
+          templateCode: 'LEAVE_REQUEST_APPROVED',
+          variables: {
+            employeeName: 'Jane Smith',
+            leaveType: 'Annual Leave',
+            startDate: '2024-02-01',
+            endDate: '2024-02-05',
+            totalDays: '5'
+          },
+          channels: ['IN_APP', 'EMAIL', 'PUSH']
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'Notification sent from template successfully',
@@ -358,7 +426,38 @@ export class NotificationController {
   @Post('bulk')
   @Permissions('notification.create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Send bulk notification to multiple recipients' })
+  @ApiOperation({
+    summary: 'Send bulk notification to multiple recipients',
+    description: 'Send the same notification to multiple users at once. Useful for system announcements, company-wide updates, or notifications to specific groups (e.g., all managers, all employees in a department).'
+  })
+  @ApiBody({
+    type: SendBulkNotificationDto,
+    description: 'Bulk notification with list of recipient IDs',
+    examples: {
+      systemAnnouncement: {
+        summary: 'System Maintenance Announcement',
+        value: {
+          recipientIds: [101, 102, 103, 104, 105],
+          title: 'System Maintenance Tonight',
+          message: 'The system will be under maintenance tonight from 10 PM to 2 AM. Please save your work.',
+          notificationType: 'SYSTEM_ANNOUNCEMENT',
+          priority: 'HIGH',
+          channels: ['IN_APP', 'EMAIL', 'PUSH']
+        }
+      },
+      departmentUpdate: {
+        summary: 'Department Meeting Reminder',
+        value: {
+          recipientIds: [201, 202, 203],
+          title: 'Department Meeting Tomorrow',
+          message: 'Reminder: Department meeting tomorrow at 2 PM in Conference Room A',
+          notificationType: 'MEETING_REMINDER',
+          priority: 'MEDIUM',
+          channels: ['IN_APP', 'PUSH']
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'Bulk notification sent successfully',
@@ -385,7 +484,28 @@ export class NotificationController {
   @Put('bulk/mark-as-read')
   @Permissions('notification.update_own')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mark multiple notifications as read' })
+  @ApiOperation({
+    summary: 'Mark multiple notifications as read',
+    description: 'Mark multiple notifications as read in a single request. Useful for "mark all as read" functionality or batch operations. Only notifications belonging to the authenticated user can be marked as read.'
+  })
+  @ApiBody({
+    type: BulkMarkAsReadDto,
+    description: 'Array of notification IDs to mark as read',
+    examples: {
+      markMultiple: {
+        summary: 'Mark 5 notifications as read',
+        value: {
+          notificationIds: [101, 102, 103, 104, 105]
+        }
+      },
+      markFew: {
+        summary: 'Mark 2 notifications as read',
+        value: {
+          notificationIds: [201, 202]
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 200,
     description: 'Notifications marked as read',

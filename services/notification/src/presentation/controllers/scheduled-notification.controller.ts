@@ -12,7 +12,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '@graduate-project/shared-common';
 import { CreateScheduledNotificationUseCase } from '../../application/use-cases/create-scheduled-notification.use-case';
 import { UpdateScheduledNotificationUseCase } from '../../application/use-cases/update-scheduled-notification.use-case';
@@ -39,7 +39,43 @@ export class ScheduledNotificationController {
   @Post()
   @Permissions('notification.schedule.create')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a scheduled notification' })
+  @ApiOperation({
+    summary: 'Create a scheduled notification',
+    description: 'Schedule a notification to be sent at a specific time or on a recurring basis. Supports one-time notifications, recurring notifications (using cron expressions), and notifications to individuals, groups, or all employees.'
+  })
+  @ApiBody({
+    type: CreateScheduledNotificationDto,
+    description: 'Scheduled notification configuration',
+    examples: {
+      oneTime: {
+        summary: 'One-time System Maintenance Notice',
+        value: {
+          scheduleType: 'ONCE',
+          recipientType: 'ALL_EMPLOYEES',
+          title: 'System Maintenance Tonight',
+          message: 'System will be down for maintenance tonight from 10 PM to 2 AM',
+          notificationType: 'SYSTEM_ANNOUNCEMENT',
+          channels: ['IN_APP', 'EMAIL', 'PUSH'],
+          scheduledAt: '2024-12-31T22:00:00Z',
+          timezone: 'Asia/Ho_Chi_Minh'
+        }
+      },
+      recurring: {
+        summary: 'Daily Standup Reminder (Mon-Fri at 9 AM)',
+        value: {
+          scheduleType: 'RECURRING',
+          recipientType: 'SPECIFIC_GROUP',
+          recipientIds: [101, 102, 103],
+          title: 'Daily Standup in 15 minutes',
+          message: 'Don\'t forget the daily standup meeting at 9:15 AM',
+          notificationType: 'MEETING_REMINDER',
+          channels: ['IN_APP', 'PUSH'],
+          cronExpression: '0 9 * * 1-5',
+          timezone: 'Asia/Ho_Chi_Minh'
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'Scheduled notification created successfully',
@@ -149,8 +185,38 @@ export class ScheduledNotificationController {
   @Put(':id')
   @Permissions('notification.schedule.update')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update a scheduled notification' })
+  @ApiOperation({
+    summary: 'Update a scheduled notification',
+    description: 'Update an existing scheduled notification. You can change the title, message, recipients, schedule time, or any other properties. Only the creator of the scheduled notification can update it.'
+  })
   @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiBody({
+    type: UpdateScheduledNotificationDto,
+    description: 'Updated scheduled notification properties',
+    examples: {
+      reschedule: {
+        summary: 'Reschedule to different time',
+        value: {
+          scheduledAt: '2025-01-15T22:00:00Z',
+          title: 'Updated: System Maintenance Rescheduled',
+          message: 'System maintenance has been rescheduled to January 15 at 10 PM'
+        }
+      },
+      updateRecipients: {
+        summary: 'Add more recipients',
+        value: {
+          recipientIds: [101, 102, 103, 104, 105, 106],
+          title: 'Department Meeting (Updated)'
+        }
+      },
+      pauseSchedule: {
+        summary: 'Pause scheduled notification',
+        value: {
+          status: 'PAUSED'
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 200,
     description: 'Scheduled notification updated successfully',
