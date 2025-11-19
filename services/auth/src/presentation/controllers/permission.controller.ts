@@ -112,7 +112,7 @@ export class PermissionController {
   ) {
     const permission = await this.createPermissionUseCase.execute({
       ...dto,
-      created_by: user.sub,
+      created_by: String(user.sub),
     });
 
     return {

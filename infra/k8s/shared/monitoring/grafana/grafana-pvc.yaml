@@ -12,5 +12,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 500Mi  # 500MB optimized for limited disk space
+      storage: 1Gi  # Increased from 500Mi (cannot decrease PVC size)
   storageClassName: local-path  # K3s default, change if using different storage class
