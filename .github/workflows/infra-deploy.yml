@@ -36,8 +36,16 @@ jobs:
             echo "=== 2. Deploying Platform Resources ==="
             kubectl apply -f infra/k8s/platform/ --recursive
             
-            echo "=== 3. Deploying Shared Infrastructure ==="
-            kubectl apply -f infra/k8s/shared/ --recursive
+            echo "=== 3a. Deploying Databases ==="
+            kubectl apply -f infra/k8s/shared/databases/ --recursive
+            
+            echo "=== 3b. Deploying Messaging ==="
+            kubectl apply -f infra/k8s/shared/messaging/ --recursive
+            
+            echo "=== 3c. Deploying Monitoring Stack ==="
+            kubectl apply -f infra/k8s/shared/monitoring/ --recursive
+            echo "Monitoring resources applied. Checking..."
+            kubectl get all -n monitoring 2>&1 || echo "Monitoring namespace empty or error"
             
             echo "=== 4. Waiting for critical deployments ==="
             kubectl wait --for=condition=available --timeout=120s deployment/prometheus-depl -n monitoring || true
