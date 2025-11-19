@@ -35,11 +35,11 @@ spec:
           mountPath: /alertmanager
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "50m"
+            memory: "32Mi"  # Ultra-optimized for t2.micro
+            cpu: "25m"      # Ultra-optimized for t2.micro
           limits:
-            memory: "128Mi"
-            cpu: "200m"
+            memory: "64Mi"  # Ultra-optimized for t2.micro
+            cpu: "100m"     # Ultra-optimized for t2.micro
         readinessProbe:
           httpGet:
             path: /-/ready

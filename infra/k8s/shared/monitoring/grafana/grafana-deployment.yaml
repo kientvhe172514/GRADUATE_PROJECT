@@ -41,14 +41,14 @@ spec:
             value: "true"
           - name: GF_SECURITY_ALLOW_EMBEDDING
             value: "false"  # Prevent clickjacking
-        # OPTIMIZED RESOURCES FOR TEST/DEV
+        # ULTRA-OPTIMIZED RESOURCES FOR T2.MICRO
         resources:
           requests:
-            cpu: 50m       # Optimized for test/dev (was 250m)
-            memory: 64Mi   # Optimized for test/dev (was 512Mi)
+            cpu: 25m       # Ultra-optimized for t2.micro (was 50m)
+            memory: 32Mi   # Ultra-optimized for t2.micro (was 64Mi)
           limits:
-            cpu: 200m      # Optimized for test/dev (was 500m)
-            memory: 128Mi  # Optimized for test/dev (was 1Gi)
+            cpu: 100m      # Ultra-optimized for t2.micro (was 200m)
+            memory: 64Mi   # Ultra-optimized for t2.micro (was 128Mi)
         # THÊM HEALTH CHECKS
         readinessProbe:
           httpGet:
@@ -77,7 +77,7 @@ spec:
       volumes:
       - name: grafana-storage
         persistentVolumeClaim:
-          claimName: grafana-storage  # USE PVC FOR PERSISTENCE! (was emptyDir)
+          claimName: grafana-storage  # 500MB PVC for dashboards persistence
       - name: grafana-datasources
         configMap:
           name: grafana-datasources

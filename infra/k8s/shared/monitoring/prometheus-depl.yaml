@@ -43,11 +43,11 @@ spec:
           mountPath: /prometheus/
         resources:
           requests:
-            memory: "128Mi"  # Optimized for test/dev (was 512Mi)
-            cpu: "50m"       # Optimized for test/dev (was 250m)
+            memory: "64Mi"   # Ultra-optimized for t2.micro (was 128Mi)
+            cpu: "25m"       # Ultra-optimized for t2.micro (was 50m)
           limits:
-            memory: "256Mi"  # Optimized for test/dev (was 1Gi)
-            cpu: "200m"      # Optimized for test/dev (was 500m)
+            memory: "128Mi"  # Ultra-optimized for t2.micro (was 256Mi)
+            cpu: "100m"      # Ultra-optimized for t2.micro (was 200m)
         readinessProbe:
           httpGet:
             path: /-/ready
@@ -68,7 +68,7 @@ spec:
           name: prometheus-config
       - name: prometheus-storage
         persistentVolumeClaim:
-          claimName: prometheus-storage  # USE PVC FOR PERSISTENCE! (was emptyDir)
+          claimName: prometheus-storage  # 2GB PVC for metrics persistence
 
 ---
 apiVersion: v1

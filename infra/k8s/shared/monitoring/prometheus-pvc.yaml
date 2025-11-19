@@ -12,5 +12,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi  # 10GB for test/dev, increase to 50GB for production
+      storage: 2Gi  # 2GB optimized for limited disk space (7d retention, 5GB limit)
   storageClassName: local-path  # K3s default, change if using different storage class

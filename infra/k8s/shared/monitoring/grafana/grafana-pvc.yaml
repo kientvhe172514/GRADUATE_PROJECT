@@ -12,5 +12,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi  # 5GB for dashboards, increase to 10GB for production
+      storage: 500Mi  # 500MB optimized for limited disk space
   storageClassName: local-path  # K3s default, change if using different storage class
