@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
+import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-missing-attendance.processor';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
@@ -21,6 +23,7 @@ import { HealthController } from './health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -121,6 +124,7 @@ import { HealthController } from './health.controller';
       provide: APP_GUARD,
       useClass: HeaderBasedPermissionGuard,
     },
+    CheckMissingAttendanceProcessor,
   ],
 })
 export class AppModule {}
