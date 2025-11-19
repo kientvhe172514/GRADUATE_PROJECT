@@ -75,7 +75,7 @@ export class UpdateOvertimeRequestUseCase {
     }
 
     return ApiResponseDto.success(
-      undefined,
+      updated,
       'Overtime request updated successfully',
     );
   }
