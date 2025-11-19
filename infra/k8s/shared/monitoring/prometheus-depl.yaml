@@ -43,8 +43,6 @@ spec:
           - '--web.enable-lifecycle'
           - '--web.enable-admin-api'
           - '--web.external-url=http://prometheus.monitoring.svc:9090'
-          # CONNECT TO ALERTMANAGER FOR FIRING ALERTS
-          - '--alertmanager.url=http://alertmanager-srv.monitoring.svc:9093'
         ports:
         - containerPort: 9090
           name: prometheus
