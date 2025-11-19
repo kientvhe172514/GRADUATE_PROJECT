@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { Public } from '@graduate-project/shared-common';
 
 @Controller('health')
 export class HealthController {
@@ -11,6 +12,7 @@ export class HealthController {
     private readonly configService: ConfigService,
   ) {}
 
+  @Public()
   @Get()
   async check() {
     const health = {
