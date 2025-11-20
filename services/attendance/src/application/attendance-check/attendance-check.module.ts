@@ -70,6 +70,27 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
         },
         inject: [ConfigService],
       },
+      {
+        name: 'NOTIFICATION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const notificationQueue = configService.getOrThrow<string>(
+            'RABBITMQ_NOTIFICATION_QUEUE',
+          );
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: notificationQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [AttendanceCheckController],
