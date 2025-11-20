@@ -424,6 +424,16 @@ jobs:
             # ⚠️ KHÔNG XÓA PVC - Giữ lại data của Prometheus và Grafana
             # kubectl delete pvc prometheus-storage grafana-storage -n monitoring --ignore-not-found=true
             
+            # Check if Elasticsearch StatefulSet exists and has different volumeClaimTemplates
+            if kubectl get statefulset elasticsearch -n monitoring &>/dev/null; then
+              CURRENT_SC=$(kubectl get statefulset elasticsearch -n monitoring -o jsonpath='{.spec.volumeClaimTemplates[0].spec.storageClassName}')
+              if [ "$CURRENT_SC" != "local-path" ]; then
+                echo "⚠️ Elasticsearch storage class changed ($CURRENT_SC -> local-path), recreating StatefulSet..."
+                kubectl delete statefulset elasticsearch -n monitoring --ignore-not-found=true
+                kubectl delete pvc elasticsearch-data-elasticsearch-0 -n monitoring --ignore-not-found=true
+              fi
+            fi
+            
             # Apply monitoring stack (PVCs sẽ giữ nguyên nếu đã tồn tại)
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
             
