@@ -49,6 +49,27 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
         },
         inject: [ConfigService],
       },
+      {
+        name: 'EMPLOYEE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const employeeQueue = configService.getOrThrow<string>(
+            'RABBITMQ_EMPLOYEE_QUEUE',
+          );
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: employeeQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [AttendanceCheckController],
