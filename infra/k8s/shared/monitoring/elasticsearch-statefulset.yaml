@@ -71,6 +71,13 @@ spec:
             - vm.max_map_count=262144
           securityContext:
             privileged: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
         
         # Fix permissions
         - name: fix-permissions
@@ -79,6 +86,13 @@ spec:
             - sh
             - -c
             - chown -R 1000:1000 /usr/share/elasticsearch/data
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
