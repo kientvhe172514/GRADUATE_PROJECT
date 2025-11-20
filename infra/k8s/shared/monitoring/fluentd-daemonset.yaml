@@ -56,6 +56,8 @@ spec:
               mountPath: /fluentd/etc
             - name: tmp
               mountPath: /tmp
+            - name: fluentd-output
+              mountPath: /var/log/fluentd-output
       terminationGracePeriodSeconds: 30
       volumes:
         - name: varlog
@@ -70,3 +72,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        # 🛡️ Volume cho output logs - giới hạn size để tránh tràn đĩa
+        - name: fluentd-output
+          emptyDir:
+            sizeLimit: 2Gi

@@ -30,32 +30,95 @@ data:
       bearer_token_file /var/run/secrets/kubernetes.io/serviceaccount/token
     </filter>
 
-    # NOTE: Elasticsearch is not deployed yet, using stdout for now
-    # Uncomment Elasticsearch config below when elasticsearch-srv is deployed
+    # 🛡️ BẮT BUỘC: Loại bỏ logs của chính Fluentd để tránh log loop (đệ quy vô hạn)
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+        key $.kubernetes.namespace_name
+        pattern /^(monitoring)$/
+      </exclude>
+      <exclude>
+        key $.kubernetes.labels.app
+        pattern /^(fluentd)$/
+      </exclude>
+    </filter>
+
+    # 🛡️ Giới hạn rate để tránh log storm
+    <filter kubernetes.**>
+      @type throttle
+      group_key kubernetes.pod_name
+      group_bucket_period_s 60
+      group_bucket_limit 1000
+      group_reset_rate_s 0
+    </filter>
+
+    # ✅ GỬI LOGS VÀO ELASTICSEARCH
     <match kubernetes.**>
-      @type stdout
+      @type elasticsearch
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      scheme http
+      
+      # Index settings
+      logstash_prefix microservices
+      logstash_format true
+      logstash_dateformat %Y.%m.%d
+      
+      # Disable deprecated type field (ES 8.x)
+      suppress_type_name true
+      
+      # Index lifecycle - tự động xóa logs cũ hơn 7 ngày
+      index_name microservices-logs-%Y.%m.%d
+      
+      # Connection settings
+      reconnect_on_error true
+      reload_on_failure true
+      reload_connections false
+      request_timeout 30s
+      
+      # Buffer settings - CRITICAL để tránh tràn memory/disk
+      <buffer>
+        @type file
+        path /tmp/fluentd-buffers/elasticsearch.buffer
+        flush_mode interval
+        flush_interval 30s
+        flush_thread_count 2
+        
+        # Retry settings
+        retry_type exponential_backoff
+        retry_wait 1s
+        retry_max_interval 60s
+        retry_timeout 1h
+        retry_forever false
+        retry_max_times 10
+        
+        # Size limits
+        chunk_limit_size 5MB
+        total_limit_size 256MB
+        overflow_action drop_oldest_chunk
+        
+        # Flush settings
+        flush_at_shutdown true
+        disable_chunk_backup true
+      </buffer>
     </match>
 
-    # TODO: Uncomment when Elasticsearch is deployed
-    # <match kubernetes.**>
-    #   @type elasticsearch
-    #   host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
-    #   port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
-    #   scheme http
-    #   logstash_prefix microservices
-    #   logstash_format true
-    #   suppress_type_name true
-    #   <buffer>
-    #     @type file
-    #     path /tmp/fluentd-buffers/kubernetes.buffer
-    #     flush_mode interval
-    #     flush_interval 30s
-    #     flush_thread_count 2
-    #     retry_type exponential_backoff
-    #     retry_wait 1s
-    #     retry_max_interval 60s
-    #     chunk_limit_size 8MB
-    #     total_limit_size 512MB
-    #     overflow_action drop_oldest_chunk
-    #   </buffer>
-    # </match>
+    # ⚠️ FALLBACK: Nếu ES down, log ra file để không mất data
+    <match **>
+      @type file
+      path /var/log/fluentd-output/fallback
+      append true
+      compress gzip
+      <buffer>
+        @type file
+        path /tmp/fluentd-buffers/fallback.buffer
+        flush_mode interval
+        flush_interval 60s
+        chunk_limit_size 10MB
+        total_limit_size 128MB
+        overflow_action drop_oldest_chunk
+      </buffer>
+      <format>
+        @type json
+      </format>
+    </match>

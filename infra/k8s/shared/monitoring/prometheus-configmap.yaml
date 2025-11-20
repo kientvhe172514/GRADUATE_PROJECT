@@ -253,6 +253,90 @@ data:
             annotations:
               summary: "Pod not ready"
               description: "Pod {{ $labels.pod }} in {{ $labels.namespace }} is in {{ $labels.phase }} state"
+          
+          # 🛡️ DISK PRESSURE ALERTS - Tránh tràn ổ cứng
+          - alert: NodeDiskPressure
+            expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Node {{ $labels.node }} has DISK PRESSURE"
+              description: "Node {{ $labels.node }} is running out of disk space. CHECK LOGS IMMEDIATELY!"
+          
+          - alert: NodeFilesystemUsageHigh
+            expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Node filesystem usage high"
+              description: "Node {{ $labels.instance }} root filesystem has less than 20% free space ({{ $value }}% free)"
+          
+          - alert: NodeFilesystemUsageCritical
+            expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Node filesystem CRITICAL"
+              description: "Node {{ $labels.instance }} root filesystem has less than 10% free space ({{ $value }}% free) - CHECK FLUENTD LOGS!"
+          
+          # 🛡️ FLUENTD SPECIFIC ALERTS
+          - alert: FluentdBufferHigh
+            expr: fluentd_output_status_buffer_total_bytes > 200000000
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Fluentd buffer usage high"
+              description: "Fluentd buffer is over 200MB ({{ $value }} bytes). Logs may be accumulating."
+          
+          - alert: FluentdOutputFailed
+            expr: rate(fluentd_output_status_num_errors[5m]) > 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Fluentd output errors detected"
+              description: "Fluentd is experiencing output errors ({{ $value }} errors/sec)"
+          
+          # 🔍 ELASTICSEARCH ALERTS
+          - alert: ElasticsearchClusterRed
+            expr: elasticsearch_cluster_health_status{color="red"} == 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Elasticsearch cluster is RED"
+              description: "Elasticsearch cluster health is RED - data loss may occur!"
+          
+          - alert: ElasticsearchClusterYellow
+            expr: elasticsearch_cluster_health_status{color="yellow"} == 1
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Elasticsearch cluster is YELLOW"
+              description: "Elasticsearch cluster health is YELLOW - some replicas are missing"
+          
+          - alert: ElasticsearchHeapUsageHigh
+            expr: (elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"}) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Elasticsearch heap usage high"
+              description: "Elasticsearch heap usage is {{ $value }}% (should be <85%)"
+          
+          - alert: ElasticsearchDiskSpaceHigh
+            expr: (1 - (elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes)) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Elasticsearch disk space high"
+              description: "Elasticsearch disk usage is {{ $value }}% (should be <85%)"
   
   # RECORDING RULES - Pre-calculate expensive queries
   recording_rules.yml: |

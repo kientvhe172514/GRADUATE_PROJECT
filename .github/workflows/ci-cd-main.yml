@@ -421,11 +421,10 @@ jobs:
             # Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager, Fluentd)
             echo "📊 Deploying Monitoring Stack..."
             
-            # Delete old PVCs to recreate with new size (data will be lost)
-            echo "🗑️  Deleting old monitoring PVCs..."
-            kubectl delete pvc prometheus-storage grafana-storage -n monitoring --ignore-not-found=true
+            # ⚠️ KHÔNG XÓA PVC - Giữ lại data của Prometheus và Grafana
+            # kubectl delete pvc prometheus-storage grafana-storage -n monitoring --ignore-not-found=true
             
-            # Apply monitoring stack with new PVCs
+            # Apply monitoring stack (PVCs sẽ giữ nguyên nếu đã tồn tại)
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
             
             # Force rollout restart to pick up new changes (nodeSelector, PVC, etc)
@@ -433,6 +432,8 @@ jobs:
             kubectl rollout restart deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus deployment not found"
             kubectl rollout restart deployment/grafana-depl -n monitoring || echo "⚠️ Grafana deployment not found"
             kubectl rollout restart deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager deployment not found"
+            kubectl rollout restart statefulset/elasticsearch -n monitoring || echo "⚠️ Elasticsearch statefulset not found"
+            kubectl rollout restart daemonset/fluentd-daemonset -n monitoring || echo "⚠️ Fluentd daemonset not found"
             
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
@@ -441,7 +442,11 @@ jobs:
             kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
             kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
             
-            # Wait for monitoring deployments
+            # Wait for monitoring deployments - Elasticsearch FIRST (Fluentd depends on it)
+            echo "⏳ Waiting for Elasticsearch to be ready..."
+            kubectl wait --for=condition=ready pod -l app=elasticsearch -n monitoring --timeout=5m || echo "⚠️ Elasticsearch not ready"
+            
+            echo "⏳ Waiting for monitoring stack..."
             kubectl wait --for=condition=available --timeout=3m deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus not ready"
             kubectl wait --for=condition=available --timeout=3m deployment/grafana-depl -n monitoring || echo "⚠️ Grafana not ready"
             kubectl wait --for=condition=available --timeout=3m deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager not ready"

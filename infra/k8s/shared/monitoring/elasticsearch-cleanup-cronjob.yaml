@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elasticsearch-cleanup
+  namespace: monitoring
+  labels:
+    app: elasticsearch-cleanup
+spec:
+  # Chạy mỗi ngày lúc 3h sáng
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: elasticsearch-cleanup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleanup
+              image: curlimages/curl:8.5.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "🗑️  Starting Elasticsearch cleanup..."
+                  
+                  ES_HOST="http://elasticsearch-lb.monitoring.svc.cluster.local:9200"
+                  RETENTION_DAYS=7
+                  
+                  # Tính toán ngày cần xóa (logs cũ hơn 7 ngày)
+                  DELETE_DATE=$(date -d "$RETENTION_DAYS days ago" +%Y.%m.%d)
+                  
+                  echo "📅 Deleting indices older than $DELETE_DATE"
+                  
+                  # Lấy danh sách indices
+                  INDICES=$(curl -s "$ES_HOST/_cat/indices/microservices-logs-*?h=index" | sort)
+                  
+                  # Xóa từng index cũ
+                  for INDEX in $INDICES; do
+                    # Extract date from index name (microservices-logs-YYYY.MM.DD)
+                    INDEX_DATE=$(echo $INDEX | grep -oP '\d{4}\.\d{2}\.\d{2}')
+                    
+                    if [ ! -z "$INDEX_DATE" ]; then
+                      # Compare dates
+                      if [ "$INDEX_DATE" \< "$DELETE_DATE" ]; then
+                        echo "🗑️  Deleting old index: $INDEX (date: $INDEX_DATE)"
+                        curl -X DELETE "$ES_HOST/$INDEX" || echo "⚠️ Failed to delete $INDEX"
+                      else
+                        echo "✅ Keeping index: $INDEX (date: $INDEX_DATE)"
+                      fi
+                    fi
+                  done
+                  
+                  # Force merge old indices to reduce segment count
+                  echo "🔄 Force merging recent indices..."
+                  YESTERDAY=$(date -d "1 day ago" +%Y.%m.%d)
+                  RECENT_INDEX="microservices-logs-$YESTERDAY"
+                  
+                  curl -X POST "$ES_HOST/$RECENT_INDEX/_forcemerge?max_num_segments=1" || echo "⚠️ Force merge failed"
+                  
+                  # Show current disk usage
+                  echo "📊 Current Elasticsearch stats:"
+                  curl -s "$ES_HOST/_cat/indices/microservices-logs-*?v&h=index,docs.count,store.size"
+                  
+                  echo "✅ Elasticsearch cleanup completed"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 50m
+                  memory: 64Mi

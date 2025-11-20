@@ -19,6 +19,23 @@ data:
                 "type": "prometheus",
                 "url": "http://prometheus-srv.monitoring.svc.cluster.local:9090",
                 "version": 1
+            },
+            {
+                "access": "proxy",
+                "editable": true,
+                "name": "Elasticsearch",
+                "orgId": 1,
+                "type": "elasticsearch",
+                "url": "http://elasticsearch-lb.monitoring.svc.cluster.local:9200",
+                "database": "microservices-logs-*",
+                "jsonData": {
+                    "esVersion": "8.0.0",
+                    "timeField": "@timestamp",
+                    "interval": "Daily",
+                    "logMessageField": "log",
+                    "logLevelField": "level"
+                },
+                "version": 1
             }
         ]
     }

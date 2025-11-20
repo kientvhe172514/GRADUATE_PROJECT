@@ -22,3 +22,9 @@ export * from './middlewares/extract-user.middleware';
 
 // Filters
 export * from './filters/http-exception.filter';
+
+// Logger
+export { StructuredLogger, createLogger } from './logger/structured-logger';
+
+// Interceptors
+export { LoggingInterceptor } from './interceptors/logging.interceptor';

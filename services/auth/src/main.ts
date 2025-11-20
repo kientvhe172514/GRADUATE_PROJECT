@@ -6,6 +6,7 @@ import { HttpExceptionFilter } from './presentation/filters/http-exception.filte
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import { LoggingInterceptor } from '@graduate-project/shared-common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,6 +26,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/auth');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
+  
+  // 🔍 Enable structured logging cho tất cả HTTP requests
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Hybrid setup: HTTP + RMQ listener for events (e.g., employee_created from Employee service)
   app.connectMicroservice<MicroserviceOptions>({

@@ -8,6 +8,7 @@ import {
 } from '@graduate-project/shared-common';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { LoggingInterceptor } from '@graduate-project/shared-common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +17,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/attendance');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
+  
+  // Enable structured logging cho tat ca HTTP requests
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Extract user from headers (set by Ingress ForwardAuth)
   // Skip auth in dev mode if SKIP_AUTH=true
