@@ -427,11 +427,6 @@ jobs:
             # Apply monitoring stack (PVCs sẽ giữ nguyên nếu đã tồn tại)
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
             
-            # Xóa pods Completed/Failed (không tự terminate)
-            echo "🧹 Cleaning up completed/failed pods..."
-            kubectl delete pods -n monitoring --field-selector=status.phase=Completed --ignore-not-found=true || true
-            kubectl delete pods -n monitoring --field-selector=status.phase=Failed --ignore-not-found=true || true
-            
             # Rollout restart sẽ TỰ ĐỘNG terminate pods cũ và tạo pods mới
             echo "🔄 Rolling restart monitoring (auto-terminate old pods)..."
             kubectl rollout restart deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus deployment not found"
@@ -439,6 +434,12 @@ jobs:
             kubectl rollout restart deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager deployment not found"
             kubectl rollout restart statefulset/elasticsearch -n monitoring || echo "⚠️ Elasticsearch statefulset not found"
             kubectl rollout restart daemonset/fluentd-daemonset -n monitoring || echo "⚠️ Fluentd daemonset not found"
+            
+            # Xóa pods Error/Completed/Failed (không tự terminate)
+            echo "🧹 Cleaning up old pods..."
+            kubectl delete pods -n monitoring --field-selector=status.phase=Completed --ignore-not-found=true || true
+            kubectl delete pods -n monitoring --field-selector=status.phase=Failed --ignore-not-found=true || true
+            kubectl delete pods -n monitoring --field-selector=status.phase=Error --ignore-not-found=true || true
             
             echo "⏳ Waiting for infrastructure to be ready..."
             # Wait for at least 1 pod of each service to be ready
