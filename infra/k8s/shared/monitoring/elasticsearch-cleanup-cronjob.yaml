@@ -6,7 +6,6 @@ metadata:
   labels:
     app: elasticsearch-cleanup
 spec:
-  # Chạy mỗi ngày lúc 3h sáng
   schedule: "0 3 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
