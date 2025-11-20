@@ -54,12 +54,12 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      # Run on master node to avoid resource contention
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: ""
-      tolerations:
-        - key: node-role.kubernetes.io/control-plane
-          effect: NoSchedule
+      # No nodeSelector for single-node K3s cluster
+      # nodeSelector:
+      #   node-role.kubernetes.io/control-plane: ""
+      # tolerations:
+      #   - key: node-role.kubernetes.io/control-plane
+      #     effect: NoSchedule
       
       initContainers:
         # Increase vm.max_map_count for Elasticsearch

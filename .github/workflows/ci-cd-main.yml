@@ -427,8 +427,13 @@ jobs:
             # Apply monitoring stack (PVCs sẽ giữ nguyên nếu đã tồn tại)
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
             
-            # Force rollout restart to pick up new changes (nodeSelector, PVC, etc)
-            echo "🔄 Rolling restart monitoring deployments..."
+            # Xóa pods Completed/Failed (không tự terminate)
+            echo "🧹 Cleaning up completed/failed pods..."
+            kubectl delete pods -n monitoring --field-selector=status.phase=Completed --ignore-not-found=true || true
+            kubectl delete pods -n monitoring --field-selector=status.phase=Failed --ignore-not-found=true || true
+            
+            # Rollout restart sẽ TỰ ĐỘNG terminate pods cũ và tạo pods mới
+            echo "🔄 Rolling restart monitoring (auto-terminate old pods)..."
             kubectl rollout restart deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus deployment not found"
             kubectl rollout restart deployment/grafana-depl -n monitoring || echo "⚠️ Grafana deployment not found"
             kubectl rollout restart deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager deployment not found"
