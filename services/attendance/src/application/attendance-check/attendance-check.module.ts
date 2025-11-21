@@ -5,9 +5,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AttendanceCheckController } from '../../presentation/controllers/attendance-check.controller';
 import { AttendanceCheckRecordSchema } from '../../infrastructure/persistence/typeorm/attendance-check-record.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
+import { OvertimeRequestSchema } from '../../infrastructure/persistence/typeorm/overtime-request.schema';
 import { BeaconSchema } from '../../infrastructure/persistence/typeorm/beacon.schema';
 import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
+import { OvertimeRequestRepository } from '../../infrastructure/repositories/overtime-request.repository';
 import { BeaconRepository } from '../../infrastructure/repositories/beacon.repository';
 import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
@@ -23,6 +25,7 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
     TypeOrmModule.forFeature([
       AttendanceCheckRecordSchema,
       EmployeeShiftSchema,
+      OvertimeRequestSchema,
       BeaconSchema,
     ]),
     ConfigModule,
@@ -98,6 +101,7 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
     // Repositories
     AttendanceCheckRepository,
     EmployeeShiftRepository,
+    OvertimeRequestRepository,
     BeaconRepository,
     // Use Cases
     ValidateBeaconUseCase,

@@ -7,6 +7,7 @@ export interface CreateCheckRecordDto {
   employee_id: number;
   employee_code: string;
   department_id: number;
+  shift_id?: number; // Link to employee_shifts (REGULAR or OVERTIME)
   check_type: string;
   beacon_id?: number;
   beacon_validated: boolean;

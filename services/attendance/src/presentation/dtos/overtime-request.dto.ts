@@ -35,11 +35,6 @@ export class CreateOvertimeRequestDto {
   @ApiProperty({ example: 'Urgent project deadline' })
   @IsString()
   reason: string;
-
-  @ApiPropertyOptional({ example: 123 })
-  @IsOptional()
-  @IsNumber()
-  shift_id?: number;
 }
 
 export class UpdateOvertimeRequestDto {

@@ -1,5 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
+import { OvertimeRequestRepository } from '../../infrastructure/repositories/overtime-request.repository';
+import { DataSource } from 'typeorm';
 
 export interface UpdateShiftOnCheckInCommand {
   shift_id: number;
@@ -19,11 +21,13 @@ export class UpdateEmployeeShiftUseCase {
 
   constructor(
     private readonly employeeShiftRepository: EmployeeShiftRepository,
+    private readonly overtimeRequestRepository: OvertimeRequestRepository,
+    private readonly dataSource: DataSource,
   ) {}
 
   async executeCheckIn(command: UpdateShiftOnCheckInCommand): Promise<void> {
     this.logger.log(
-      `Updating shift ${command.shift_id} with check-in at ${command.check_in_time}`,
+      `Updating shift ${command.shift_id} with check-in at ${command.check_in_time.toISOString()}`,
     );
 
     const shift = await this.employeeShiftRepository.findById(command.shift_id);
@@ -63,7 +67,7 @@ export class UpdateEmployeeShiftUseCase {
 
   async executeCheckOut(command: UpdateShiftOnCheckOutCommand): Promise<void> {
     this.logger.log(
-      `Updating shift ${command.shift_id} with check-out at ${command.check_out_time}`,
+      `Updating shift ${command.shift_id} with check-out at ${command.check_out_time.toISOString()}`,
     );
 
     const shift = await this.employeeShiftRepository.findById(command.shift_id);
@@ -127,9 +131,51 @@ export class UpdateEmployeeShiftUseCase {
       );
     }
 
+    // If this is an OVERTIME shift, update the related overtime_request.actual_hours
+    if (shift.shift_type === 'OVERTIME') {
+      await this.updateOvertimeRequestActualHours(
+        command.shift_id,
+        actualWorkHours,
+      );
+    }
+
     this.logger.log(
       `✅ Shift ${command.shift_id} check-out completed. Work hours: ${actualWorkHours.toFixed(2)}`,
     );
+  }
+
+  /**
+   * Update actual_hours in overtime_request when OT shift is completed
+   */
+  private async updateOvertimeRequestActualHours(
+    shiftId: number,
+    actualHours: number,
+  ): Promise<void> {
+    try {
+      // Find overtime_request by ot_shift_id
+      const otRequest = await this.overtimeRequestRepository.findOne({
+        where: { ot_shift_id: shiftId },
+      });
+
+      if (otRequest) {
+        await this.overtimeRequestRepository.updateActualHours(
+          otRequest.id,
+          actualHours,
+        );
+        this.logger.log(
+          `✅ Updated overtime_request ${otRequest.id} with actual_hours=${actualHours.toFixed(2)}`,
+        );
+      } else {
+        this.logger.warn(
+          `No overtime_request found for ot_shift_id=${shiftId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to update overtime_request actual_hours for shift ${shiftId}`,
+        error,
+      );
+    }
   }
 
   /**

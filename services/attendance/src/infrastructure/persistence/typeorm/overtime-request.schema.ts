@@ -16,7 +16,7 @@ export class OvertimeRequestSchema {
   employee_id: number;
 
   @Column({ type: 'int', nullable: true })
-  shift_id: number | null;
+  ot_shift_id: number | null; // Link to employee_shifts (OT shift)
 
   @Column({ type: 'date' })
   overtime_date: Date;

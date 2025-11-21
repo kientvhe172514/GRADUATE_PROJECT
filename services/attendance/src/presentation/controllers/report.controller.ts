@@ -47,15 +47,15 @@ export class ReportController {
       `
       SELECT 
         es.shift_date,
-        COUNT(DISTINCT es.employee_id) as total_employees,
-        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' THEN es.employee_id END) as attended,
-        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' THEN es.employee_id END) as absent,
-        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' THEN es.employee_id END) as on_leave,
-        COUNT(DISTINCT CASE WHEN es.late_minutes > 0 THEN es.employee_id END) as late_arrivals,
-        COUNT(DISTINCT CASE WHEN es.early_leave_minutes > 0 THEN es.employee_id END) as early_leaves,
-        SUM(es.work_hours) as total_work_hours,
-        SUM(es.overtime_hours) as total_overtime_hours,
-        AVG(es.work_hours) as avg_work_hours
+        COUNT(DISTINCT CASE WHEN es.shift_type = 'REGULAR' THEN es.employee_id END) as total_employees,
+        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as attended,
+        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as absent,
+        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as on_leave,
+        COUNT(DISTINCT CASE WHEN es.late_minutes > 0 AND es.shift_type = 'REGULAR' THEN es.employee_id END) as late_arrivals,
+        COUNT(DISTINCT CASE WHEN es.early_leave_minutes > 0 AND es.shift_type = 'REGULAR' THEN es.employee_id END) as early_leaves,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.work_hours ELSE 0 END) as total_work_hours,
+        SUM(CASE WHEN es.shift_type = 'OVERTIME' THEN es.overtime_hours ELSE 0 END) as total_overtime_hours,
+        AVG(CASE WHEN es.shift_type = 'REGULAR' THEN es.work_hours END) as avg_work_hours
       FROM employee_shifts es
       WHERE es.shift_date = $1
       ${query.department_id ? 'AND es.department_id = $2' : ''}
@@ -88,14 +88,14 @@ export class ReportController {
       `
       SELECT 
         es.shift_date,
-        COUNT(DISTINCT es.employee_id) as total_employees,
-        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' THEN es.employee_id END) as attended,
-        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' THEN es.employee_id END) as absent,
-        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' THEN es.employee_id END) as on_leave,
-        COUNT(DISTINCT CASE WHEN es.late_minutes > 0 THEN es.employee_id END) as late_arrivals,
-        COUNT(DISTINCT CASE WHEN es.early_leave_minutes > 0 THEN es.employee_id END) as early_leaves,
-        SUM(es.work_hours) as total_work_hours,
-        SUM(es.overtime_hours) as total_overtime_hours
+        COUNT(DISTINCT CASE WHEN es.shift_type = 'REGULAR' THEN es.employee_id END) as total_employees,
+        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as attended,
+        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as absent,
+        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as on_leave,
+        COUNT(DISTINCT CASE WHEN es.late_minutes > 0 AND es.shift_type = 'REGULAR' THEN es.employee_id END) as late_arrivals,
+        COUNT(DISTINCT CASE WHEN es.early_leave_minutes > 0 AND es.shift_type = 'REGULAR' THEN es.employee_id END) as early_leaves,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.work_hours ELSE 0 END) as total_work_hours,
+        SUM(CASE WHEN es.shift_type = 'OVERTIME' THEN es.overtime_hours ELSE 0 END) as total_overtime_hours
       FROM employee_shifts es
       WHERE es.shift_date = $1
       ${departmentId ? 'AND es.department_id = $2' : ''}
@@ -131,14 +131,14 @@ export class ReportController {
       `
       SELECT 
         TO_CHAR(es.shift_date, 'YYYY-MM') as month,
-        COUNT(DISTINCT es.employee_id) as total_employees,
-        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' THEN es.employee_id END) as attended_days,
-        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' THEN es.employee_id END) as absent_days,
-        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' THEN es.employee_id END) as leave_days,
-        SUM(es.work_hours) as total_work_hours,
-        SUM(es.overtime_hours) as total_overtime_hours,
-        SUM(es.late_minutes) as total_late_minutes,
-        SUM(es.early_leave_minutes) as total_early_leave_minutes,
+        COUNT(DISTINCT CASE WHEN es.shift_type = 'REGULAR' THEN es.employee_id END) as total_employees,
+        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as attended_days,
+        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as absent_days,
+        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' AND es.shift_type = 'REGULAR' THEN es.employee_id END) as leave_days,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.work_hours ELSE 0 END) as total_work_hours,
+        SUM(CASE WHEN es.shift_type = 'OVERTIME' THEN es.overtime_hours ELSE 0 END) as total_overtime_hours,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.late_minutes ELSE 0 END) as total_late_minutes,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.early_leave_minutes ELSE 0 END) as total_early_leave_minutes,
         COUNT(DISTINCT v.id) as total_violations
       FROM employee_shifts es
       LEFT JOIN violations v ON v.shift_id = es.id
@@ -176,14 +176,14 @@ export class ReportController {
       SELECT 
         es.employee_id,
         es.employee_code,
-        COUNT(DISTINCT es.id) as total_shifts,
-        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' THEN es.id END) as completed_shifts,
-        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' THEN es.id END) as absent_days,
-        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' THEN es.id END) as leave_days,
-        SUM(es.work_hours) as total_work_hours,
-        SUM(es.overtime_hours) as total_overtime_hours,
-        SUM(es.late_minutes) as total_late_minutes,
-        SUM(es.early_leave_minutes) as total_early_leave_minutes,
+        COUNT(DISTINCT CASE WHEN es.shift_type = 'REGULAR' THEN es.id END) as total_shifts,
+        COUNT(DISTINCT CASE WHEN es.status = 'COMPLETED' AND es.shift_type = 'REGULAR' THEN es.id END) as completed_shifts,
+        COUNT(DISTINCT CASE WHEN es.status = 'ABSENT' AND es.shift_type = 'REGULAR' THEN es.id END) as absent_days,
+        COUNT(DISTINCT CASE WHEN es.status = 'ON_LEAVE' AND es.shift_type = 'REGULAR' THEN es.id END) as leave_days,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.work_hours ELSE 0 END) as total_work_hours,
+        SUM(CASE WHEN es.shift_type = 'OVERTIME' THEN es.overtime_hours ELSE 0 END) as total_overtime_hours,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.late_minutes ELSE 0 END) as total_late_minutes,
+        SUM(CASE WHEN es.shift_type = 'REGULAR' THEN es.early_leave_minutes ELSE 0 END) as total_early_leave_minutes,
         COUNT(DISTINCT v.id) as total_violations,
         COUNT(DISTINCT CASE WHEN v.resolved = false THEN v.id END) as unresolved_violations
       FROM employee_shifts es

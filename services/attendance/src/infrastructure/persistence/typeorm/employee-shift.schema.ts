@@ -8,9 +8,10 @@ import {
 } from 'typeorm';
 
 @Entity('employee_shifts')
-@Index(['employee_id', 'shift_date'], { unique: true })
+@Index(['employee_id', 'shift_date', 'shift_type'])
 @Index(['shift_date'])
 @Index(['status'])
+@Index(['shift_type'])
 export class EmployeeShiftSchema {
   @PrimaryGeneratedColumn()
   id: number;
@@ -82,6 +83,10 @@ export class EmployeeShiftSchema {
   // Status
   @Column({ type: 'varchar', length: 20, default: 'SCHEDULED' })
   status: string; // SCHEDULED, IN_PROGRESS, COMPLETED, ON_LEAVE, ABSENT
+
+  // Shift Type (REGULAR or OVERTIME)
+  @Column({ type: 'varchar', length: 20, default: 'REGULAR' })
+  shift_type: string; // REGULAR, OVERTIME
 
   // Approval
   @Column({ type: 'integer', nullable: true })

@@ -30,7 +30,6 @@ export class CreateOvertimeRequestUseCase {
 
     const request = await this.overtimeRepo.createRequest({
       employee_id: currentUser.employee_id!,
-      shift_id: dto.shift_id ?? null,
       overtime_date: new Date(dto.overtime_date),
       start_time: new Date(dto.start_time),
       end_time: new Date(dto.end_time),

@@ -9,6 +9,7 @@ import {
 @Entity('attendance_check_records')
 @Index(['employee_id', 'check_timestamp'])
 @Index(['check_timestamp'])
+@Index(['shift_id'])
 export class AttendanceCheckRecordSchema {
   @PrimaryGeneratedColumn()
   id: number;
@@ -21,6 +22,9 @@ export class AttendanceCheckRecordSchema {
 
   @Column({ type: 'integer' })
   department_id: number;
+
+  @Column({ type: 'integer', nullable: true })
+  shift_id?: number; // Link to employee_shifts (REGULAR or OVERTIME)
 
   @Column({ type: 'timestamptz' })
   check_timestamp: Date;

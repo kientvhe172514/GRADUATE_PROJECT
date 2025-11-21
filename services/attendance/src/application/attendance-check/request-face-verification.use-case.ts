@@ -107,34 +107,54 @@ export class RequestFaceVerificationUseCase {
       }
     }
 
-    // Step 3: Find or create employee shift
-    let shift = await this.employeeShiftRepository.findByEmployeeAndDate(
+    // Step 3: Find employee shift (prioritize OT shift if exists)
+    // First, check if there's an OVERTIME shift (approved OT request creates OT shift)
+    let shift = await this.employeeShiftRepository.findOTShiftByEmployeeAndDate(
       command.employee_id,
       command.shift_date,
     );
 
-    if (!shift) {
-      // Auto-create shift if not exists (default 8:00-17:00)
+    if (shift) {
       this.logger.log(
-        `No shift found for employee ${command.employee_code} on ${command.shift_date}. Creating default shift.`,
+        `Found OVERTIME shift for employee ${command.employee_code} on ${command.shift_date.toISOString()} (shift_id=${shift.id})`,
       );
-      shift = await this.employeeShiftRepository.create({
-        employee_id: command.employee_id,
-        employee_code: command.employee_code,
-        department_id: command.department_id,
-        shift_date: command.shift_date,
-        scheduled_start_time: '08:00',
-        scheduled_end_time: '17:00',
-        presence_verification_required: true,
-        presence_verification_rounds_required: 3,
-      });
+    } else {
+      // If no OT shift, try to find regular shift
+      shift =
+        await this.employeeShiftRepository.findRegularShiftByEmployeeAndDate(
+          command.employee_id,
+          command.shift_date,
+        );
+
+      if (shift) {
+        this.logger.log(
+          `Found REGULAR shift for employee ${command.employee_code} on ${command.shift_date.toISOString()} (shift_id=${shift.id})`,
+        );
+      } else {
+        // Auto-create REGULAR shift if not exists (default 8:00-17:00)
+        this.logger.log(
+          `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()}. Creating default REGULAR shift.`,
+        );
+        shift = await this.employeeShiftRepository.create({
+          employee_id: command.employee_id,
+          employee_code: command.employee_code,
+          department_id: command.department_id,
+          shift_date: command.shift_date,
+          scheduled_start_time: '08:00',
+          scheduled_end_time: '17:00',
+          shift_type: 'REGULAR',
+          presence_verification_required: true,
+          presence_verification_rounds_required: 3,
+        });
+      }
     }
 
-    // Step 4: Create attendance check record
+    // Step 4: Create attendance check record (link to shift)
     const attendanceCheck = await this.attendanceCheckRepository.create({
       employee_id: command.employee_id,
       employee_code: command.employee_code,
       department_id: command.department_id,
+      shift_id: shift.id, // Link to shift (REGULAR or OVERTIME)
       check_type: command.check_type,
       beacon_validated: true,
       beacon_id: sessionValidation.beaconId!,

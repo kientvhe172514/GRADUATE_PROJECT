@@ -11,6 +11,7 @@ export interface CreateShiftDto {
   work_schedule_id?: number;
   scheduled_start_time: string;
   scheduled_end_time: string;
+  shift_type?: string; // 'REGULAR' or 'OVERTIME'
   presence_verification_required: boolean;
   presence_verification_rounds_required: number;
 }
@@ -41,6 +42,7 @@ export class EmployeeShiftRepository {
   async create(dto: CreateShiftDto): Promise<EmployeeShiftSchema> {
     const shift = this.repository.create({
       ...dto,
+      shift_type: dto.shift_type || 'REGULAR',
       work_hours: 0,
       overtime_hours: 0,
       break_hours: 1,
@@ -61,18 +63,40 @@ export class EmployeeShiftRepository {
   async findByEmployeeAndDate(
     employeeId: number,
     date: Date,
+    shiftType?: string,
   ): Promise<EmployeeShiftSchema | null> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    return this.repository.findOne({
-      where: {
-        employee_id: employeeId,
-        shift_date: Between(startOfDay, endOfDay),
-      },
-    });
+    const queryBuilder = this.repository
+      .createQueryBuilder('shift')
+      .where('shift.employee_id = :employeeId', { employeeId })
+      .andWhere('shift.shift_date BETWEEN :startOfDay AND :endOfDay', {
+        startOfDay,
+        endOfDay,
+      });
+
+    if (shiftType) {
+      queryBuilder.andWhere('shift.shift_type = :shiftType', { shiftType });
+    }
+
+    return queryBuilder.getOne();
+  }
+
+  async findOTShiftByEmployeeAndDate(
+    employeeId: number,
+    date: Date,
+  ): Promise<EmployeeShiftSchema | null> {
+    return this.findByEmployeeAndDate(employeeId, date, 'OVERTIME');
+  }
+
+  async findRegularShiftByEmployeeAndDate(
+    employeeId: number,
+    date: Date,
+  ): Promise<EmployeeShiftSchema | null> {
+    return this.findByEmployeeAndDate(employeeId, date, 'REGULAR');
   }
 
   async findByDateRange(

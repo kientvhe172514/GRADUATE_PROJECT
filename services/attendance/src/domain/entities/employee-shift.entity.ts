@@ -8,6 +8,11 @@ export enum ShiftStatus {
   ABSENT = 'ABSENT',
 }
 
+export enum ShiftType {
+  REGULAR = 'REGULAR', // Ca làm việc thường
+  OVERTIME = 'OVERTIME', // Ca làm thêm giờ
+}
+
 export interface EmployeeShiftProps {
   id?: number;
   employee_id: number;
@@ -15,6 +20,7 @@ export interface EmployeeShiftProps {
   department_id: number;
   shift_date: Date;
   work_schedule_id: number;
+  shift_type?: ShiftType; // Phân biệt ca thường vs ca OT
 
   // Scheduled times are denormalized for performance
   scheduled_start_time: string; // 'HH:mm:ss'
@@ -52,6 +58,7 @@ export class EmployeeShift {
     this.props = {
       ...props,
       status: props.status ?? ShiftStatus.SCHEDULED,
+      shift_type: props.shift_type ?? ShiftType.REGULAR,
       work_hours: props.work_hours ?? 0,
       overtime_hours: props.overtime_hours ?? 0,
       break_hours: props.break_hours ?? 0,
