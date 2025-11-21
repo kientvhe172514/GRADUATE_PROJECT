@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
@@ -28,12 +30,36 @@ export class CreateLeaveRequestUseCase {
     private readonly transactionRepository: ILeaveBalanceTransactionRepository,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: EventPublisherPort,
+    @Inject('EMPLOYEE_SERVICE')
+    private readonly employeeService: ClientProxy,
   ) {}
 
   async execute(dto: CreateLeaveRequestDto, employeeId: number): Promise<LeaveRecordResponseDto> {
     // ✅ employeeId extracted from JWT token in controller
     
-    // 1. Validate leave type exists
+    // 1. Fetch employee information to get employee_code and department_id
+    let employeeInfo: any;
+    try {
+      employeeInfo = await firstValueFrom(
+        this.employeeService.send({ cmd: 'get_employee_by_id' }, { id: employeeId })
+      );
+    } catch (error) {
+      throw new BusinessException(
+        ErrorCodes.EMPLOYEE_NOT_FOUND,
+        'Employee information not found. Please ensure your employee profile exists.',
+        404,
+      );
+    }
+
+    if (!employeeInfo || !employeeInfo.employee_code) {
+      throw new BusinessException(
+        ErrorCodes.EMPLOYEE_NOT_FOUND,
+        'Employee information incomplete. Missing employee code.',
+        404,
+      );
+    }
+    
+    // 2. Validate leave type exists
     const leaveType = await this.leaveTypeRepository.findById(dto.leave_type_id);
     if (!leaveType) {
       throw new BusinessException(
@@ -123,10 +149,12 @@ export class CreateLeaveRequestUseCase {
       };
     }
 
-    // 6. Create leave record with employeeId from token
+    // 6. Create leave record with employee information
     const leaveRecord = new LeaveRecordEntity({
       ...dto,
       employee_id: employeeId,
+      employee_code: employeeInfo.employee_code,
+      department_id: employeeInfo.department_id || null,
       start_date: startDate,
       end_date: endDate,
       total_calendar_days: totalCalendarDays,
