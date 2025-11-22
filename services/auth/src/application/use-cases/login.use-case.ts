@@ -230,6 +230,7 @@ export class LoginUseCase {
       email: account.email,
       full_name: account.full_name || '',
       role: account.role || '',
+      employee_id: account.employee_id ?? undefined,
     };
 
     // Build LoginResponseDto

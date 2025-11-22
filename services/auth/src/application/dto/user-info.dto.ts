@@ -12,4 +12,7 @@ export class UserInfoDto {
 
   @ApiProperty({ example: 'EMPLOYEE', description: 'User role' })
   role: string;
+
+  @ApiProperty({ example: 101, description: 'Employee ID for face verification and other services', required: false })
+  employee_id?: number;
 }

@@ -9,7 +9,7 @@ export enum OvertimeRequestStatus {
 export interface OvertimeRequestProps {
   id?: number;
   employee_id: number;
-  ot_shift_id?: number; // Link to employee_shifts (OT shift created when approved)
+  ot_shift_id?: number; 
   overtime_date: Date;
   start_time: Date;
   end_time: Date;
