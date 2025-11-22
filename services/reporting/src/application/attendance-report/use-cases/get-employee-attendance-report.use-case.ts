@@ -44,18 +44,16 @@ export class GetEmployeeAttendanceReportUseCase {
     // 2. Get employee information
     const employeeQuery = `
       SELECT 
-        e.id as employee_id,
+        e.employee_id,
         e.employee_code,
         e.full_name,
         e.email,
         e.department_id,
-        d.department_name,
-        p.position_name,
+        e.department_name,
+        e.position_name,
         e.join_date
-      FROM employees e
-      LEFT JOIN departments d ON d.id = e.department_id
-      LEFT JOIN positions p ON p.id = e.position_id
-      WHERE e.id = $1
+      FROM employees_cache e
+      WHERE e.employee_id = $1
     `;
 
     const [employee] = await this.dataSource.query(employeeQuery, [query.employee_id]);
@@ -69,9 +67,9 @@ export class GetEmployeeAttendanceReportUseCase {
       SELECT 
         es.shift_date::date as date,
         TO_CHAR(es.shift_date, 'Day') as day_of_week,
-        ws.schedule_name as shift_name,
-        ws.start_time as scheduled_start_time,
-        ws.end_time as scheduled_end_time,
+        es.shift_name,
+        es.scheduled_start_time,
+        es.scheduled_end_time,
         es.check_in_time,
         es.check_out_time,
         es.late_minutes,
@@ -80,8 +78,7 @@ export class GetEmployeeAttendanceReportUseCase {
         es.overtime_hours,
         es.status,
         es.shift_type
-      FROM employee_shifts es
-      LEFT JOIN work_schedules ws ON ws.id = es.work_schedule_id
+      FROM employee_shifts_cache es
       WHERE es.employee_id = $1
         AND es.shift_date BETWEEN $2 AND $3
       ORDER BY es.shift_date
@@ -117,7 +114,7 @@ export class GetEmployeeAttendanceReportUseCase {
       const holidayData = await this.dataSource.query(
         `
         SELECT holiday_date::date, holiday_name
-        FROM holidays
+        FROM holidays_cache
         WHERE holiday_date BETWEEN $1 AND $2
           AND status = 'ACTIVE'
         ORDER BY holiday_date

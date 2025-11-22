@@ -47,12 +47,43 @@ export class GetEmployeesAttendanceReportUseCase {
 
     // 3. Get aggregated attendance data
     const offset = (query.page! - 1) * query.limit!;
+    
+    // Build additional filters for employees_cache
+    const employeeFilters: string[] = [];
+    const employeeParams: any[] = [];
+    
+    if (query.department_id) {
+      employeeFilters.push(`e.department_id = $${employeeParams.length + 1}`);
+      employeeParams.push(query.department_id);
+    }
+    
+    if (query.search) {
+      employeeFilters.push(
+        `(e.full_name ILIKE $${employeeParams.length + 1} OR e.employee_code ILIKE $${employeeParams.length + 1})`
+      );
+      employeeParams.push(`%${query.search}%`);
+    }
+    
+    const employeeWhereClause = employeeFilters.length > 0 
+      ? 'WHERE ' + employeeFilters.join(' AND ')
+      : '';
+    
     const aggregateQuery = `
-      WITH employee_attendance AS (
+      WITH employee_list AS (
+        SELECT DISTINCT
+          e.employee_id,
+          e.employee_code,
+          e.full_name,
+          e.department_id,
+          e.department_name,
+          e.position_name
+        FROM employees_cache e
+        ${employeeWhereClause}
+        WHERE e.status = 'ACTIVE'
+      ),
+      employee_attendance AS (
         SELECT 
           es.employee_id,
-          es.employee_code,
-          es.department_id,
           
           -- Working days count (REGULAR shifts that are COMPLETED)
           COUNT(DISTINCT CASE 
@@ -75,53 +106,42 @@ export class GetEmployeesAttendanceReportUseCase {
           -- Absent days (ABSENT status)
           COUNT(CASE WHEN es.status = 'ABSENT' THEN 1 END) as total_absent_days
           
-        FROM employee_shifts es
-        WHERE ${whereClause}
-        GROUP BY es.employee_id, es.employee_code, es.department_id
-      ),
-      employee_info AS (
-        SELECT DISTINCT ON (e.id)
-          e.id as employee_id,
-          e.employee_code,
-          e.full_name,
-          e.department_id,
-          d.department_name,
-          p.position_name
-        FROM employees e
-        LEFT JOIN departments d ON d.id = e.department_id
-        LEFT JOIN positions p ON p.id = e.position_id
-        WHERE e.id IN (SELECT employee_id FROM employee_attendance)
+        FROM employee_shifts_cache es
+        WHERE es.shift_date BETWEEN '${start_date}' AND '${end_date}'
+        GROUP BY es.employee_id
       )
       SELECT 
-        ei.employee_id,
-        ei.employee_code,
-        ei.full_name,
-        ei.department_id,
-        ei.department_name,
-        ei.position_name,
-        ea.working_days::integer,
-        ea.total_working_hours::numeric(10,2),
-        ea.total_overtime_hours::numeric(10,2),
-        ea.total_late_count::integer,
-        ea.total_early_leave_count::integer,
-        ea.total_absent_days::integer,
+        el.employee_id,
+        el.employee_code,
+        el.full_name,
+        el.department_id,
+        el.department_name,
+        el.position_name,
+        COALESCE(ea.working_days, 0)::integer as working_days,
+        COALESCE(ea.total_working_hours, 0)::numeric(10,2) as total_working_hours,
+        COALESCE(ea.total_overtime_hours, 0)::numeric(10,2) as total_overtime_hours,
+        COALESCE(ea.total_late_count, 0)::integer as total_late_count,
+        COALESCE(ea.total_early_leave_count, 0)::integer as total_early_leave_count,
+        COALESCE(ea.total_absent_days, 0)::integer as total_absent_days,
         0 as total_leave_days,
-        ROUND((ea.working_days::numeric / NULLIF((
-          SELECT COUNT(DISTINCT shift_date) 
-          FROM employee_shifts 
-          WHERE employee_id = ei.employee_id 
-            AND shift_date BETWEEN '${start_date}' AND '${end_date}'
-            AND shift_type = 'REGULAR'
-        ), 0)) * 100, 2) as attendance_rate
-      FROM employee_info ei
-      INNER JOIN employee_attendance ea ON ea.employee_id = ei.employee_id
-      ORDER BY ei.employee_code
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        COALESCE(
+          ROUND((COALESCE(ea.working_days, 0)::numeric / NULLIF((
+            SELECT COUNT(DISTINCT shift_date) 
+            FROM employee_shifts_cache 
+            WHERE employee_id = el.employee_id 
+              AND shift_date BETWEEN '${start_date}' AND '${end_date}'
+              AND shift_type = 'REGULAR'
+          ), 0)) * 100, 2),
+          0
+        ) as attendance_rate
+      FROM employee_list el
+      LEFT JOIN employee_attendance ea ON ea.employee_id = el.employee_id
+      ORDER BY el.employee_code
+      LIMIT $${employeeParams.length + 1} OFFSET $${employeeParams.length + 2}
     `;
 
-    params.push(query.limit!, offset);
-
-    const results = await this.dataSource.query(aggregateQuery, params);
+    employeeParams.push(query.limit!, offset);
+    const results = await this.dataSource.query(aggregateQuery, employeeParams);
 
     // 4. Get leave days for each employee
     const employeeIds = results.map((r: any) => r.employee_id);
@@ -180,11 +200,12 @@ export class GetEmployeesAttendanceReportUseCase {
 
     // 6. Get total count
     const countQuery = `
-      SELECT COUNT(DISTINCT es.employee_id) as total
-      FROM employee_shifts es
-      WHERE ${whereClause}
+      SELECT COUNT(DISTINCT e.employee_id) as total
+      FROM employees_cache e
+      ${employeeWhereClause}
+      WHERE e.status = 'ACTIVE'
     `;
-    const [countResult] = await this.dataSource.query(countQuery, params.slice(0, -2));
+    const [countResult] = await this.dataSource.query(countQuery, employeeParams.slice(0, -2));
     const total = Number(countResult?.total || 0);
 
     return {
