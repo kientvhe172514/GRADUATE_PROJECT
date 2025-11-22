@@ -4,7 +4,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,7 +15,11 @@ import {
   ApiProperty,
   ApiPropertyOptional,
 } from '@nestjs/swagger';
-import { Permissions } from '@graduate-project/shared-common';
+import {
+  Permissions,
+  CurrentUser,
+  JwtPayload,
+} from '@graduate-project/shared-common';
 import {
   ValidateBeaconUseCase,
   ValidateBeaconCommand,
@@ -85,15 +88,19 @@ export class AttendanceCheckController {
   @ApiResponse({ status: 200, description: 'Beacon validation result' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid JWT token' })
   @ApiResponse({ status: 404, description: 'Employee not found' })
-  async validateBeacon(@Body() dto: ValidateBeaconDto, @Req() req: any) {
+  async validateBeacon(
+    @Body() dto: ValidateBeaconDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     // Extract employee_id from JWT token
-    const employeeId = req.user?.employee_id;
+    const employeeId = user.employee_id;
     if (!employeeId) {
       throw new UnauthorizedException('Employee ID not found in JWT token');
     }
 
     // Fetch employee info from Employee Service
-    const employee = await this.employeeServiceClient.getEmployeeById(employeeId);
+    const employee =
+      await this.employeeServiceClient.getEmployeeById(employeeId);
     if (!employee) {
       throw new UnauthorizedException(`Employee not found: ${employeeId}`);
     }
@@ -121,16 +128,18 @@ export class AttendanceCheckController {
   @ApiResponse({ status: 404, description: 'Employee not found' })
   async requestFaceVerification(
     @Body() dto: RequestFaceVerificationDto,
+    @CurrentUser() user: JwtPayload,
     @Req() req: any,
   ) {
     // Extract employee_id from JWT token
-    const employeeId = req.user?.employee_id;
+    const employeeId = user.employee_id;
     if (!employeeId) {
       throw new UnauthorizedException('Employee ID not found in JWT token');
     }
 
     // Fetch employee info from Employee Service
-    const employee = await this.employeeServiceClient.getEmployeeById(employeeId);
+    const employee =
+      await this.employeeServiceClient.getEmployeeById(employeeId);
     if (!employee) {
       throw new UnauthorizedException(`Employee not found: ${employeeId}`);
     }
