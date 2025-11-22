@@ -12,40 +12,16 @@ spec:
     - name: http
       port: 9200
       targetPort: 9200
-    - name: transport
-      port: 9300
-      targetPort: 9300
-  clusterIP: None  # Headless service for StatefulSet
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: elasticsearch-lb
-  namespace: monitoring
-  labels:
-    app: elasticsearch
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9200"
-spec:
-  type: ClusterIP
-  selector:
-    app: elasticsearch
-  ports:
-    - name: http
-      port: 9200
-      targetPort: 9200
+  clusterIP: None
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: elasticsearch
   namespace: monitoring
-  labels:
-    app: elasticsearch
 spec:
   serviceName: elasticsearch-srv
-  replicas: 1  # Single node for t2.micro (no cluster)
+  replicas: 1
   selector:
     matchLabels:
       app: elasticsearch
@@ -54,51 +30,18 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      # No nodeSelector for single-node K3s cluster
-      # nodeSelector:
-      #   node-role.kubernetes.io/control-plane: ""
-      # tolerations:
-      #   - key: node-role.kubernetes.io/control-plane
-      #     effect: NoSchedule
-      
       initContainers:
-        # Increase vm.max_map_count for Elasticsearch
         - name: increase-vm-max-map-count
           image: busybox:1.36
-          command:
-            - sysctl
-            - -w
-            - vm.max_map_count=262144
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
           securityContext:
             privileged: true
-          resources:
-            requests:
-              cpu: "10m"
-              memory: "16Mi"
-            limits:
-              cpu: "50m"
-              memory: "64Mi"
-
-        # Fix permissions
         - name: fix-permissions
           image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - chown -R 1000:1000 /usr/share/elasticsearch/data
+          command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
-          securityContext:
-            runAsUser: 0
-          resources:
-            requests:
-              cpu: "10m"
-              memory: "16Mi"
-            limits:
-              cpu: "50m"
-              memory: "64Mi"
-
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -108,82 +51,41 @@ spec:
             - containerPort: 9300
               name: transport
           env:
-            # Single-node cluster (no HA for t2.micro)
             - name: discovery.type
               value: "single-node"
-            
-            # Cluster name
-            - name: cluster.name
-              value: "microservices-logs"
-            
-            # Node name
-            - name: node.name
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            
-            # DISABLE SECURITY for dev/test (enable in production!)
             - name: xpack.security.enabled
               value: "false"
             - name: xpack.security.enrollment.enabled
               value: "false"
-            
-            # Memory settings - CRITICAL for t2.micro
+            # CẤU HÌNH RAM SỐNG CÒN CHO T2.MICRO
             - name: ES_JAVA_OPTS
-              value: "-Xms256m -Xmx256m"  # Only 256MB heap for t2.micro
-            
-            # Disable ML & Watcher to save memory
+              value: "-Xms256m -Xmx256m" 
             - name: xpack.ml.enabled
               value: "false"
-            - name: xpack.watcher.enabled
-              value: "false"
-            
-            # Index settings
-            - name: action.auto_create_index
-              value: "true"
-            
-            # Network settings
-            - name: network.host
-              value: "0.0.0.0"
-          
           resources:
             requests:
-              cpu: 100m       # Ultra-low for t2.micro
-              memory: 512Mi   # Minimum for ES
+              cpu: 100m
+              memory: 400Mi
             limits:
-              cpu: 500m       # Max 0.5 CPU
-              memory: 768Mi   # Max 768MB (leave room for other services)
-          
+              cpu: 1000m
+              memory: 600Mi # Không được quá 600Mi, nếu không OS sẽ kill Pod
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
-          
-          # Readiness probe - check if ES is ready
+          # Tăng thời gian chờ check health vì máy yếu khởi động lâu
           readinessProbe:
             httpGet:
               path: /_cluster/health
               port: 9200
             initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          
-          # Liveness probe - restart if ES is dead
-          livenessProbe:
-            httpGet:
-              path: /_cluster/health
-              port: 9200
-            initialDelaySeconds: 90
-            periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 5
-  
+            periodSeconds: 20
+            failureThreshold: 10
   volumeClaimTemplates:
     - metadata:
         name: elasticsearch-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "local-path"  # K3s local-path
+        storageClassName: "local-path"
         resources:
           requests:
-            storage: 1Gi  # 3GB cho logs (có thể tăng sau)
+            storage: 1Gi

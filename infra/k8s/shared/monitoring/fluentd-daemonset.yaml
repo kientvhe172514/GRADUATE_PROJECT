@@ -5,7 +5,6 @@ metadata:
   namespace: monitoring
   labels:
     app: fluentd
-    tier: monitoring
 spec:
   selector:
     matchLabels:
@@ -17,13 +16,9 @@ spec:
     spec:
       serviceAccountName: fluentd
       tolerations:
-        - key: node-role.kubernetes.io/master
-          effect: NoSchedule
-        - key: node-role.kubernetes.io/control-plane
-          effect: NoSchedule
+        - operator: Exists # Chạy trên tất cả các node kể cả Master
       containers:
         - name: fluentd
-          # Dùng image có sẵn tất cả plugins
           image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch8-1
           env:
             - name: FLUENT_ELASTICSEARCH_HOST
@@ -34,18 +29,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            # Ruby GC tuning để tránh memory leak
+            # Tối ưu Ruby GC cho RAM thấp
             - name: RUBY_GC_HEAP_GROWTH_FACTOR
               value: "1.1"
             - name: RUBY_GC_MALLOC_LIMIT
-              value: "16000000"
+              value: "8000000"
           resources:
             requests:
-              cpu: 50m      # Ultra-optimized for t2.micro (was 200m)
-              memory: 64Mi  # Ultra-optimized for t2.micro (was 256Mi)
+              cpu: 50m
+              memory: 64Mi
             limits:
-              cpu: 200m     # Ultra-optimized for t2.micro (was 1000m)
-              memory: 128Mi # Ultra-optimized for t2.micro (was 1Gi)
+              cpu: 200m
+              memory: 150Mi # Tăng nhẹ để gánh Buffer 64MB + Plugin
           volumeMounts:
             - name: varlog
               mountPath: /var/log
@@ -53,12 +48,10 @@ spec:
               mountPath: /var/lib/docker/containers
               readOnly: true
             - name: fluentd-config-volume
-              mountPath: /fluentd/etc
-            - name: tmp
-              mountPath: /tmp
-            - name: fluentd-output
-              mountPath: /var/log/fluentd-output
-      terminationGracePeriodSeconds: 30
+              mountPath: /fluentd/etc/fluent.conf
+              subPath: fluent.conf
+            - name: fluentd-buffer
+              mountPath: /tmp/fluentd-buffers
       volumes:
         - name: varlog
           hostPath:
@@ -69,10 +62,6 @@ spec:
         - name: fluentd-config-volume
           configMap:
             name: fluentd-config
-        - name: tmp
+        - name: fluentd-buffer
           emptyDir:
-            sizeLimit: 1Gi
-        # 🛡️ Volume cho output logs - giới hạn size để tránh tràn đĩa
-        - name: fluentd-output
-          emptyDir:
-            sizeLimit: 2Gi
+            sizeLimit: 500Mi # Giới hạn đĩa ảo để không gây DiskPressure
