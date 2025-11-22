@@ -27,9 +27,14 @@ import {
   EmployeeShiftFilterDto,
   EmployeeShiftDto,
 } from '../../application/dtos/employee-shift.dto';
+import {
+  EmployeeShiftCalendarQueryDto,
+  EmployeeShiftCalendarResponseDto,
+} from '../../application/dtos/employee-shift-calendar.dto';
 import { GetEmployeeShiftsUseCase } from '../../application/use-cases/employee-shift/get-employee-shifts.use-case';
 import { GetShiftByIdUseCase } from '../../application/use-cases/employee-shift/get-shift-by-id.use-case';
 import { ManualEditShiftUseCase } from '../../application/use-cases/employee-shift/manual-edit-shift.use-case';
+import { GetEmployeeShiftCalendarUseCase } from '../../application/use-cases/employee-shift/get-employee-shift-calendar.use-case';
 import { ManualEditShiftDto } from '../dtos/employee-shift-edit.dto';
 
 @ApiTags('Employee Shifts')
@@ -41,7 +46,23 @@ export class EmployeeShiftController {
     private readonly getEmployeeShiftsUseCase: GetEmployeeShiftsUseCase,
     private readonly getShiftByIdUseCase: GetShiftByIdUseCase,
     private readonly manualEditShiftUseCase: ManualEditShiftUseCase,
+    private readonly getEmployeeShiftCalendarUseCase: GetEmployeeShiftCalendarUseCase,
   ) {}
+
+  @Get('calendar')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get employee shift calendar view (for displaying schedules)',
+    description:
+      'Returns a calendar view of employee shifts with employee details and work schedule information. ' +
+      'Useful for HR dashboard to display employee work schedules in a calendar format.',
+  })
+  @ApiResponse({ status: 200, type: ApiResponseDto })
+  async getCalendarView(
+    @Query() query: EmployeeShiftCalendarQueryDto,
+  ): Promise<ApiResponseDto<EmployeeShiftCalendarResponseDto>> {
+    return this.getEmployeeShiftCalendarUseCase.execute(query);
+  }
 
   @Get('my')
   @HttpCode(HttpStatus.OK)

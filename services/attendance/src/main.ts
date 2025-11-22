@@ -25,7 +25,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  
+
   // Enable structured logging cho tat ca HTTP requests
   app.useGlobalInterceptors(new LoggingInterceptor());
 

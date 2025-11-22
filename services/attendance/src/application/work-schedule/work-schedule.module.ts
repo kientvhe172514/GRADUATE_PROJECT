@@ -44,5 +44,6 @@ import {
       useClass: TypeOrmEmployeeWorkScheduleRepository,
     },
   ],
+  exports: [WORK_SCHEDULE_REPOSITORY, EMPLOYEE_WORK_SCHEDULE_REPOSITORY],
 })
 export class WorkScheduleModule {}

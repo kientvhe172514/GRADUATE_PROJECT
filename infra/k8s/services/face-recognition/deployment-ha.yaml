@@ -120,6 +120,8 @@ spec:
           value: "http://+:8080"
         - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
           value: "true"
+        - name: TZ
+          value: "Asia/Ho_Chi_Minh"
         
         # ===== FEATURE FLAGS =====
         - name: ENABLE_SWAGGER

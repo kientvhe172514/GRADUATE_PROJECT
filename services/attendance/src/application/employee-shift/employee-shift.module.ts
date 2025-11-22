@@ -7,13 +7,17 @@ import { EMPLOYEE_SHIFT_REPOSITORY } from '../tokens';
 import { GetEmployeeShiftsUseCase } from '../use-cases/employee-shift/get-employee-shifts.use-case';
 import { GetShiftByIdUseCase } from '../use-cases/employee-shift/get-shift-by-id.use-case';
 import { ManualEditShiftUseCase } from '../use-cases/employee-shift/manual-edit-shift.use-case';
+import { GetEmployeeShiftCalendarUseCase } from '../use-cases/employee-shift/get-employee-shift-calendar.use-case';
 import { EmployeeShiftController } from '../../presentation/controllers/employee-shift.controller';
 import { AttendanceEditLogModule } from '../edit-log/edit-log.module';
+import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([EmployeeShiftSchema]),
     AttendanceEditLogModule,
+    WorkScheduleModule,
   ],
   controllers: [EmployeeShiftController],
   providers: [
@@ -26,6 +30,8 @@ import { AttendanceEditLogModule } from '../edit-log/edit-log.module';
     GetEmployeeShiftsUseCase,
     GetShiftByIdUseCase,
     ManualEditShiftUseCase,
+    GetEmployeeShiftCalendarUseCase,
+    EmployeeServiceClient,
   ],
   exports: [],
 })

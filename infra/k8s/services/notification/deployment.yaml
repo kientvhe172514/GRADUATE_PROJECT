@@ -51,6 +51,8 @@ spec:
           value: "production"
         - name: PORT
           value: "3005"
+        - name: TZ
+          value: "Asia/Ho_Chi_Minh"
         
         # Mount .env file from secret (CI/CD injects all vars as .env string)
         volumeMounts:

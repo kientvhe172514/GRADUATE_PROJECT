@@ -31,8 +31,10 @@ import {
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 class ValidateBeaconDto {
-
-  @ApiProperty({ example: 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825', description: 'Beacon UUID' })
+  @ApiProperty({
+    example: 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825',
+    description: 'Beacon UUID',
+  })
   beacon_uuid: string;
 
   @ApiProperty({ example: 1, description: 'Beacon major number' })
@@ -46,28 +48,50 @@ class ValidateBeaconDto {
 }
 
 class RequestFaceVerificationDto {
-  @ApiProperty({ example: 'beacon_sess_123_5_1732252800000', description: 'Session token from beacon validation' })
+  @ApiProperty({
+    example: 'beacon_sess_123_5_1732252800000',
+    description: 'Session token from beacon validation',
+  })
   session_token: string;
 
-  @ApiProperty({ example: 'check_in', enum: ['check_in', 'check_out'], description: 'Check type' })
+  @ApiProperty({
+    example: 'check_in',
+    enum: ['check_in', 'check_out'],
+    description: 'Check type',
+  })
   check_type: 'check_in' | 'check_out';
 
-  @ApiProperty({ example: '2025-11-22', description: 'Shift date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2025-11-22',
+    description: 'Shift date (YYYY-MM-DD)',
+  })
   shift_date: Date;
 
-  @ApiPropertyOptional({ example: 10.762622, description: 'GPS latitude (optional but recommended)' })
+  @ApiPropertyOptional({
+    example: 10.762622,
+    description: 'GPS latitude (optional but recommended)',
+  })
   latitude?: number;
 
-  @ApiPropertyOptional({ example: 106.660172, description: 'GPS longitude (optional but recommended)' })
+  @ApiPropertyOptional({
+    example: 106.660172,
+    description: 'GPS longitude (optional but recommended)',
+  })
   longitude?: number;
 
   @ApiPropertyOptional({ example: 15, description: 'GPS accuracy in meters' })
   location_accuracy?: number;
 
-  @ApiPropertyOptional({ example: 'android-device-abc123', description: 'Device identifier' })
+  @ApiPropertyOptional({
+    example: 'android-device-abc123',
+    description: 'Device identifier',
+  })
   device_id?: string;
 
-  @ApiPropertyOptional({ example: '192.168.1.100', description: 'Client IP address' })
+  @ApiPropertyOptional({
+    example: '192.168.1.100',
+    description: 'Client IP address',
+  })
   ip_address?: string;
 }
 

@@ -100,7 +100,8 @@ export class EmployeeServiceClient {
       return employeeMap;
     } catch (error) {
       this.logger.error(`❌ Failed to fetch employees:`, error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to fetch employees: ${errorMessage}`);
     }
   }
