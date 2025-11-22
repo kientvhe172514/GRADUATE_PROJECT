@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EmployeeController } from '../presentation/controllers/employee.controller';
 import { PositionController } from '../presentation/controllers/position.controller';
+import { EmployeeRpcController } from '../presentation/rpc-controllers/employee-rpc.controller';
 import { AccountCreatedListener } from '../presentation/event-listeners/account-created.listener';  // Add
 import { CreateEmployeeUseCase } from './use-cases/create-employee.use-case';
 import { GetEmployeeDetailUseCase } from './use-cases/get-employee-detail.use-case';
@@ -67,7 +68,7 @@ import { GetManagersUseCase } from './use-cases/get-managers.use-case';
       },
     ]),
   ],
-  controllers: [EmployeeController, DepartmentController, PositionController, AccountCreatedListener],  
+  controllers: [EmployeeController, DepartmentController, PositionController, EmployeeRpcController, AccountCreatedListener],  
   providers: [
     // Use cases
     CreateEmployeeUseCase,
