@@ -145,4 +145,27 @@ export class AttendanceCheckRepository {
       },
     });
   }
+
+  async findByShiftId(shiftId: number): Promise<AttendanceCheckRecordSchema[]> {
+    return this.repository.find({
+      where: { shift_id: shiftId },
+      order: { check_timestamp: 'ASC' },
+    });
+  }
+
+  async updateCheckType(
+    recordId: number,
+    checkType: 'CHECK_IN' | 'CHECK_OUT',
+  ): Promise<AttendanceCheckRecordSchema | null> {
+    const record = await this.repository.findOne({
+      where: { id: recordId },
+    });
+
+    if (!record) {
+      return null;
+    }
+
+    record.check_type = checkType;
+    return this.repository.save(record);
+  }
 }

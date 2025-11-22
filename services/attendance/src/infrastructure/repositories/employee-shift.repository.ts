@@ -99,6 +99,89 @@ export class EmployeeShiftRepository {
     return this.findByEmployeeAndDate(employeeId, date, 'REGULAR');
   }
 
+  /**
+   * Find active shift at specific time (handles multiple shifts per day)
+   * Logic:
+   * 1. Get all shifts of employee on given date
+   * 2. Filter shifts where current_time is within ±2 hours of shift start/end time
+   * 3. Priority: OVERTIME > REGULAR (if multiple shifts match)
+   * 4. Return the closest shift to current time
+   */
+  async findActiveShiftByTime(
+    employeeId: number,
+    date: Date,
+    currentTime: string, // Format: "HH:MM"
+  ): Promise<EmployeeShiftSchema | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get all shifts of employee on this date
+    const allShifts = await this.repository.find({
+      where: {
+        employee_id: employeeId,
+        shift_date: startOfDay,
+      },
+      order: {
+        scheduled_start_time: 'ASC',
+      },
+    });
+
+    if (allShifts.length === 0) {
+      return null;
+    }
+
+    // If only one shift, return it
+    if (allShifts.length === 1) {
+      return allShifts[0];
+    }
+
+    // Multiple shifts - find the one closest to current time
+    // Allow check-in up to 2 hours before shift start and check-out up to 2 hours after shift end
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+    const currentMinutes = currentHour * 60 + currentMinute;
+
+    let bestShift: EmployeeShiftSchema | null = null;
+    let smallestDiff = Infinity;
+
+    for (const shift of allShifts) {
+      const [startHour, startMinute] = shift.scheduled_start_time
+        .split(':')
+        .map(Number);
+      const startMinutes = startHour * 60 + startMinute;
+
+      const [endHour, endMinute] = shift.scheduled_end_time
+        .split(':')
+        .map(Number);
+      const endMinutes = endHour * 60 + endMinute;
+
+      // Allow check-in 2 hours early, check-out 2 hours late
+      const allowedStartMinutes = startMinutes - 120; // 2 hours before
+      const allowedEndMinutes = endMinutes + 120; // 2 hours after
+
+      // Check if current time is within allowed range
+      if (
+        currentMinutes >= allowedStartMinutes &&
+        currentMinutes <= allowedEndMinutes
+      ) {
+        // Calculate distance to shift start time
+        const diff = Math.abs(currentMinutes - startMinutes);
+
+        // Prefer OVERTIME shift if same distance
+        if (
+          diff < smallestDiff ||
+          (diff === smallestDiff && shift.shift_type === 'OVERTIME')
+        ) {
+          smallestDiff = diff;
+          bestShift = shift;
+        }
+      }
+    }
+
+    return bestShift;
+  }
+
   async findByDateRange(
     startDate: Date,
     endDate: Date,
