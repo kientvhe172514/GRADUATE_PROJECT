@@ -3,10 +3,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { JwtModule, JwtService } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { TimesheetEntryModule } from './application/timesheet-entry/timesheet-entry.module';
 import { MonthlySummaryModule } from './application/monthly-summary/monthly-summary.module';
 import { ReportTemplateModule } from './application/report-template/report-template.module';
 import { ExportBatchModule } from './application/export-batch/export-batch.module';
+import { AttendanceReportModule } from './application/attendance-report/attendance-report.module';
 import { AttendanceEventListener } from './presentation/event-listeners/attendance-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
@@ -72,11 +76,31 @@ import { HealthController } from './health.controller';
         inject: [ConfigService],
       },
     ]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRATION') || '1h',
+        },
+      }),
+      inject: [ConfigService],
+    }),
     TimesheetEntryModule,
     MonthlySummaryModule,
     ReportTemplateModule,
     ExportBatchModule,
+    AttendanceReportModule,
   ],
   controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useFactory: (reflector, jwtService) => {
+        return new HeaderBasedPermissionGuard(reflector, jwtService);
+      },
+      inject: ['Reflector', JwtService],
+    },
+  ],
 })
 export class AppModule {}
