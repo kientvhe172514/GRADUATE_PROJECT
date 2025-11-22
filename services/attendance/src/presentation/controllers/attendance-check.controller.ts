@@ -6,6 +6,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,13 +25,9 @@ import {
   RequestFaceVerificationUseCase,
   RequestFaceVerificationCommand,
 } from '../../application/attendance-check/request-face-verification.use-case';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 class ValidateBeaconDto {
-  @ApiProperty({ example: 123, description: 'Employee ID (from JWT token)' })
-  employee_id: number;
-
-  @ApiProperty({ example: 'EMP001', description: 'Employee code (from JWT token)' })
-  employee_code: string;
 
   @ApiProperty({ example: 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825', description: 'Beacon UUID' })
   beacon_uuid: string;
@@ -46,15 +43,6 @@ class ValidateBeaconDto {
 }
 
 class RequestFaceVerificationDto {
-  @ApiProperty({ example: 123, description: 'Employee ID (from JWT token)' })
-  employee_id: number;
-
-  @ApiProperty({ example: 'EMP001', description: 'Employee code (from JWT token)' })
-  employee_code: string;
-
-  @ApiProperty({ example: 10, description: 'Department ID (from JWT token)' })
-  department_id: number;
-
   @ApiProperty({ example: 'beacon_sess_123_5_1732252800000', description: 'Session token from beacon validation' })
   session_token: string;
 
@@ -87,6 +75,7 @@ export class AttendanceCheckController {
   constructor(
     private readonly validateBeaconUseCase: ValidateBeaconUseCase,
     private readonly requestFaceVerificationUseCase: RequestFaceVerificationUseCase,
+    private readonly employeeServiceClient: EmployeeServiceClient,
   ) {}
 
   @Post('validate-beacon')
@@ -94,10 +83,24 @@ export class AttendanceCheckController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validate beacon proximity (Mobile App)' })
   @ApiResponse({ status: 200, description: 'Beacon validation result' })
-  async validateBeacon(@Body() dto: ValidateBeaconDto) {
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid JWT token' })
+  @ApiResponse({ status: 404, description: 'Employee not found' })
+  async validateBeacon(@Body() dto: ValidateBeaconDto, @Req() req: any) {
+    // Extract employee_id from JWT token
+    const employeeId = req.user?.employee_id;
+    if (!employeeId) {
+      throw new UnauthorizedException('Employee ID not found in JWT token');
+    }
+
+    // Fetch employee info from Employee Service
+    const employee = await this.employeeServiceClient.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new UnauthorizedException(`Employee not found: ${employeeId}`);
+    }
+
     const command: ValidateBeaconCommand = {
-      employee_id: dto.employee_id,
-      employee_code: dto.employee_code,
+      employee_id: employee.id,
+      employee_code: employee.employee_code,
       beacon_uuid: dto.beacon_uuid,
       beacon_major: dto.beacon_major,
       beacon_minor: dto.beacon_minor,
@@ -114,14 +117,28 @@ export class AttendanceCheckController {
     summary: 'Request face verification for attendance (Mobile App)',
   })
   @ApiResponse({ status: 200, description: 'Face verification requested' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid JWT token' })
+  @ApiResponse({ status: 404, description: 'Employee not found' })
   async requestFaceVerification(
     @Body() dto: RequestFaceVerificationDto,
     @Req() req: any,
   ) {
+    // Extract employee_id from JWT token
+    const employeeId = req.user?.employee_id;
+    if (!employeeId) {
+      throw new UnauthorizedException('Employee ID not found in JWT token');
+    }
+
+    // Fetch employee info from Employee Service
+    const employee = await this.employeeServiceClient.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new UnauthorizedException(`Employee not found: ${employeeId}`);
+    }
+
     const command: RequestFaceVerificationCommand = {
-      employee_id: dto.employee_id,
-      employee_code: dto.employee_code,
-      department_id: dto.department_id,
+      employee_id: employee.id,
+      employee_code: employee.employee_code,
+      department_id: employee.department_id || 0,
       session_token: dto.session_token,
       check_type: dto.check_type,
       shift_date: dto.shift_date,

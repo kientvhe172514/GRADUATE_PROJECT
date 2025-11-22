@@ -19,6 +19,7 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
 import { ValidateEmployeeLocationUseCase } from './validate-employee-location.use-case';
 import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event.publisher';
 import { PresenceVerificationModule } from '../presence-verification/presence-verification.module';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 @Module({
   imports: [
@@ -110,6 +111,8 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
     RequestFaceVerificationUseCase,
     ProcessFaceVerificationResultUseCase,
     ValidateEmployeeLocationUseCase,
+    // External Services
+    EmployeeServiceClient,
     // Event Publisher
     {
       provide: 'IEventPublisher',
