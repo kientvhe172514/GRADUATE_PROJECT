@@ -72,7 +72,7 @@ export class EmployeeServiceClient {
 
       const response = await firstValueFrom(
         this.employeeClient
-          .send('employee.list', { ids: employeeIds })
+          .send('employee.list', { employee_ids: employeeIds })
           .pipe(timeout(5000)),
       );
 
@@ -100,7 +100,8 @@ export class EmployeeServiceClient {
       return employeeMap;
     } catch (error) {
       this.logger.error(`❌ Failed to fetch employees:`, error);
-      throw new Error(`Failed to fetch employees: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch employees: ${errorMessage}`);
     }
   }
 }

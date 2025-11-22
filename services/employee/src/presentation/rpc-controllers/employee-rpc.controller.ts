@@ -62,25 +62,27 @@ export class EmployeeRpcController {
   /**
    * RPC: Get multiple employees by IDs
    * Pattern: 'employee.list'
-   * Payload: { ids: number[] }
+   * Payload: { employee_ids: number[] }
    * Response: { status, statusCode, message, data: EmployeeDetailDto[] }
    */
   @MessagePattern('employee.list')
-  async getEmployeesByIds(@Payload() payload: { ids: number[] }): Promise<any> {
-    this.logger.log(`🔍 [RPC] employee.list - IDs: [${payload.ids.join(', ')}]`);
+  async getEmployeesByIds(@Payload() payload: { employee_ids: number[] }): Promise<any> {
+    this.logger.log(`🔍 [RPC] employee.list - IDs: [${payload.employee_ids.join(', ')}]`);
 
     try {
-      const result = await this.getEmployeesUseCase.execute({
-        ids: payload.ids,
-      });
+      // Get employees one by one since ListEmployeeDto doesn't support filtering by IDs
+      const employeePromises = payload.employee_ids.map(id => 
+        this.getEmployeeDetailUseCase.execute(id).catch(() => null)
+      );
+      
+      const employees = (await Promise.all(employeePromises)).filter(emp => emp !== null);
 
-      const items = result?.data?.items || [];
-      this.logger.log(`✅ [RPC] Found ${items.length} employees`);
+      this.logger.log(`✅ [RPC] Found ${employees.length} employees`);
       return {
         status: ResponseStatus.SUCCESS,
         statusCode: 200,
         message: 'Employees retrieved successfully',
-        data: items,
+        data: employees,
       };
     } catch (error) {
       this.logger.error(`❌ [RPC] Error fetching employees:`, error);
