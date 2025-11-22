@@ -186,4 +186,4 @@ spec:
         storageClassName: "local-path"  # K3s local-path
         resources:
           requests:
-            storage: 3Gi  # 3GB cho logs (có thể tăng sau)
+            storage: 1Gi  # 3GB cho logs (có thể tăng sau)
