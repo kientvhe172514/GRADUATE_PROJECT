@@ -47,6 +47,7 @@ import { HealthController } from './health.controller';
     }),
     NotificationModule,
   ],
+  
   controllers: [HealthController],
   providers: [
     {
