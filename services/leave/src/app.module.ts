@@ -10,6 +10,7 @@ import { HolidayModule } from './application/holiday/holiday.module';
 import { LeaveRecordModule } from './application/leave-record/leave-record.module';
 import { LeaveBalanceModule } from './application/leave-balance/leave-balance.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
+import { LeaveRpcHandler } from './presentation/rpc-handlers/leave-rpc.handler';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -38,7 +39,7 @@ import { HealthController } from './health.controller';
     LeaveRecordModule,
     LeaveBalanceModule,
   ],
-  controllers: [HealthController, EmployeeEventListener],
+  controllers: [HealthController, EmployeeEventListener, LeaveRpcHandler],
   providers: [
     {
       provide: APP_GUARD,
