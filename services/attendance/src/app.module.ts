@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-missing-attendance.processor';
@@ -26,6 +27,17 @@ import { GpsController } from './presentation/controllers/gps.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET', 'your_secret_key_here'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN', '15m'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {
@@ -132,7 +144,10 @@ import { GpsController } from './presentation/controllers/gps.controller';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: HeaderBasedPermissionGuard,
+      useFactory: (reflector: Reflector, jwtService: JwtService) => {
+        return new HeaderBasedPermissionGuard(reflector, jwtService);
+      },
+      inject: [Reflector, JwtService],
     },
     CheckMissingAttendanceProcessor,
     ScheduledGpsCheckProcessor,

@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_GUARD } from '@nestjs/core';
+import { JwtModule, JwtService } from '@nestjs/jwt';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { NotificationModule } from './application/notification.module';
@@ -12,6 +13,17 @@ import { HealthController } from './health.controller';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET', 'your_secret_key_here'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN', '15m'),
+        },
+      }),
+      inject: [ConfigService],
     }),
     PrometheusModule.register({
       path: '/metrics',
@@ -39,7 +51,10 @@ import { HealthController } from './health.controller';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: HeaderBasedPermissionGuard,
+      useFactory: (reflector: Reflector, jwtService: JwtService) => {
+        return new HeaderBasedPermissionGuard(reflector, jwtService);
+      },
+      inject: [Reflector, JwtService],
     },
   ],
 })
