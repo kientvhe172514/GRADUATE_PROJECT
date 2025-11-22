@@ -152,9 +152,9 @@ export class UpdateEmployeeShiftUseCase {
     actualHours: number,
   ): Promise<void> {
     try {
-      // Find overtime_request by ot_shift_id
+      // Find overtime_request by shift_id
       const otRequest = await this.overtimeRequestRepository.findOne({
-        where: { ot_shift_id: shiftId },
+        where: { shift_id: shiftId },
       });
 
       if (otRequest) {
@@ -167,7 +167,7 @@ export class UpdateEmployeeShiftUseCase {
         );
       } else {
         this.logger.warn(
-          `No overtime_request found for ot_shift_id=${shiftId}`,
+          `No overtime_request found for shift_id=${shiftId}`,
         );
       }
     } catch (error) {

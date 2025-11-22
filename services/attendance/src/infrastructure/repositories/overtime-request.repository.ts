@@ -84,13 +84,13 @@ export class OvertimeRequestRepository extends Repository<OvertimeRequestSchema>
   async approveRequest(
     id: number,
     approvedBy: number,
-    otShiftId?: number,
+    shiftId?: number,
   ): Promise<boolean> {
     const result = await this.update(id, {
       status: 'APPROVED',
       approved_by: approvedBy,
       approved_at: new Date(),
-      ot_shift_id: otShiftId,
+      shift_id: shiftId, // Link to the created OT shift
       updated_at: new Date(),
     });
     return (result.affected ?? 0) > 0;

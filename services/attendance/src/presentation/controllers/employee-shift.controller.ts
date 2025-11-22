@@ -34,7 +34,6 @@ import { ManualEditShiftDto } from '../dtos/employee-shift-edit.dto';
 
 @ApiTags('Employee Shifts')
 @ApiBearerAuth()
-@Public()
 @Controller('employee-shifts')
 export class EmployeeShiftController {
   constructor(

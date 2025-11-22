@@ -107,26 +107,24 @@ export class CheckMissingAttendanceProcessor {
           es.shift_date,
           ws.start_time,
           ws.end_time,
-          ws.shift_name,
+          ws.schedule_name,
           CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp as shift_start_timestamp
         FROM employee_shifts es
-        INNER JOIN work_schedules ws ON es.schedule_id = ws.schedule_id
+        INNER JOIN work_schedules ws ON es.work_schedule_id = ws.id
         WHERE 
           es.shift_date = CURRENT_DATE
-          AND ws.is_active = true
-          AND es.status = 'scheduled'
+          AND ws.status = 'ACTIVE'
+          AND es.status = 'SCHEDULED'
           -- Shift start time was before threshold (10 minutes ago)
           AND CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp <= $1
       )
       SELECT DISTINCT
         ast.employee_id,
-        e.full_name,
-        ast.shift_name,
+        ast.schedule_name as shift_name,
         ast.start_time,
         ast.shift_start_timestamp,
         EXTRACT(EPOCH FROM (NOW() - ast.shift_start_timestamp))/60 as minutes_late
       FROM active_shifts_today ast
-      INNER JOIN employees e ON e.employee_id = ast.employee_id
       WHERE 
         -- Employee hasn't checked in yet today
         NOT EXISTS (
@@ -135,16 +133,6 @@ export class CheckMissingAttendanceProcessor {
           AND es2.shift_date = CURRENT_DATE
           AND es2.check_in_time IS NOT NULL
         )
-        -- Employee doesn't have approved leave today
-        AND NOT EXISTS (
-          SELECT 1 FROM leave_requests lr
-          WHERE lr.employee_id = ast.employee_id
-          AND lr.status = 'APPROVED'
-          AND lr.start_date <= CURRENT_DATE
-          AND lr.end_date >= CURRENT_DATE
-        )
-        -- Employee is active (not terminated)
-        AND e.status = 'active'
       ORDER BY ast.employee_id;
     `;
 
@@ -156,7 +144,6 @@ export class CheckMissingAttendanceProcessor {
    */
   private sendReminderNotification(employee: {
     employee_id: number;
-    full_name: string;
     shift_name: string;
     start_time: string;
     minutes_late: number;
@@ -164,7 +151,7 @@ export class CheckMissingAttendanceProcessor {
     const notificationPayload = {
       recipientId: employee.employee_id,
       title: '⏰ Nhắc nhở Check-in',
-      message: `Chào ${employee.full_name}, bạn chưa check-in cho ca ${employee.shift_name} (${employee.start_time}). Vui lòng check-in ngay để tránh bị tính vắng mặt!`,
+      message: `Bạn chưa check-in cho ca ${employee.shift_name} (${employee.start_time}). Vui lòng check-in ngay để tránh bị tính vắng mặt!`,
       notificationType: 'ATTENDANCE_REMINDER',
       priority: 'HIGH',
       channels: ['PUSH', 'IN_APP'],
@@ -180,7 +167,7 @@ export class CheckMissingAttendanceProcessor {
     this.notificationClient.emit('notification.send', notificationPayload);
 
     this.logger.log(
-      `✅ [CRON] Sent reminder event to ${employee.full_name} (ID: ${employee.employee_id}) - ${Math.floor(employee.minutes_late)} minutes late`,
+      `✅ [CRON] Sent reminder event to employee ID: ${employee.employee_id} - ${Math.floor(employee.minutes_late)} minutes late`,
     );
   }
 

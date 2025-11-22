@@ -40,7 +40,6 @@ import { AssignScheduleToEmployeesUseCase } from '../../application/use-cases/wo
 
 @ApiTags('Work Schedules')
 @ApiBearerAuth()
-@Public()
 @Controller('work-schedules')
 export class WorkScheduleController {
   constructor(

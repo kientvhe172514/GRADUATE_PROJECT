@@ -79,11 +79,11 @@ export class ApproveOvertimeRequestUseCase {
       presence_verification_rounds_required: 0,
     });
 
-    // Update overtime request with ot_shift_id
+    // Update overtime request: link to created OT shift
     const approved = await this.overtimeRepo.approveRequest(
       id,
       currentUser.sub,
-      otShift.id,
+      otShift.id, // Link to the newly created shift
     );
 
     if (!approved) {
@@ -98,7 +98,7 @@ export class ApproveOvertimeRequestUseCase {
       employee_id: request.employee_id,
       overtime_date: request.overtime_date,
       estimated_hours: request.estimated_hours,
-      ot_shift_id: otShift.id,
+      shift_id: otShift.id, // Send the created shift ID
     });
 
     return ApiResponseDto.success(

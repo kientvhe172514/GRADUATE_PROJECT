@@ -32,7 +32,6 @@ import {
 
 @ApiTags('Beacons')
 @ApiBearerAuth()
-@Public()
 @Controller('beacons')
 export class BeaconController {
   constructor(private readonly beaconRepository: BeaconRepository) {}

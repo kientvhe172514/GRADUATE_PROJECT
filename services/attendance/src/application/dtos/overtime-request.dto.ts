@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
-  IsDecimal,
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Min,
@@ -42,8 +42,9 @@ export class CreateOvertimeRequestDto {
   end_time: string;
 
   @ApiProperty({ example: 3.0, description: 'Estimated overtime hours' })
-  @IsDecimal()
-  @IsNotEmpty()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.1)
+  @Type(() => Number)
   estimated_hours: number;
 
   @ApiProperty({ example: 'Urgent project deadline' })
@@ -65,7 +66,9 @@ export class UpdateOvertimeRequestDto {
 
   @ApiPropertyOptional({ example: 3.5 })
   @IsOptional()
-  @IsDecimal()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.1)
+  @Type(() => Number)
   estimated_hours?: number;
 
   @ApiPropertyOptional({ example: 'Extended due to additional tasks' })
