@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { TimesheetEntryModule } from './application/timesheet-entry/timesheet-entry.module';
@@ -99,7 +99,7 @@ import { HealthController } from './health.controller';
       useFactory: (reflector, jwtService) => {
         return new HeaderBasedPermissionGuard(reflector, jwtService);
       },
-      inject: ['Reflector', JwtModule],
+      inject: ['Reflector', JwtService],
     },
   ],
 })

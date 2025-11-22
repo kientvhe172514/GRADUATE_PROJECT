@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { SharedModule } from './shared/shared.module';
 import { LeaveTypeModule } from './application/leave-type/leave-type.module';
@@ -33,6 +34,16 @@ import { HealthController } from './health.controller';
       }),
       inject: [ConfigService],
     }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRATION') || '1h',
+        },
+      }),
+      inject: [ConfigService],
+    }),
     SharedModule,
     LeaveTypeModule,
     HolidayModule,
@@ -43,7 +54,10 @@ import { HealthController } from './health.controller';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: HeaderBasedPermissionGuard,
+      useFactory: (reflector, jwtService) => {
+        return new HeaderBasedPermissionGuard(reflector, jwtService);
+      },
+      inject: ['Reflector', JwtService],
     },
   ],
 })
