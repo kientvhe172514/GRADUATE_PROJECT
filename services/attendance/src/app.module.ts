@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
 import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-missing-attendance.processor';
@@ -26,6 +27,15 @@ import { GpsController } from './presentation/controllers/gps.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: configService.get('JWT_EXPIRATION') || '1d' },
+      }),
+      inject: [ConfigService],
+      global: true,
+    }),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {
