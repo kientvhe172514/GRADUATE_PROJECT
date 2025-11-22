@@ -7,6 +7,7 @@ import {
 import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { EmployeeServiceClient } from '../../../infrastructure/external-services/employee-service.client';
+import { ShiftStatus } from '../../../domain/entities/employee-shift.entity';
 import {
   EmployeeShiftCalendarQueryDto,
   EmployeeShiftCalendarResponseDto,
@@ -121,32 +122,32 @@ export class GetEmployeeShiftCalendarUseCase {
         }
 
         // Map shifts to calendar items
-          const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
-            const props = shift.get_props();
-            const scheduleName = props.work_schedule_id
-              ? scheduleMap.get(props.work_schedule_id) || 'Unknown Schedule'
-              : 'No Schedule';
+        const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
+          const props = shift.get_props();
+          const scheduleName = props.work_schedule_id
+            ? scheduleMap.get(props.work_schedule_id) || 'Unknown Schedule'
+            : 'No Schedule';
 
-            return {
-              shift_id: props.id!,
-              shift_date: props.shift_date.toISOString().split('T')[0],
-              schedule_name: scheduleName,
-              start_time: props.scheduled_start_time,
-              end_time: props.scheduled_end_time,
-              status: props.status ?? ShiftStatus.SCHEDULED,
-              shift_type: props.shift_type || 'REGULAR',
-              check_in_time: props.check_in_time
-                ? this.formatTime(props.check_in_time)
-                : undefined,
-              check_out_time: props.check_out_time
-                ? this.formatTime(props.check_out_time)
-                : undefined,
-              work_hours: props.work_hours ?? 0,
-              overtime_hours: props.overtime_hours ?? 0,
-              late_minutes: props.late_minutes ?? 0,
-              early_leave_minutes: props.early_leave_minutes ?? 0,
-            };
-          });
+          return {
+            shift_id: props.id!,
+            shift_date: props.shift_date.toISOString().split('T')[0],
+            schedule_name: scheduleName,
+            start_time: props.scheduled_start_time,
+            end_time: props.scheduled_end_time,
+            status: props.status ?? ShiftStatus.SCHEDULED,
+            shift_type: props.shift_type || 'REGULAR',
+            check_in_time: props.check_in_time
+              ? this.formatTime(props.check_in_time)
+              : undefined,
+            check_out_time: props.check_out_time
+              ? this.formatTime(props.check_out_time)
+              : undefined,
+            work_hours: props.work_hours ?? 0,
+            overtime_hours: props.overtime_hours ?? 0,
+            late_minutes: props.late_minutes ?? 0,
+            early_leave_minutes: props.early_leave_minutes ?? 0,
+          };
+        });
 
         // Sort shifts by date
         shiftItems.sort((a, b) => a.shift_date.localeCompare(b.shift_date));
