@@ -99,7 +99,7 @@ spec:
   
   - match: PathPrefix(`/metrics`)
     kind: Rule
-    priority: 110
+    priority: 20
     services:
     - name: auth-srv
       namespace: graduate-project
