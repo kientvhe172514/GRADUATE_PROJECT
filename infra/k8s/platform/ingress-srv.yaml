@@ -93,6 +93,36 @@ spec:
       namespace: graduate-project
       port: 3006
   
+  # ===== PROMETHEUS METRICS ROUTES (PUBLIC - NO AUTH) =====
+  # ⚠️ CRITICAL: /metrics MUST be public - used by Prometheus scraper
+  # Priority 110 để match trước các protected routes
+  
+  - match: PathPrefix(`/metrics`)
+    kind: Rule
+    priority: 110
+    services:
+    - name: auth-srv
+      namespace: graduate-project
+      port: 3001
+    - name: attendance-srv
+      namespace: graduate-project
+      port: 3002
+    - name: employee-srv
+      namespace: graduate-project
+      port: 3003
+    - name: leave-srv
+      namespace: graduate-project
+      port: 3004
+    - name: notification-srv
+      namespace: graduate-project
+      port: 3005
+    - name: reporting-srv
+      namespace: graduate-project
+      port: 3006
+    - name: face-recognition-srv
+      namespace: graduate-project
+      port: 8080
+  
   # ===== AUTH SERVICE API =====
   # PUBLIC ROUTES (No Auth Required): /login, /register, /refresh, /verify
   # ⚠️ CRITICAL: /verify MUST be public - used by Traefik ForwardAuth middleware
