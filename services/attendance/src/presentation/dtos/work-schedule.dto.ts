@@ -8,6 +8,7 @@ import {
   IsDateString,
   IsNumber,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum ScheduleType {
   FIXED = 'FIXED',
@@ -152,11 +153,13 @@ export class WorkScheduleQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({ example: 0 })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Type(() => Number)
   offset?: number;
 }

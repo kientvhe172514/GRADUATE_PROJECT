@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNumber, IsOptional, IsDateString, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class DailyReportQueryDto {
   @ApiPropertyOptional({ example: '2024-01-15' })
@@ -10,6 +11,7 @@ export class DailyReportQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   department_id?: number;
 }
 
@@ -18,22 +20,26 @@ export class MonthlyReportQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(2000)
+  @Type(() => Number)
   year?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
   @Min(1)
+  @Type(() => Number)
   month?: number;
 
   @ApiPropertyOptional({ example: 123 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   employee_id?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   department_id?: number;
 }
 
@@ -51,5 +57,6 @@ export class AnalyticsQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   department_id?: number;
 }

@@ -7,6 +7,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateBeaconDto {
   @ApiProperty({ example: 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825' })
@@ -143,6 +144,7 @@ export class BeaconQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   department_id?: number;
 
   @ApiPropertyOptional({ example: 'ACTIVE' })
@@ -154,12 +156,14 @@ export class BeaconQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({ example: 0 })
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Type(() => Number)
   offset?: number;
 }
 

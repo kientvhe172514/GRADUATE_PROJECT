@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import {
   EmployeeShift,
   EmployeeShiftProps,
@@ -23,23 +24,27 @@ export class EmployeeShiftFilterDto {
   @ApiPropertyOptional({ example: 123 })
   @IsOptional()
   @IsInt()
+  @Type(() => Number)
   employee_id?: number;
 
   @ApiPropertyOptional({ example: 10, default: 20 })
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   limit = 20;
 
   @ApiPropertyOptional({ example: 10, description: 'Filter by department ID' })
   @IsOptional()
   @IsInt()
+  @Type(() => Number)
   department_id?: number;
 
   @ApiPropertyOptional({ example: 0, default: 0 })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Type(() => Number)
   offset = 0;
 }
 

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum ViolationType {
   LATE = 'LATE',
@@ -27,6 +28,7 @@ export class ViolationQueryDto {
   @ApiPropertyOptional({ example: 123 })
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   employee_id?: number;
 
   @ApiPropertyOptional({ enum: ViolationType })
@@ -51,11 +53,13 @@ export class ViolationQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({ example: 0 })
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Type(() => Number)
   offset?: number;
 }

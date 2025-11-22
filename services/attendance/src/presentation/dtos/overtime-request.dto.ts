@@ -7,6 +7,7 @@ import {
   IsEnum,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum OvertimeStatus {
   PENDING = 'PENDING',
@@ -84,11 +85,13 @@ export class OvertimeQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({ example: 0 })
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Type(() => Number)
   offset?: number;
 }
