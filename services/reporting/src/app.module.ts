@@ -11,6 +11,7 @@ import { MonthlySummaryModule } from './application/monthly-summary/monthly-summ
 import { ReportTemplateModule } from './application/report-template/report-template.module';
 import { ExportBatchModule } from './application/export-batch/export-batch.module';
 import { AttendanceReportModule } from './application/attendance-report/attendance-report.module';
+import { DashboardModule } from './application/dashboard/dashboard.module';
 import { AttendanceEventListener } from './presentation/event-listeners/attendance-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
@@ -91,6 +92,7 @@ import { HealthController } from './health.controller';
     ReportTemplateModule,
     ExportBatchModule,
     AttendanceReportModule,
+    DashboardModule,
   ],
   controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
   providers: [
