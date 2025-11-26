@@ -92,6 +92,7 @@ spec:
               path: /_cluster/health
               port: 9200
             initialDelaySeconds: 60
+            timeoutSeconds: 10
             periodSeconds: 20
             failureThreshold: 10
   volumeClaimTemplates:
