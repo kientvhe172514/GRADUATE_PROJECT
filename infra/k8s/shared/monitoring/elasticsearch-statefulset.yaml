@@ -71,12 +71,11 @@ spec:
               value: "false"
             - name: xpack.security.enrollment.enabled
               value: "false"
-            # CẤU HÌNH RAM TỐI THIỂU - T2.MICRO KHÔNG ĐỦ RAM
+            # Giữ Heap ở mức thấp để tiết kiệm RAM thật
             - name: ES_JAVA_OPTS
               value: "-Xms256m -Xmx256m" 
             - name: xpack.ml.enabled
               value: "false"
-            # Disable features to reduce memory
             - name: xpack.monitoring.enabled
               value: "false"
             - name: xpack.watcher.enabled
@@ -84,14 +83,26 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 300Mi
+              # Request thấp để được xếp lịch vào Node
+              memory: 256Mi 
             limits:
-              cpu: 500m
-              memory: 400Mi
+              cpu: "1"
+              # QUAN TRỌNG: Tăng limit lên 2Gi để dùng được SWAP mà không bị OOMKilled
+              memory: 2Gi
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
-          # Tăng thời gian chờ check health vì máy yếu khởi động lâu
+          
+          # Thêm Liveness Probe để không bị restart khi khởi động chậm
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+
           readinessProbe:
             httpGet:
               path: /_cluster/health
