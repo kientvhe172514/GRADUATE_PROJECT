@@ -5,7 +5,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EmployeeController } from '../presentation/controllers/employee.controller';
 import { PositionController } from '../presentation/controllers/position.controller';
 import { EmployeeRpcController } from '../presentation/rpc-controllers/employee-rpc.controller';
-import { AccountCreatedListener } from '../presentation/event-listeners/account-created.listener';  // Add
+import { AccountCreatedListener } from '../presentation/event-listeners/account-created.listener';
+import { GetEmployeeListener } from '../presentation/event-listeners/get-employee.listener';
 import { CreateEmployeeUseCase } from './use-cases/create-employee.use-case';
 import { GetEmployeeDetailUseCase } from './use-cases/get-employee-detail.use-case';
 import { UpdateEmployeeUseCase } from './use-cases/update-employee.use-case';
@@ -68,7 +69,14 @@ import { GetManagersUseCase } from './use-cases/get-managers.use-case';
       },
     ]),
   ],
-  controllers: [EmployeeController, DepartmentController, PositionController, EmployeeRpcController, AccountCreatedListener],  
+  controllers: [
+    EmployeeController,
+    DepartmentController,
+    PositionController,
+    EmployeeRpcController,
+    AccountCreatedListener,
+    GetEmployeeListener, // RPC handler for inter-service communication
+  ],  
   providers: [
     // Use cases
     CreateEmployeeUseCase,

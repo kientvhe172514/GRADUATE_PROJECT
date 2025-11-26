@@ -6,7 +6,8 @@ export class EmployeeCreatedEventDto {
   id: number;
   employee_code: string;
   full_name: string;
-  email: string;
+  email: string; // Company email
+  personal_email?: string; // Personal email for sending credentials
   hire_date: Date;
   suggested_role?: string; // Role from position for RBAC
 }
@@ -16,15 +17,27 @@ export class EmployeeCreatedHandler {
   constructor(private createAccountUseCase: CreateAccountUseCase) {}
 
   async handle(event: EmployeeCreatedEventDto): Promise<void> {
-    console.log(`📬 Received employee_created event for ${event.email} with role: ${event.suggested_role || 'EMPLOYEE'}`);
-    
+    console.log(
+      `📬 Received employee_created event for ${event.email} with role: ${event.suggested_role || 'EMPLOYEE'}`,
+    );
+
     const dto = new CreateAccountDto();
     dto.email = event.email;
     dto.employee_id = event.id;
     dto.employee_code = event.employee_code;
     dto.full_name = event.full_name;
     dto.suggested_role = event.suggested_role || 'EMPLOYEE'; // Pass role from position
-    
+
+    // Use personal_email if provided, otherwise use company email
+    // Personal email is used to send account credentials
+    if (event.personal_email) {
+      console.log(
+        `📧 Will send credentials to personal email: ${event.personal_email}`,
+      );
+      // TODO: Store personal_email for future email sending
+      // For now, account creation uses company email as login username
+    }
+
     await this.createAccountUseCase.execute(dto);
   }
 }

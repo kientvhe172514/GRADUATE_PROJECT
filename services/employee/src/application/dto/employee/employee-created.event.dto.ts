@@ -11,8 +11,11 @@ export class EmployeeCreatedEventDto {
   @ApiProperty()
   full_name: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Company email' })
   email: string;
+
+  @ApiProperty({ description: 'Personal email for account credentials', required: false })
+  personal_email?: string;
 
   @ApiProperty()
   hire_date: Date;
@@ -25,6 +28,7 @@ export class EmployeeCreatedEventDto {
     this.employee_code = employee.employee_code;
     this.full_name = employee.full_name;
     this.email = employee.email;
+    this.personal_email = employee.personal_email; // Send personal email for account creation
     this.hire_date = employee.hire_date;
     this.suggested_role = suggestedRole;
   }

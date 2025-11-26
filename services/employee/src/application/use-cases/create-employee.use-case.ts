@@ -27,12 +27,23 @@ export class CreateEmployeeUseCase {
       throw new BusinessException('INVALID_EMAIL_FORMAT', 'Invalid email format', 400);
     }
 
+    // Validate personal_email format if provided
+    if (dto.personal_email && !emailRegex.test(dto.personal_email)) {
+      throw new BusinessException('INVALID_EMAIL_FORMAT', 'Invalid personal email format', 400);
+    }
+
     // Validate phone number format (10 digits)
     if (dto.phone_number && dto.phone_number.trim() !== '') {
       const phoneRegex = /^\d{10}$/;
       if (!phoneRegex.test(dto.phone_number.trim())) {
         throw new BusinessException('INVALID_PHONE_NUMBER', 'Phone number must be exactly 10 digits', 400);
       }
+    }
+
+    // Auto-generate employee_code if not provided
+    if (!dto.employee_code) {
+      dto.employee_code = await this.generateEmployeeCode();
+      console.log(`✅ Auto-generated employee_code: ${dto.employee_code}`);
     }
 
     const existingByCode = await this.employeeRepository.findByCode(dto.employee_code);
@@ -76,5 +87,31 @@ export class CreateEmployeeUseCase {
     this.eventPublisher.publish('employee_created', eventDto);
 
     return ApiResponseDto.success(response, 'Employee created', 201, undefined, 'EMPLOYEE_CREATED');
+  }
+
+  /**
+   * Auto-generate employee code in format: EMP + YYYYMMDD + XXX
+   * Example: EMP20251126001
+   */
+  private async generateEmployeeCode(): Promise<string> {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const datePrefix = `${year}${month}${day}`;
+    
+    // Find the highest sequence number for today
+    const existingCodes = await this.employeeRepository.findAll();
+    const todayCodes = existingCodes
+      .filter(emp => emp.employee_code?.startsWith(`EMP${datePrefix}`))
+      .map(emp => {
+        const match = emp.employee_code?.match(/EMP\d{8}(\d{3})$/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+    
+    const maxSequence = todayCodes.length > 0 ? Math.max(...todayCodes) : 0;
+    const nextSequence = String(maxSequence + 1).padStart(3, '0');
+    
+    return `EMP${datePrefix}${nextSequence}`;
   }
 }
