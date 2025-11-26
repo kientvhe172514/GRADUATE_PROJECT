@@ -95,33 +95,12 @@ spec:
   
   # ===== PROMETHEUS METRICS ROUTES (PUBLIC - NO AUTH) =====
   # ⚠️ CRITICAL: /metrics MUST be public - used by Prometheus scraper
-  # Priority 110 để match trước các protected routes
+  # ⚠️ MUST NOT route through Ingress - Prometheus scrapes pods directly via ServiceMonitor
+  # This route is kept for backward compatibility only
   
-  - match: PathPrefix(`/metrics`)
-    kind: Rule
-    priority: 20
-    services:
-    - name: auth-srv
-      namespace: graduate-project
-      port: 3001
-    - name: attendance-srv
-      namespace: graduate-project
-      port: 3002
-    - name: employee-srv
-      namespace: graduate-project
-      port: 3003
-    - name: leave-srv
-      namespace: graduate-project
-      port: 3004
-    - name: notification-srv
-      namespace: graduate-project
-      port: 3005
-    - name: reporting-srv
-      namespace: graduate-project
-      port: 3006
-    - name: face-recognition-srv
-      namespace: graduate-project
-      port: 8080
+  # ❌ REMOVED: Metrics should NOT go through Ingress
+  # Prometheus uses kubernetes_sd_configs to discover and scrape pods directly
+  # See: prometheus-configmap.yaml > job 'microservices'
   
   # ===== AUTH SERVICE API =====
   # PUBLIC ROUTES (No Auth Required): /login, /register, /refresh, /verify

@@ -30,12 +30,24 @@ data:
     </filter>
 
     # Lọc bỏ log rác để tiết kiệm ổ cứng
+    # ONLY exclude monitoring và kube-system namespaces
+    # KEEP logs from: graduate-project, dev, default namespaces
     <filter kubernetes.**>
       @type grep
       <exclude>
         key $.kubernetes.namespace_name
         pattern /^(monitoring|kube-system)$/
       </exclude>
+    </filter>
+
+    # Add namespace label for better filtering in Kibana
+    <filter kubernetes.**>
+      @type record_transformer
+      <record>
+        namespace ${record["kubernetes"]["namespace_name"]}
+        pod_name ${record["kubernetes"]["pod_name"]}
+        container_name ${record["kubernetes"]["container_name"]}
+      </record>
     </filter>
 
     <match kubernetes.**>
