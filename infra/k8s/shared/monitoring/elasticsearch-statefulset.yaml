@@ -71,18 +71,23 @@ spec:
               value: "false"
             - name: xpack.security.enrollment.enabled
               value: "false"
-            # CẤU HÌNH RAM SỐNG CÒN CHO T2.MICRO
+            # CẤU HÌNH RAM TỐI THIỂU - T2.MICRO KHÔNG ĐỦ RAM
             - name: ES_JAVA_OPTS
-              value: "-Xms384m -Xmx384m" 
+              value: "-Xms256m -Xmx256m" 
             - name: xpack.ml.enabled
+              value: "false"
+            # Disable features to reduce memory
+            - name: xpack.monitoring.enabled
+              value: "false"
+            - name: xpack.watcher.enabled
               value: "false"
           resources:
             requests:
               cpu: 50m
-              memory: 450Mi
+              memory: 300Mi
             limits:
               cpu: 500m
-              memory: 550Mi
+              memory: 400Mi
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
