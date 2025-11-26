@@ -73,16 +73,16 @@ spec:
               value: "false"
             # CẤU HÌNH RAM SỐNG CÒN CHO T2.MICRO
             - name: ES_JAVA_OPTS
-              value: "-Xms256m -Xmx256m" 
+              value: "-Xms512m -Xmx512m" 
             - name: xpack.ml.enabled
               value: "false"
           resources:
             requests:
               cpu: 100m
-              memory: 400Mi
+              memory: 600Mi
             limits:
               cpu: 1000m
-              memory: 600Mi # Không được quá 600Mi, nếu không OS sẽ kill Pod
+              memory: 800Mi
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
