@@ -15,19 +15,23 @@ export class EmployeeEventListener {
   @EventPattern('employee.created')
   async handleEmployeeCreated(@Payload() event: any): Promise<void> {
     console.log('📬 [EmployeeEventListener] Received employee.created:', event);
+    console.log('📧 Personal email:', event.personalEmail);
+    
     try {
       const dto: SendNotificationDto = {
         recipientId: event.userId || event.employeeId,
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.HIGH,
         title: '🎉 Welcome to the Team!',
-        message: `Welcome ${event.fullName || event.firstName}! Your employee profile has been created. Please complete your profile setup.`,
+        message: `Welcome ${event.fullName || event.firstName}! Your employee profile has been created. Your login credentials have been sent to ${event.personalEmail || 'your email'}.`,
         channels: [ChannelType.IN_APP, ChannelType.EMAIL],
         metadata: {
           eventType: 'employee.created',
           employeeId: event.employeeId,
           department: event.department,
           position: event.position,
+          personalEmail: event.personalEmail, // Include personal email in metadata
+          sendToPersonalEmail: true, // Flag to send to personal email instead of work email
         },
       };
 

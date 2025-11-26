@@ -225,8 +225,25 @@ export class SendNotificationUseCase {
   private async sendEmailNotification(notification: Notification): Promise<void> {
     try {
       this.logger.log(`Sending email notification for notification ${notification.id}`);
+      
+      // ✅ Check if we should send to personal email (for employee creation with credentials)
+      const shouldSendToPersonalEmail = notification.metadata?.sendToPersonalEmail === true;
+      const personalEmail = notification.metadata?.personalEmail;
+      
+      // Determine target email: personal email (if flagged) or work email
+      const targetEmail = shouldSendToPersonalEmail && personalEmail 
+        ? personalEmail 
+        : notification.recipientEmail;
+      
+      if (!targetEmail) {
+        this.logger.warn(`No email address available for notification ${notification.id}`);
+        return;
+      }
+      
+      this.logger.log(`Sending email to: ${targetEmail} (${shouldSendToPersonalEmail ? 'personal' : 'work'})`);
+      
       await this.emailService.send(
-        notification.recipientEmail,
+        targetEmail,
         notification.title,
         notification.message,
         false,
@@ -234,7 +251,7 @@ export class SendNotificationUseCase {
 
       notification.markChannelAsSent('email');
       await this.notificationRepo.update(notification);
-      this.logger.log(`Email notification sent successfully for notification ${notification.id}`);
+      this.logger.log(`Email notification sent successfully to ${targetEmail}`);
     } catch (error) {
       this.logger.error('Failed to send email notification:', error);
       await this.publishDeliveryFailedEvent(notification, 'EMAIL', error.message);
