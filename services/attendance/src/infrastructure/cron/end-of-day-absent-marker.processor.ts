@@ -1,7 +1,8 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * End-of-Day Cron Job to automatically mark employees as ABSENT
@@ -27,19 +28,27 @@ import { ClientProxy } from '@nestjs/microservices';
 @Injectable()
 export class EndOfDayAbsentMarkerProcessor {
   private readonly logger = new Logger(EndOfDayAbsentMarkerProcessor.name);
-  private readonly GRACE_PERIOD_HOURS = 1;
+  private readonly GRACE_PERIOD_HOURS: number;
 
   constructor(
     private readonly dataSource: DataSource,
     @Inject('NOTIFICATION_SERVICE')
     private readonly notificationClient: ClientProxy,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.GRACE_PERIOD_HOURS = Number(
+      this.configService.get<number>('ABSENT_GRACE_PERIOD_HOURS') || 1,
+    );
+    this.logger.log(
+      `⚙️ Absent marker grace period: ${this.GRACE_PERIOD_HOURS} hour(s)`,
+    );
+  }
 
   /**
-   * Runs every day at 23:00 Vietnam time
-   * Marks missed shifts as ABSENT
+   * Runs hourly to mark shifts as ABSENT when their scheduled end time + grace period has passed.
+   * Running hourly (instead of fixed 23:00) ensures we correctly handle night shifts that end after midnight.
    */
-  @Cron('0 23 * * *', {
+  @Cron(CronExpression.EVERY_HOUR, {
     name: 'end-of-day-absent-marker',
     timeZone: 'Asia/Ho_Chi_Minh',
   })
@@ -103,8 +112,15 @@ export class EndOfDayAbsentMarkerProcessor {
    */
   private async findShiftsToMarkAbsent(): Promise<any[]> {
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
+    // To correctly handle overnight shifts (e.g., 22:00 -> 06:00 next day) we compute the
+    // actual shift end timestamp as follows:
+    // - If scheduled_end_time <= scheduled_start_time => end time is next day
+    // - Else end time is on the same shift_date
+    // We then add the grace period and compare with NOW() to determine whether the
+    // shift should be marked absent.
+
+    // Limit search to recent shifts to avoid full table scan (last 2 days)
+    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
 
     const query = `
       SELECT 
@@ -115,22 +131,36 @@ export class EndOfDayAbsentMarkerProcessor {
         es.shift_date,
         es.scheduled_start_time,
         es.scheduled_end_time,
-        ws.schedule_name
+        ws.schedule_name,
+        -- compute shift_end_timestamp respecting overnight shifts
+        CASE
+          WHEN es.scheduled_end_time <= es.scheduled_start_time
+            THEN (CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp)
+          ELSE (CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp)
+        END as shift_end_timestamp
       FROM employee_shifts es
       INNER JOIN work_schedules ws ON es.work_schedule_id = ws.id
       WHERE 
         es.status = 'SCHEDULED'
         AND es.shift_type = 'REGULAR'
-        AND es.shift_date <= $1
-        -- Check if shift end time + grace period has passed
+        -- restrict to recent shifts to keep query efficient
+        AND es.shift_date >= $1
+        -- exclude shifts that are marked ON_LEAVE (approved leave)
+        -- shift end + grace period has passed
         AND (
-          CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp 
+          CASE
+            WHEN es.scheduled_end_time <= es.scheduled_start_time
+              THEN (CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp)
+            ELSE (CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp)
+          END
           + INTERVAL '${this.GRACE_PERIOD_HOURS} hours'
         ) < NOW()
-      ORDER BY es.shift_date, es.employee_code
+        -- do not mark manually edited shifts
+        AND (es.is_manually_edited IS NULL OR es.is_manually_edited = false)
+      ORDER BY shift_end_timestamp, es.employee_code
     `;
 
-    return await this.dataSource.query(query, [today]);
+    return await this.dataSource.query(query, [twoDaysAgo]);
   }
 
   /**

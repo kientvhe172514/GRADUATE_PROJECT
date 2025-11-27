@@ -22,6 +22,18 @@ import { PresenceVerificationModule } from '../presence-verification/presence-ve
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
+import {
+  WorkScheduleSchema,
+  EmployeeWorkScheduleSchema,
+} from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import {
+  TypeOrmWorkScheduleRepository,
+  TypeOrmEmployeeWorkScheduleRepository,
+} from '../../infrastructure/repositories/typeorm-work-schedule.repository';
+import {
+  WORK_SCHEDULE_REPOSITORY,
+  EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+} from '../tokens';
 
 @Module({
   imports: [
@@ -30,11 +42,12 @@ import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
       EmployeeShiftSchema,
       OvertimeRequestSchema,
       BeaconSchema,
+      WorkScheduleSchema,
+      EmployeeWorkScheduleSchema,
     ]),
     ConfigModule,
     PresenceVerificationModule,
     GpsCheckConfigModule,
-    WorkScheduleModule,
     ClientsModule.registerAsync([
       {
         name: 'FACE_RECOGNITION_SERVICE',
@@ -121,6 +134,15 @@ import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
     {
       provide: 'IEventPublisher',
       useClass: RabbitMQEventPublisher,
+    },
+    // Work Schedule Repositories (needed for fallback shift creation)
+    {
+      provide: WORK_SCHEDULE_REPOSITORY,
+      useClass: TypeOrmWorkScheduleRepository,
+    },
+    {
+      provide: EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+      useClass: TypeOrmEmployeeWorkScheduleRepository,
     },
   ],
   exports: [

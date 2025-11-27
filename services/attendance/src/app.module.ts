@@ -11,6 +11,7 @@ import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-mis
 import { ScheduledGpsCheckProcessor } from './infrastructure/cron/scheduled-gps-check.processor';
 import { WeeklyShiftGeneratorProcessor } from './infrastructure/cron/weekly-shift-generator.processor';
 import { EndOfDayAbsentMarkerProcessor } from './infrastructure/cron/end-of-day-absent-marker.processor';
+import { AttendanceReconciliationProcessor } from './infrastructure/cron/attendance-reconciliation.processor';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
@@ -162,6 +163,7 @@ import { ScheduleVerificationRemindersUseCase } from './application/presence-ver
     ScheduledGpsCheckProcessor,
     WeeklyShiftGeneratorProcessor,
     EndOfDayAbsentMarkerProcessor,
+    AttendanceReconciliationProcessor,
     ScheduleVerificationRemindersUseCase,
   ],
 })

@@ -3,10 +3,12 @@ import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
 import { ILeaveBalanceTransactionRepository } from '../../ports/leave-balance-transaction.repository.interface';
+import { EventPublisherPort } from '../../ports/event.publisher.port';
 import {
   LEAVE_RECORD_REPOSITORY,
   LEAVE_BALANCE_REPOSITORY,
   LEAVE_BALANCE_TRANSACTION_REPOSITORY,
+  EVENT_PUBLISHER,
 } from '../../tokens';
 import { CancelLeaveDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
 
@@ -19,6 +21,8 @@ export class CancelLeaveUseCase {
     private readonly leaveBalanceRepository: ILeaveBalanceRepository,
     @Inject(LEAVE_BALANCE_TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ILeaveBalanceTransactionRepository,
+    @Inject(EVENT_PUBLISHER)
+    private readonly eventPublisher: EventPublisherPort,
   ) {}
 
   async execute(leaveRecordId: number, dto: CancelLeaveDto): Promise<LeaveRecordResponseDto> {
@@ -139,6 +143,21 @@ export class CancelLeaveUseCase {
       status: 'CANCELLED',
       cancelled_at: new Date(),
       cancellation_reason: dto.cancellation_reason,
+    });
+
+    // 6. Publish leave.cancelled event to notify Attendance Service
+    this.eventPublisher.publish('leave.cancelled', {
+      leave_request_id: updated.id,
+      employee_id: updated.employee_id,
+      employee_code: updated.employee_code,
+      start_date: updated.start_date instanceof Date 
+        ? updated.start_date.toISOString().split('T')[0]
+        : new Date(updated.start_date).toISOString().split('T')[0],
+      end_date: updated.end_date instanceof Date
+        ? updated.end_date.toISOString().split('T')[0]
+        : new Date(updated.end_date).toISOString().split('T')[0],
+      cancelled_by: leaveRecord.employee_id,
+      cancelled_at: new Date().toISOString(),
     });
 
     return updated as LeaveRecordResponseDto;
