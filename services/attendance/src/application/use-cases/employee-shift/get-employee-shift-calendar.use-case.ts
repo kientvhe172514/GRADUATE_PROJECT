@@ -132,7 +132,7 @@ export class GetEmployeeShiftCalendarUseCase {
 
             return {
               shift_id: props.id!,
-              shift_date: props.shift_date.toISOString().split('T')[0],
+              shift_date: this.formatShiftDate(props.shift_date),
               schedule_name: scheduleName,
               start_time: props.scheduled_start_time,
               end_time: props.scheduled_end_time,
@@ -174,7 +174,7 @@ export class GetEmployeeShiftCalendarUseCase {
 
           return {
             shift_id: props.id!,
-            shift_date: props.shift_date.toISOString().split('T')[0],
+            shift_date: this.formatShiftDate(props.shift_date),
             schedule_name: scheduleName,
             start_time: props.scheduled_start_time,
             end_time: props.scheduled_end_time,
@@ -242,5 +242,34 @@ export class GetEmployeeShiftCalendarUseCase {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
+  }
+
+  /**
+   * Safely convert shift_date to ISO string (YYYY-MM-DD)
+   * Handles both Date objects and string inputs
+   */
+  private formatShiftDate(shiftDate: Date | string): string {
+    if (!shiftDate) {
+      this.logger.warn('⚠️ shift_date is null or undefined');
+      return new Date().toISOString().split('T')[0];
+    }
+
+    try {
+      // If already a Date object
+      if (shiftDate instanceof Date) {
+        return shiftDate.toISOString().split('T')[0];
+      }
+      
+      // If string, convert to Date first
+      if (typeof shiftDate === 'string') {
+        return new Date(shiftDate).toISOString().split('T')[0];
+      }
+
+      // Fallback: try to convert whatever it is to Date
+      return new Date(shiftDate as any).toISOString().split('T')[0];
+    } catch (error) {
+      this.logger.error(`❌ Error formatting shift_date: ${shiftDate}`, error);
+      return new Date().toISOString().split('T')[0];
+    }
   }
 }

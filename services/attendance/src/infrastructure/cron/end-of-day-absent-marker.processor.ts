@@ -194,7 +194,7 @@ export class EndOfDayAbsentMarkerProcessor {
       .map(
         (s) =>
           `(${s.employee_id}, '${s.employee_code}', ${s.department_id}, ` +
-          `${s.shift_id}, '${s.shift_date.toISOString().split('T')[0]}', ` +
+          `${s.shift_id}, '${this.formatShiftDate(s.shift_date)}', ` +
           `'ABSENT', 'Không điểm danh trong ngày làm việc', 'UNRESOLVED', NOW())`,
       )
       .join(',\n');
@@ -225,7 +225,7 @@ export class EndOfDayAbsentMarkerProcessor {
     const notificationPayload = {
       recipientId: shift.employee_id,
       title: '⚠️ Cảnh báo vắng mặt',
-      message: `Bạn đã bị đánh dấu vắng mặt cho ca làm việc ngày ${shift.shift_date.toISOString().split('T')[0]} (${shift.schedule_name}). Vui lòng liên hệ HR để giải trình.`,
+      message: `Bạn đã bị đánh dấu vắng mặt cho ca làm việc ngày ${this.formatShiftDate(shift.shift_date)} (${shift.schedule_name}). Vui lòng liên hệ HR để giải trình.`,
       notificationType: 'ATTENDANCE_VIOLATION',
       priority: 'HIGH',
       channels: ['PUSH', 'IN_APP', 'EMAIL'],
@@ -240,7 +240,7 @@ export class EndOfDayAbsentMarkerProcessor {
     this.notificationClient.emit('notification.send', notificationPayload);
 
     this.logger.log(
-      `📤 Sent absent notification to employee ${shift.employee_code} for shift on ${shift.shift_date.toISOString().split('T')[0]}`,
+      `📤 Sent absent notification to employee ${shift.employee_code} for shift on ${this.formatShiftDate(shift.shift_date)}`,
     );
   }
 
@@ -265,5 +265,31 @@ export class EndOfDayAbsentMarkerProcessor {
       violations,
       shifts: shiftsToMark,
     };
+  }
+
+  /**
+   * Safely format shift_date to YYYY-MM-DD string
+   * Handles both Date objects and string inputs from database
+   */
+  private formatShiftDate(shiftDate: Date | string | any): string {
+    if (!shiftDate) {
+      this.logger.warn('⚠️ shift_date is null or undefined');
+      return new Date().toISOString().split('T')[0];
+    }
+
+    try {
+      if (shiftDate instanceof Date) {
+        return shiftDate.toISOString().split('T')[0];
+      }
+      
+      if (typeof shiftDate === 'string') {
+        return new Date(shiftDate).toISOString().split('T')[0];
+      }
+
+      return new Date(shiftDate).toISOString().split('T')[0];
+    } catch (error) {
+      this.logger.error(`❌ Error formatting shift_date:`, error);
+      return new Date().toISOString().split('T')[0];
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { PermissionRepositoryPort } from '../../ports/permission.repository.port';
 import { ROLE_REPOSITORY, PERMISSION_REPOSITORY } from '../../tokens';
@@ -12,6 +12,8 @@ export interface AssignPermissionsToRoleInput {
 
 @Injectable()
 export class AssignPermissionsToRoleUseCase {
+  private readonly logger = new Logger(AssignPermissionsToRoleUseCase.name);
+
   constructor(
     @Inject(ROLE_REPOSITORY)
     private roleRepo: RoleRepositoryPort,
@@ -41,26 +43,36 @@ export class AssignPermissionsToRoleUseCase {
     // Validate all permissions exist (optional check - can be removed for performance)
     // For now, we'll let the database handle foreign key constraints
 
-    // Remove existing permissions first, then assign new ones
-    // This is a replace operation, not an append operation
+    // Get current permissions
     const currentPermissions = await this.roleRepo.getRolePermissions(input.role_id);
-    for (const permission of currentPermissions) {
-      await this.roleRepo.removePermission(input.role_id, permission.id);
+    const currentPermissionIds = currentPermissions.map(p => p.id);
+
+    // Filter out permissions that already exist
+    const newPermissionIds = input.permission_ids.filter(
+      permId => !currentPermissionIds.includes(permId)
+    );
+
+    this.logger.log(`Current permissions: ${currentPermissionIds.length}, New permissions to add: ${newPermissionIds.length}`);
+
+    // Only assign new permissions (append operation, not replace)
+    if (newPermissionIds.length > 0) {
+      await this.roleRepo.assignPermissions(input.role_id, newPermissionIds);
     }
 
-    // Assign new permissions
-    await this.roleRepo.assignPermissions(input.role_id, input.permission_ids);
-
+    // Get updated list of all permissions after assignment
+    const updatedPermissions = await this.roleRepo.getRolePermissions(input.role_id);
+    
     const response: AssignPermissionsResponseDto = {
       role_id: input.role_id,
-      permission_ids: input.permission_ids,
-      total_permissions: input.permission_ids.length,
+      permission_ids: updatedPermissions.map(p => p.id),
+      total_permissions: updatedPermissions.length,
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Permissions assigned successfully',
-    );
+    const message = newPermissionIds.length > 0
+      ? `Successfully added ${newPermissionIds.length} new permission(s). Total: ${updatedPermissions.length}`
+      : `All ${input.permission_ids.length} permission(s) already assigned. Total: ${updatedPermissions.length}`;
+
+    return ApiResponseDto.success(response, message);
   }
 }
 
