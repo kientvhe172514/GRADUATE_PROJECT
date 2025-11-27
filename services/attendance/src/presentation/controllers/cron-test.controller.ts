@@ -1,11 +1,5 @@
 import { Controller, Post } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-} from '@nestjs/swagger';
-import { Permissions } from '@graduate-project/shared-common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
 
@@ -16,12 +10,9 @@ import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check
  * Thay vì chờ cron chạy theo schedule, có thể trigger ngay lập tức
  *
  * Usage:
- * curl -X POST http://your-service/api/v1/attendance/cron-test/gps-check \
- *   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ * curl -X POST http://your-service/api/v1/attendance/cron-test/gps-check
  */
 @ApiTags('🧪 Cron Test (Internal)')
-@ApiBearerAuth()
-@Permissions('ADMIN')
 @Controller('cron-test')
 export class CronTestController {
   constructor(
