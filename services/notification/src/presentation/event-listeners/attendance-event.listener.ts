@@ -119,8 +119,8 @@ export class AttendanceEventListener {
         recipientId: event.recipientId,
         notificationType: NotificationType.SYSTEM_ALERT, // Internal type
         priority: Priority.HIGH,
-        title: '', // Empty = silent push
-        message: '', // Empty = silent push
+        title: 'GPS Check', // ✅ FIX: Cần có title ngắn (không hiển thị vì silent=true)
+        message: 'Background GPS sync', // ✅ FIX: Cần có message ngắn
         channels: [ChannelType.PUSH], // Chỉ push, không in-app/email
         metadata: {
           type: 'GPS_CHECK_REQUEST', // Mobile sẽ check field này
@@ -128,7 +128,7 @@ export class AttendanceEventListener {
           shiftId: event.metadata?.shiftId,
           shiftName: event.metadata?.shiftName,
           timestamp: new Date().toISOString(),
-          silent: true, // Flag để FCM service biết gửi data-only message
+          silent: 'true', // ✅ FIX: Phải là string 'true' để Firebase service nhận đúng
         },
       };
 

@@ -97,6 +97,8 @@ export class FirebasePushNotificationService
     // ✅ FIX: Check if this is a silent push (data-only message)
     const isSilent = data?.silent === 'true' || data?.silent === '1';
     
+    this.logger.log(`📨 [FCM] Sending ${isSilent ? 'SILENT DATA-ONLY' : 'NORMAL'} message`);
+    
     const message: admin.messaging.MulticastMessage = {
       tokens: deviceTokens,
       // ✅ FIX: Only include notification if NOT silent
@@ -109,33 +111,42 @@ export class FirebasePushNotificationService
       data: data || {},
       android: {
         priority: 'high',
-        notification: {
-          sound: 'default',
-          channelId: 'zentry_notifications',
-          priority: 'high',
-          defaultVibrateTimings: true,
-        },
+        // ✅ FIX: Remove notification config for silent push
+        ...(isSilent ? {} : {
+          notification: {
+            sound: 'default',
+            channelId: 'zentry_notifications',
+            priority: 'high',
+            defaultVibrateTimings: true,
+          },
+        }),
       },
       apns: {
         payload: {
           aps: {
-            sound: 'default',
-            badge: 1,
-            contentAvailable: true,
+            // ✅ FIX: Only add sound/badge for non-silent
+            ...(isSilent ? {} : {
+              sound: 'default',
+              badge: 1,
+            }),
+            contentAvailable: true, // Always true for background processing
           },
         },
         headers: {
           'apns-priority': '10',
         },
       },
-      webpush: {
-        notification: {
-          title,
-          body,
-          icon: '/icon.png',
-          badge: '/badge.png',
+      // ✅ FIX: Remove webpush notification for silent
+      ...(isSilent ? {} : {
+        webpush: {
+          notification: {
+            title,
+            body,
+            icon: '/icon.png',
+            badge: '/badge.png',
+          },
         },
-      },
+      }),
     };
 
     try {

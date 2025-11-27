@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PresenceVerificationRepositoryPort } from '../../ports/presence-verification.repository.port';
 import { PresenceVerificationRoundEntity } from '../../../domain/entities/presence-verification-round.entity';
+import { EmployeeShiftSchema } from '../../../infrastructure/persistence/typeorm/employee-shift.schema';
 
 @Injectable()
 export class CapturePresenceVerificationUseCase {
@@ -9,6 +12,8 @@ export class CapturePresenceVerificationUseCase {
   constructor(
     @Inject('IPresenceVerificationRepository')
     private readonly verificationRepository: PresenceVerificationRepositoryPort,
+    @InjectRepository(EmployeeShiftSchema)
+    private readonly employeeShiftRepository: Repository<EmployeeShiftSchema>,
   ) {}
 
   async execute(data: {
@@ -33,6 +38,25 @@ export class CapturePresenceVerificationUseCase {
       validation_status: 'VALID',
     });
 
-    return await this.verificationRepository.create(verification);
+    const savedVerification = await this.verificationRepository.create(verification);
+
+    // ✅ FIX: Cập nhật counter trong employee_shifts table
+    try {
+      await this.employeeShiftRepository.increment(
+        { id: Number(data.shiftId) },
+        'presence_verification_rounds_completed',
+        1,
+      );
+      
+      this.logger.log(
+        `✅ Incremented presence_verification_rounds_completed for shift ${data.shiftId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to increment verification counter for shift ${data.shiftId}: ${error.message}`,
+      );
+    }
+
+    return savedVerification;
   }
 }
