@@ -66,7 +66,9 @@ export class PresenceVerificationController {
             roundNumber: 1,
             latitude: 21.0285,
             longitude: 105.8542,
-            imageUrl: 'https://...',
+            distanceFromOffice: 45.2,
+            locationAccuracy: 5.0,
+            validationStatus: 'VALID',
             verifiedAt: '2025-11-28T00:30:00Z',
             status: 'VERIFIED',
           },
@@ -75,7 +77,9 @@ export class PresenceVerificationController {
             roundNumber: 2,
             latitude: 21.0286,
             longitude: 105.8543,
-            imageUrl: 'https://...',
+            distanceFromOffice: 38.7,
+            locationAccuracy: 4.5,
+            validationStatus: 'VALID',
             verifiedAt: '2025-11-28T02:30:00Z',
             status: 'VERIFIED',
           },
@@ -92,12 +96,14 @@ export class PresenceVerificationController {
       completedRounds: records.length,
       records: records.map((r) => ({
         id: r.id,
-        roundNumber: r.roundNumber,
+        roundNumber: r.round_number, // ✅ FIX: Use snake_case from entity
         latitude: r.latitude,
         longitude: r.longitude,
-        imageUrl: r.imageUrl,
-        verifiedAt: r.verifiedAt,
-        status: 'VERIFIED', // If exists, it's verified
+        distanceFromOffice: r.distance_from_office_meters,
+        locationAccuracy: r.location_accuracy,
+        validationStatus: r.validation_status,
+        verifiedAt: r.captured_at, // ✅ FIX: Use captured_at from entity
+        status: r.is_valid ? 'VERIFIED' : 'INVALID',
       })),
     };
   }
