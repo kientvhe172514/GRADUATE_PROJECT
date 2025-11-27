@@ -94,12 +94,18 @@ export class FirebasePushNotificationService
 
     this.logger.log(`Sending push notification to ${deviceTokens.length} devices`);
 
+    // ✅ FIX: Check if this is a silent push (data-only message)
+    const isSilent = data?.silent === 'true' || data?.silent === '1';
+    
     const message: admin.messaging.MulticastMessage = {
       tokens: deviceTokens,
-      notification: {
-        title,
-        body,
-      },
+      // ✅ FIX: Only include notification if NOT silent
+      ...(isSilent ? {} : {
+        notification: {
+          title,
+          body,
+        },
+      }),
       data: data || {},
       android: {
         priority: 'high',

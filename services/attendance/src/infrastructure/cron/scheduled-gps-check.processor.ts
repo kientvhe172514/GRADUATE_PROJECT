@@ -172,6 +172,7 @@ ORDER BY employee_id;
     const payload = {
       type: 'GPS_CHECK_REQUEST',
       recipientId: employee.employee_id,
+      silent: true, // ✅ FIX: Thêm field này để client biết đây là silent push
       metadata: {
         shiftId: employee.shift_id,
         shiftType: employee.shift_type,
