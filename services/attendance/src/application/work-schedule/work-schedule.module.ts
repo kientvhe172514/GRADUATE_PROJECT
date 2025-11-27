@@ -23,6 +23,9 @@ import {
 import { ShiftGeneratorService } from '../services/shift-generator.service';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -32,6 +35,21 @@ import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.modul
       EmployeeShiftSchema,
     ]),
     GpsCheckConfigModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'EMPLOYEE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL')!],
+            queue: configService.get<string>('RABBITMQ_EMPLOYEE_QUEUE')!,
+            queueOptions: { durable: true },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
   ],
   controllers: [WorkScheduleController],
   providers: [
@@ -46,6 +64,7 @@ import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.modul
     // Services
     ShiftGeneratorService,
     EmployeeShiftRepository,
+    EmployeeServiceClient,
 
     // Repositories
     {

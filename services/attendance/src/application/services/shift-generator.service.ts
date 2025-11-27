@@ -251,8 +251,8 @@ export class ShiftGeneratorService {
       SELECT 
         ews.id as assignment_id,
         ews.employee_id,
-        e.employee_code,
-        e.department_id,
+        ews.employee_code,
+        ews.department_id,
         ews.work_schedule_id,
         ews.effective_from,
         ews.effective_to,
@@ -262,7 +262,6 @@ export class ShiftGeneratorService {
         ws.start_time,
         ws.end_time
       FROM employee_work_schedules ews
-      INNER JOIN employees e ON e.id = ews.employee_id
       INNER JOIN work_schedules ws ON ws.id = ews.work_schedule_id
       WHERE 
         ws.status = 'ACTIVE'

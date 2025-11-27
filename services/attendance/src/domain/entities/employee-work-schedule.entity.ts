@@ -3,6 +3,8 @@ import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 export interface EmployeeWorkScheduleProps {
   id?: number;
   employee_id: number;
+  employee_code?: string | null;
+  department_id?: number | null;
   work_schedule_id: number;
   effective_from: Date;
   effective_to?: Date;
