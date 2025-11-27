@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ClientProxy } from '@nestjs/microservices';
 import { PresenceVerificationRepositoryPort } from '../../ports/presence-verification.repository.port';
 import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
 
@@ -14,6 +15,8 @@ export class ScheduleVerificationRemindersUseCase {
     private readonly verificationRepository: PresenceVerificationRepositoryPort,
     @Inject('IEmployeeShiftRepository')
     private readonly employeeShiftRepository: IEmployeeShiftRepository,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -37,11 +40,38 @@ export class ScheduleVerificationRemindersUseCase {
         // This can be expanded based on business requirements
         if (verifications.length < 3) {
           this.logger.log(`Shift ${shift.id} needs verification reminder`);
-          // TODO: Send reminder notification
+          
+          // ✅ Send reminder notification
+          this.sendVerificationReminder(shift, verifications.length);
         }
       }
     } catch (error) {
       this.logger.error('Error executing verification reminders', error);
     }
+  }
+
+  /**
+   * Gửi reminder notification cho employee cần verification
+   */
+  private sendVerificationReminder(shift: any, completedRounds: number): void {
+    const payload = {
+      recipientId: shift.employeeId,
+      notificationType: 'PRESENCE_VERIFICATION_REMINDER',
+      priority: 'HIGH',
+      title: '📍 Nhắc nhở xác thực hiện diện',
+      message: `Bạn cần thực hiện xác thực hiện diện cho ca làm việc. Đã hoàn thành ${completedRounds}/3 lượt.`,
+      channels: ['PUSH', 'IN_APP'],
+      metadata: {
+        shiftId: shift.id,
+        completedRounds,
+        requiredRounds: 3,
+        action: 'OPEN_VERIFICATION_SCREEN',
+      },
+    };
+
+    this.notificationClient.emit('notification.send', payload);
+    this.logger.log(
+      `Verification reminder sent to employee ${shift.employeeId} for shift ${shift.id}`,
+    );
   }
 }

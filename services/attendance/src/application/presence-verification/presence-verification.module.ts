@@ -74,6 +74,24 @@ import { PresenceVerificationController } from '../../presentation/controllers/p
         }),
         inject: [ConfigService],
       },
+      // ✅ Add NOTIFICATION_SERVICE for sending reminders
+      {
+        name: 'NOTIFICATION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.getOrThrow<string>('RABBITMQ_URL')],
+            queue: configService.getOrThrow<string>(
+              'RABBITMQ_NOTIFICATION_QUEUE',
+            ),
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
 

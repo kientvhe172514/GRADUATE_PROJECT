@@ -44,4 +44,61 @@ export class PresenceVerificationController {
   async getSchedule(@Param('shiftId') shiftId: string) {
     return this.getScheduleUseCase.execute(shiftId);
   }
+
+  @Get('records/:shiftId')
+  @ApiOperation({
+    summary: 'Get all verification records for a shift',
+    description:
+      'Returns all GPS verification records including location coordinates, ' +
+      'timestamps, and verification status for a specific shift',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verification records retrieved successfully',
+    schema: {
+      example: {
+        shiftId: 1,
+        totalRounds: 3,
+        completedRounds: 2,
+        records: [
+          {
+            id: 1,
+            roundNumber: 1,
+            latitude: 21.0285,
+            longitude: 105.8542,
+            imageUrl: 'https://...',
+            verifiedAt: '2025-11-28T00:30:00Z',
+            status: 'VERIFIED',
+          },
+          {
+            id: 2,
+            roundNumber: 2,
+            latitude: 21.0286,
+            longitude: 105.8543,
+            imageUrl: 'https://...',
+            verifiedAt: '2025-11-28T02:30:00Z',
+            status: 'VERIFIED',
+          },
+        ],
+      },
+    },
+  })
+  async getRecords(@Param('shiftId') shiftId: string) {
+    const records = await this.getScheduleUseCase.execute(shiftId);
+    
+    return {
+      shiftId: Number(shiftId),
+      totalRounds: 3, // Default required rounds
+      completedRounds: records.length,
+      records: records.map((r) => ({
+        id: r.id,
+        roundNumber: r.roundNumber,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        imageUrl: r.imageUrl,
+        verifiedAt: r.verifiedAt,
+        status: 'VERIFIED', // If exists, it's verified
+      })),
+    };
+  }
 }
