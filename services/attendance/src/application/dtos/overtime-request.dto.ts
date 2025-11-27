@@ -42,8 +42,12 @@ export class CreateOvertimeRequestDto {
   end_time: string;
 
   @ApiProperty({ example: 3.0, description: 'Estimated overtime hours' })
-  @IsDecimal()
+  // Accept numeric values (integers or decimals). class-validator's IsDecimal
+  // expects strings; using IsNumber with Type(() => Number) allows JSON numbers.
+  @Type(() => Number)
   @IsNotEmpty()
+  @Min(0)
+  // allow floating point numbers
   estimated_hours: number;
 
   @ApiProperty({ example: 'Urgent project deadline' })
@@ -65,7 +69,8 @@ export class UpdateOvertimeRequestDto {
 
   @ApiPropertyOptional({ example: 3.5 })
   @IsOptional()
-  @IsDecimal()
+  @Type(() => Number)
+  @Min(0)
   estimated_hours?: number;
 
   @ApiPropertyOptional({ example: 'Extended due to additional tasks' })
