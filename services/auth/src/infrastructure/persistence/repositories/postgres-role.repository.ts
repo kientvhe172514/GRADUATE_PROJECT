@@ -100,13 +100,18 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
   }
 
   async assignPermissions(roleId: number, permissionIds: number[]): Promise<void> {
-    // Remove existing permissions
-    await this.repository.query('DELETE FROM role_permissions WHERE role_id = $1', [roleId]);
-
-    // Insert new permissions
+    // ✅ APPEND MODE: Only insert new permissions (do not delete existing ones)
+    // The use-case layer already filters out duplicate permissions
+    
     if (permissionIds.length > 0) {
       const values = permissionIds.map((permId) => `(${roleId}, ${permId})`).join(',');
-      await this.repository.query(`INSERT INTO role_permissions (role_id, permission_id) VALUES ${values}`);
+      
+      // Use INSERT ... ON CONFLICT DO NOTHING to avoid errors if permission already exists
+      await this.repository.query(
+        `INSERT INTO role_permissions (role_id, permission_id) 
+         VALUES ${values}
+         ON CONFLICT (role_id, permission_id) DO NOTHING`
+      );
     }
   }
 
