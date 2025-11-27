@@ -1,5 +1,6 @@
-import { Controller, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Req, Logger } from '@nestjs/common';
+import type { Request } from 'express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
@@ -14,9 +15,11 @@ import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check
  * curl -X POST http://your-service/api/v1/attendance/cron-test/gps-check
  */
 @ApiTags('🧪 Cron Test (Internal)')
+@ApiBearerAuth()
 @Controller('cron-test')
 @Public()
 export class CronTestController {
+  private readonly logger = new Logger(CronTestController.name);
   constructor(
     private readonly gpsCheckProcessor: ScheduledGpsCheckProcessor,
     private readonly missingAttendanceProcessor: CheckMissingAttendanceProcessor,
@@ -33,7 +36,12 @@ export class CronTestController {
     status: 200,
     description: 'GPS check triggered successfully. Check logs for details.',
   })
-  async testGpsCheck() {
+  async testGpsCheck(@Req() req: Request) {
+    // Debug: log incoming headers and extracted user (internal troubleshooting only)
+    const r = req as Request & { user?: unknown };
+    this.logger.debug('Incoming headers: ' + JSON.stringify((r.headers as unknown) || {}));
+    this.logger.debug('Extracted user on request: ' + JSON.stringify(r.user ?? null));
+
     await this.gpsCheckProcessor.triggerGpsCheckForActiveShifts();
     return {
       success: true,
