@@ -8,7 +8,6 @@ import {
 import { Permissions } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
-import { ScheduleVerificationRemindersUseCase } from '../../application/presence-verification/use-cases/schedule-verification-reminders.use-case';
 
 /**
  * ⚠️ INTERNAL TESTING ONLY - DO NOT EXPOSE IN PRODUCTION
@@ -28,7 +27,6 @@ export class CronTestController {
   constructor(
     private readonly gpsCheckProcessor: ScheduledGpsCheckProcessor,
     private readonly missingAttendanceProcessor: CheckMissingAttendanceProcessor,
-    private readonly verificationReminders: ScheduleVerificationRemindersUseCase,
   ) {}
 
   @Post('gps-check')
@@ -83,12 +81,13 @@ export class CronTestController {
     status: 200,
     description: 'Verification reminders triggered successfully.',
   })
-  async testVerificationReminders() {
-    await this.verificationReminders.execute();
+  testVerificationReminders() {
+    // Note: Verification reminders processor is in PresenceVerificationModule
+    // This endpoint is disabled until we expose the processor globally or create a dedicated API
     return {
-      success: true,
+      success: false,
       message:
-        'Verification reminders triggered. Check server logs for execution details.',
+        'Verification reminders endpoint temporarily disabled. Use PresenceVerificationModule processor directly.',
       timestamp: new Date().toISOString(),
     };
   }
