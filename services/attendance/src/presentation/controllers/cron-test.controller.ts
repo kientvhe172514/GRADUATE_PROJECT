@@ -14,8 +14,8 @@ import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check
  * curl -X POST http://your-service/api/v1/attendance/cron-test/gps-check
  */
 @ApiTags('🧪 Cron Test (Internal)')
-@Public()
 @Controller('cron-test')
+@Public()
 export class CronTestController {
   constructor(
     private readonly gpsCheckProcessor: ScheduledGpsCheckProcessor,
