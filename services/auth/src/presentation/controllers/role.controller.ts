@@ -51,7 +51,7 @@ export class RoleController {
   ) {}
 
   @Get()
-  @AuthPermissions('role.read')
+  @AuthPermissions('auth.role.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all roles with pagination' })
   @ApiResponse({ status: 200, type: GetRolesResponseDto, description: 'Roles retrieved successfully' })
@@ -63,7 +63,7 @@ export class RoleController {
   }
 
   @Get(':id')
-  @AuthPermissions('role.read')
+  @AuthPermissions('auth.role.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get role by ID with permissions' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
@@ -77,7 +77,7 @@ export class RoleController {
   }
 
   @Post()
-  @AuthPermissions('role.create')
+  @AuthPermissions('auth.role.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   @ApiResponse({ status: 201, type: CreateRoleResponseDto, description: 'Role created successfully' })
@@ -98,7 +98,7 @@ export class RoleController {
   }
 
   @Put(':id')
-  @AuthPermissions('role.update')
+  @AuthPermissions('auth.role.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update role information' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
@@ -120,7 +120,7 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @AuthPermissions('role.delete')
+  @AuthPermissions('auth.role.delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a role' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
@@ -134,7 +134,7 @@ export class RoleController {
   }
 
   @Post(':id/permissions')
-  @AuthPermissions('role.assign_permissions')
+  @AuthPermissions('auth.role.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Assign permissions to role' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
@@ -153,7 +153,7 @@ export class RoleController {
   }
 
   @Delete(':id/permissions/:permissionId')
-  @AuthPermissions('role.assign_permissions')
+  @AuthPermissions('auth.role.update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove permission from role' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
@@ -169,7 +169,7 @@ export class RoleController {
   }
 
   @Get(':id/permissions')
-  @AuthPermissions('role.read')
+  @AuthPermissions('auth.role.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get role permissions' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
