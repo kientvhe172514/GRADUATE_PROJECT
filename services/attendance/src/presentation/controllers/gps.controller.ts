@@ -1,11 +1,17 @@
-import { Body, Controller, Logger, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { Public } from '@graduate-project/shared-common';
+import { Body, Controller, Logger, Post, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { ValidateEmployeeLocationUseCase } from '../../application/attendance-check/validate-employee-location.use-case';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
+/**
+ * GPS Check DTO - Client chỉ cần gửi GPS coordinates
+ * Backend sẽ tự:
+ * - Extract employee_id từ JWT token
+ * - Tìm shift hiện tại của employee
+ * - Validate GPS trong phạm vi geofence
+ */
 class GpsCheckDto {
-  employeeId: string;
-  shiftId: string;
   latitude: number;
   longitude: number;
   location_accuracy?: number;
@@ -29,35 +35,113 @@ class GpsCheckDto {
  * - Business logic
  */
 @ApiTags('Attendance - GPS')
-@Controller('attendance')
-@Public()
+@ApiBearerAuth()
+@Controller('gps')
 export class GpsController {
   private readonly logger = new Logger(GpsController.name);
 
   constructor(
     private readonly validateEmployeeLocationUseCase: ValidateEmployeeLocationUseCase,
+    private readonly employeeShiftRepository: EmployeeShiftRepository,
   ) {}
 
-  @Post('gps-check')
+  @Post('check')
   @ApiOperation({
-    summary: 'Client webhook: submit GPS for geofence validation',
+    summary: 'Submit GPS coordinates for validation',
     description:
-      'Client sends GPS coordinates to validate against office geofence. Server validates, persists, and publishes events.',
+      'Employee app sends current GPS location. Backend automatically:\n' +
+      '1. Extract employee_id from JWT token\n' +
+      '2. Find active shift for employee\n' +
+      '3. Validate GPS within office geofence\n' +
+      '4. Update presence verification status\n' +
+      '5. Send notification if out of range',
   })
-  @ApiBody({ type: GpsCheckDto })
+  @ApiBody({ 
+    type: GpsCheckDto,
+    examples: {
+      valid: {
+        summary: 'Valid GPS (within office)',
+        value: {
+          latitude: 10.762622,
+          longitude: 106.660172,
+          location_accuracy: 5.0
+        }
+      },
+      invalid: {
+        summary: 'Invalid GPS (outside office)',
+        value: {
+          latitude: 10.9,
+          longitude: 107.0,
+          location_accuracy: 10.0
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 200,
-    description: 'GPS validation result with distance and validity',
+    description: 'GPS validation result',
+    schema: {
+      example: {
+        success: true,
+        message: 'GPS validated successfully',
+        data: {
+          isValid: true,
+          distanceFromOffice: 45.2,
+          timestamp: '2025-11-27T10:00:00Z',
+          shiftId: '123',
+          employeeId: '10'
+        }
+      }
+    }
   })
-  @ApiResponse({ status: 400, description: 'Invalid request body' })
-  async gpsCheck(@Body() dto: GpsCheckDto) {
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid request body or no active shift found',
+    schema: {
+      example: {
+        success: false,
+        message: 'No active shift found for employee'
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized - Invalid or missing JWT token' 
+  })
+  async gpsCheck(
+    @Body() dto: GpsCheckDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     this.logger.log(
-      `GPS check request from employee ${dto.employeeId} for shift ${dto.shiftId}`,
+      `GPS check request from employee ${user.employee_id} (${user.email})`,
+    );
+
+    // Auto-find active shift from JWT token
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    const activeShift = await this.employeeShiftRepository.findActiveShiftByTime(
+      Number(user.employee_id),
+      now,
+      currentTime,
+    );
+
+    if (!activeShift) {
+      this.logger.warn(
+        `No active shift found for employee ${user.employee_id} at ${currentTime}`,
+      );
+      throw new BadRequestException(
+        'No active shift found. Please check in first or verify your schedule.',
+      );
+    }
+
+    this.logger.debug(
+      `Found active shift ${activeShift.id} (${activeShift.shift_type}) for employee ${user.employee_id}`,
     );
 
     const result = await this.validateEmployeeLocationUseCase.execute({
-      employeeId: dto.employeeId,
-      shiftId: dto.shiftId,
+      employeeId: user.employee_id!.toString(),
+      shiftId: activeShift.id.toString(),
       latitude: dto.latitude,
       longitude: dto.longitude,
       location_accuracy: dto.location_accuracy,
