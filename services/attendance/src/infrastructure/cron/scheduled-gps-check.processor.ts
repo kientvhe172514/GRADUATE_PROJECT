@@ -114,15 +114,27 @@ export class ScheduledGpsCheckProcessor {
         es.presence_verification_rounds_required,
         es.presence_verification_rounds_completed,
         CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp as shift_start,
-        CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp as shift_end
+        CASE 
+          -- Night shift: end_time < start_time (e.g., 22:00 - 06:00)
+          WHEN es.scheduled_end_time < es.scheduled_start_time 
+          THEN CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp
+          -- Normal shift: end_time >= start_time (e.g., 08:00 - 17:00)
+          ELSE CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
+        END as shift_end
       FROM employee_shifts es
       WHERE 
         es.shift_date = CURRENT_DATE
         AND es.status IN ('IN_PROGRESS', 'SCHEDULED')
-        -- Đang trong giờ làm việc
+        -- Đang trong giờ làm việc (handle night shift properly)
         AND NOW() BETWEEN 
           CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp 
-          AND CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
+          AND CASE 
+            -- Night shift: end_time qua ngày hôm sau
+            WHEN es.scheduled_end_time < es.scheduled_start_time 
+            THEN CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp
+            -- Normal shift
+            ELSE CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
+          END
         -- Đã check-in
         AND es.check_in_time IS NOT NULL
         -- Chưa check-out
