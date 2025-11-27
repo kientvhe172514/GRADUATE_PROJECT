@@ -13,6 +13,10 @@ import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
 import { GpsCheckCalculatorService } from '../services/gps-check-calculator.service';
+import {
+  EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+  WORK_SCHEDULE_REPOSITORY,
+} from '../tokens';
 
 export interface RequestFaceVerificationCommand {
   employee_id: number;
@@ -51,14 +55,14 @@ export class RequestFaceVerificationUseCase {
     private readonly updateEmployeeShiftUseCase: UpdateEmployeeShiftUseCase,
     private readonly gpsCheckCalculator: GpsCheckCalculatorService,
     private readonly configService: ConfigService,
-    @Inject('FACE_RECOGNITION_SERVICE')
+  @Inject('FACE_RECOGNITION_SERVICE')
     private readonly faceRecognitionClient: ClientProxy,
     @Inject('EMPLOYEE_SERVICE')
     private readonly employeeClient: ClientProxy,
-    @Inject('EMPLOYEE_WORK_SCHEDULE_REPOSITORY')
-    private readonly employeeWorkScheduleRepository: any,
-    @Inject('WORK_SCHEDULE_REPOSITORY')
-    private readonly workScheduleRepository: any,
+  @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+  private readonly employeeWorkScheduleRepository: any,
+  @Inject(WORK_SCHEDULE_REPOSITORY)
+  private readonly workScheduleRepository: any,
   ) {}
 
   async execute(command: RequestFaceVerificationCommand): Promise<{
