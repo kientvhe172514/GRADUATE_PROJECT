@@ -29,7 +29,6 @@ import { HealthController } from './health.controller';
 import { GpsController } from './presentation/controllers/gps.controller';
 import { CronTestController } from './presentation/controllers/cron-test.controller';
 import { GpsCheckConfigController } from './presentation/controllers/gps-check-config.controller';
-import { ScheduleVerificationRemindersUseCase } from './application/presence-verification/use-cases/schedule-verification-reminders.use-case';
 
 @Module({
   imports: [
@@ -164,7 +163,6 @@ import { ScheduleVerificationRemindersUseCase } from './application/presence-ver
     WeeklyShiftGeneratorProcessor,
     EndOfDayAbsentMarkerProcessor,
     AttendanceReconciliationProcessor,
-    ScheduleVerificationRemindersUseCase,
   ],
 })
 export class AppModule {}
