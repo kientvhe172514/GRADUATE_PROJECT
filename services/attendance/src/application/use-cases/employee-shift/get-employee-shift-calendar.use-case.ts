@@ -111,13 +111,57 @@ export class GetEmployeeShiftCalendarUseCase {
 
       // 6. Build response
       const employees: EmployeeCalendarDto[] = [];
+      const missingEmployeeIds: number[] = [];
 
       for (const [employeeId, shifts] of shiftsByEmployee.entries()) {
         const employeeInfo = employeeMap.get(employeeId);
 
-        // Skip if employee info not found (shouldn't happen in normal cases)
+        // Track missing employee but still show shifts with partial info
         if (!employeeInfo) {
-          this.logger.warn(`⚠️ Employee info not found for ID: ${employeeId}`);
+          this.logger.warn(
+            `⚠️ Employee info not found for ID: ${employeeId} - Employee may have been deleted`,
+          );
+          missingEmployeeIds.push(employeeId);
+          
+          // Create placeholder employee info with shifts
+          const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
+            const props = shift.get_props();
+            const scheduleName = props.work_schedule_id
+              ? scheduleMap.get(props.work_schedule_id) || 'Unknown Schedule'
+              : 'No Schedule';
+
+            return {
+              shift_id: props.id!,
+              shift_date: props.shift_date.toISOString().split('T')[0],
+              schedule_name: scheduleName,
+              start_time: props.scheduled_start_time,
+              end_time: props.scheduled_end_time,
+              status: props.status ?? ShiftStatus.SCHEDULED,
+              shift_type: props.shift_type || 'REGULAR',
+              check_in_time: props.check_in_time
+                ? this.formatTime(props.check_in_time)
+                : undefined,
+              check_out_time: props.check_out_time
+                ? this.formatTime(props.check_out_time)
+                : undefined,
+              work_hours: props.work_hours ?? 0,
+              overtime_hours: props.overtime_hours ?? 0,
+              late_minutes: props.late_minutes ?? 0,
+              early_leave_minutes: props.early_leave_minutes ?? 0,
+            };
+          });
+
+          shiftItems.sort((a, b) => a.shift_date.localeCompare(b.shift_date));
+
+          employees.push({
+            employee_id: employeeId,
+            employee_code: `DELETED_${employeeId}`,
+            full_name: `[Employee Not Found - ID: ${employeeId}]`,
+            department_name: 'N/A',
+            department_id: 0,
+            shifts: shiftItems,
+          });
+          
           continue;
         }
 
@@ -172,14 +216,19 @@ export class GetEmployeeShiftCalendarUseCase {
         employees,
       };
 
+      let message = 'Employee shift calendar retrieved successfully';
+      if (missingEmployeeIds.length > 0) {
+        message += ` (Warning: ${missingEmployeeIds.length} employee(s) not found: ${missingEmployeeIds.join(', ')})`;
+        this.logger.warn(
+          `⚠️ ${missingEmployeeIds.length} employee(s) not found in Employee Service: ${missingEmployeeIds.join(', ')}`,
+        );
+      }
+
       this.logger.log(
         `✨ Calendar view generated for ${employees.length} employees`,
       );
 
-      return ApiResponseDto.success(
-        response,
-        'Employee shift calendar retrieved successfully',
-      );
+      return ApiResponseDto.success(response, message);
     } catch (error) {
       this.logger.error('❌ Failed to get calendar view:', error);
       throw error;
