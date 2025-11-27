@@ -18,13 +18,8 @@ export enum OvertimeStatus {
 }
 
 export class CreateOvertimeRequestDto {
-  @ApiPropertyOptional({
-    example: 123,
-    description: 'Related shift ID (optional)',
-  })
-  @IsOptional()
-  @IsInt()
-  shift_id?: number;
+  // shift_id removed - OT always creates a standalone shift after approval
+  // No extend logic to keep OT tracking simple
 
   @ApiProperty({
     example: '2025-01-15',
