@@ -109,6 +109,10 @@ import { PresenceVerificationController } from '../../presentation/controllers/p
 
   controllers: [PresenceVerificationController],
 
-  exports: [CapturePresenceVerificationUseCase, GetVerificationScheduleUseCase],
+  exports: [
+    CapturePresenceVerificationUseCase,
+    GetVerificationScheduleUseCase,
+    ScheduleVerificationRemindersUseCase,
+  ],
 })
 export class PresenceVerificationModule {}
