@@ -1,5 +1,6 @@
 import { Controller, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Public } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
 
@@ -13,6 +14,7 @@ import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check
  * curl -X POST http://your-service/api/v1/attendance/cron-test/gps-check
  */
 @ApiTags('🧪 Cron Test (Internal)')
+@Public()
 @Controller('cron-test')
 export class CronTestController {
   constructor(
