@@ -149,6 +149,53 @@ export class AttendanceEventListener {
   }
 
   /**
+   * ✨ GENERIC HANDLER cho bất kỳ notification.send event nào
+   * 
+   * Flow:
+   * 1. Attendance/Leave/Employee service emit 'notification.send' với full payload
+   * 2. Notification service nhận và parse payload
+   * 3. Gửi notification qua use case
+   * 
+   * Event payload phải match SendNotificationDto:
+   * {
+   *   recipientId: number,
+   *   notificationType: string,
+   *   priority: string,
+   *   title: string,
+   *   message: string,
+   *   channels: ['IN_APP', 'PUSH', 'EMAIL'],
+   *   metadata?: object
+   * }
+   */
+  @EventPattern('notification.send')
+  async handleGenericNotification(@Payload() event: any): Promise<void> {
+    console.log('📬 [AttendanceEventListener] Received notification.send:', event);
+    
+    try {
+      // Validate required fields
+      if (!event.recipientId || !event.title || !event.message) {
+        console.error('❌ [AttendanceEventListener] Invalid notification payload:', event);
+        return;
+      }
+
+      const dto: SendNotificationDto = {
+        recipientId: event.recipientId,
+        notificationType: event.notificationType || NotificationType.SYSTEM_ALERT,
+        priority: event.priority || Priority.NORMAL,
+        title: event.title,
+        message: event.message,
+        channels: event.channels || [ChannelType.IN_APP, ChannelType.PUSH],
+        metadata: event.metadata || {},
+      };
+
+      await this.sendNotificationUseCase.execute(dto);
+      console.log(`✅ [AttendanceEventListener] Generic notification sent to employee ${event.recipientId}`);
+    } catch (error) {
+      console.error('❌ [AttendanceEventListener] Error handling notification.send:', error);
+    }
+  }
+
+  /**
    * Lắng nghe event khi GPS invalid (ngoài phạm vi)
    * Gửi ALERT notification để nhân viên biết
    */
