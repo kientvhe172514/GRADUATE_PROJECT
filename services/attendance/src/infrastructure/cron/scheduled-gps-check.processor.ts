@@ -102,48 +102,60 @@ export class ScheduledGpsCheckProcessor {
    */
   private async findEmployeesInActiveShift(): Promise<any[]> {
     const query = `
-      SELECT 
-        es.id as shift_id,
-        es.employee_id,
-        es.employee_code,
-        es.shift_date,
-        es.scheduled_start_time,
-        es.scheduled_end_time,
-        es.shift_type,
-        es.check_in_time,
-        es.presence_verification_rounds_required,
-        es.presence_verification_rounds_completed,
-        CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp as shift_start,
+      WITH calculated_shifts AS (
+    SELECT 
+        es.*,
+        
+        -- 1. Tính thời gian Bắt đầu ca (Shift Start)
+        -- Dùng ::text || ' ' || ... tương đương CONCAT, gọn hơn
+        (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp as shift_start_ts,
+        
+        -- 2. Tính thời gian Kết thúc ca (Shift End) - FIX QUAN TRỌNG
         CASE 
-          -- Night shift: end_time < start_time (e.g., 22:00 - 06:00)
-          WHEN es.scheduled_end_time < es.scheduled_start_time 
-          THEN CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp
-          -- Normal shift: end_time >= start_time (e.g., 08:00 - 17:00)
-          ELSE CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
-        END as shift_end
-      FROM employee_shifts es
-      WHERE 
-        es.shift_date = CURRENT_DATE
+            -- Nếu giờ End < giờ Start (VD: 06:00 < 22:00) => Là ca đêm
+            WHEN es.scheduled_end_time::time < es.scheduled_start_time::time 
+            THEN (
+                -- ✅ FIX CÚ PHÁP: Ép về ::date trước khi ::text để tránh lỗi "00:00:00" chèn vào giữa
+                (es.shift_date + INTERVAL '1 day')::date::text || ' ' || es.scheduled_end_time
+            )::timestamp
+            
+            -- Ca thường (trong ngày)
+            ELSE (es.shift_date::text || ' ' || es.scheduled_end_time)::timestamp
+        END as shift_end_ts
+        
+    FROM employee_shifts es
+    WHERE 
+        -- ✅ Lấy cả ca của ngày hôm qua (để bắt được ca đêm 22h hôm qua -> 6h sáng nay)
+        es.shift_date >= CURRENT_DATE - INTERVAL '1 day'
+        AND es.shift_date <= CURRENT_DATE
         AND es.status IN ('IN_PROGRESS', 'SCHEDULED')
-        -- Đang trong giờ làm việc (handle night shift properly)
-        AND NOW() BETWEEN 
-          CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp 
-          AND CASE 
-            -- Night shift: end_time qua ngày hôm sau
-            WHEN es.scheduled_end_time < es.scheduled_start_time 
-            THEN CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp
-            -- Normal shift
-            ELSE CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
-          END
-        -- Đã check-in
-        AND es.check_in_time IS NOT NULL
-        -- Chưa check-out
-        AND es.check_out_time IS NULL
-        -- Cần GPS check
-        AND es.presence_verification_required = true
-        -- Chưa đủ số lần check
-        AND es.presence_verification_rounds_completed < es.presence_verification_rounds_required
-      ORDER BY es.employee_id;
+)
+SELECT 
+    id as shift_id,
+    employee_id,
+    employee_code,
+    shift_date,
+    scheduled_start_time,
+    scheduled_end_time,
+    shift_type,
+    check_in_time,
+    shift_start_ts,
+    shift_end_ts,
+    presence_verification_rounds_required,
+    presence_verification_rounds_completed
+FROM calculated_shifts
+WHERE 
+    -- 3. Logic lọc chính: Giờ hiện tại (VN) phải nằm trong ca
+    -- ✅ FIX TIMEZONE: Cộng 7 tiếng để NOW() (UTC) thành giờ Việt Nam
+    (NOW() + INTERVAL '7 hours') BETWEEN shift_start_ts AND shift_end_ts
+    
+    -- Các điều kiện bắt buộc
+    AND check_in_time IS NOT NULL  -- ⚠️ Lưu ý: Dòng này sẽ lọc bỏ nếu bạn chưa UPDATE check_in_time
+    AND check_out_time IS NULL
+    AND presence_verification_required = true
+    -- Dùng COALESCE để tránh lỗi nếu cột completed đang null
+    AND COALESCE(presence_verification_rounds_completed, 0) < presence_verification_rounds_required
+ORDER BY employee_id;
     `;
 
     return await this.dataSource.query(query);

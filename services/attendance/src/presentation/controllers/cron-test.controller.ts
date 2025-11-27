@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { Public } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
+import { ScheduleVerificationRemindersUseCase } from '../../application/presence-verification/use-cases/schedule-verification-reminders.use-case';
 
 /**
  * ⚠️ INTERNAL TESTING ONLY - DO NOT EXPOSE IN PRODUCTION
@@ -23,6 +24,7 @@ export class CronTestController {
   constructor(
     private readonly gpsCheckProcessor: ScheduledGpsCheckProcessor,
     private readonly missingAttendanceProcessor: CheckMissingAttendanceProcessor,
+    private readonly verificationRemindersUseCase: ScheduleVerificationRemindersUseCase,
   ) {}
 
   @Post('gps-check')
@@ -82,13 +84,11 @@ export class CronTestController {
     status: 200,
     description: 'Verification reminders triggered successfully.',
   })
-  testVerificationReminders() {
-    // Note: Verification reminders processor is in PresenceVerificationModule
-    // This endpoint is disabled until we expose the processor globally or create a dedicated API
+  async testVerificationReminders() {
+    await this.verificationRemindersUseCase.execute();
     return {
-      success: false,
-      message:
-        'Verification reminders endpoint temporarily disabled. Use PresenceVerificationModule processor directly.',
+      success: true,
+      message: 'Verification reminders check triggered. Check logs for details.',
       timestamp: new Date().toISOString(),
     };
   }
