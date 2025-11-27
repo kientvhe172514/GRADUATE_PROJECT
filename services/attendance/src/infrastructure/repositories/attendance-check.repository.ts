@@ -19,9 +19,15 @@ export interface CreateCheckRecordDto {
   longitude?: number;
   location_accuracy?: number;
   distance_from_office_meters?: number;
+  // Face verification
+  face_verified?: boolean;
+  // Validation status
+  is_valid?: boolean;
   // Device info
   device_id?: string;
   ip_address?: string;
+  // Timestamps
+  created_at?: Date;
 }
 
 export interface UpdateFaceVerificationDto {
