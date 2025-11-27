@@ -19,7 +19,9 @@ import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-sh
 import { ValidateEmployeeLocationUseCase } from './validate-employee-location.use-case';
 import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event.publisher';
 import { PresenceVerificationModule } from '../presence-verification/presence-verification.module';
+import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
+import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { EmployeeServiceClient } from '../../infrastructure/external-services/em
     ]),
     ConfigModule,
     PresenceVerificationModule,
+    GpsCheckConfigModule,
+    WorkScheduleModule,
     ClientsModule.registerAsync([
       {
         name: 'FACE_RECOGNITION_SERVICE',

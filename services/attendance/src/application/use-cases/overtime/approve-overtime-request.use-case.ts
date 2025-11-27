@@ -7,6 +7,7 @@ import {
 } from '@graduate-project/shared-common';
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
 import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
+import { GpsCheckCalculatorService } from '../../services/gps-check-calculator.service';
 import { ClientProxy } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -16,6 +17,7 @@ export class ApproveOvertimeRequestUseCase {
   constructor(
     private readonly overtimeRepo: OvertimeRequestRepository,
     private readonly employeeShiftRepo: EmployeeShiftRepository,
+    private readonly gpsCheckCalculator: GpsCheckCalculatorService,
     @Inject('NOTIFICATION_SERVICE')
     private readonly notificationClient: ClientProxy,
     @Inject('EMPLOYEE_SERVICE')
@@ -66,17 +68,28 @@ export class ApproveOvertimeRequestUseCase {
       return `${hours}:${minutes}:${seconds}`;
     };
 
+    const startTime = formatTime(new Date(request.start_time));
+    const endTime = formatTime(new Date(request.end_time));
+
+    // Calculate GPS checks based on config for OT shifts
+    const gpsChecksRequired =
+      await this.gpsCheckCalculator.calculateRequiredChecks(
+        'OVERTIME',
+        startTime,
+        endTime,
+      );
+
     // Create OT shift for approved request
     const otShift = await this.employeeShiftRepo.create({
       employee_id: request.employee_id,
       employee_code,
       department_id,
       shift_date: request.overtime_date,
-      scheduled_start_time: formatTime(new Date(request.start_time)),
-      scheduled_end_time: formatTime(new Date(request.end_time)),
+      scheduled_start_time: startTime,
+      scheduled_end_time: endTime,
       shift_type: 'OVERTIME',
       presence_verification_required: true,
-      presence_verification_rounds_required: 0,
+      presence_verification_rounds_required: gpsChecksRequired,
     });
 
     // Update overtime request with ot_shift_id

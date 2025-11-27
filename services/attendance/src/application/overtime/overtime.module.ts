@@ -16,10 +16,12 @@ import { UpdateOvertimeRequestUseCase } from '../use-cases/overtime/update-overt
 import { ApproveOvertimeRequestUseCase } from '../use-cases/overtime/approve-overtime-request.use-case';
 import { RejectOvertimeRequestUseCase } from '../use-cases/overtime/reject-overtime-request.use-case';
 import { CancelOvertimeRequestUseCase } from '../use-cases/overtime/cancel-overtime-request.use-case';
+import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OvertimeRequestSchema, EmployeeShiftSchema]),
+    GpsCheckConfigModule,
     ClientsModule.registerAsync([
       {
         name: 'NOTIFICATION_SERVICE',

@@ -4,20 +4,22 @@ import { ClientProxy } from '@nestjs/microservices';
 import { DataSource } from 'typeorm';
 
 /**
- * Scheduled GPS Check Processor
+ * Scheduled GPS Check Processor - IMPROVED VERSION
  *
  * Mục đích: Tự động request GPS check từ mobile app trong giờ làm việc
  *
- * Flow:
- * 1. Chạy mỗi giờ (có thể config: mỗi 30 phút, 1 giờ...)
- * 2. Tìm nhân viên đang trong ca làm
- * 3. Gửi silent push qua FCM để trigger background GPS sync
- * 4. Mobile app tự động gửi GPS lên server
+ * IMPROVEMENTS:
+ * 1. ✅ Dynamic scheduling: Chạy mỗi 15 phút thay vì fix cứng mỗi giờ
+ * 2. ✅ Smart checking: Query shift configuration để biết cần check bao nhiêu lần
+ * 3. ✅ Avoid over-checking: Track số lần đã check hôm nay, chỉ check khi cần
+ * 4. ✅ Flexible: Dựa trên gps_check_configurations để tính toán
  *
- * Configuration:
- * - EVERY_HOUR: Chạy vào đầu mỗi giờ (00 phút)
- * - EVERY_30_MINUTES: Chạy mỗi 30 phút
- * - Custom cron: '0 8-17 * * *' (chỉ chạy 8h-17h)
+ * Flow:
+ * 1. Chạy mỗi 15 phút
+ * 2. Tìm nhân viên đang trong ca làm
+ * 3. Check xem đã đủ số lần GPS check chưa (dựa vào config)
+ * 4. Nếu chưa đủ → Gửi request GPS check
+ * 5. Mobile app tự động gửi GPS lên server
  */
 @Injectable()
 export class ScheduledGpsCheckProcessor {
@@ -30,14 +32,12 @@ export class ScheduledGpsCheckProcessor {
   ) {}
 
   /**
-   * Chạy vào đầu mỗi giờ (00 phút)
-   * Ví dụ: 8:00, 9:00, 10:00, 11:00...
+   * Chạy mỗi 15 phút để check GPS cho nhân viên đang trong ca
    *
-   * Có thể thay đổi thành:
-   * - '0,30 * * * *' → Chạy phút 00 và 30 mỗi giờ
-   * - '0 8-17 * * 1-5' → Chỉ chạy trong giờ hành chính (8h-17h, thứ 2-6)
+   * IMPROVED: Không còn fix cứng mỗi giờ, giờ chạy thường xuyên hơn
+   * và có logic thông minh để quyết định có cần check GPS không
    */
-  @Cron('0 * * * *', {
+  @Cron('*/15 * * * *', {
     name: 'scheduled-gps-check',
     timeZone: 'Asia/Ho_Chi_Minh',
   })
@@ -88,42 +88,49 @@ export class ScheduledGpsCheckProcessor {
   /**
    * Tìm nhân viên đang trong ca làm hiện tại
    *
+   * IMPROVED:
+   * - Query thêm thông tin presence_verification_rounds_required và completed
+   * - Để biết cần check bao nhiêu lần và đã check bao nhiêu lần rồi
+   * - Chỉ gửi request nếu chưa đủ số lần check
+   *
    * Điều kiện:
    * - Shift date = hôm nay
    * - Đang trong khoảng thời gian ca (start_time <= NOW <= end_time)
    * - Đã check-in (check_in_time NOT NULL)
    * - Chưa check-out (check_out_time IS NULL)
-   * - Employee status = active
-   * - Work schedule is_active = true
+   * - presence_verification_rounds_completed < presence_verification_rounds_required
    */
   private async findEmployeesInActiveShift(): Promise<any[]> {
     const query = `
       SELECT 
+        es.id as shift_id,
         es.employee_id,
-        es.shift_id,
+        es.employee_code,
         es.shift_date,
-        ws.shift_name,
-        ws.start_time,
-        ws.end_time,
-        e.full_name,
-        CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp as shift_start,
-        CONCAT(es.shift_date::text, ' ', ws.end_time::text)::timestamp as shift_end
+        es.scheduled_start_time,
+        es.scheduled_end_time,
+        es.shift_type,
+        es.check_in_time,
+        es.presence_verification_rounds_required,
+        es.presence_verification_rounds_completed,
+        CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp as shift_start,
+        CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp as shift_end
       FROM employee_shifts es
-      INNER JOIN work_schedules ws ON es.schedule_id = ws.schedule_id
-      INNER JOIN employees e ON e.employee_id = es.employee_id
       WHERE 
         es.shift_date = CURRENT_DATE
-        AND es.status = 'scheduled'
-        AND ws.is_active = true
-        AND e.status = 'active'
-        -- Đang trong giờ làm việc (start_time <= NOW <= end_time)
+        AND es.status IN ('IN_PROGRESS', 'SCHEDULED')
+        -- Đang trong giờ làm việc
         AND NOW() BETWEEN 
-          CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp 
-          AND CONCAT(es.shift_date::text, ' ', ws.end_time::text)::timestamp
-        -- Đã check-in (chỉ check GPS cho người đã vào làm)
+          CONCAT(es.shift_date::text, ' ', es.scheduled_start_time::text)::timestamp 
+          AND CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp
+        -- Đã check-in
         AND es.check_in_time IS NOT NULL
         -- Chưa check-out
         AND es.check_out_time IS NULL
+        -- Cần GPS check
+        AND es.presence_verification_required = true
+        -- Chưa đủ số lần check
+        AND es.presence_verification_rounds_completed < es.presence_verification_rounds_required
       ORDER BY es.employee_id;
     `;
 
@@ -143,9 +150,13 @@ export class ScheduledGpsCheckProcessor {
       recipientId: employee.employee_id,
       metadata: {
         shiftId: employee.shift_id,
-        shiftName: employee.shift_name,
+        shiftType: employee.shift_type,
+        scheduledStartTime: employee.scheduled_start_time,
+        scheduledEndTime: employee.scheduled_end_time,
         shiftStart: employee.shift_start,
         shiftEnd: employee.shift_end,
+        roundsRequired: employee.presence_verification_rounds_required,
+        roundsCompleted: employee.presence_verification_rounds_completed,
         timestamp: new Date().toISOString(),
         action: 'BACKGROUND_GPS_SYNC',
       },
@@ -155,7 +166,7 @@ export class ScheduledGpsCheckProcessor {
     this.notificationClient.emit('notification.request_gps_check', payload);
 
     this.logger.debug(
-      `📍 Requested GPS check for ${employee.full_name} (ID: ${employee.employee_id}) - Shift: ${employee.shift_name}`,
+      `📍 GPS check ${employee.presence_verification_rounds_completed + 1}/${employee.presence_verification_rounds_required} for employee ${employee.employee_code} (shift_id: ${employee.shift_id})`,
     );
   }
 

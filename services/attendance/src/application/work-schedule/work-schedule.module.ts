@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   WorkScheduleSchema,
   EmployeeWorkScheduleSchema,
 } from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
 import { WorkScheduleController } from '../../presentation/controllers/work-schedule.controller';
 import { CreateWorkScheduleUseCase } from '../use-cases/work-schedule/create-work-schedule.use-case';
 import { UpdateWorkScheduleUseCase } from '../use-cases/work-schedule/update-work-schedule.use-case';
@@ -19,10 +20,18 @@ import {
   WORK_SCHEDULE_REPOSITORY,
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
 } from '../../application/tokens';
+import { ShiftGeneratorService } from '../services/shift-generator.service';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
+import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WorkScheduleSchema, EmployeeWorkScheduleSchema]),
+    TypeOrmModule.forFeature([
+      WorkScheduleSchema,
+      EmployeeWorkScheduleSchema,
+      EmployeeShiftSchema,
+    ]),
+    GpsCheckConfigModule,
   ],
   controllers: [WorkScheduleController],
   providers: [
@@ -34,6 +43,10 @@ import {
     DeleteWorkScheduleUseCase,
     AssignScheduleToEmployeesUseCase,
 
+    // Services
+    ShiftGeneratorService,
+    EmployeeShiftRepository,
+
     // Repositories
     {
       provide: WORK_SCHEDULE_REPOSITORY,
@@ -44,6 +57,10 @@ import {
       useClass: TypeOrmEmployeeWorkScheduleRepository,
     },
   ],
-  exports: [WORK_SCHEDULE_REPOSITORY, EMPLOYEE_WORK_SCHEDULE_REPOSITORY],
+  exports: [
+    WORK_SCHEDULE_REPOSITORY,
+    EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+    ShiftGeneratorService,
+  ],
 })
 export class WorkScheduleModule {}

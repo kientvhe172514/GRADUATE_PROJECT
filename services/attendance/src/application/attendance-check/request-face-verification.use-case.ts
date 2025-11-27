@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { firstValueFrom, timeout, catchError, of } from 'rxjs';
 import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
+import { GpsCheckCalculatorService } from '../services/gps-check-calculator.service';
 
 export interface RequestFaceVerificationCommand {
   employee_id: number;
@@ -40,9 +42,6 @@ export interface FaceVerificationRequestEvent {
 @Injectable()
 export class RequestFaceVerificationUseCase {
   private readonly logger = new Logger(RequestFaceVerificationUseCase.name);
-  private readonly OFFICE_LATITUDE: number;
-  private readonly OFFICE_LONGITUDE: number;
-  private readonly MAX_DISTANCE_METERS: number;
 
   constructor(
     private readonly attendanceCheckRepository: AttendanceCheckRepository,
@@ -50,18 +49,17 @@ export class RequestFaceVerificationUseCase {
     private readonly validateBeaconUseCase: ValidateBeaconUseCase,
     private readonly validateGpsUseCase: ValidateGpsUseCase,
     private readonly updateEmployeeShiftUseCase: UpdateEmployeeShiftUseCase,
+    private readonly gpsCheckCalculator: GpsCheckCalculatorService,
     private readonly configService: ConfigService,
     @Inject('FACE_RECOGNITION_SERVICE')
     private readonly faceRecognitionClient: ClientProxy,
-  ) {
-    // Load office GPS coordinates from config
-    this.OFFICE_LATITUDE =
-      this.configService.get<number>('OFFICE_LATITUDE') || 10.762622;
-    this.OFFICE_LONGITUDE =
-      this.configService.get<number>('OFFICE_LONGITUDE') || 106.660172;
-    this.MAX_DISTANCE_METERS =
-      this.configService.get<number>('MAX_OFFICE_DISTANCE_METERS') || 500;
-  }
+    @Inject('EMPLOYEE_SERVICE')
+    private readonly employeeClient: ClientProxy,
+    @Inject('EMPLOYEE_WORK_SCHEDULE_REPOSITORY')
+    private readonly employeeWorkScheduleRepository: any,
+    @Inject('WORK_SCHEDULE_REPOSITORY')
+    private readonly workScheduleRepository: any,
+  ) {}
 
   async execute(command: RequestFaceVerificationCommand): Promise<{
     success: boolean;
@@ -83,7 +81,11 @@ export class RequestFaceVerificationUseCase {
       throw new BadRequestException(sessionValidation.error);
     }
 
-    // Step 2: Validate GPS (if provided)
+    // Step 2: Get office coordinates from employee's department (via Employee Service)
+    const { office_latitude, office_longitude, max_distance_meters } =
+      await this.getOfficeCoordinates(command.employee_id);
+
+    // Step 3: Validate GPS (if provided)
     let gpsValidated = false;
     let distanceFromOffice: number | undefined;
 
@@ -92,9 +94,9 @@ export class RequestFaceVerificationUseCase {
         latitude: command.latitude,
         longitude: command.longitude,
         location_accuracy: command.location_accuracy,
-        office_latitude: this.OFFICE_LATITUDE,
-        office_longitude: this.OFFICE_LONGITUDE,
-        max_distance_meters: this.MAX_DISTANCE_METERS,
+        office_latitude,
+        office_longitude,
+        max_distance_meters,
       });
 
       gpsValidated = gpsResult.is_valid;
@@ -131,21 +133,69 @@ export class RequestFaceVerificationUseCase {
           `Found REGULAR shift for employee ${command.employee_code} on ${command.shift_date.toISOString()} (shift_id=${shift.id})`,
         );
       } else {
-        // Auto-create REGULAR shift if not exists (default 8:00-17:00)
+        // FALLBACK: Try to auto-create shift from assigned work_schedule
+        // This handles edge cases where cron didn't run or schedule was just assigned
         this.logger.log(
-          `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()}. Creating default REGULAR shift.`,
+          `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()}. Checking for assigned work schedule...`,
         );
+
+        const assignedSchedule =
+          await this.employeeWorkScheduleRepository.findByEmployeeIdAndDate(
+            command.employee_id,
+            command.shift_date,
+          );
+
+        if (!assignedSchedule) {
+          // Truly no schedule assigned
+          this.logger.warn(
+            `Employee ${command.employee_code} has no work schedule assigned for ${command.shift_date.toISOString()}`,
+          );
+          return {
+            success: false,
+            message: `You have no work schedule assigned for ${command.shift_date.toISOString().split('T')[0]}. Please contact HR.`,
+          };
+        }
+
+        // Found assignment → create shift from work_schedule template
+        this.logger.log(
+          `Found work schedule assignment (ID: ${assignedSchedule.work_schedule_id}). Creating shift...`,
+        );
+
+        const workSchedule = await this.workScheduleRepository.findById(
+          assignedSchedule.work_schedule_id,
+        );
+
+        if (!workSchedule) {
+          throw new BadRequestException(
+            `Work schedule ${assignedSchedule.work_schedule_id} not found`,
+          );
+        }
+
+        // Calculate GPS checks
+        const gpsChecksRequired =
+          await this.gpsCheckCalculator.calculateRequiredChecks(
+            'REGULAR',
+            workSchedule.start_time || '08:00:00',
+            workSchedule.end_time || '17:00:00',
+          );
+
+        // Create shift from template
         shift = await this.employeeShiftRepository.create({
           employee_id: command.employee_id,
           employee_code: command.employee_code,
           department_id: command.department_id,
           shift_date: command.shift_date,
-          scheduled_start_time: '08:00',
-          scheduled_end_time: '17:00',
+          work_schedule_id: workSchedule.id,
+          scheduled_start_time: workSchedule.start_time || '08:00',
+          scheduled_end_time: workSchedule.end_time || '17:00',
           shift_type: 'REGULAR',
           presence_verification_required: true,
-          presence_verification_rounds_required: 3,
+          presence_verification_rounds_required: gpsChecksRequired,
         });
+
+        this.logger.log(
+          `✅ Auto-created shift from work schedule template (shift_id=${shift.id})`,
+        );
       }
     }
 
@@ -195,5 +245,75 @@ export class RequestFaceVerificationUseCase {
         `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} initiated. ` +
         `Beacon: ✅ ${gpsValidated ? '| GPS: ✅' : '| GPS: ⏭️ (skipped)'} | Face: ⏳ (pending verification)`,
     };
+  }
+
+  /**
+   * Get office coordinates from Employee Service (via RPC) based on employee's department
+   * Fallback to config defaults if Employee Service is unavailable
+   */
+  private async getOfficeCoordinates(employeeId: number): Promise<{
+    office_latitude: number;
+    office_longitude: number;
+    max_distance_meters: number;
+  }> {
+    // Default values from config (fallback)
+    let office_latitude = Number(
+      this.configService.get<number>('OFFICE_LATITUDE') || 10.762622,
+    );
+    let office_longitude = Number(
+      this.configService.get<number>('OFFICE_LONGITUDE') || 106.660172,
+    );
+    let max_distance_meters = Number(
+      this.configService.get<number>('MAX_OFFICE_DISTANCE_METERS') || 500,
+    );
+
+    try {
+      // Query Employee Service to get employee's department office coordinates
+      const response = await firstValueFrom(
+        this.employeeClient
+          .send('get_employee_detail', { employee_id: employeeId })
+          .pipe(
+            timeout(2500), // 2.5s timeout
+            catchError((error) => {
+              this.logger.debug(
+                `Employee Service RPC failed: ${error.message}`,
+              );
+              return of(null); // Return null on error
+            }),
+          ),
+      );
+
+      if (
+        response &&
+        response.department &&
+        response.department.office_latitude &&
+        response.department.office_longitude
+      ) {
+        office_latitude = Number(response.department.office_latitude);
+        office_longitude = Number(response.department.office_longitude);
+
+        // Use department's allowed check-in radius if available
+        if (response.department.allowed_check_in_radius_meters) {
+          max_distance_meters = Number(
+            response.department.allowed_check_in_radius_meters,
+          );
+        }
+
+        this.logger.log(
+          `✅ Using office coordinates from Employee Service for employee ${employeeId}: ` +
+            `[${office_latitude}, ${office_longitude}], radius: ${max_distance_meters}m`,
+        );
+      } else {
+        this.logger.warn(
+          `⚠️ Employee ${employeeId} department has no office coordinates. Using config defaults.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to fetch employee detail from Employee Service: ${(error as Error).message}. Using config defaults.`,
+      );
+    }
+
+    return { office_latitude, office_longitude, max_distance_meters };
   }
 }

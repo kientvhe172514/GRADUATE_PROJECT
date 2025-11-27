@@ -9,6 +9,8 @@ import { HeaderBasedPermissionGuard } from '@graduate-project/shared-common';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { CheckMissingAttendanceProcessor } from './infrastructure/cron/check-missing-attendance.processor';
 import { ScheduledGpsCheckProcessor } from './infrastructure/cron/scheduled-gps-check.processor';
+import { WeeklyShiftGeneratorProcessor } from './infrastructure/cron/weekly-shift-generator.processor';
+import { EndOfDayAbsentMarkerProcessor } from './infrastructure/cron/end-of-day-absent-marker.processor';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
@@ -18,11 +20,15 @@ import { PresenceVerificationModule } from './application/presence-verification/
 import { OvertimeModule } from './application/overtime/overtime.module';
 import { AttendanceEditLogModule } from './application/edit-log/edit-log.module';
 import { ReportModule } from './application/report/report.module';
+import { GpsCheckConfigModule } from './application/gps-check-config/gps-check-config.module';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { FaceVerificationResultConsumer } from './presentation/consumers/face-verification-result.consumer';
 import { HealthController } from './health.controller';
 import { GpsController } from './presentation/controllers/gps.controller';
+import { CronTestController } from './presentation/controllers/cron-test.controller';
+import { GpsCheckConfigController } from './presentation/controllers/gps-check-config.controller';
+import { ScheduleVerificationRemindersUseCase } from './application/presence-verification/use-cases/schedule-verification-reminders.use-case';
 
 @Module({
   imports: [
@@ -133,10 +139,13 @@ import { GpsController } from './presentation/controllers/gps.controller';
     OvertimeModule,
     AttendanceEditLogModule,
     ReportModule,
+    GpsCheckConfigModule,
   ],
   controllers: [
     HealthController,
     GpsController,
+    CronTestController,
+    GpsCheckConfigController,
     EmployeeEventListener,
     LeaveEventListener,
     FaceVerificationResultConsumer,
@@ -151,6 +160,9 @@ import { GpsController } from './presentation/controllers/gps.controller';
     },
     CheckMissingAttendanceProcessor,
     ScheduledGpsCheckProcessor,
+    WeeklyShiftGeneratorProcessor,
+    EndOfDayAbsentMarkerProcessor,
+    ScheduleVerificationRemindersUseCase,
   ],
 })
 export class AppModule {}
