@@ -7,10 +7,21 @@ export class EmployeeWorkScheduleMapper {
       id: schema.id,
       employee_id: schema.employee_id,
       work_schedule_id: schema.work_schedule_id,
-      effective_from: schema.effective_from,
+      // Ensure dates are Date objects (query builder may return strings)
+      effective_from:
+        typeof schema.effective_from === 'string'
+          ? new Date(schema.effective_from)
+          : schema.effective_from,
       // Map nullable DB columns to undefined to satisfy domain typings
-      effective_to: schema.effective_to ?? undefined,
-      created_at: schema.created_at,
+      effective_to: schema.effective_to
+        ? typeof schema.effective_to === 'string'
+          ? new Date(schema.effective_to)
+          : schema.effective_to
+        : undefined,
+      created_at:
+        typeof schema.created_at === 'string'
+          ? new Date(schema.created_at)
+          : schema.created_at,
       created_by: schema.created_by ?? undefined,
     });
   }
