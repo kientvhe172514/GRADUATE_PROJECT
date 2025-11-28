@@ -23,6 +23,7 @@ import {
   Permissions,
   ApiResponseDto,
   Public,
+  BusinessException,
 } from '@graduate-project/shared-common';
 import {
   CreateWorkScheduleDto,
@@ -31,6 +32,7 @@ import {
   ListWorkScheduleDto,
   WorkScheduleDto,
   UpdateAssignmentDatesDto,
+  EmployeeWorkScheduleDto,
 } from '../../application/dtos/work-schedule.dto';
 import { CreateWorkScheduleUseCase } from '../../application/use-cases/work-schedule/create-work-schedule.use-case';
 import { UpdateWorkScheduleUseCase } from '../../application/use-cases/work-schedule/update-work-schedule.use-case';
@@ -41,6 +43,9 @@ import { AssignScheduleToEmployeesUseCase } from '../../application/use-cases/wo
 import { RemoveScheduleAssignmentUseCase } from '../../application/use-cases/work-schedule/remove-schedule-assignment.use-case';
 import { UpdateScheduleAssignmentUseCase } from '../../application/use-cases/work-schedule/update-schedule-assignment.use-case';
 import { DeleteEmployeeShiftUseCase } from '../../application/use-cases/work-schedule/delete-employee-shift.use-case';
+import { IEmployeeWorkScheduleRepository } from '../../application/ports/work-schedule.repository.port';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../application/tokens';
+import { Inject } from '@nestjs/common';
 
 @ApiTags('Work Schedules')
 @ApiBearerAuth()
@@ -57,6 +62,8 @@ export class WorkScheduleController {
     private readonly removeScheduleAssignmentUseCase: RemoveScheduleAssignmentUseCase,
     private readonly updateScheduleAssignmentUseCase: UpdateScheduleAssignmentUseCase,
     private readonly deleteEmployeeShiftUseCase: DeleteEmployeeShiftUseCase,
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+    private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
   ) {}
 
   @Post()
@@ -149,6 +156,61 @@ export class WorkScheduleController {
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<void>> {
     return this.assignScheduleToEmployeesUseCase.execute(id, dto, user);
+  }
+
+  @Get('assignments/employee/:employeeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get all schedule assignments for an employee',
+    description:
+      'Returns all work schedule assignments (past and current) for a specific employee.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Assignments retrieved successfully',
+    type: ApiResponseDto,
+  })
+  async getEmployeeAssignments(
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+  ): Promise<ApiResponseDto<EmployeeWorkScheduleDto[]>> {
+    const assignments =
+      await this.employeeWorkScheduleRepository.findAssignmentsByEmployeeId(
+        employeeId,
+      );
+    const dtos = assignments.map((a) => new EmployeeWorkScheduleDto(a));
+    return ApiResponseDto.success(
+      dtos,
+      'Employee assignments retrieved successfully',
+    );
+  }
+
+  @Get('assignments/:assignmentId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get a specific assignment by ID',
+    description: 'Returns details of a specific schedule assignment.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Assignment retrieved successfully',
+    type: ApiResponseDto,
+  })
+  async getAssignmentById(
+    @Param('assignmentId', ParseIntPipe) assignmentId: number,
+  ): Promise<ApiResponseDto<EmployeeWorkScheduleDto>> {
+    const assignment =
+      await this.employeeWorkScheduleRepository.findById(assignmentId);
+    if (!assignment) {
+      throw new BusinessException(
+        'ASSIGNMENT_NOT_FOUND',
+        'Schedule assignment not found.',
+        404,
+      );
+    }
+    return ApiResponseDto.success(
+      new EmployeeWorkScheduleDto(assignment),
+      'Assignment retrieved successfully',
+    );
   }
 
   @Delete('assignments/:assignmentId')
