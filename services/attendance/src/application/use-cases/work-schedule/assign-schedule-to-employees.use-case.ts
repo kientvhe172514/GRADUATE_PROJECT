@@ -62,7 +62,7 @@ export class AssignScheduleToEmployeesUseCase {
     this.logger.log(
       `🔍 Checking for existing schedules for ${dto.employee_ids.length} employees...`,
     );
-    
+
     for (const employeeId of dto.employee_ids) {
       const existingAssignment =
         await this.employeeWorkScheduleRepository.findByEmployeeIdAndDate(
@@ -96,10 +96,10 @@ export class AssignScheduleToEmployeesUseCase {
     this.logger.log(
       `💾 Saving ${assignments.length} schedule assignments for employees: ${dto.employee_ids.join(', ')}`,
     );
-    
+
     const savedAssignments =
       await this.employeeWorkScheduleRepository.saveMany(assignments);
-    
+
     this.logger.log(
       `✅ Successfully saved ${savedAssignments.length} schedule assignments`,
     );

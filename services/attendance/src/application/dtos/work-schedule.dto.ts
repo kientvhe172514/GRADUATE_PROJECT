@@ -9,7 +9,6 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsNotEmpty,
-  IsDate,
   Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -132,6 +131,24 @@ export class AssignWorkScheduleDto {
   @ApiPropertyOptional({
     example: '2024-12-31',
     description: 'Optional effective end date',
+  })
+  @IsOptional()
+  @IsDateString()
+  effective_to?: string;
+}
+
+export class UpdateAssignmentDatesDto {
+  @ApiPropertyOptional({
+    example: '2024-01-01',
+    description: 'New effective start date',
+  })
+  @IsOptional()
+  @IsDateString()
+  effective_from?: string;
+
+  @ApiPropertyOptional({
+    example: '2024-12-31',
+    description: 'New effective end date',
   })
   @IsOptional()
   @IsDateString()

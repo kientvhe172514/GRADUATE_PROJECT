@@ -26,4 +26,10 @@ export interface IEmployeeWorkScheduleRepository {
   findAssignmentsByEmployeeId(
     employeeId: number,
   ): Promise<EmployeeWorkSchedule[]>;
+  findById(id: number): Promise<EmployeeWorkSchedule | null>;
+  delete(id: number): Promise<void>;
+  update(
+    id: number,
+    assignment: Partial<EmployeeWorkSchedule>,
+  ): Promise<EmployeeWorkSchedule>;
 }

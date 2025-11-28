@@ -118,4 +118,29 @@ export class TypeOrmEmployeeWorkScheduleRepository
     const schemas = await this.repository.findBy({ employee_id: employeeId });
     return schemas.map(EmployeeWorkScheduleMapper.toDomain);
   }
+
+  async findById(id: number): Promise<EmployeeWorkSchedule | null> {
+    const schema = await this.repository.findOne({ where: { id } });
+    return schema ? EmployeeWorkScheduleMapper.toDomain(schema) : null;
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.repository.delete(id);
+  }
+
+  async update(
+    id: number,
+    assignment: Partial<EmployeeWorkSchedule>,
+  ): Promise<EmployeeWorkSchedule> {
+    const props = assignment.toJSON ? assignment.toJSON() : assignment;
+    await this.repository.update(id, {
+      effective_from: props.effective_from,
+      effective_to: props.effective_to,
+    });
+    const updated = await this.repository.findOne({ where: { id } });
+    if (!updated) {
+      throw new Error('Assignment not found after update');
+    }
+    return EmployeeWorkScheduleMapper.toDomain(updated);
+  }
 }

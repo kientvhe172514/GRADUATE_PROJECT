@@ -10,6 +10,9 @@ import { ListWorkSchedulesUseCase } from '../use-cases/work-schedule/list-work-s
 import { GetWorkScheduleByIdUseCase } from '../use-cases/work-schedule/get-work-schedule-by-id.use-case';
 import { DeleteWorkScheduleUseCase } from '../use-cases/work-schedule/delete-work-schedule.use-case';
 import { AssignScheduleToEmployeesUseCase } from '../use-cases/work-schedule/assign-schedule-to-employees.use-case';
+import { RemoveScheduleAssignmentUseCase } from '../use-cases/work-schedule/remove-schedule-assignment.use-case';
+import { UpdateScheduleAssignmentUseCase } from '../use-cases/work-schedule/update-schedule-assignment.use-case';
+import { DeleteEmployeeShiftUseCase } from '../use-cases/work-schedule/delete-employee-shift.use-case';
 import {
   TypeOrmWorkScheduleRepository,
   TypeOrmEmployeeWorkScheduleRepository,
@@ -58,6 +61,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     GetWorkScheduleByIdUseCase,
     DeleteWorkScheduleUseCase,
     AssignScheduleToEmployeesUseCase,
+    RemoveScheduleAssignmentUseCase,
+    UpdateScheduleAssignmentUseCase,
+    DeleteEmployeeShiftUseCase,
 
     // Services
     ShiftGeneratorService,

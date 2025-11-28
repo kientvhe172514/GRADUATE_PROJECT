@@ -235,4 +235,57 @@ export class EmployeeShiftRepository {
       },
     });
   }
+
+  /**
+   * Delete all future shifts for a specific assignment
+   * Used when removing an assignment or updating its effective dates
+   */
+  async deleteFutureShiftsByAssignment(
+    employeeId: number,
+    workScheduleId: number,
+    fromDate: Date,
+  ): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .delete()
+      .from(EmployeeShiftSchema)
+      .where('employee_id = :employeeId', { employeeId })
+      .andWhere('work_schedule_id = :workScheduleId', { workScheduleId })
+      .andWhere('shift_date >= :fromDate', { fromDate })
+      .andWhere('check_in_time IS NULL') // Only delete shifts not yet started
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /**
+   * Delete specific shift by ID
+   */
+  async delete(id: number): Promise<boolean> {
+    const result = await this.repository.delete(id);
+    return (result.affected || 0) > 0;
+  }
+
+  /**
+   * Delete shifts by employee in date range
+   */
+  async deleteByEmployeeAndDateRange(
+    employeeId: number,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .delete()
+      .from(EmployeeShiftSchema)
+      .where('employee_id = :employeeId', { employeeId })
+      .andWhere('shift_date BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('check_in_time IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
 }
