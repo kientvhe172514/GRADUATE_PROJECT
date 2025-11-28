@@ -53,28 +53,5 @@ export class WorkScheduleSchema {
   updated_by?: number;
 }
 
-@Entity('employee_work_schedules')
-@Index(['employee_id', 'effective_from'])
-@Index(['work_schedule_id'])
-export class EmployeeWorkScheduleSchema {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column({ type: 'int' })
-  employee_id: number;
-
-  @Column({ type: 'int' })
-  work_schedule_id: number;
-
-  @Column({ type: 'date' })
-  effective_from: Date;
-
-  @Column({ type: 'date', nullable: true })
-  effective_to?: Date;
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @Column({ type: 'int', nullable: true })
-  created_by?: number;
-}
+// NOTE: EmployeeWorkScheduleSchema was moved to employee-work-schedule.schema.ts.
+// This file now only contains WorkScheduleSchema to avoid duplicate entity metadata.

@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
-import {
-  WorkScheduleSchema,
-  EmployeeWorkScheduleSchema,
-} from '../persistence/typeorm/work-schedule.schema';
+import { WorkScheduleSchema } from '../persistence/typeorm/work-schedule.schema';
+import { EmployeeWorkScheduleSchema } from '../persistence/typeorm/employee-work-schedule.schema';
 import {
   IWorkScheduleRepository,
   IEmployeeWorkScheduleRepository,

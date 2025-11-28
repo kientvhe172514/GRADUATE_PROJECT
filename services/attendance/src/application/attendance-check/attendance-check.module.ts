@@ -21,11 +21,8 @@ import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-
 import { PresenceVerificationModule } from '../presence-verification/presence-verification.module';
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
-import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
-import {
-  WorkScheduleSchema,
-  EmployeeWorkScheduleSchema,
-} from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import { WorkScheduleSchema } from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import { EmployeeWorkScheduleSchema } from '../../infrastructure/persistence/typeorm/employee-work-schedule.schema';
 import {
   TypeOrmWorkScheduleRepository,
   TypeOrmEmployeeWorkScheduleRepository,

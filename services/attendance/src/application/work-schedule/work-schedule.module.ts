@@ -1,9 +1,7 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import {
-  WorkScheduleSchema,
-  EmployeeWorkScheduleSchema,
-} from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import { WorkScheduleSchema } from '../../infrastructure/persistence/typeorm/work-schedule.schema';
+import { EmployeeWorkScheduleSchema } from '../../infrastructure/persistence/typeorm/employee-work-schedule.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
 import { WorkScheduleController } from '../../presentation/controllers/work-schedule.controller';
 import { CreateWorkScheduleUseCase } from '../use-cases/work-schedule/create-work-schedule.use-case';

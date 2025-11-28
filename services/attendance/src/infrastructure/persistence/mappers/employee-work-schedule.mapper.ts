@@ -1,5 +1,5 @@
 import { EmployeeWorkSchedule } from '../../../domain/entities/employee-work-schedule.entity';
-import { EmployeeWorkScheduleSchema } from '../typeorm/work-schedule.schema';
+import { EmployeeWorkScheduleSchema } from '../typeorm/employee-work-schedule.schema';
 
 export class EmployeeWorkScheduleMapper {
   static toDomain(schema: EmployeeWorkScheduleSchema): EmployeeWorkSchedule {
