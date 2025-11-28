@@ -89,6 +89,13 @@ export class ValidateEmployeeLocationUseCase {
         roundNumber: 1, // Client webhook = round 1
         imageUrl: '', // No image from GPS webhook
         location: { latitude, longitude },
+        validation: {
+          is_valid: validation.is_valid,
+          distance_from_office_meters: validation.distance_from_office_meters,
+          location_accuracy: location_accuracy,
+          validation_status: validation.is_valid ? 'VALID' : 'OUT_OF_RANGE',
+          validation_reason: validation.message,
+        },
       });
       this.logger.debug(
         `Persisted presence verification round for employee ${employeeId}`,

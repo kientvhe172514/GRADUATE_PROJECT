@@ -22,6 +22,13 @@ export class CapturePresenceVerificationUseCase {
     roundNumber: number;
     imageUrl: string;
     location: { latitude: number; longitude: number };
+    validation?: {
+      is_valid: boolean;
+      distance_from_office_meters: number;
+      location_accuracy?: number;
+      validation_status: 'VALID' | 'INVALID' | 'OUT_OF_RANGE' | 'SUSPICIOUS';
+      validation_reason?: string;
+    };
   }): Promise<PresenceVerificationRoundEntity> {
     this.logger.log(
       `Capturing presence verification for employee ${data.employeeId}, shift ${data.shiftId}, round ${data.roundNumber}`,
@@ -34,11 +41,16 @@ export class CapturePresenceVerificationUseCase {
       captured_at: new Date(),
       latitude: data.location.latitude,
       longitude: data.location.longitude,
-      is_valid: true,
-      validation_status: 'VALID',
+      // Use validation data if provided, otherwise default to valid
+      is_valid: data.validation?.is_valid ?? true,
+      validation_status: data.validation?.validation_status ?? 'VALID',
+      distance_from_office_meters: data.validation?.distance_from_office_meters,
+      location_accuracy: data.validation?.location_accuracy,
+      validation_reason: data.validation?.validation_reason,
     });
 
-    const savedVerification = await this.verificationRepository.create(verification);
+    const savedVerification =
+      await this.verificationRepository.create(verification);
 
     // ✅ FIX: Cập nhật counter trong employee_shifts table
     try {
