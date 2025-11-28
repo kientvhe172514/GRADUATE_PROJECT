@@ -8,9 +8,10 @@ export class EmployeeWorkScheduleMapper {
       employee_id: schema.employee_id,
       work_schedule_id: schema.work_schedule_id,
       effective_from: schema.effective_from,
-      effective_to: schema.effective_to,
+      // Map nullable DB columns to undefined to satisfy domain typings
+      effective_to: schema.effective_to ?? undefined,
       created_at: schema.created_at,
-      created_by: schema.created_by,
+      created_by: schema.created_by ?? undefined,
     });
   }
 
