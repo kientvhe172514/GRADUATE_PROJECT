@@ -11,6 +11,7 @@ import {
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { GpsCheckCalculatorService } from './gps-check-calculator.service';
 import { EmployeeShift, ShiftType } from '../../domain/entities/employee-shift.entity';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 export interface GenerateShiftsOptions {
   employeeId?: number; // Nếu null → generate cho tất cả employees
@@ -48,6 +49,7 @@ export class ShiftGeneratorService {
     private readonly employeeShiftRepository: EmployeeShiftRepository,
     private readonly gpsCheckCalculator: GpsCheckCalculatorService,
     private readonly dataSource: DataSource,
+    private readonly employeeServiceClient: EmployeeServiceClient,
   ) {}
 
   /**
@@ -205,7 +207,21 @@ export class ShiftGeneratorService {
         }
       }
 
-      // Step 4: Tính GPS checks required
+      // Step 4: Fetch employee info from Employee Service
+      const employeeInfo = await this.employeeServiceClient.getEmployeeById(
+        assignment.employee_id,
+      );
+
+      if (!employeeInfo || !employeeInfo.department_id) {
+        this.logger.warn(
+          `⚠️ Employee ${assignment.employee_id} not found or missing department, skipping shift generation`,
+        );
+        skipped++;
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+
+      // Step 5: Tính GPS checks required
       const gpsChecksRequired =
         await this.gpsCheckCalculator.calculateRequiredChecks(
           'REGULAR',
@@ -213,11 +229,11 @@ export class ShiftGeneratorService {
           workSchedule.end_time || '17:00:00',
         );
 
-      // Step 5: Tạo shift mới
+      // Step 6: Tạo shift mới với employee data từ Employee Service
       const newShift = await this.employeeShiftRepository.create({
         employee_id: assignment.employee_id,
-        employee_code: assignment.employee_code,
-        department_id: assignment.department_id,
+        employee_code: employeeInfo.employee_code,
+        department_id: employeeInfo.department_id,
         shift_date: new Date(currentDate),
         work_schedule_id: assignment.work_schedule_id,
         scheduled_start_time: workSchedule.start_time || '08:00',
@@ -229,7 +245,7 @@ export class ShiftGeneratorService {
 
       created++;
       this.logger.debug(
-        `✅ Created shift for employee ${assignment.employee_code} on ${currentDate.toISOString().split('T')[0]}`,
+        `✅ Created shift for employee ${employeeInfo.employee_code} on ${currentDate.toISOString().split('T')[0]}`,
       );
 
       // Move to next day
@@ -251,8 +267,6 @@ export class ShiftGeneratorService {
       SELECT 
         ews.id as assignment_id,
         ews.employee_id,
-        ews.employee_code,
-        ews.department_id,
         ews.work_schedule_id,
         ews.effective_from,
         ews.effective_to,

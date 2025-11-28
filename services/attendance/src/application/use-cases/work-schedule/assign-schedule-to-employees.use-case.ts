@@ -45,21 +45,10 @@ export class AssignScheduleToEmployeesUseCase {
       );
     }
 
-    // Fetch employee info from Employee Service (RPC call)
-    this.logger.log(`📞 Fetching info for ${dto.employee_ids.length} employees from Employee Service...`);
-    const employeeMap = await this.employeeServiceClient.getEmployeesByIds(dto.employee_ids);
-    
+    // Create assignments (no need to fetch employee info here - it's just a link)
     const assignments = dto.employee_ids.map((employeeId) => {
-      const employeeInfo = employeeMap.get(employeeId);
-      
-      if (!employeeInfo) {
-        this.logger.warn(`⚠️ Employee ${employeeId} not found in Employee Service, assigning without cached info`);
-      }
-      
       return new EmployeeWorkSchedule({
         employee_id: employeeId,
-        employee_code: employeeInfo?.employee_code || null,
-        department_id: employeeInfo?.department_id || null,
         work_schedule_id: scheduleId,
         effective_from: new Date(dto.effective_from),
         effective_to: dto.effective_to ? new Date(dto.effective_to) : undefined,

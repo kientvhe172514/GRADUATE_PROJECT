@@ -32,16 +32,16 @@ export class EmployeeServiceClient {
 
       const response = await firstValueFrom(
         this.employeeClient
-          .send('employee.get', { id: employeeId })
+          .send({ cmd: 'get_employee_by_id' }, { id: employeeId })
           .pipe(timeout(5000)),
       );
 
-      if (!response || !response.data) {
+      if (!response) {
         this.logger.warn(`⚠️ Employee not found: ${employeeId}`);
         return null;
       }
 
-      const employee = response.data;
+      const employee = response;
       this.logger.log(`✅ Employee fetched: ${employee.employee_code}`);
 
       return {
