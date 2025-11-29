@@ -192,18 +192,26 @@ export class ShiftGeneratorService {
         continue; // Không phải ngày làm việc
       }
 
-      // Check 3: Shift đã tồn tại chưa?
+      // Check 3: Shift với cùng time range đã tồn tại chưa?
+      // CRITICAL: Phải check theo time range, không phải chỉ theo date
+      // Vì 1 employee có thể có nhiều shifts trong 1 ngày (ca sáng + ca chiều)
       if (skipExisting) {
         const existingShift =
-          await this.employeeShiftRepository.findRegularShiftByEmployeeAndDate(
+          await this.employeeShiftRepository.findShiftByEmployeeDateAndTime(
             assignment.employee_id,
             new Date(currentDate),
+            workSchedule.start_time || '08:00:00',
+            workSchedule.end_time || '17:00:00',
+            'REGULAR',
           );
 
         if (existingShift) {
           skipped++;
+          this.logger.debug(
+            `⏭️ Skipped shift for employee ${assignment.employee_id} on ${currentDate.toISOString().split('T')[0]} (${workSchedule.start_time}-${workSchedule.end_time}) - already exists`,
+          );
           currentDate.setDate(currentDate.getDate() + 1);
-          continue; // Đã có shift → skip
+          continue; // Đã có shift với time range này → skip
         }
       }
 

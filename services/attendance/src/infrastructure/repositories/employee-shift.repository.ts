@@ -100,6 +100,41 @@ export class EmployeeShiftRepository {
   }
 
   /**
+   * Find shift by employee, date, and time range
+   * Used to check if a shift with same time range already exists (for multiple shifts per day)
+   * @param employeeId
+   * @param date
+   * @param startTime Format: HH:mm:ss
+   * @param endTime Format: HH:mm:ss
+   * @param shiftType 'REGULAR' or 'OVERTIME'
+   * @returns Existing shift or null
+   */
+  async findShiftByEmployeeDateAndTime(
+    employeeId: number,
+    date: Date,
+    startTime: string,
+    endTime: string,
+    shiftType: string = 'REGULAR',
+  ): Promise<EmployeeShiftSchema | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.repository
+      .createQueryBuilder('shift')
+      .where('shift.employee_id = :employeeId', { employeeId })
+      .andWhere('shift.shift_date BETWEEN :startOfDay AND :endOfDay', {
+        startOfDay,
+        endOfDay,
+      })
+      .andWhere('shift.shift_type = :shiftType', { shiftType })
+      .andWhere('shift.scheduled_start_time = :startTime', { startTime })
+      .andWhere('shift.scheduled_end_time = :endTime', { endTime })
+      .getOne();
+  }
+
+  /**
    * Find active shift at specific time (handles multiple shifts per day)
    * Logic:
    * 1. Get all shifts of employee on given date
