@@ -58,27 +58,80 @@ export class AssignScheduleToEmployeesUseCase {
       );
     }
 
-    // Validate: Check if employees already have overlapping schedules
+    // Validate: Check if employees already have overlapping schedules (time-based)
     this.logger.log(
-      `🔍 Checking for existing schedules for ${dto.employee_ids.length} employees...`,
+      `🔍 Checking for time conflicts for ${dto.employee_ids.length} employees...`,
     );
 
+    const newScheduleProps = workSchedule.toJSON();
+    const newStartTime = newScheduleProps.start_time;
+    const newEndTime = newScheduleProps.end_time;
+
     for (const employeeId of dto.employee_ids) {
-      const existingAssignment =
-        await this.employeeWorkScheduleRepository.findByEmployeeIdAndDate(
+      // Get all active assignments for this employee in the date range
+      const existingAssignments =
+        await this.employeeWorkScheduleRepository.findAssignmentsByEmployeeId(
           employeeId,
-          effectiveFromDate,
         );
 
-      if (existingAssignment) {
-        this.logger.warn(
-          `⚠️ Employee ${employeeId} already has an active schedule (ID: ${existingAssignment.work_schedule_id}) for the specified date range`,
+      // Filter to only assignments that overlap with new date range
+      const overlappingAssignments = existingAssignments.filter(
+        (assignment) => {
+          const assignProps = assignment.toJSON();
+          const assignStart = assignProps.effective_from;
+          const assignEnd = assignProps.effective_to;
+          const newStart = effectiveFromDate;
+          const newEnd = dto.effective_to ? new Date(dto.effective_to) : null;
+
+          // Check date range overlap
+          if (assignEnd && assignEnd < newStart) return false; // Assignment ends before new starts
+          if (newEnd && assignStart > newEnd) return false; // Assignment starts after new ends
+          return true; // Date ranges overlap
+        },
+      );
+
+      // For each overlapping assignment, check if work hours conflict
+      for (const existing of overlappingAssignments) {
+        const existingProps = existing.toJSON();
+        const existingSchedule = await this.workScheduleRepository.findById(
+          existingProps.work_schedule_id,
         );
-        throw new BusinessException(
-          'SCHEDULE_OVERLAP',
-          `Employee ${employeeId} already has an active work schedule from ${existingAssignment.effective_from.toISOString().split('T')[0]} to ${existingAssignment.effective_to?.toISOString().split('T')[0] || 'indefinite'}. Please remove or adjust the existing schedule first.`,
-          409,
-        );
+
+        if (existingSchedule) {
+          const existingProps = existingSchedule.toJSON();
+          const existingStartTime = existingProps.start_time;
+          const existingEndTime = existingProps.end_time;
+
+          // Check time overlap (if both schedules have fixed times)
+          if (
+            newStartTime &&
+            newEndTime &&
+            existingStartTime &&
+            existingEndTime
+          ) {
+            const hasTimeOverlap = this.checkTimeOverlap(
+              newStartTime,
+              newEndTime,
+              existingStartTime,
+              existingEndTime,
+            );
+
+            if (hasTimeOverlap) {
+              this.logger.warn(
+                `⚠️ Employee ${employeeId} has time conflict: Existing schedule ${existingProps.schedule_name} (${existingStartTime}-${existingEndTime}) overlaps with new schedule ${newScheduleProps.schedule_name} (${newStartTime}-${newEndTime})`,
+              );
+              throw new BusinessException(
+                'SCHEDULE_TIME_CONFLICT',
+                `Employee ${employeeId} already has a schedule "${existingProps.schedule_name}" (${existingStartTime}-${existingEndTime}) that conflicts with the new schedule "${newScheduleProps.schedule_name}" (${newStartTime}-${newEndTime}). Please adjust the time ranges or remove the existing schedule.`,
+                409,
+              );
+            } else {
+              this.logger.log(
+                `✅ Employee ${employeeId}: Time ranges don't conflict - ${existingStartTime}-${existingEndTime} vs ${newStartTime}-${newEndTime}`,
+              );
+            }
+          }
+        }
       }
     }
 
@@ -194,5 +247,34 @@ export class AssignScheduleToEmployeesUseCase {
     this.logger.log(
       `✅ Initial shift generation completed. Total: Created=${totalCreated}, Skipped=${totalSkipped}, Errors=${totalErrors}`,
     );
+  }
+
+  /**
+   * Check if two time ranges overlap
+   * @param start1 Start time 1 (HH:mm:ss format)
+   * @param end1 End time 1 (HH:mm:ss format)
+   * @param start2 Start time 2 (HH:mm:ss format)
+   * @param end2 End time 2 (HH:mm:ss format)
+   * @returns true if times overlap, false otherwise
+   */
+  private checkTimeOverlap(
+    start1: string,
+    end1: string,
+    start2: string,
+    end2: string,
+  ): boolean {
+    // Convert time strings to minutes for easy comparison
+    const toMinutes = (time: string): number => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const start1Min = toMinutes(start1);
+    const end1Min = toMinutes(end1);
+    const start2Min = toMinutes(start2);
+    const end2Min = toMinutes(end2);
+
+    // Check overlap: ranges overlap if start1 < end2 AND start2 < end1
+    return start1Min < end2Min && start2Min < end1Min;
   }
 }
