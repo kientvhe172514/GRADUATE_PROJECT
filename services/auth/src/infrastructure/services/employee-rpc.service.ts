@@ -57,5 +57,36 @@ export class EmployeeRpcService implements EmployeeProfileServicePort {
       return null;
     }
   }
+
+  async getManagedDepartmentIds(employeeId: number): Promise<number[]> {
+    try {
+      const response = await lastValueFrom(
+        this.employeeClient
+          .send<EmployeeRpcResponse>('employee.getManagedDepartments', { employee_id: employeeId })
+          .pipe(timeout(5000)),
+      );
+
+      if (!response || response.status !== ResponseStatus.SUCCESS || !response.data) {
+        this.logger.warn(
+          `Managed departments not available for employee_id=${employeeId}: ${response?.message}`,
+        );
+        return [];
+      }
+
+      const data = response.data as Record<string, any>;
+      return data.department_ids ?? [];
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        this.logger.error(`Timeout while fetching managed departments for employee ${employeeId}`);
+      } else {
+        const err = error as Error;
+        this.logger.error(
+          `Failed to fetch managed departments for employee ${employeeId}: ${err.message}`,
+          err.stack,
+        );
+      }
+      return [];
+    }
+  }
 }
 

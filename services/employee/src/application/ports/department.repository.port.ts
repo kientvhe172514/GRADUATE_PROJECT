@@ -12,4 +12,5 @@ export interface DepartmentRepositoryPort {
   getEmployeeCountByStatus(departmentId: number): Promise<{ status: string; count: number }[]>;
   getEmployeeCountByPosition(departmentId: number): Promise<{ position_id: number; position_name: string; count: number }[]>;
   getSubDepartmentsCount(departmentId: number): Promise<number>;
+  findByManagerId(managerId: number): Promise<Department[]>;
 }

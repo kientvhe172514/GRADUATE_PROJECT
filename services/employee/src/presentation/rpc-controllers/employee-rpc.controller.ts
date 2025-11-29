@@ -2,6 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { GetEmployeeDetailUseCase } from '../../application/use-cases/get-employee-detail.use-case';
 import { GetEmployeesUseCase } from '../../application/use-cases/get-employees.use-case';
+import { GetManagedDepartmentsUseCase } from '../../application/use-cases/get-managed-departments.use-case';
 import { ResponseStatus } from '@graduate-project/shared-common';
 
 /**
@@ -15,6 +16,7 @@ export class EmployeeRpcController {
   constructor(
     private readonly getEmployeeDetailUseCase: GetEmployeeDetailUseCase,
     private readonly getEmployeesUseCase: GetEmployeesUseCase,
+    private readonly getManagedDepartmentsUseCase: GetManagedDepartmentsUseCase,
   ) {}
 
   /**
@@ -125,6 +127,41 @@ export class EmployeeRpcController {
         statusCode: 500,
         message: `Failed to check employee: ${errorMessage}`,
         data: { exists: false },
+      };
+    }
+  }
+
+  /**
+   * RPC: Get managed department IDs for DEPARTMENT_MANAGER role
+   * Pattern: 'employee.getManagedDepartments'
+   * Payload: { employee_id: number }
+   * Response: { status, statusCode, message, data: { department_ids: number[] } }
+   */
+  @MessagePattern('employee.getManagedDepartments')
+  async getManagedDepartments(@Payload() payload: { employee_id: number }): Promise<any> {
+    this.logger.log(`🔍 [RPC] employee.getManagedDepartments - Employee ID: ${payload.employee_id}`);
+
+    try {
+      const result = await this.getManagedDepartmentsUseCase.execute({
+        employee_id: payload.employee_id,
+      });
+
+      const departmentCount = result.data?.department_ids?.length ?? 0;
+      this.logger.log(`✅ [RPC] Found ${departmentCount} managed departments`);
+      return {
+        status: result.status,
+        statusCode: result.statusCode,
+        message: result.message,
+        data: result.data,
+      };
+    } catch (error) {
+      this.logger.error(`❌ [RPC] Error fetching managed departments for employee ${payload.employee_id}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        status: ResponseStatus.ERROR,
+        statusCode: 500,
+        message: `Failed to fetch managed departments: ${errorMessage}`,
+        data: { department_ids: [] },
       };
     }
   }
