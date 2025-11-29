@@ -35,7 +35,12 @@ import { GetEmployeeShiftsUseCase } from '../../application/use-cases/employee-s
 import { GetShiftByIdUseCase } from '../../application/use-cases/employee-shift/get-shift-by-id.use-case';
 import { ManualEditShiftUseCase } from '../../application/use-cases/employee-shift/manual-edit-shift.use-case';
 import { GetEmployeeShiftCalendarUseCase } from '../../application/use-cases/employee-shift/get-employee-shift-calendar.use-case';
+import { GetMyAttendanceUseCase } from '../../application/use-cases/employee-shift/get-my-attendance.use-case';
 import { ManualEditShiftDto } from '../dtos/employee-shift-edit.dto';
+import {
+  GetMyAttendanceQueryDto,
+  GetMyAttendanceResponseDto,
+} from '../dtos/my-attendance.dto';
 
 @ApiTags('Employee Shifts')
 @ApiBearerAuth()
@@ -47,6 +52,7 @@ export class EmployeeShiftController {
     private readonly getShiftByIdUseCase: GetShiftByIdUseCase,
     private readonly manualEditShiftUseCase: ManualEditShiftUseCase,
     private readonly getEmployeeShiftCalendarUseCase: GetEmployeeShiftCalendarUseCase,
+    private readonly getMyAttendanceUseCase: GetMyAttendanceUseCase,
   ) {}
 
   @Get('calendar')
@@ -62,6 +68,28 @@ export class EmployeeShiftController {
     @Query() query: EmployeeShiftCalendarQueryDto,
   ): Promise<ApiResponseDto<EmployeeShiftCalendarResponseDto>> {
     return this.getEmployeeShiftCalendarUseCase.execute(query);
+  }
+
+  @Get('my-attendance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get my attendance with period filtering (day/week/month/year)',
+    description:
+      'Returns employee own attendance records with summary statistics. ' +
+      'Period filters: ' +
+      'DAY: Only reference_date | ' +
+      'WEEK: Monday of week → reference_date | ' +
+      'MONTH: 1st of month → reference_date | ' +
+      'YEAR: Jan 1 → reference_date. ' +
+      'Gets ALL attendance records (including weekends based on work schedule). ' +
+      'Includes pagination and attendance summary (days present, absent, late, overtime, etc.)',
+  })
+  @ApiResponse({ status: 200, type: GetMyAttendanceResponseDto })
+  async getMyAttendance(
+    @Query() query: GetMyAttendanceQueryDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<GetMyAttendanceResponseDto>> {
+    return this.getMyAttendanceUseCase.execute(query, user);
   }
 
   @Get('my')

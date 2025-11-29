@@ -10,6 +10,7 @@ import { GetEmployeeShiftsUseCase } from '../use-cases/employee-shift/get-employ
 import { GetShiftByIdUseCase } from '../use-cases/employee-shift/get-shift-by-id.use-case';
 import { ManualEditShiftUseCase } from '../use-cases/employee-shift/manual-edit-shift.use-case';
 import { GetEmployeeShiftCalendarUseCase } from '../use-cases/employee-shift/get-employee-shift-calendar.use-case';
+import { GetMyAttendanceUseCase } from '../use-cases/employee-shift/get-my-attendance.use-case';
 import { EmployeeShiftController } from '../../presentation/controllers/employee-shift.controller';
 import { AttendanceEditLogModule } from '../edit-log/edit-log.module';
 import { WorkScheduleModule } from '../work-schedule/work-schedule.module';
@@ -56,6 +57,7 @@ import { EmployeeServiceClient } from '../../infrastructure/external-services/em
     GetShiftByIdUseCase,
     ManualEditShiftUseCase,
     GetEmployeeShiftCalendarUseCase,
+    GetMyAttendanceUseCase,
     EmployeeServiceClient,
   ],
   exports: [],
