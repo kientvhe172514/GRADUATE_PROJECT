@@ -22,20 +22,22 @@ export class EmployeeCreatedHandler {
     );
 
     const dto = new CreateAccountDto();
-    dto.email = event.email;
+    dto.email = event.email; // Company email (used for login)
     dto.employee_id = event.id;
     dto.employee_code = event.employee_code;
     dto.full_name = event.full_name;
+    dto.personal_email = event.personal_email; // Personal email (used for sending credentials)
     dto.suggested_role = event.suggested_role || 'EMPLOYEE'; // Pass role from position
 
-    // Use personal_email if provided, otherwise use company email
-    // Personal email is used to send account credentials
+    // Log which email will receive the credentials
     if (event.personal_email) {
       console.log(
-        `📧 Will send credentials to personal email: ${event.personal_email}`,
+        `📧 Credentials will be sent to personal email: ${event.personal_email}`,
       );
-      // TODO: Store personal_email for future email sending
-      // For now, account creation uses company email as login username
+    } else {
+      console.log(
+        `📧 Credentials will be sent to company email: ${event.email}`,
+      );
     }
 
     await this.createAccountUseCase.execute(dto);

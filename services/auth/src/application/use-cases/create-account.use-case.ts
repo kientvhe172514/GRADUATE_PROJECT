@@ -4,7 +4,11 @@ import { CreateAccountResponseDto } from '../dto/create-account-response.dto';
 import { Account } from '../../domain/entities/account.entity';
 import { AccountType } from '../../domain/value-objects/account-type.vo';
 import { AccountStatus } from '../../domain/value-objects/account-status.vo';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
@@ -34,22 +38,32 @@ export class CreateAccountUseCase {
     private tempPasswordsRepo: TemporaryPasswordsRepositoryPort,
   ) {}
 
-  async execute(dto: CreateAccountDto): Promise<ApiResponseDto<CreateAccountResponseDto>> {
+  async execute(
+    dto: CreateAccountDto,
+  ): Promise<ApiResponseDto<CreateAccountResponseDto>> {
     const existing = await this.accountRepo.findByEmail(dto.email);
     if (existing) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account already exists');
+      throw new BusinessException(
+        ErrorCodes.ACCOUNT_ALREADY_EXISTS,
+        'Account already exists',
+      );
     }
 
     // Use custom password if provided, otherwise use temporary password "1"
     const tempPass = dto.password || '1';
     const isCustomPassword = !!dto.password;
     const tempPasswordHash = await this.hashing.hash(tempPass);
-    
+
     // Determine role from suggested_role or default to EMPLOYEE
     // Only 4 roles are allowed: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE
     let roleCode = dto.suggested_role?.toUpperCase() || 'EMPLOYEE';
-    const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
-    
+    const validRoles = [
+      'ADMIN',
+      'HR_MANAGER',
+      'DEPARTMENT_MANAGER',
+      'EMPLOYEE',
+    ];
+
     if (!validRoles.includes(roleCode)) {
       console.warn(`⚠️ Invalid role "${roleCode}", defaulting to EMPLOYEE`);
       roleCode = 'EMPLOYEE';
@@ -58,7 +72,9 @@ export class CreateAccountUseCase {
     // Lookup role_id from roles table using role code
     let role = await this.roleRepo.findByCode(roleCode);
     if (!role) {
-      console.error(`❌ Role "${roleCode}" not found in roles table, defaulting to EMPLOYEE`);
+      console.error(
+        `❌ Role "${roleCode}" not found in roles table, defaulting to EMPLOYEE`,
+      );
       const employeeRole = await this.roleRepo.findByCode('EMPLOYEE');
       if (!employeeRole) {
         throw new BusinessException(
@@ -71,7 +87,9 @@ export class CreateAccountUseCase {
       roleCode = 'EMPLOYEE';
     }
 
-    console.log(`🔐 Creating account with role_id: ${role.id} (${roleCode}), custom password: ${isCustomPassword}`);
+    console.log(
+      `🔐 Creating account with role_id: ${role.id} (${roleCode}), custom password: ${isCustomPassword}`,
+    );
     console.log('📝 [DEBUG] CreateAccountDto data:', {
       email: dto.email,
       employee_id: dto.employee_id,
@@ -110,7 +128,10 @@ export class CreateAccountUseCase {
         created_at: new Date(),
       };
       await this.tempPasswordsRepo.create(tempPasswordEntity as any);
-      console.log('✅ Created temporary password record for account:', savedAccount.id);
+      console.log(
+        '✅ Created temporary password record for account:',
+        savedAccount.id,
+      );
     }
 
     // Publish account_created event for employee service (backward compatibility)
@@ -126,14 +147,21 @@ export class CreateAccountUseCase {
     // Only publish notification event if using temporary password
     // (Custom password = manual creation, no need to send email)
     if (!isCustomPassword) {
+      // Use personal_email if provided, otherwise use company email
+      const emailToSend = dto.personal_email || savedAccount.email;
       const userRegisteredEvent = {
         userId: savedAccount.id!,
-        email: savedAccount.email,
+        email: emailToSend, // Send credentials to this email (personal or company)
+        companyEmail: savedAccount.email, // Username for login
         fullName: dto.full_name,
         tempPassword: tempPass,
         timestamp: new Date().toISOString(),
       };
-      console.log('Publishing auth.user-registered with data:', userRegisteredEvent);
+      console.log(
+        `📧 Publishing auth.user-registered to ${emailToSend} (${dto.personal_email ? 'personal' : 'company'} email)`,
+      );
+      console.log('📧 Login username (company email):', savedAccount.email);
+      console.log('Event data:', userRegisteredEvent);
       this.publisher.publish('auth.user-registered', userRegisteredEvent);
     } else {
       console.log('⏭️  Skipping notification email (custom password provided)');
@@ -148,11 +176,13 @@ export class CreateAccountUseCase {
     };
 
     return ApiResponseDto.success(
-      response, 
-      isCustomPassword ? 'Account created successfully' : 'Account created with temporary password', 
-      201, 
-      undefined, 
-      'ACCOUNT_CREATED'
+      response,
+      isCustomPassword
+        ? 'Account created successfully'
+        : 'Account created with temporary password',
+      201,
+      undefined,
+      'ACCOUNT_CREATED',
     );
   }
 }

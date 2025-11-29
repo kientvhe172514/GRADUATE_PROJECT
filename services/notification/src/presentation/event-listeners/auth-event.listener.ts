@@ -17,10 +17,19 @@ export class AuthEventListener {
   @EventPattern('auth.user-registered')
   async handleUserRegistered(@Payload() event: any): Promise<void> {
     console.log('📬 [AuthEventListener] Received auth.user-registered:', event);
+    console.log(`📧 Sending credentials to: ${event.email}`);
+    console.log(
+      `🔐 Login username (company email): ${event.companyEmail || event.email}`,
+    );
     try {
+      // Use companyEmail as username if provided, otherwise use email
+      const loginUsername = event.companyEmail || event.email;
+      const isPersonalEmail =
+        event.companyEmail && event.companyEmail !== event.email;
+
       const dto: SendNotificationDto = {
         recipientId: event.userId,
-        recipientEmail: event.email,
+        recipientEmail: event.email, // Send to this email (personal or company)
         recipientName: event.fullName,
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.HIGH,
@@ -30,40 +39,63 @@ export class AuthEventListener {
           '',
           'Your account has been created successfully!',
           '',
+          isPersonalEmail
+            ? `📬 This email is sent to your personal email: ${event.email}`
+            : '',
+          isPersonalEmail
+            ? `⚠️ Please use your COMPANY EMAIL to login, not this personal email!`
+            : '',
+          isPersonalEmail ? '' : '',
           'Please use the following credentials to log in:',
           '',
-          `📧 Email: ${event.email}`,
+          `📧 Username (Company Email): ${loginUsername}`,
           `🔑 Temporary Password: ${event.tempPassword}`,
           '',
-          '⚠️ IMPORTANT: Please change your password immediately after first login.',
+          '⚠️ IMPORTANT SECURITY NOTICE:',
+          '• This is a temporary password',
+          '• You MUST change it immediately after first login',
+          '• Do not share this password with anyone',
+          '• Delete this email after changing your password',
           '',
-          'To change your password:',
-          '1. Login with the temporary password',
-          '2. Go to Profile Settings',
-          '3. Select "Change Password"',
-          '4. Enter your new secure password',
+          'To login and change your password:',
+          '1. Go to the login page',
+          `2. Enter username: ${loginUsername}`,
+          `3. Enter the temporary password above`,
+          '4. You will be prompted to create a new password',
+          '5. Choose a strong, unique password',
           '',
           'Best regards,',
-          'Zentry HR System'
-        ].join('\n'),
-        channels: [ChannelType.IN_APP, ChannelType.EMAIL],
+          'Zentry HR System',
+        ]
+          .filter((line) => line !== '')
+          .join('\n'), // Remove empty strings
+        channels: [ChannelType.EMAIL],
         metadata: {
           eventType: 'auth.user-registered',
-          email: event.email,
+          recipientEmail: event.email,
+          loginUsername: loginUsername,
           registrationDate: event.timestamp,
         },
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] User registration notification sent successfully to:', event.email);
+      console.log(
+        `✅ [AuthEventListener] User registration notification sent successfully to: ${event.email}`,
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.user-registered:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.user-registered:',
+        error,
+      );
     }
   }
 
   @EventPattern('auth.password-changed')
   async handlePasswordChanged(@Payload() event: any): Promise<void> {
-    console.log('📬 [AuthEventListener] Received auth.password-changed:', event);
+    console.log(
+      '📬 [AuthEventListener] Received auth.password-changed:',
+      event,
+    );
     try {
       const dto: SendNotificationDto = {
         recipientId: event.userId,
@@ -80,62 +112,79 @@ export class AuthEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Password change notification sent successfully');
+      console.log(
+        '✅ [AuthEventListener] Password change notification sent successfully',
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.password-changed:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.password-changed:',
+        error,
+      );
     }
   }
 
-  @EventPattern('auth.password-reset-requested')
-  async handlePasswordResetRequested(@Payload() event: any): Promise<void> {
-    console.log('📬 [AuthEventListener] Received auth.password-reset-requested:', event);
+  @EventPattern('auth.password-reset')
+  async handlePasswordReset(@Payload() event: any): Promise<void> {
+    console.log('📬 [AuthEventListener] Received auth.password-reset:', event);
     try {
       // Debug log để kiểm tra email
-      console.log('📧 [AuthEventListener] Sending reset email to:', event.email);
+      console.log(
+        '📧 [AuthEventListener] Sending new password email to:',
+        event.email,
+      );
       console.log('📧 [AuthEventListener] Account ID:', event.account_id);
-      console.log('📧 [AuthEventListener] Reset token:', event.reset_token);
+      console.log('📧 [AuthEventListener] New temporary password provided');
 
       const dto: SendNotificationDto = {
         recipientId: event.account_id,
-        recipientEmail: event.email, // Đảm bảo email đúng
+        recipientEmail: event.email,
         recipientName: event.full_name || 'User',
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.URGENT,
-        title: '🔑 Password Reset Request',
+        title: '🔑 Your New Password',
         message: [
           `Hello ${event.full_name || 'User'},`,
           '',
-          'A password reset has been requested for your account.',
+          'Your password has been successfully reset.',
           '',
-          'Please use the following information to reset your password:',
+          'Your new temporary password is:',
           '',
-          `📧 Email: ${event.email}`,
-          `🔑 Reset Token: ${event.reset_token}`,
-          `⏰ Valid until: ${new Date(event.expires_at).toLocaleString()}`,
+          `� Password: ${event.new_password}`,
           '',
-          'To reset your password, please:',
-          '1. Go to the password reset page',
-          '2. Enter your email and the reset token above',
-          '3. Enter your new password',
+          '⚠️ IMPORTANT SECURITY NOTICE:',
+          '• This is a temporary password',
+          '• You will be required to change it on your next login',
+          '• Do not share this password with anyone',
+          '• Delete this email after changing your password',
           '',
-          'If you didn\'t request this, please ignore this email and contact support if needed.',
+          'To login:',
+          '1. Use your email and the password above',
+          '2. You will be prompted to create a new password',
+          '3. Choose a strong, unique password',
+          '',
+          "If you didn't request this password reset, please contact support immediately.",
           '',
           'Best regards,',
-          'Zentry HR System'
+          'Zentry HR System',
         ].join('\n'),
         channels: [ChannelType.EMAIL],
         metadata: {
-          eventType: 'auth.password-reset-requested',
-          resetToken: event.reset_token,
-          expiresAt: event.expires_at,
+          eventType: 'auth.password-reset',
           email: event.email,
+          temporaryPassword: true,
         },
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Password reset request notification sent successfully to:', event.email);
+      console.log(
+        '✅ [AuthEventListener] New password notification sent successfully to:',
+        event.email,
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.password-reset-requested:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.password-reset:',
+        error,
+      );
     }
   }
 
@@ -159,15 +208,23 @@ export class AuthEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Login success notification sent successfully');
+      console.log(
+        '✅ [AuthEventListener] Login success notification sent successfully',
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.login-success:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.login-success:',
+        error,
+      );
     }
   }
 
   @EventPattern('auth.suspicious-login')
   async handleSuspiciousLogin(@Payload() event: any): Promise<void> {
-    console.log('📬 [AuthEventListener] Received auth.suspicious-login:', event);
+    console.log(
+      '📬 [AuthEventListener] Received auth.suspicious-login:',
+      event,
+    );
     try {
       const dto: SendNotificationDto = {
         recipientId: event.userId,
@@ -185,9 +242,14 @@ export class AuthEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Suspicious login notification sent successfully');
+      console.log(
+        '✅ [AuthEventListener] Suspicious login notification sent successfully',
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.suspicious-login:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.suspicious-login:',
+        error,
+      );
     }
   }
 
@@ -210,11 +272,14 @@ export class AuthEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log('✅ [AuthEventListener] Account locked notification sent successfully');
+      console.log(
+        '✅ [AuthEventListener] Account locked notification sent successfully',
+      );
     } catch (error) {
-      console.error('❌ [AuthEventListener] Error handling auth.account-locked:', error);
+      console.error(
+        '❌ [AuthEventListener] Error handling auth.account-locked:',
+        error,
+      );
     }
   }
 }
-
-

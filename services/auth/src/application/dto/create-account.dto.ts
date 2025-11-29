@@ -34,6 +34,16 @@ export class CreateAccountDto {
   @IsNotEmpty()
   full_name: string;
 
+  @ApiProperty({
+    required: false,
+    example: 'nguyenvana.personal@gmail.com',
+    description:
+      'Personal email to send account credentials (if different from company email)',
+  })
+  @IsEmail()
+  @IsOptional()
+  personal_email?: string;
+
   @ApiProperty({ required: false })
   @IsNumber()
   @IsOptional()
