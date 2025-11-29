@@ -93,6 +93,9 @@ export class AssignScheduleToEmployeesUseCase {
       // For each overlapping assignment, check if work hours conflict
       for (const existing of overlappingAssignments) {
         const existingProps = existing.toJSON();
+        // Allow assigning the same schedule again if time ranges do not overlap.
+        // We only block when time ranges overlap regardless of schedule id.
+
         const existingSchedule = await this.workScheduleRepository.findById(
           existingProps.work_schedule_id,
         );
