@@ -48,6 +48,8 @@ import { GetDepartmentStatisticsUseCase } from './use-cases/get-department-stati
 import { GetEmployeeAssignmentDetailsUseCase } from './use-cases/get-employee-assignment-details.use-case';
 import { GetManagersUseCase } from './use-cases/get-managers.use-case';
 import { GetManagedDepartmentsUseCase } from './use-cases/get-managed-departments.use-case';
+import { AssignManagerToDepartmentUseCase } from './use-cases/assign-manager-to-department.use-case';
+import { UnassignManagerFromDepartmentUseCase } from './use-cases/unassign-manager-from-department.use-case';
 
 @Module({
   imports: [
@@ -108,6 +110,8 @@ import { GetManagedDepartmentsUseCase } from './use-cases/get-managed-department
     GetEmployeeAssignmentDetailsUseCase,
     GetManagersUseCase,
     GetManagedDepartmentsUseCase,
+    AssignManagerToDepartmentUseCase,
+    UnassignManagerFromDepartmentUseCase,
 
     // Infrastructure
     RabbitMQEventSubscriber,

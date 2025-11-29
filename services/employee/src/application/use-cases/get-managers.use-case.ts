@@ -1,59 +1,28 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { EmployeeRepositoryPort } from '../ports/employee.repository.port';
-import { EMPLOYEE_REPOSITORY } from '../tokens';
+import { DepartmentRepositoryPort } from '../ports/department.repository.port';
+import { EMPLOYEE_REPOSITORY, DEPARTMENT_REPOSITORY } from '../tokens';
 import { 
   ListManagersDto, 
   ListManagersResponseDto, 
   ManagerSummaryDto 
 } from '../dto/employee/manager-list.dto';
-import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class GetManagersUseCase {
   constructor(
     @Inject(EMPLOYEE_REPOSITORY)
     private employeeRepository: EmployeeRepositoryPort,
-    @Inject('IAM_SERVICE')
-    private iamClient: ClientProxy,
+    @Inject(DEPARTMENT_REPOSITORY)
+    private departmentRepository: DepartmentRepositoryPort,
   ) {}
 
   async execute(dto: ListManagersDto): Promise<ApiResponseDto<ListManagersResponseDto>> {
-    // Step 1: Request accounts with role_id = 3 from Auth service
-    let managerAccountIds: number[] = [];
-    
-    try {
-      const response = await firstValueFrom(
-        this.iamClient.send('get_accounts_by_role', { role_id: 3 })
-      );
-      managerAccountIds = response?.account_ids || [];
-      
-      if (managerAccountIds.length === 0) {
-        // No managers found in Auth service
-        return ApiResponseDto.success(
-          { managers: [], total: 0 },
-          'No managers found',
-          200,
-          undefined,
-          'MANAGERS_RETRIEVED'
-        );
-      }
-    } catch (error) {
-      console.error('Error fetching accounts from Auth service:', error);
-      // Fallback: return empty if Auth service is unavailable
-      return ApiResponseDto.success(
-        { managers: [], total: 0 },
-        'Auth service unavailable',
-        200,
-        undefined,
-        'MANAGERS_RETRIEVED'
-      );
-    }
-
-    // Step 2: Get employees matching those account_ids
+    // Step 1: Get all employees with position_id = 3 (Manager position)
     const searchCriteria: any = {
       status: 'ACTIVE',
+      position_id: 3, // Manager position
       search: dto.search,
       limit: 1000,
       offset: 0,
@@ -61,22 +30,30 @@ export class GetManagersUseCase {
       sortOrder: 'ASC',
     };
 
-    // Add filters if provided
+    // Add additional filters if provided
     if (dto.department_id !== undefined && dto.department_id !== null) {
       searchCriteria.department_id = dto.department_id;
     }
 
-    if (dto.position_id !== undefined && dto.position_id !== null) {
-      searchCriteria.position_id = dto.position_id;
-    }
+    const { employees } = await this.employeeRepository.findWithPagination(searchCriteria);
 
-    const { employees, total } = await this.employeeRepository.findWithPagination(searchCriteria);
+    // Step 2: Get all departments to find already assigned manager_ids
+    const { departments } = await this.departmentRepository.findWithPagination({
+      status: 'ACTIVE',
+      limit: 1000,
+      offset: 0,
+    });
 
-    // Step 3: Filter employees by account_ids from Auth service
+    // Extract unique assigned manager_ids from departments
+    const assignedManagerIds = new Set(
+      departments
+        .filter((dept) => dept.manager_id)
+        .map((dept) => dept.manager_id!)
+    );
+
+    // Step 3: Filter out employees who are already assigned as department managers
     const managers: ManagerSummaryDto[] = employees
-      .filter((employee: any) => {
-        return employee.account_id && managerAccountIds.includes(employee.account_id);
-      })
+      .filter((employee: any) => !assignedManagerIds.has(employee.id))
       .map((employee: any) => ({
         id: employee.id!,
         employee_code: employee.employee_code,

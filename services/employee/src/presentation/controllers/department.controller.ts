@@ -15,6 +15,8 @@ import { GetDepartmentStatisticsUseCase } from '../../application/use-cases/get-
 import { ValidatePositionBelongsToDepartmentUseCase } from '../../application/use-cases/validate-position-belongs-to-department.use-case';
 import { ValidatePositionDepartmentDto, ValidatePositionDepartmentResponseDto } from '../../application/dto/position/validate-position-department.dto';
 import { DepartmentStatisticsDto } from '../../application/dto/department/department-statistics.dto';
+import { AssignManagerToDepartmentUseCase, AssignManagerToDepartmentDto } from '../../application/use-cases/assign-manager-to-department.use-case';
+import { UnassignManagerFromDepartmentUseCase } from '../../application/use-cases/unassign-manager-from-department.use-case';
 
 @ApiTags('departments')
 @ApiBearerAuth('bearer')
@@ -28,6 +30,8 @@ export class DepartmentController {
     private readonly deleteDepartmentUseCase: DeleteDepartmentUseCase,
     private readonly getDepartmentStatisticsUseCase: GetDepartmentStatisticsUseCase,
     private readonly validatePositionBelongsToDepartmentUseCase: ValidatePositionBelongsToDepartmentUseCase,
+    private readonly assignManagerToDepartmentUseCase: AssignManagerToDepartmentUseCase,
+    private readonly unassignManagerFromDepartmentUseCase: UnassignManagerFromDepartmentUseCase,
   ) {}
 
   @Get()
@@ -112,5 +116,33 @@ export class DepartmentController {
     @Body() dto: ValidatePositionDepartmentDto,
   ): Promise<ApiResponseDto<ValidatePositionDepartmentResponseDto>> {
     return this.validatePositionBelongsToDepartmentUseCase.execute(dto);
+  }
+
+  @Post(':id/assign-manager')
+  @Permissions('department.assign_manager')
+  @ApiOperation({ summary: 'Assign manager to department' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Department ID' })
+  @ApiBody({ type: AssignManagerToDepartmentDto })
+  @ApiResponse({ status: 200, description: 'Manager assigned to department successfully' })
+  @ApiResponse({ status: 404, description: 'Department or employee not found' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  async assignManager(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignManagerToDepartmentDto,
+  ): Promise<ApiResponseDto<DepartmentDetailDto>> {
+    return this.assignManagerToDepartmentUseCase.execute(id, dto);
+  }
+
+  @Post(':id/unassign-manager')
+  @Permissions('department.unassign_manager')
+  @ApiOperation({ summary: 'Unassign manager from department' })
+  @ApiParam({ name: 'id', type: 'number', description: 'Department ID' })
+  @ApiResponse({ status: 200, description: 'Manager unassigned from department successfully' })
+  @ApiResponse({ status: 404, description: 'Department not found' })
+  @ApiResponse({ status: 400, description: 'Department does not have a manager assigned' })
+  async unassignManager(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<DepartmentDetailDto>> {
+    return this.unassignManagerFromDepartmentUseCase.execute(id);
   }
 }
