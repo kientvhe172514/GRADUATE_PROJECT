@@ -11,6 +11,7 @@ import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.r
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { JwtServicePort } from '../ports/jwt.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
+import { EmployeeProfileServicePort } from '../ports/employee-profile.service.port';
 import {
   ACCOUNT_REPOSITORY,
   HASHING_SERVICE,
@@ -19,6 +20,7 @@ import {
   JWT_SERVICE,
   AUDIT_LOGS_REPOSITORY,
   TEMPORARY_PASSWORDS_REPOSITORY,
+  EMPLOYEE_PROFILE_SERVICE,
 } from '../tokens';
 import { UserLoggedInEvent } from '../../domain/events/user-logged-in.event';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
@@ -55,6 +57,8 @@ export class LoginUseCase {
     private publisher: EventPublisherPort,
     @Inject(AUDIT_LOGS_REPOSITORY)
     private auditLogsRepo: AuditLogsRepositoryPort,
+    @Inject(EMPLOYEE_PROFILE_SERVICE)
+    private readonly employeeProfileService: EmployeeProfileServicePort,
     private createDeviceSessionUseCase: CreateDeviceSessionUseCase,
     private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
@@ -182,8 +186,20 @@ export class LoginUseCase {
       // Continue login even if device tracking fails
     }
 
-    // Generate tokens
-    const accessToken = await this.jwtService.generateAccessToken(account);
+    // ✅ ENRICH TOKEN: Get managed department IDs for DEPARTMENT_MANAGER role (role_id=3)
+    let managedDepartmentIds: number[] = [];
+    if (account.employee_id && (account.role === 'DEPARTMENT_MANAGER' || account.role_id === 3)) {
+      try {
+        managedDepartmentIds = await this.employeeProfileService.getManagedDepartmentIds(account.employee_id);
+        console.log(`🔍 [JWT ENRICHMENT] Employee ${account.employee_id} manages ${managedDepartmentIds.length} departments: [${managedDepartmentIds.join(', ')}]`);
+      } catch (error) {
+        console.error('Failed to fetch managed departments, continuing without enrichment:', error);
+        // Continue login even if department fetch fails
+      }
+    }
+
+    // Generate tokens with managed department IDs
+    const accessToken = await this.jwtService.generateAccessToken(account, managedDepartmentIds);
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
     // Create refresh token record
@@ -231,6 +247,7 @@ export class LoginUseCase {
       full_name: account.full_name || '',
       role: account.role || '',
       employee_id: account.employee_id ?? undefined,
+      managed_department_ids: managedDepartmentIds.length > 0 ? managedDepartmentIds : undefined,
     };
 
     // Build LoginResponseDto

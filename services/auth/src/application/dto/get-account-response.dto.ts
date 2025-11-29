@@ -59,5 +59,25 @@ export class GetAccountResponseDto {
     description: 'Last update timestamp' 
   })
   updated_at?: Date;
+
+  @ApiProperty({
+    example: '+84 901234567',
+    description: 'Phone number synced from Employee Service',
+    required: false,
+  })
+  phone?: string | null;
+
+  @ApiProperty({
+    description: 'Structured address synced from Employee Service',
+    required: false,
+  })
+  address?: Record<string, any> | null;
+
+  @ApiProperty({
+    example: '1995-05-10',
+    description: 'Date of birth synced from Employee Service',
+    required: false,
+  })
+  dateOfBirth?: string | Date | null;
 }
 

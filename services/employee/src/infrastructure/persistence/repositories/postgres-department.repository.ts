@@ -165,4 +165,14 @@ export class PostgresDepartmentRepository implements DepartmentRepositoryPort {
     );
     return parseInt(result[0]?.total || '0', 10);
   }
+
+  async findByManagerId(managerId: number): Promise<Department[]> {
+    const entities = await this.repository.find({
+      where: {
+        manager_id: managerId,
+        status: 'ACTIVE',
+      },
+    });
+    return entities.map(DepartmentMapper.toDomain);
+  }
 }

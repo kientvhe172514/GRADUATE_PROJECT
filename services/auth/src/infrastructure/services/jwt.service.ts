@@ -14,17 +14,23 @@ export class JwtServiceImpl implements JwtServicePort {
     private roleRepository: RoleRepositoryPort,
   ) {}
 
-  async generateAccessToken(account: Account): Promise<string> {
+  async generateAccessToken(account: Account, managedDepartmentIds?: number[]): Promise<string> {
     const permissions =
       await this.roleRepository.getPermissionsByRoleCode(account.role || '');
-    // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
-    const payload = {
+    // ✅ 6 FIELDS: sub, email, employee_id, role, permissions, managed_department_ids
+    const payload: any = {
       sub: account.id,
       email: account.email,
       employee_id: account.employee_id,
       role: account.role || '',
       permissions: permissions,
     };
+
+    // Add managed_department_ids for DEPARTMENT_MANAGER role (role_id=3)
+    if (managedDepartmentIds && managedDepartmentIds.length > 0) {
+      payload.managed_department_ids = managedDepartmentIds;
+    }
+
     return this.jwtService.sign(payload, { expiresIn: '15m' }); // 15 minutes
   }
 

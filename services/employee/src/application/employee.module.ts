@@ -47,6 +47,7 @@ import { ValidatePositionBelongsToDepartmentUseCase } from './use-cases/validate
 import { GetDepartmentStatisticsUseCase } from './use-cases/get-department-statistics.use-case';
 import { GetEmployeeAssignmentDetailsUseCase } from './use-cases/get-employee-assignment-details.use-case';
 import { GetManagersUseCase } from './use-cases/get-managers.use-case';
+import { GetManagedDepartmentsUseCase } from './use-cases/get-managed-departments.use-case';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { GetManagersUseCase } from './use-cases/get-managers.use-case';
     GetDepartmentStatisticsUseCase,
     GetEmployeeAssignmentDetailsUseCase,
     GetManagersUseCase,
+    GetManagedDepartmentsUseCase,
 
     // Infrastructure
     RabbitMQEventSubscriber,

@@ -4,11 +4,12 @@ export interface JwtPayload {
   iat?: number;
   exp?: number;
   
-  // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
+  // ✅ 6 FIELDS: sub, email, employee_id, role, permissions, managed_department_ids
   email: string;
   employee_id?: number;
   role: string; // Primary role code
   permissions: string[]; // Array of permission codes
+  managed_department_ids?: number[]; // Department IDs managed by DEPARTMENT_MANAGER (role_id=3)
 }
 
 export interface RefreshTokenPayload {
