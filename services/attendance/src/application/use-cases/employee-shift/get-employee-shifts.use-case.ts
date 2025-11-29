@@ -7,7 +7,6 @@ import {
   EmployeeShiftDto,
 } from '../../dtos/employee-shift.dto';
 import { JwtPayload } from '@graduate-project/shared-common';
-import { ShiftStatus } from '../../../domain/entities/employee-shift.entity';
 
 @Injectable()
 export class GetEmployeeShiftsUseCase {
@@ -18,15 +17,17 @@ export class GetEmployeeShiftsUseCase {
 
   async execute(
     filter: EmployeeShiftFilterDto,
-    currentUser: JwtPayload,
+    _currentUser: JwtPayload,
   ): Promise<ApiResponseDto<{ data: EmployeeShiftDto[]; total: number }>> {
+    // Intentionally unused: retained for compatibility with existing call sites
+    void _currentUser;
     const from = new Date(filter.from_date);
     const to = new Date(filter.to_date);
 
     const allShifts = await this.shiftRepository.findByDateRange(from, to);
 
-    // Determine effective employee_id: if not provided, use current user's employee_id
-    const effectiveEmployeeId = filter.employee_id ?? currentUser.employee_id;
+    // Determine effective employee_id: only filter by employee if explicitly provided in filter
+    const effectiveEmployeeId = filter.employee_id;
 
     const filtered = allShifts.filter((shift) => {
       const props = shift.get_props();
