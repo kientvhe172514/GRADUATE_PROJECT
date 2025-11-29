@@ -69,8 +69,32 @@ export class PostgresNotificationRepository
   }
 
   async update(notification: Notification): Promise<Notification> {
+    if (!notification.id) {
+      throw new Error('Cannot update notification without ID');
+    }
+
     const schema = NotificationMapper.toPersistence(notification);
-    const updated = await this.repository.save(schema);
+    
+    // Use update() instead of save() to prevent creating duplicates
+    await this.repository.update(notification.id, {
+      is_read: schema.is_read,
+      read_at: schema.read_at,
+      email_sent: schema.email_sent,
+      email_sent_at: schema.email_sent_at,
+      push_sent: schema.push_sent,
+      push_sent_at: schema.push_sent_at,
+      sms_sent: schema.sms_sent,
+      sms_sent_at: schema.sms_sent_at,
+    });
+
+    const updated = await this.repository.findOne({
+      where: { id: notification.id },
+    });
+    
+    if (!updated) {
+      throw new Error(`Notification ${notification.id} not found after update`);
+    }
+    
     return NotificationMapper.toDomain(updated);
   }
 

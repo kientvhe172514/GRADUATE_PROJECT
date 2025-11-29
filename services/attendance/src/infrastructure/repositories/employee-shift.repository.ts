@@ -197,6 +197,26 @@ export class EmployeeShiftRepository {
     });
   }
 
+  /**
+   * Find shifts for a specific employee in a date range
+   */
+  async findByEmployeeAndDateRange(
+    employeeId: number,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EmployeeShiftSchema[]> {
+    return this.repository.find({
+      where: {
+        employee_id: employeeId,
+        shift_date: Between(startDate, endDate),
+      },
+      order: {
+        shift_date: 'ASC',
+        scheduled_start_time: 'ASC',
+      },
+    });
+  }
+
   async update(
     id: number,
     dto: UpdateShiftDto,
