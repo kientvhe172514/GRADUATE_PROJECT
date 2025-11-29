@@ -247,6 +247,7 @@ export class LoginUseCase {
       full_name: account.full_name || '',
       role: account.role || '',
       employee_id: account.employee_id ?? undefined,
+      managed_department_ids: managedDepartmentIds.length > 0 ? managedDepartmentIds : undefined,
     };
 
     // Build LoginResponseDto

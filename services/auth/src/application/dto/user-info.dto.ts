@@ -15,4 +15,7 @@ export class UserInfoDto {
 
   @ApiProperty({ example: 101, description: 'Employee ID for face verification and other services', required: false })
   employee_id?: number;
+
+  @ApiProperty({ example: [1, 2, 3], description: 'Department IDs managed by DEPARTMENT_MANAGER role', required: false })
+  managed_department_ids?: number[];
 }
