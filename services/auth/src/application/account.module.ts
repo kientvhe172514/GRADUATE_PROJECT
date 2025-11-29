@@ -61,7 +61,9 @@ import {
   TEMPORARY_PASSWORDS_REPOSITORY,
   DEVICE_SESSION_REPOSITORY,
   DEVICE_ACTIVITY_LOG_REPOSITORY,
+  EMPLOYEE_PROFILE_SERVICE,
 } from './tokens';
+import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.service';
 
 @Module({
   imports: [
@@ -193,6 +195,10 @@ import {
     {
       provide: DEVICE_ACTIVITY_LOG_REPOSITORY,
       useClass: PostgresDeviceActivityLogRepository,
+    },
+    {
+      provide: EMPLOYEE_PROFILE_SERVICE,
+      useClass: EmployeeRpcService,
     },
   ],
   exports: [
