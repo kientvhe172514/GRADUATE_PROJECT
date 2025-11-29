@@ -22,7 +22,6 @@ import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
 import { ChangeTemporaryPasswordUseCase } from './use-cases/change-temporary-password.use-case';
 import { GetAccountUseCase } from './use-cases/get-account.use-case';
 import { ForgotPasswordUseCase } from './use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from './use-cases/reset-password.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { UpdateAccountUseCase } from './use-cases/update-account.use-case';
 import { ListAccountsUseCase } from './use-cases/admin/list-accounts.use-case';
@@ -61,13 +60,13 @@ import { DeviceActivityLogSchema } from '../infrastructure/persistence/typeorm/d
 import { DeviceSecurityAlertSchema } from '../infrastructure/persistence/typeorm/device-security-alert.schema';
 import { DeviceController } from '../presentation/controllers/device.controller';
 import { AccountMessageController } from '../presentation/controllers/account-message.controller';
-import { 
-  ACCOUNT_REPOSITORY, 
-  HASHING_SERVICE, 
-  EVENT_PUBLISHER, 
-  AUDIT_LOGS_REPOSITORY, 
-  JWT_SERVICE, 
-  REFRESH_TOKENS_REPOSITORY, 
+import {
+  ACCOUNT_REPOSITORY,
+  HASHING_SERVICE,
+  EVENT_PUBLISHER,
+  AUDIT_LOGS_REPOSITORY,
+  JWT_SERVICE,
+  REFRESH_TOKENS_REPOSITORY,
   TEMPORARY_PASSWORDS_REPOSITORY,
   DEVICE_SESSION_REPOSITORY,
   DEVICE_ACTIVITY_LOG_REPOSITORY,
@@ -101,8 +100,12 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         name: 'EMPLOYEE_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
-          const employeeQueue = configService.getOrThrow<string>('RABBITMQ_EMPLOYEE_QUEUE') as string;
+          const rabbitmqUrl = configService.getOrThrow<string>(
+            'RABBITMQ_URL',
+          ) as string;
+          const employeeQueue = configService.getOrThrow<string>(
+            'RABBITMQ_EMPLOYEE_QUEUE',
+          ) as string;
           return {
             transport: Transport.RMQ,
             options: {
@@ -120,8 +123,12 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         name: 'NOTIFICATION_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL') as string;
-          const notificationQueue = configService.getOrThrow<string>('RABBITMQ_NOTIFICATION_QUEUE') as string;
+          const rabbitmqUrl = configService.getOrThrow<string>(
+            'RABBITMQ_URL',
+          ) as string;
+          const notificationQueue = configService.getOrThrow<string>(
+            'RABBITMQ_NOTIFICATION_QUEUE',
+          ) as string;
           return {
             transport: Transport.RMQ,
             options: {
@@ -138,9 +145,9 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     ]),
   ],
   controllers: [
-    AccountController, 
-    AdminController, 
-    VerifyController, 
+    AccountController,
+    AdminController,
+    VerifyController,
     DeviceController,
     AccountMessageController,
     EmployeeCreatedListener,
@@ -160,7 +167,6 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     ChangeTemporaryPasswordUseCase,
     GetAccountUseCase,
     ForgotPasswordUseCase,
-    ResetPasswordUseCase,
     ListAccountsUseCase,
     GetAccountDetailUseCase,
     UpdateAccountStatusUseCase,
@@ -221,8 +227,6 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
       useClass: EmployeeRpcService,
     },
   ],
-  exports: [
-    ACCOUNT_REPOSITORY,
-  ],
+  exports: [ACCOUNT_REPOSITORY],
 })
 export class AccountModule {}

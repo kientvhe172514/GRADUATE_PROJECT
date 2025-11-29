@@ -1,14 +1,43 @@
-import { Controller, Post, Put, Get, Body, HttpCode, HttpStatus, Req, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Put,
+  Get,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Req,
+  Res,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { LoginRequestDto } from '../dto/login-request.dto';
 import { LoginResponseDto } from '../../application/dto/login-response.dto';
-import { RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto } from '../../application/dto/auth.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes, Permissions } from '@graduate-project/shared-common';
+import {
+  RefreshTokenRequestDto,
+  RefreshTokenResponseDto,
+  LogoutRequestDto,
+  LogoutResponseDto,
+} from '../../application/dto/auth.dto';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+  Permissions,
+} from '@graduate-project/shared-common';
 import { Public } from '../decorators/public.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { CreateAccountUseCase } from '../../application/use-cases/create-account.use-case';
-import { UpdateAccountUseCase, UpdateAccountDto } from '../../application/use-cases/update-account.use-case';
+import {
+  UpdateAccountUseCase,
+  UpdateAccountDto,
+} from '../../application/use-cases/update-account.use-case';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
@@ -16,10 +45,15 @@ import { CreateAccountDto } from '../../application/dto/create-account.dto';
 import { CreateAccountResponseDto } from '../../application/dto/create-account-response.dto';
 import { GetAccountUseCase } from '../../application/use-cases/get-account.use-case';
 import { GetAccountResponseDto } from '../../application/dto/get-account-response.dto';
-import { ChangePasswordUseCase, ChangePasswordDto } from '../../application/use-cases/change-password.use-case';
+import {
+  ChangePasswordUseCase,
+  ChangePasswordDto,
+} from '../../application/use-cases/change-password.use-case';
 import { ChangePasswordRequestDto } from '../../application/dto/change-password-request.dto';
-import { ForgotPasswordUseCase, ForgotPasswordRequestDto } from '../../application/use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase, ResetPasswordRequestDto } from '../../application/use-cases/reset-password.use-case';
+import {
+  ForgotPasswordUseCase,
+  ForgotPasswordRequestDto,
+} from '../../application/use-cases/forgot-password.use-case';
 import { ChangeTemporaryPasswordUseCase } from '../../application/use-cases/change-temporary-password.use-case';
 import { ChangeTemporaryPasswordDto } from '../dto/change-temporary-password.dto';
 import { ChangeTemporaryPasswordResponseDto } from '../../application/dto/change-temporary-password-response.dto';
@@ -36,14 +70,13 @@ export class AccountController {
     private getAccountUseCase: GetAccountUseCase,
     private changePasswordUseCase: ChangePasswordUseCase,
     private forgotPasswordUseCase: ForgotPasswordUseCase,
-    private resetPasswordUseCase: ResetPasswordUseCase,
     private changeTemporaryPasswordUseCase: ChangeTemporaryPasswordUseCase,
   ) {}
 
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'User login',
     description: `
       **Login Flow with Cookies:**
@@ -65,21 +98,28 @@ export class AccountController {
       **Web vs Mobile:**
       - Web: Use cookies automatically
       - Mobile App: Use tokens from response body
-    `
+    `,
   })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 403, description: 'Temporary password must be changed' })
+  @ApiResponse({
+    status: 403,
+    description: 'Temporary password must be changed',
+  })
   async login(
-    @Body() loginDto: LoginRequestDto, 
+    @Body() loginDto: LoginRequestDto,
     @Req() req: any,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponseDto<LoginResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    
+
     // Execute login use case
-    const loginResult = await this.loginUseCase.execute(loginDto, ipAddress, userAgent);
+    const loginResult = await this.loginUseCase.execute(
+      loginDto,
+      ipAddress,
+      userAgent,
+    );
 
     // Extract tokens from response
     const { access_token, refresh_token } = loginResult.data!;
@@ -144,9 +184,15 @@ export class AccountController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Validation error or password mismatch' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or password mismatch',
+  })
   @ApiResponse({ status: 401, description: 'Invalid temporary password' })
-  @ApiResponse({ status: 404, description: 'No active temporary password found' })
+  @ApiResponse({
+    status: 404,
+    description: 'No active temporary password found',
+  })
   async changeTemporaryPassword(
     @CurrentUser() user: any,
     @Body() dto: ChangeTemporaryPasswordDto,
@@ -158,7 +204,7 @@ export class AccountController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Refresh access token',
     description: `
       **Refresh Token Flow with Cookies:**
@@ -172,18 +218,18 @@ export class AccountController {
       **Cookie Support:**
       - Web: Automatically reads from HttpOnly cookie
       - Mobile App: Send refresh_token in request body
-    `
+    `,
   })
   @ApiResponse({ status: 200, type: RefreshTokenResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refresh(
-    @Body() refreshDto: RefreshTokenRequestDto, 
+    @Body() refreshDto: RefreshTokenRequestDto,
     @Req() req: any,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    
+
     // Try to get refresh_token from cookie if not provided in body (Web browser flow)
     let refreshTokenToUse = refreshDto.refresh_token;
     if (!refreshTokenToUse && req.cookies?.refresh_token) {
@@ -196,7 +242,11 @@ export class AccountController {
       refresh_token: refreshTokenToUse,
     };
 
-    const refreshResult = await this.refreshTokenUseCase.execute(refreshRequest, ipAddress, userAgent);
+    const refreshResult = await this.refreshTokenUseCase.execute(
+      refreshRequest,
+      ipAddress,
+      userAgent,
+    );
 
     // Extract new tokens from response
     const { access_token, refresh_token } = refreshResult.data!;
@@ -231,7 +281,7 @@ export class AccountController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'User logout',
     description: `
       **Logout Flow with Cookies:**
@@ -244,24 +294,29 @@ export class AccountController {
       - Removes access_token cookie
       - Removes refresh_token cookie
       - Works for both Web and Mobile
-    `
+    `,
   })
   @ApiResponse({ status: 200, type: LogoutResponseDto })
   async logout(
     @Body() logoutDto: LogoutRequestDto,
     @CurrentUser() user: any,
     @Req() req: any,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponseDto<LogoutResponseDto>> {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    
+
     // Execute logout use case
-    const logoutResult = await this.logoutUseCase.execute(logoutDto, user.sub, ipAddress, userAgent);
+    const logoutResult = await this.logoutUseCase.execute(
+      logoutDto,
+      user.sub,
+      ipAddress,
+      userAgent,
+    );
 
     // Clear HttpOnly cookies
     const cookieDomain = process.env.COOKIE_DOMAIN || 'localhost';
-    
+
     res.clearCookie('access_token', {
       httpOnly: true,
       domain: cookieDomain,
@@ -280,9 +335,9 @@ export class AccountController {
   }
 
   @Public()
-  @Post('register')  // Internal endpoint for manual account creation (Dev/Admin use)
+  @Post('register') // Internal endpoint for manual account creation (Dev/Admin use)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: '🔧 Register new account (Dev/Admin internal use)',
     description: `
       **Internal endpoint for manual account creation**
@@ -306,7 +361,7 @@ export class AccountController {
       - Manual account creation by HR/Admin
       
       **⚠️ Security Note:** This endpoint should be protected in production!
-    `
+    `,
   })
   @ApiBody({
     type: CreateAccountDto,
@@ -317,8 +372,8 @@ export class AccountController {
           email: 'admin@zentry.com',
           full_name: 'Administrator',
           password: 'SecurePassword123!',
-          suggested_role: 'ADMIN'
-        }
+          suggested_role: 'ADMIN',
+        },
       },
       hrManager: {
         summary: 'Create HR_MANAGER account',
@@ -327,8 +382,8 @@ export class AccountController {
           full_name: 'HR Manager',
           password: 'HRPassword123!',
           suggested_role: 'HR_MANAGER',
-          department_name: 'Human Resources'
-        }
+          department_name: 'Human Resources',
+        },
       },
       departmentManager: {
         summary: 'Create DEPARTMENT_MANAGER account',
@@ -338,27 +393,30 @@ export class AccountController {
           password: 'ManagerPassword123!',
           suggested_role: 'DEPARTMENT_MANAGER',
           department_id: 1,
-          department_name: 'Engineering'
-        }
+          department_name: 'Engineering',
+        },
       },
       employeeWithLink: {
-        summary: 'Create linked employee account',
+        summary:
+          'Create linked employee account (auto-synced from Employee service via event)',
         value: {
           email: 'employee@zentry.com',
           full_name: 'Nguyễn Văn A',
           employee_id: 1,
-          employee_code: 'EMP001',
+          employee_code: 'EMP20251129001',
           department_id: 1,
           department_name: 'Engineering',
           position_id: 1,
           position_name: 'Senior Developer',
-          suggested_role: 'EMPLOYEE'
-        }
-      }
-    }
+          suggested_role: 'EMPLOYEE',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 201, type: CreateAccountResponseDto })
-  async register(@Body() dto: CreateAccountDto): Promise<ApiResponseDto<CreateAccountResponseDto>> {
+  async register(
+    @Body() dto: CreateAccountDto,
+  ): Promise<ApiResponseDto<CreateAccountResponseDto>> {
     return this.createAccountUseCase.execute(dto);
   }
 
@@ -366,7 +424,10 @@ export class AccountController {
   @Post('update/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update account' })
-  async update(@Body() dto: UpdateAccountDto, @Req() req: any): Promise<ApiResponseDto<any>> {
+  async update(
+    @Body() dto: UpdateAccountDto,
+    @Req() req: any,
+  ): Promise<ApiResponseDto<any>> {
     const id = Number(req.params.id);
     return this.updateAccountUseCase.execute(id, dto);
   }
@@ -377,7 +438,9 @@ export class AccountController {
   @Permissions('auth.account.read_own')
   @ApiOperation({ summary: 'Get current account profile' })
   @ApiResponse({ status: 200, type: GetAccountResponseDto })
-  async me(@CurrentUser() user: any): Promise<ApiResponseDto<GetAccountResponseDto>> {
+  async me(
+    @CurrentUser() user: any,
+  ): Promise<ApiResponseDto<GetAccountResponseDto>> {
     console.log('🔍 [AccountController] JWT payload:', user);
     return this.getAccountUseCase.execute(user.sub);
   }
@@ -396,18 +459,30 @@ export class AccountController {
     console.log('Controller: changeMyPassword called');
     console.log('Controller: user object:', user);
     console.log('Controller: request.user:', req.user);
-    
+
     // Validate required fields
     if (!body.current_password || !body.new_password) {
-      throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Missing required fields: current_password, new_password');
+      throw new BusinessException(
+        ErrorCodes.BAD_REQUEST,
+        'Missing required fields: current_password, new_password',
+      );
     }
 
     if (!user || !user.sub) {
-      console.log('Controller: User validation failed', { user, hasSub: !!user?.sub });
-      throw new BusinessException(ErrorCodes.UNAUTHORIZED, 'User not authenticated');
+      console.log('Controller: User validation failed', {
+        user,
+        hasSub: !!user?.sub,
+      });
+      throw new BusinessException(
+        ErrorCodes.UNAUTHORIZED,
+        'User not authenticated',
+      );
     }
 
-    console.log('Controller: User validated successfully', { userId: user.sub, email: user.email });
+    console.log('Controller: User validated successfully', {
+      userId: user.sub,
+      email: user.email,
+    });
 
     const dto: ChangePasswordDto = {
       account_id: user.sub,
@@ -422,26 +497,40 @@ export class AccountController {
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Initiate forgot password flow' })
-  async forgotPassword(@Body() body: ForgotPasswordRequestDto): Promise<ApiResponseDto<null>> {
+  @ApiOperation({
+    summary: 'Quên mật khẩu - Reset và gửi mật khẩu mới qua email',
+    description: `
+      **Simple Forgot Password Flow:**
+      
+      1. User nhập email
+      2. Hệ thống tạo mật khẩu mới ngẫu nhiên (8 ký tự)
+      3. Hash và update vào database
+      4. Gửi mật khẩu mới về email qua Notification Service
+      5. User dùng mật khẩu mới để đăng nhập
+      6. Bắt buộc đổi mật khẩu sau khi đăng nhập lần đầu
+      
+      **Note:** Không cần reset token phức tạp, mật khẩu mới được gửi trực tiếp về email.
+    `,
+  })
+  @ApiBody({
+    type: ForgotPasswordRequestDto,
+    examples: {
+      example1: {
+        summary: 'Ví dụ request',
+        value: {
+          email: 'user@example.com',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mật khẩu mới đã được tạo và gửi về email',
+  })
+  @ApiResponse({ status: 404, description: 'Email không tồn tại' })
+  async forgotPassword(
+    @Body() body: ForgotPasswordRequestDto,
+  ): Promise<ApiResponseDto<null>> {
     return this.forgotPasswordUseCase.execute(body);
   }
-
-  @Public()
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password with token' })
-  async resetPassword(@Body() body: ResetPasswordRequestDto): Promise<ApiResponseDto<null>> {
-    console.log('🔍 AccountController - Received body:', JSON.stringify(body, null, 2));
-    console.log('🔍 AccountController - Body fields:', {
-      email: body?.email,
-      reset_token: body?.reset_token,
-      new_password: body?.new_password,
-      hasEmail: !!body?.email,
-      hasResetToken: !!body?.reset_token,
-      hasNewPassword: !!body?.new_password
-    });
-    return this.resetPasswordUseCase.execute(body);
-  }
-
 }

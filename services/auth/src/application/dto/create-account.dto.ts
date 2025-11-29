@@ -1,4 +1,12 @@
-import { IsEmail, IsNumber, IsString, IsNotEmpty, IsOptional, MinLength, IsIn } from 'class-validator';
+import {
+  IsEmail,
+  IsNumber,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  MinLength,
+  IsIn,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAccountDto {
@@ -12,7 +20,11 @@ export class CreateAccountDto {
   @IsOptional()
   employee_id?: number;
 
-  @ApiProperty({ example: 'EMP001', required: false })
+  @ApiProperty({
+    example: 'EMP20251129001',
+    required: false,
+    description: 'Employee code (synced from Employee service)',
+  })
   @IsString()
   @IsOptional()
   employee_code?: string;
@@ -42,23 +54,26 @@ export class CreateAccountDto {
   @IsOptional()
   position_name?: string;
 
-  @ApiProperty({ 
-    required: false, 
+  @ApiProperty({
+    required: false,
     example: 'EMPLOYEE',
-    description: 'Role to assign. Valid values: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE. Defaults to EMPLOYEE if not provided or invalid.' 
+    description:
+      'Role to assign. Valid values: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE. Defaults to EMPLOYEE if not provided or invalid.',
   })
   @IsString()
   @IsOptional()
   @IsIn(['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'], {
-    message: 'suggested_role must be one of: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE'
+    message:
+      'suggested_role must be one of: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE',
   })
   suggested_role?: string; // Role code from roles table
 
-  @ApiProperty({ 
-    required: false, 
+  @ApiProperty({
+    required: false,
     example: 'SecurePassword123!',
-    description: 'Custom password. If not provided, temporary password "1" will be used.',
-    minLength: 6
+    description:
+      'Custom password. If not provided, temporary password "1" will be used.',
+    minLength: 6,
   })
   @IsString()
   @IsOptional()

@@ -2,10 +2,10 @@ import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsStri
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEmployeeDto {
-  @ApiProperty({ 
-    example: 'EMP001', 
-    description: 'Employee code (will be auto-generated if not provided)',
-    required: false 
+  @ApiProperty({
+    example: null,
+    description: '🔄 Auto-generated if not provided. Format: EMP + YYYYMMDD + XXX (e.g., EMP20251129001). Only provide if you want to use a custom code.',
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -35,10 +35,10 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ 
-    example: 'nguyenvana.personal@gmail.com', 
+  @ApiProperty({
+    example: 'nguyenvana.personal@gmail.com',
     description: 'Personal email for receiving account credentials',
-    required: false 
+    required: false,
   })
   @IsOptional()
   @IsEmail()

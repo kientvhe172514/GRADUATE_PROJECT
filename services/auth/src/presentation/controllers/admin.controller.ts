@@ -19,7 +19,11 @@ import {
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { ListAccountsUseCase } from '../../application/use-cases/admin/list-accounts.use-case';
@@ -110,7 +114,6 @@ export class AdminController {
     enum: ['ASC', 'DESC'],
     description: 'Sort order (default: DESC)',
   })
-
   async listAccounts(
     @Query() query: ListAccountsRequestDto,
     @CurrentUser() user: any,
@@ -144,7 +147,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   @AuthPermissions('admin.accounts.update')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update account information including role assignment',
     description: `
       **Admin endpoint to update account information**
@@ -173,7 +176,7 @@ export class AdminController {
       - SUSPENDED: Account is suspended
       
       **Required Permission:** admin.accounts.update
-    `
+    `,
   })
   @ApiResponse({
     status: 200,
@@ -191,17 +194,17 @@ export class AdminController {
           role: 'HR_MANAGER',
           status: 'ACTIVE',
           employee_id: 123,
-          employee_code: 'EMP001',
+          employee_code: 'EMP20251129001',
           department_id: 1,
           department_name: 'Human Resources',
           position_id: 5,
           position_name: 'HR Manager',
           sync_version: 2,
-          updated_at: '2025-11-17T10:30:00.000Z'
+          updated_at: '2025-11-17T10:30:00.000Z',
         },
-        timestamp: '2025-11-17T10:30:00.000Z'
-      }
-    }
+        timestamp: '2025-11-17T10:30:00.000Z',
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Account not found' })
   @ApiResponse({ status: 409, description: 'Email already in use' })

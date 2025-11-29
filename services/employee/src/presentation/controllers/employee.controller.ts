@@ -69,11 +69,11 @@ export class EmployeeController {
   @HttpCode(HttpStatus.OK)
   @Permissions('employee.read')
   @ApiOperation({ summary: 'Get list of managers for department assignment' })
-  @ApiQuery({ type: ListManagersDto, required: false })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search in employee code, email, or full name (supports Vietnamese with diacritics)' })
+  @ApiQuery({ name: 'department_id', required: false, type: Number, description: 'Filter by department ID' })
+  @ApiQuery({ name: 'position_id', required: false, type: Number, description: 'Filter by position ID' })
   @ApiResponse({ status: 200, description: 'Managers retrieved successfully', type: ListManagersResponseDto })
-  async getManagers(
-    @Query() dto?: ListManagersDto,
-  ): Promise<ApiResponseDto<ListManagersResponseDto>> {
+  async getManagers(@Query() dto?: ListManagersDto): Promise<ApiResponseDto<ListManagersResponseDto>> {
     return this.getManagersUseCase.execute(dto || {});
   }
 
@@ -86,12 +86,7 @@ export class EmployeeController {
   @ApiResponse({ status: 404, description: 'Employee not found' })
   async getDetail(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<EmployeeDetailDto>> {
     const data = await this.getEmployeeDetailUseCase.execute(id);
-    return new ApiResponseDto(
-      ResponseStatus.SUCCESS,
-      200,
-      'Employee retrieved successfully',
-      data
-    );
+    return new ApiResponseDto(ResponseStatus.SUCCESS, 200, 'Employee retrieved successfully', data);
   }
 
   @Put(':id')
@@ -103,26 +98,24 @@ export class EmployeeController {
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateEmployeeDto: UpdateEmployeeDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateEmployeeDto: UpdateEmployeeDto, @CurrentUser() user: JwtPayload): Promise<ApiResponseDto<EmployeeDetailDto>> {
     const employee = await this.updateEmployeeUseCase.execute(id, updateEmployeeDto, user.sub);
     const employeeDetail = new EmployeeDetailDto(employee);
-    return new ApiResponseDto(
-      ResponseStatus.SUCCESS,
-      200,
-      'Employee updated successfully',
-      employeeDetail
-    );
+    return new ApiResponseDto(ResponseStatus.SUCCESS, 200, 'Employee updated successfully', employeeDetail);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @Permissions('employee.read')
   @ApiOperation({ summary: 'Get all employees with filters and pagination' })
-  @ApiQuery({ type: ListEmployeeDto, required: false })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search in employee code, email, or full name (supports Vietnamese with diacritics)' })
+  @ApiQuery({ name: 'department_id', required: false, type: Number, description: 'Filter by department ID' })
+  @ApiQuery({ name: 'position_id', required: false, type: Number, description: 'Filter by position ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'INACTIVE', 'TERMINATED'], description: 'Filter by status' })
+  @ApiQuery({ name: 'sort_by', required: false, type: String, example: 'created_at' })
+  @ApiQuery({ name: 'sort_order', required: false, enum: ['ASC', 'DESC'], example: 'DESC' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getAll(@Query() filters?: ListEmployeeDto): Promise<ApiResponseDto<any>> {
@@ -137,10 +130,7 @@ export class EmployeeController {
   @ApiBody({ type: TerminateEmployeeDto })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
-  async terminate(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: TerminateEmployeeDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async terminate(@Param('id', ParseIntPipe) id: number, @Body() dto: TerminateEmployeeDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     const employee = await this.terminateEmployeeUseCase.execute(id, dto);
     const employeeDetail = new EmployeeDetailDto(employee);
     return ApiResponseDto.success(employeeDetail, 'Employee terminated successfully');
@@ -153,9 +143,7 @@ export class EmployeeController {
   @ApiParam({ name: 'employeeId', type: 'number', description: 'Employee ID' })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee not found' })
-  async getOnboardingSteps(
-    @Param('employeeId', ParseIntPipe) employeeId: number,
-  ): Promise<ApiResponseDto<EmployeeOnboardingStep[]>> {
+  async getOnboardingSteps(@Param('employeeId', ParseIntPipe) employeeId: number): Promise<ApiResponseDto<EmployeeOnboardingStep[]>> {
     const steps = await this.getOnboardingStepsUseCase.execute(employeeId);
     return ApiResponseDto.success(steps, 'Onboarding steps retrieved successfully');
   }
@@ -169,11 +157,7 @@ export class EmployeeController {
   @ApiBody({ type: UpdateOnboardingStepDto })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   @ApiResponse({ status: 404, description: 'Employee or step not found' })
-  async updateOnboardingStep(
-    @Param('employeeId', ParseIntPipe) employeeId: number,
-    @Param('stepName') stepName: string,
-    @Body() dto: UpdateOnboardingStepDto,
-  ): Promise<ApiResponseDto<EmployeeOnboardingStep>> {
+  async updateOnboardingStep(@Param('employeeId', ParseIntPipe) employeeId: number, @Param('stepName') stepName: string, @Body() dto: UpdateOnboardingStepDto): Promise<ApiResponseDto<EmployeeOnboardingStep>> {
     const step = await this.updateOnboardingStepUseCase.execute(employeeId, stepName, dto);
     return ApiResponseDto.success(step, 'Onboarding step updated successfully');
   }
@@ -187,10 +171,7 @@ export class EmployeeController {
   @ApiResponse({ status: 200, description: 'Employee assigned to department successfully' })
   @ApiResponse({ status: 404, description: 'Employee or department not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async assignToDepartment(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignEmployeeToDepartmentDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async assignToDepartment(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignEmployeeToDepartmentDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     return this.assignEmployeeToDepartmentUseCase.execute(id, dto);
   }
 
@@ -203,10 +184,7 @@ export class EmployeeController {
   @ApiResponse({ status: 200, description: 'Employee assigned to position successfully' })
   @ApiResponse({ status: 404, description: 'Employee or position not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async assignToPosition(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignEmployeeToPositionDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async assignToPosition(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignEmployeeToPositionDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     return this.assignEmployeeToPositionUseCase.execute(id, dto);
   }
 
@@ -219,10 +197,7 @@ export class EmployeeController {
   @ApiResponse({ status: 200, description: 'Employee removed from department successfully' })
   @ApiResponse({ status: 404, description: 'Employee not found' })
   @ApiResponse({ status: 400, description: 'Employee is not assigned to any department' })
-  async removeFromDepartment(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: RemoveEmployeeFromDepartmentDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async removeFromDepartment(@Param('id', ParseIntPipe) id: number, @Body() dto: RemoveEmployeeFromDepartmentDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     return this.removeEmployeeFromDepartmentUseCase.execute(id, dto);
   }
 
@@ -235,10 +210,7 @@ export class EmployeeController {
   @ApiResponse({ status: 200, description: 'Employee removed from position successfully' })
   @ApiResponse({ status: 404, description: 'Employee not found' })
   @ApiResponse({ status: 400, description: 'Employee is not assigned to any position' })
-  async removeFromPosition(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: RemoveEmployeeFromPositionDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async removeFromPosition(@Param('id', ParseIntPipe) id: number, @Body() dto: RemoveEmployeeFromPositionDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     return this.removeEmployeeFromPositionUseCase.execute(id, dto);
   }
 
@@ -251,10 +223,7 @@ export class EmployeeController {
   @ApiResponse({ status: 200, description: 'Employee transferred to department successfully' })
   @ApiResponse({ status: 404, description: 'Employee or department not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async transferDepartment(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: TransferEmployeeBetweenDepartmentsDto,
-  ): Promise<ApiResponseDto<EmployeeDetailDto>> {
+  async transferDepartment(@Param('id', ParseIntPipe) id: number, @Body() dto: TransferEmployeeBetweenDepartmentsDto): Promise<ApiResponseDto<EmployeeDetailDto>> {
     return this.transferEmployeeBetweenDepartmentsUseCase.execute(id, dto);
   }
 
@@ -265,9 +234,7 @@ export class EmployeeController {
   @ApiParam({ name: 'id', type: 'number', description: 'Employee ID' })
   @ApiResponse({ status: 200, description: 'Employee assignment details retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Employee not found' })
-  async getAssignmentDetails(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponseDto<EmployeeAssignmentDto>> {
+  async getAssignmentDetails(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<EmployeeAssignmentDto>> {
     return this.getEmployeeAssignmentDetailsUseCase.execute(id);
   }
 }

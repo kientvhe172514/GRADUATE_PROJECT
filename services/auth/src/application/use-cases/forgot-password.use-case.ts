@@ -1,24 +1,42 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { IsEmail, IsNotEmpty } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
-import { TemporaryPasswordsRepositoryPort } from '../ports/temporary-passwords.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, TEMPORARY_PASSWORDS_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
-import { TemporaryPasswords } from '../../domain/entities/temporary-passwords.entity';
+import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
 import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 
+/**
+ * DTO for Forgot Password Request
+ * Simple flow: User provides email → System generates new password → Sends via email
+ */
 export class ForgotPasswordRequestDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email của tài khoản cần reset mật khẩu',
+  })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
   email: string;
 }
 
+/**
+ * Simple Forgot Password Use Case
+ * 
+ * Flow:
+ * 1. User nhập email
+ * 2. Hệ thống tạo mật khẩu mới ngẫu nhiên (8 ký tự)
+ * 3. Hash và update vào database
+ * 4. Gửi mật khẩu mới về email qua Notification Service
+ * 5. User dùng mật khẩu mới để đăng nhập
+ * 6. Bắt buộc đổi mật khẩu sau khi đăng nhập lần đầu
+ */
 @Injectable()
 export class ForgotPasswordUseCase {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepo: AccountRepositoryPort,
-    @Inject(TEMPORARY_PASSWORDS_REPOSITORY)
-    private readonly tempRepo: TemporaryPasswordsRepositoryPort,
     @Inject(HASHING_SERVICE)
     private readonly hashing: HashingServicePort,
     @Inject(EVENT_PUBLISHER)
@@ -26,37 +44,71 @@ export class ForgotPasswordUseCase {
   ) {}
 
   async execute(dto: ForgotPasswordRequestDto): Promise<ApiResponseDto<null>> {
+    // Step 1: Validate email exists
     const account = await this.accountRepo.findByEmail(dto.email);
     if (!account) {
       throw new BusinessException(
         ErrorCodes.NOT_FOUND,
-        `Email not found`,
+        'Email không tồn tại trong hệ thống',
         404,
       );
     }
 
-    // Generate reset token (random) and store hashed in temporary_passwords
-    const resetToken = randomBytes(32).toString('hex');
-    const tokenHash = await this.hashing.hash(resetToken);
+    // Step 2: Generate new random password (8 characters: letters + numbers)
+    const newPassword = this.generateRandomPassword(8);
 
-    const temp = new TemporaryPasswords({
-      account_id: account.id!,
-      temp_password_hash: tokenHash,
-      expires_at: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-      must_change_password: true,
-    });
-    await this.tempRepo.create(temp);
+    // Step 3: Hash new password
+    const newPasswordHash = await this.hashing.hash(newPassword);
 
-    // Publish event to Notification service to send email
-    await this.publisher.publish('auth.password-reset-requested', {
+    // Step 4: Update password in database
+    await this.accountRepo.updatePassword(account.id!, newPasswordHash);
+
+    // Step 5: Mark password as temporary (user must change on next login)
+    await this.accountRepo.setTemporaryPasswordFlag(account.id!, true);
+
+    // Step 6: Publish event to Notification service to send email with new password
+    await this.publisher.publish('auth.password-reset', {
       account_id: account.id,
       email: account.email,
       full_name: account.full_name,
-      reset_token: resetToken, // plain token for email link
-      expires_at: temp.expires_at,
+      new_password: newPassword, // Send plain password to email (one-time only)
+      timestamp: new Date().toISOString(),
     });
 
-    return ApiResponseDto.success(null, 'Đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư.');
+    return ApiResponseDto.success(
+      null,
+      'Mật khẩu mới đã được tạo và gửi về email của bạn. Vui lòng kiểm tra hộp thư và đổi mật khẩu sau khi đăng nhập.',
+    );
+  }
+
+  /**
+   * Generate random password with letters (uppercase + lowercase) and numbers
+   * @param length Password length (default: 8)
+   * @returns Random password string
+   */
+  private generateRandomPassword(length: number = 8): string {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const allChars = uppercase + lowercase + numbers;
+
+    let password = '';
+    
+    // Ensure at least 1 uppercase, 1 lowercase, 1 number
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+
+    // Fill remaining characters randomly
+    for (let i = 3; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    // Shuffle password characters
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
   }
 }
 

@@ -1,110 +1,127 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEmail, IsIn, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsEmail,
+  IsIn,
+  IsObject,
+} from 'class-validator';
 
 /**
  * DTO for Admin to update account information including role assignment
  * This is different from UpdateAccountStatusDto which only updates status
  */
 export class AdminUpdateAccountDto {
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Email address',
-    example: 'user@zentry.com'
+    example: 'user@zentry.com',
   })
   @IsOptional()
   @IsEmail({}, { message: 'Invalid email format' })
   email?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Full name',
-    example: 'Nguyễn Văn A'
+    example: 'Nguyễn Văn A',
   })
   @IsOptional()
   @IsString()
   full_name?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Role code to assign',
-    enum: ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'],
-    example: 'HR_MANAGER'
+    enum: [
+      'SUPER_ADMIN',
+      'ADMIN',
+      'HR_MANAGER',
+      'DEPARTMENT_MANAGER',
+      'EMPLOYEE',
+    ],
+    example: 'HR_MANAGER',
   })
   @IsOptional()
   @IsString()
-  @IsIn(['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'], {
-    message: 'Role must be one of: SUPER_ADMIN, ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE'
-  })
+  @IsIn(
+    ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'],
+    {
+      message:
+        'Role must be one of: SUPER_ADMIN, ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE',
+    },
+  )
   role?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Account status',
     enum: ['ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED'],
-    example: 'ACTIVE'
+    example: 'ACTIVE',
   })
   @IsOptional()
   @IsString()
   @IsIn(['ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED'], {
-    message: 'Status must be one of: ACTIVE, INACTIVE, LOCKED, SUSPENDED'
+    message: 'Status must be one of: ACTIVE, INACTIVE, LOCKED, SUSPENDED',
   })
   status?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Employee ID (link to employee service)',
-    example: 123
+    example: 123,
   })
   @IsOptional()
   @IsNumber()
   employee_id?: number;
 
-  @ApiPropertyOptional({ 
-    description: 'Employee code',
-    example: 'EMP001'
+  @ApiPropertyOptional({
+    description: 'Employee code (auto-generated format: EMP+YYYYMMDD+XXX)',
+    example: 'EMP20251129001',
   })
   @IsOptional()
   @IsString()
   employee_code?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Department ID',
-    example: 1
+    example: 1,
   })
   @IsOptional()
   @IsNumber()
   department_id?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Department name',
-    example: 'Human Resources'
+    example: 'Human Resources',
   })
   @IsOptional()
   @IsString()
   department_name?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Position ID',
-    example: 5
+    example: 5,
   })
   @IsOptional()
   @IsNumber()
   position_id?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Position name',
-    example: 'HR Manager'
+    example: 'HR Manager',
   })
   @IsOptional()
   @IsString()
   position_name?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'External IDs mapping',
-    example: { ldap_id: '12345', sso_id: 'abc123' }
+    example: { ldap_id: '12345', sso_id: 'abc123' },
   })
   @IsOptional()
   @IsObject()
   external_ids?: Record<string, any>;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Additional metadata',
-    example: { notes: 'Migrated from old system' }
+    example: { notes: 'Migrated from old system' },
   })
   @IsOptional()
   @IsObject()
