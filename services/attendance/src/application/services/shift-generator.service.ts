@@ -10,7 +10,10 @@ import {
 } from '../tokens';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { GpsCheckCalculatorService } from './gps-check-calculator.service';
-import { EmployeeShift, ShiftType } from '../../domain/entities/employee-shift.entity';
+import {
+  EmployeeShift,
+  ShiftType,
+} from '../../domain/entities/employee-shift.entity';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 export interface GenerateShiftsOptions {
@@ -29,7 +32,7 @@ export interface GenerateShiftsResult {
 
 /**
  * Service to generate employee shifts based on assigned work schedules
- * 
+ *
  * KEY FEATURES:
  * - Respects assignment effective dates (effective_from, effective_to)
  * - Prevents duplicate shift creation
@@ -54,7 +57,7 @@ export class ShiftGeneratorService {
 
   /**
    * Generate shifts for employees based on their assigned work schedules
-   * 
+   *
    * LOGIC:
    * 1. Query active employee_work_schedules trong khoảng startDate → endDate
    * 2. Với mỗi assignment, tạo shifts cho các ngày làm việc
@@ -147,9 +150,7 @@ export class ShiftGeneratorService {
     );
 
     if (!workSchedule) {
-      throw new Error(
-        `Work schedule ${assignment.work_schedule_id} not found`,
-      );
+      throw new Error(`Work schedule ${assignment.work_schedule_id} not found`);
     }
 
     // Parse work_days (e.g., "1,2,3,4,5" → [1,2,3,4,5])

@@ -89,7 +89,7 @@ export class PresenceVerificationController {
   })
   async getRecords(@Param('shiftId') shiftId: string) {
     const records = await this.getScheduleUseCase.execute(shiftId);
-    
+
     return {
       shiftId: Number(shiftId),
       totalRounds: 3, // Default required rounds

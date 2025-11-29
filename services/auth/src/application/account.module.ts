@@ -10,7 +10,12 @@ import { AccountController } from '../presentation/controllers/account.controlle
 import { AdminController } from '../presentation/controllers/admin.controller';
 import { VerifyController } from '../presentation/controllers/verify.controller';
 import { JwtStrategy } from '../infrastructure/auth/jwt.strategy';
-import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';  // Add
+import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';
+import { EmployeePositionAssignedListener } from '../presentation/event-listeners/employee-position-assigned.listener';
+import { EmployeePositionRemovedListener } from '../presentation/event-listeners/employee-position-removed.listener';
+import { EmployeeDepartmentAssignedListener } from '../presentation/event-listeners/employee-department-assigned.listener';
+import { DepartmentManagerAssignedListener } from '../presentation/event-listeners/department-manager-assigned.listener';
+import { DepartmentManagerUnassignedListener } from '../presentation/event-listeners/department-manager-unassigned.listener';
 import { LoginUseCase } from './use-cases/login.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { ChangePasswordUseCase } from './use-cases/change-password.use-case';
@@ -45,6 +50,11 @@ import { BcryptService } from '../infrastructure/services/bcrypt.service';
 import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-event.publisher';
 import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';
 import { EmployeeCreatedHandler } from './handlers/employee-created.handler';
+import { EmployeePositionAssignedHandler } from './handlers/employee-position-assigned.handler';
+import { EmployeePositionRemovedHandler } from './handlers/employee-position-removed.handler';
+import { EmployeeDepartmentAssignedHandler } from './handlers/employee-department-assigned.handler';
+import { DepartmentManagerAssignedHandler } from './handlers/department-manager-assigned.handler';
+import { DepartmentManagerUnassignedHandler } from './handlers/department-manager-unassigned.handler';
 import { AccountSchema } from '../infrastructure/persistence/typeorm/account.schema';
 import { DeviceSessionSchema } from '../infrastructure/persistence/typeorm/device-session.schema';
 import { DeviceActivityLogSchema } from '../infrastructure/persistence/typeorm/device-activity-log.schema';
@@ -134,6 +144,11 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     DeviceController,
     AccountMessageController,
     EmployeeCreatedListener,
+    EmployeePositionAssignedListener,
+    EmployeePositionRemovedListener,
+    EmployeeDepartmentAssignedListener,
+    DepartmentManagerAssignedListener,
+    DepartmentManagerUnassignedListener,
   ],
   providers: [
     CreateAccountUseCase,
@@ -158,6 +173,11 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     RevokeDeviceUseCase,
     GetDeviceActivitiesUseCase,
     EmployeeCreatedHandler,
+    EmployeePositionAssignedHandler,
+    EmployeePositionRemovedHandler,
+    EmployeeDepartmentAssignedHandler,
+    DepartmentManagerAssignedHandler,
+    DepartmentManagerUnassignedHandler,
     RabbitMQEventSubscriber,
     JwtStrategy,
     {

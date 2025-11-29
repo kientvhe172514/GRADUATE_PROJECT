@@ -21,9 +21,7 @@ import { DataSource } from 'typeorm';
  */
 @Injectable()
 export class AttendanceReconciliationProcessor {
-  private readonly logger = new Logger(
-    AttendanceReconciliationProcessor.name,
-  );
+  private readonly logger = new Logger(AttendanceReconciliationProcessor.name);
 
   constructor(private readonly dataSource: DataSource) {}
 
@@ -189,7 +187,10 @@ export class AttendanceReconciliationProcessor {
         await this.reconcileShift(shift);
         reconciledCount++;
       } catch (error) {
-        this.logger.error(`Failed to reconcile shift ${shift.shift_id}:`, error);
+        this.logger.error(
+          `Failed to reconcile shift ${shift.shift_id}:`,
+          error,
+        );
       }
     }
 

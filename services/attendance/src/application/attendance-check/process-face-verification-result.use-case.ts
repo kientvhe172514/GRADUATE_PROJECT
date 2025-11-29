@@ -68,28 +68,51 @@ export class ProcessFaceVerificationResultUseCase {
       );
 
       if (attendanceCheck && attendanceCheck.shift_id) {
+        // Get shift to calculate late/early leave
+        const shift = await this.employeeShiftRepository.findById(
+          attendanceCheck.shift_id,
+        );
+
+        if (!shift) {
+          this.logger.warn(
+            `Shift ${attendanceCheck.shift_id} not found, cannot update`,
+          );
+          return;
+        }
+
         // Update employee shift based on check_type
         if (attendanceCheck.check_type === 'CHECK_IN') {
+          // Calculate late minutes
+          const lateMinutes = this.calculateLateMinutes(
+            event.verification_time,
+            shift.shift_date,
+            shift.scheduled_start_time,
+          );
+
           await this.employeeShiftRepository.update(attendanceCheck.shift_id, {
             check_in_time: event.verification_time,
             check_in_record_id: event.attendance_check_id,
+            late_minutes: lateMinutes,
             status: 'IN_PROGRESS',
           });
           this.logger.log(
-            `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${event.verification_time.toISOString()}, status=IN_PROGRESS`,
+            `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${event.verification_time.toISOString()}, ` +
+              `late_minutes=${lateMinutes}, status=IN_PROGRESS`,
           );
         } else if (attendanceCheck.check_type === 'CHECK_OUT') {
-          // Get shift to calculate work hours
-          const shift = await this.employeeShiftRepository.findById(
-            attendanceCheck.shift_id,
-          );
-
-          if (shift && shift.check_in_time) {
+          if (shift.check_in_time) {
             // Calculate work hours (difference between check_out and check_in)
             const workHours =
               (event.verification_time.getTime() -
                 shift.check_in_time.getTime()) /
               (1000 * 60 * 60);
+
+            // Calculate early leave minutes
+            const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
+              event.verification_time,
+              shift.shift_date,
+              shift.scheduled_end_time,
+            );
 
             await this.employeeShiftRepository.update(
               attendanceCheck.shift_id,
@@ -97,12 +120,13 @@ export class ProcessFaceVerificationResultUseCase {
                 check_out_time: event.verification_time,
                 check_out_record_id: event.attendance_check_id,
                 work_hours: parseFloat(workHours.toFixed(2)),
+                early_leave_minutes: earlyLeaveMinutes,
                 status: 'COMPLETED',
               },
             );
             this.logger.log(
               `✅ Updated shift ${attendanceCheck.shift_id}: check_out_time=${event.verification_time.toISOString()}, ` +
-                `work_hours=${workHours.toFixed(2)}, status=COMPLETED`,
+                `work_hours=${workHours.toFixed(2)}, early_leave_minutes=${earlyLeaveMinutes}, status=COMPLETED`,
             );
           }
         }
@@ -119,5 +143,55 @@ export class ProcessFaceVerificationResultUseCase {
       // TODO: Trigger alert to HR department
       // TODO: Create anomaly record for investigation
     }
+  }
+
+  /**
+   * Calculate late minutes if check-in is after scheduled start time
+   * Returns 0 if on time or early, positive number if late
+   */
+  private calculateLateMinutes(
+    checkInTime: Date,
+    shiftDate: Date,
+    scheduledStartTime: string,
+  ): number {
+    // Parse scheduled start time (format: "HH:mm:ss")
+    const [hours, minutes] = scheduledStartTime.split(':').map(Number);
+    const scheduledStart = new Date(shiftDate);
+    scheduledStart.setHours(hours, minutes, 0, 0);
+
+    // Calculate difference in minutes
+    const diffMs = checkInTime.getTime() - scheduledStart.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    // Return 0 if on time or early, otherwise return late minutes
+    return Math.max(0, diffMinutes);
+  }
+
+  /**
+   * Calculate early leave minutes if check-out is before scheduled end time
+   * Returns 0 if on time or late, positive number if left early
+   */
+  private calculateEarlyLeaveMinutes(
+    checkOutTime: Date,
+    shiftDate: Date,
+    scheduledEndTime: string,
+  ): number {
+    // Parse scheduled end time (format: "HH:mm:ss")
+    const [hours, minutes] = scheduledEndTime.split(':').map(Number);
+    let scheduledEnd = new Date(shiftDate);
+    scheduledEnd.setHours(hours, minutes, 0, 0);
+
+    // Handle night shifts (end time < start time means next day)
+    const [startHours] = scheduledEndTime.split(':').map(Number);
+    if (hours < startHours) {
+      scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate difference in minutes
+    const diffMs = scheduledEnd.getTime() - checkOutTime.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    // Return 0 if on time or stayed late, otherwise return early leave minutes
+    return Math.max(0, diffMinutes);
   }
 }

@@ -27,6 +27,9 @@ export class GetGpsCheckConfigUseCase {
       );
     }
 
-    return ApiResponseDto.success(config, 'Configuration retrieved successfully.');
+    return ApiResponseDto.success(
+      config,
+      'Configuration retrieved successfully.',
+    );
   }
 }

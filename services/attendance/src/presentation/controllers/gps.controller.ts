@@ -1,5 +1,17 @@
-import { Body, Controller, Logger, Post, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { ValidateEmployeeLocationUseCase } from '../../application/attendance-check/validate-employee-location.use-case';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
@@ -56,7 +68,7 @@ export class GpsController {
       '4. Update presence verification status\n' +
       '5. Send notification if out of range',
   })
-  @ApiBody({ 
+  @ApiBody({
     type: GpsCheckDto,
     examples: {
       valid: {
@@ -64,18 +76,18 @@ export class GpsController {
         value: {
           latitude: 10.762622,
           longitude: 106.660172,
-          location_accuracy: 5.0
-        }
+          location_accuracy: 5.0,
+        },
       },
       invalid: {
         summary: 'Invalid GPS (outside office)',
         value: {
           latitude: 10.9,
           longitude: 107.0,
-          location_accuracy: 10.0
-        }
-      }
-    }
+          location_accuracy: 10.0,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -89,29 +101,26 @@ export class GpsController {
           distanceFromOffice: 45.2,
           timestamp: '2025-11-27T10:00:00Z',
           shiftId: '123',
-          employeeId: '10'
-        }
-      }
-    }
+          employeeId: '10',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Invalid request body or no active shift found',
     schema: {
       example: {
         success: false,
-        message: 'No active shift found for employee'
-      }
-    }
+        message: 'No active shift found for employee',
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Invalid or missing JWT token' 
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
   })
-  async gpsCheck(
-    @Body() dto: GpsCheckDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async gpsCheck(@Body() dto: GpsCheckDto, @CurrentUser() user: JwtPayload) {
     this.logger.log(
       `GPS check request from employee ${user.employee_id} (${user.email})`,
     );
@@ -119,12 +128,13 @@ export class GpsController {
     // Auto-find active shift from JWT token
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
-    const activeShift = await this.employeeShiftRepository.findActiveShiftByTime(
-      Number(user.employee_id),
-      now,
-      currentTime,
-    );
+
+    const activeShift =
+      await this.employeeShiftRepository.findActiveShiftByTime(
+        Number(user.employee_id),
+        now,
+        currentTime,
+      );
 
     if (!activeShift) {
       this.logger.warn(

@@ -190,7 +190,7 @@ export class EmployeeShiftController {
   })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getTodaySummary(
-    @Query('department_id') departmentId?: number,
+    @Query('department_id') departmentId?: string,
     @CurrentUser() user?: JwtPayload,
   ): Promise<
     ApiResponseDto<{

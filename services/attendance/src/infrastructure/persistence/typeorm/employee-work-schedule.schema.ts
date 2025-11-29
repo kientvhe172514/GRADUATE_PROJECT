@@ -27,18 +27,18 @@ export class EmployeeWorkScheduleSchema {
   @Column({ type: 'bigint', comment: 'References employee_db.employees.id' })
   employee_id: number;
 
-  @Column({ 
-    type: 'varchar', 
-    length: 50, 
+  @Column({
+    type: 'varchar',
+    length: 50,
     nullable: true,
-    comment: 'Cached employee code from employee service' 
+    comment: 'Cached employee code from employee service',
   })
   employee_code: string | null;
 
-  @Column({ 
-    type: 'int', 
+  @Column({
+    type: 'int',
     nullable: true,
-    comment: 'Cached department_id from employee service' 
+    comment: 'Cached department_id from employee service',
   })
   department_id: number | null;
 

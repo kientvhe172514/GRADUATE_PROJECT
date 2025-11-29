@@ -63,7 +63,8 @@ export class GpsCheckCalculatorService {
       .split(':')
       .map(Number);
 
-    const startTotalMinutes = startHours * 60 + startMinutes + startSeconds / 60;
+    const startTotalMinutes =
+      startHours * 60 + startMinutes + startSeconds / 60;
     let endTotalMinutes = endHours * 60 + endMinutes + endSeconds / 60;
 
     // Handle overnight shifts

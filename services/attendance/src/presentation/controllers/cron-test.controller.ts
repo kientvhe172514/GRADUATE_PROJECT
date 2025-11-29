@@ -1,6 +1,11 @@
 import { Controller, Post, Req, Logger } from '@nestjs/common';
 import type { Request } from 'express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Public } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
 import { CheckMissingAttendanceProcessor } from '../../infrastructure/cron/check-missing-attendance.processor';
@@ -41,8 +46,12 @@ export class CronTestController {
   async testGpsCheck(@Req() req: Request) {
     // Debug: log incoming headers and extracted user (internal troubleshooting only)
     const r = req as Request & { user?: unknown };
-    this.logger.debug('Incoming headers: ' + JSON.stringify((r.headers as unknown) || {}));
-    this.logger.debug('Extracted user on request: ' + JSON.stringify(r.user ?? null));
+    this.logger.debug(
+      'Incoming headers: ' + JSON.stringify((r.headers as unknown) || {}),
+    );
+    this.logger.debug(
+      'Extracted user on request: ' + JSON.stringify(r.user ?? null),
+    );
 
     await this.gpsCheckProcessor.triggerGpsCheckForActiveShifts();
     return {
@@ -88,7 +97,8 @@ export class CronTestController {
     await this.verificationRemindersUseCase.execute();
     return {
       success: true,
-      message: 'Verification reminders check triggered. Check logs for details.',
+      message:
+        'Verification reminders check triggered. Check logs for details.',
       timestamp: new Date().toISOString(),
     };
   }

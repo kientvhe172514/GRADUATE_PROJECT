@@ -39,6 +39,9 @@ export class UpdateGpsCheckConfigUseCase {
       await this.repository.setAsDefault(id, config.shift_type);
     }
 
-    return ApiResponseDto.success(updated, 'Configuration updated successfully.');
+    return ApiResponseDto.success(
+      updated,
+      'Configuration updated successfully.',
+    );
   }
 }

@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+  Min,
+  Max,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum CheckStrategyDto {
@@ -28,7 +36,10 @@ export class CreateGpsCheckConfigDto {
   @IsEnum(ShiftTypeDto)
   shift_type: ShiftTypeDto;
 
-  @ApiProperty({ enum: CheckStrategyDto, example: CheckStrategyDto.DURATION_BASED })
+  @ApiProperty({
+    enum: CheckStrategyDto,
+    example: CheckStrategyDto.DURATION_BASED,
+  })
   @IsEnum(CheckStrategyDto)
   check_strategy: CheckStrategyDto;
 
@@ -72,7 +83,10 @@ export class CreateGpsCheckConfigDto {
   @Max(50)
   default_checks_count: number;
 
-  @ApiPropertyOptional({ example: 100, description: 'Priority (higher = preferred)' })
+  @ApiPropertyOptional({
+    example: 100,
+    description: 'Priority (higher = preferred)',
+  })
   @IsOptional()
   @IsNumber()
   priority?: number;

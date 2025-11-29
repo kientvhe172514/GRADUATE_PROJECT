@@ -72,7 +72,10 @@ export class GpsCheckConfigController {
     description: 'Configurations retrieved successfully',
     type: [GpsCheckConfigResponseDto],
   })
-  async list(@Query('activeOnly', new ParseBoolPipe({ optional: true })) activeOnly?: boolean) {
+  async list(
+    @Query('activeOnly', new ParseBoolPipe({ optional: true }))
+    activeOnly?: boolean,
+  ) {
     return this.listUseCase.execute(activeOnly ?? false);
   }
 
@@ -106,7 +109,10 @@ export class GpsCheckConfigController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete GPS check configuration' })
-  @ApiResponse({ status: 200, description: 'Configuration deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuration deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Configuration not found' })
   @ApiResponse({
     status: 400,

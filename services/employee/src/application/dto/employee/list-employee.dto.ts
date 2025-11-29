@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { BaseEmployeeFilterDto } from './base-employee-filter.dto';
 
-export class ListEmployeeDto {
+export class ListEmployeeDto extends BaseEmployeeFilterDto {
   @ApiProperty({ required: false, default: 1, minimum: 1, type: Number })
   @IsOptional()
   @Type(() => Number)
@@ -18,27 +19,10 @@ export class ListEmployeeDto {
   @Max(100)
   limit?: number = 10;
 
-  @ApiProperty({ required: false, type: Number, description: 'Filter by department ID' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  department_id?: number;
-
-  @ApiProperty({ required: false, type: Number, description: 'Filter by position ID' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  position_id?: number;
-
   @ApiProperty({ enum: ['ACTIVE', 'INACTIVE', 'TERMINATED'], required: false, description: 'Filter by status' })
   @IsOptional()
   @IsEnum(['ACTIVE', 'INACTIVE', 'TERMINATED'])
   status?: string;
-
-  @ApiProperty({ required: false, type: String, description: 'Search in employee code, email, or full name' })
-  @IsOptional()
-  @IsString()
-  search?: string;
 
   @ApiProperty({ required: false, default: 'created_at', type: String })
   @IsOptional()

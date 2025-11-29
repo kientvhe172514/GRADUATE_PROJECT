@@ -281,7 +281,7 @@ export class EndOfDayAbsentMarkerProcessor {
       if (shiftDate instanceof Date) {
         return shiftDate.toISOString().split('T')[0];
       }
-      
+
       if (typeof shiftDate === 'string') {
         return new Date(shiftDate).toISOString().split('T')[0];
       }

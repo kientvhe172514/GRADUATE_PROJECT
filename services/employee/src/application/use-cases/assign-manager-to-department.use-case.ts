@@ -88,11 +88,26 @@ export class AssignManagerToDepartmentUseCase {
       updated_at: new Date()
     });
 
+    // Also update employee's current department to this department
+    await this.employeeRepository.update(dto.manager_id, {
+      ...employee,
+      department_id: departmentId,
+      updated_at: new Date(),
+    });
+
     // Publish event
     this.eventPublisher.publish('department_manager_assigned', {
       department_id: departmentId,
       manager_id: dto.manager_id,
       updated_at: new Date()
+    });
+
+    // Publish employee_department_assigned for downstream consumers (e.g., Auth)
+    this.eventPublisher.publish('employee_department_assigned', {
+      employee_id: dto.manager_id,
+      department_id: departmentId,
+      department_name: department.department_name,
+      assigned_at: new Date(),
     });
 
     const result = new DepartmentDetailDto(updatedDepartment);

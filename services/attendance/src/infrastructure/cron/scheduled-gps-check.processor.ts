@@ -105,7 +105,6 @@ export class ScheduledGpsCheckProcessor {
       WITH calculated_shifts AS (
     SELECT 
         es.*,
-        
         -- 1. Tính thời gian Bắt đầu ca (Shift Start)
         -- Dùng ::text || ' ' || ... tương đương CONCAT, gọn hơn
         (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp as shift_start_ts,
@@ -148,10 +147,6 @@ WHERE
     -- 3. Logic lọc chính: Giờ hiện tại (VN) phải nằm trong ca
     -- ✅ FIX TIMEZONE: Cộng 7 tiếng để NOW() (UTC) thành giờ Việt Nam
     (NOW() + INTERVAL '7 hours') BETWEEN shift_start_ts AND shift_end_ts
-    
-    -- Các điều kiện bắt buộc
-    AND check_in_time IS NOT NULL  -- ⚠️ Lưu ý: Dòng này sẽ lọc bỏ nếu bạn chưa UPDATE check_in_time
-    AND check_out_time IS NULL
     AND presence_verification_required = true
     -- Dùng COALESCE để tránh lỗi nếu cột completed đang null
     AND COALESCE(presence_verification_rounds_completed, 0) < presence_verification_rounds_required

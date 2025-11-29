@@ -55,14 +55,14 @@ export class RequestFaceVerificationUseCase {
     private readonly updateEmployeeShiftUseCase: UpdateEmployeeShiftUseCase,
     private readonly gpsCheckCalculator: GpsCheckCalculatorService,
     private readonly configService: ConfigService,
-  @Inject('FACE_RECOGNITION_SERVICE')
+    @Inject('FACE_RECOGNITION_SERVICE')
     private readonly faceRecognitionClient: ClientProxy,
     @Inject('EMPLOYEE_SERVICE')
     private readonly employeeClient: ClientProxy,
-  @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
-  private readonly employeeWorkScheduleRepository: any,
-  @Inject(WORK_SCHEDULE_REPOSITORY)
-  private readonly workScheduleRepository: any,
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+    private readonly employeeWorkScheduleRepository: any,
+    @Inject(WORK_SCHEDULE_REPOSITORY)
+    private readonly workScheduleRepository: any,
   ) {}
 
   async execute(command: RequestFaceVerificationCommand): Promise<{

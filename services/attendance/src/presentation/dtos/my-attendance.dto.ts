@@ -175,9 +175,15 @@ export class GetMyAttendanceResponseDto {
   @ApiProperty({ type: PaginationMetaDto })
   pagination: PaginationMetaDto;
 
-  @ApiProperty({ example: '2025-11-01', description: 'Start date of filtered period' })
+  @ApiProperty({
+    example: '2025-11-01',
+    description: 'Start date of filtered period',
+  })
   period_start: string;
 
-  @ApiProperty({ example: '2025-11-30', description: 'End date of filtered period' })
+  @ApiProperty({
+    example: '2025-11-30',
+    description: 'End date of filtered period',
+  })
   period_end: string;
 }

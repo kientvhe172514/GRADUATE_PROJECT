@@ -35,6 +35,9 @@ export class DeleteGpsCheckConfigUseCase {
     }
 
     await this.repository.delete(id);
-    return ApiResponseDto.success(undefined, 'Configuration deleted successfully.');
+    return ApiResponseDto.success(
+      undefined,
+      'Configuration deleted successfully.',
+    );
   }
 }

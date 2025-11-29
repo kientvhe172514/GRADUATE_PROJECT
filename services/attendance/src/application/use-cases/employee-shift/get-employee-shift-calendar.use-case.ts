@@ -122,7 +122,7 @@ export class GetEmployeeShiftCalendarUseCase {
             `⚠️ Employee info not found for ID: ${employeeId} - Employee may have been deleted`,
           );
           missingEmployeeIds.push(employeeId);
-          
+
           // Create placeholder employee info with shifts
           const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
             const props = shift.get_props();
@@ -161,7 +161,7 @@ export class GetEmployeeShiftCalendarUseCase {
             department_id: 0,
             shifts: shiftItems,
           });
-          
+
           continue;
         }
 
@@ -259,7 +259,7 @@ export class GetEmployeeShiftCalendarUseCase {
       if (shiftDate instanceof Date) {
         return shiftDate.toISOString().split('T')[0];
       }
-      
+
       // If string, convert to Date first
       if (typeof shiftDate === 'string') {
         return new Date(shiftDate).toISOString().split('T')[0];

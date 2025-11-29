@@ -82,6 +82,15 @@ export class GpsCheckConfigurationSchema {
   })
   default_checks_count: number;
 
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    default: 60.0,
+    comment: 'Minimum % of successful GPS verifications required (0-100)',
+  })
+  min_gps_verification_percentage: number;
+
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
 

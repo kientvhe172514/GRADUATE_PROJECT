@@ -20,6 +20,9 @@ export class ListGpsCheckConfigsUseCase {
       ? await this.repository.findAllActive()
       : await this.repository.findAll();
 
-    return ApiResponseDto.success(configs, 'Configurations retrieved successfully.');
+    return ApiResponseDto.success(
+      configs,
+      'Configurations retrieved successfully.',
+    );
   }
 }

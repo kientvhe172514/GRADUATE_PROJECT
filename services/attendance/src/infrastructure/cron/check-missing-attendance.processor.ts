@@ -8,19 +8,18 @@ import { ClientProxy } from '@nestjs/microservices';
  *
  * HOW IT WORKS:
  * 1. Runs every 10 minutes (configurable via CRON expression)
- * 2. Queries all active shifts that should have started 10+ minutes ago
- * 3. Finds employees who:
- *    - Have an active shift today
- *    - Shift start time was 10+ minutes ago
- *    - Haven't checked in yet
- *    - Don't have an approved leave request
- * 4. Sends push notification reminder to those employees
+ * 2. Finds shifts where:
+ *    - Shift start time was EXACTLY 10-19 minutes ago (narrow window)
+ *    - Employee hasn't checked in yet
+ *    - Status is still SCHEDULED
+ * 3. Sends ONE reminder per shift (only in the 10-minute window)
  *
  * EXAMPLE:
- * - Employee A has shift 8:00-17:00
- * - Employee B has shift 9:00-18:00
- * - At 8:10, Employee A gets reminder if not checked in
- * - At 9:10, Employee B gets reminder if not checked in
+ * - Employee A has shift 13:00-17:00
+ * - At 13:10, checks if A checked in → If NO → Send reminder
+ * - At 13:20, 13:30, etc. → Skip (already past reminder window)
+ *
+ * IMPORTANT: Only sends reminder ONCE per shift (within 10-19 minutes after start)
  */
 @Injectable()
 export class CheckMissingAttendanceProcessor {
@@ -35,7 +34,7 @@ export class CheckMissingAttendanceProcessor {
 
   /**
    * Runs every 10 minutes to check for missing check-ins
-   * Can be changed to EVERY_5_MINUTES for more frequent checks
+   * Only sends reminder in narrow window (10-19 minutes after shift start)
    */
   @Cron(CronExpression.EVERY_10_MINUTES, {
     name: 'check-missing-attendance',
@@ -46,14 +45,8 @@ export class CheckMissingAttendanceProcessor {
     this.logger.log('🔍 [CRON] Starting missing attendance check...');
 
     try {
-      const currentTime = new Date();
-      const thresholdTime = new Date(
-        currentTime.getTime() - this.MINUTES_THRESHOLD * 60 * 1000,
-      );
-
-      // Query employees who should have checked in by now but haven't
-      const missingEmployees =
-        await this.findEmployeesWithMissingCheckIn(thresholdTime);
+      // Query employees in reminder window (10-19 minutes after shift start)
+      const missingEmployees = await this.findEmployeesInReminderWindow();
 
       if (missingEmployees.length === 0) {
         this.logger.log('✅ [CRON] No employees missing check-in at this time');
@@ -75,8 +68,9 @@ export class CheckMissingAttendanceProcessor {
         } catch (error) {
           failCount++;
           this.logger.error(
-            `❌ [CRON] Failed to send reminder to employee ${employee.employee_id}:`,
-            error.message,
+            `❌ [CRON] Failed to send reminder to employee ${employee?.employee_id || 'unknown'}: ${String(
+              (error as any)?.message || error,
+            )}`,
           );
         }
       }
@@ -91,78 +85,61 @@ export class CheckMissingAttendanceProcessor {
   }
 
   /**
-   * Finds employees who:
-   * 1. Have an active shift today
-   * 2. Shift start time was before the threshold time (current time - 10 minutes)
-   * 3. Haven't checked in yet
-   * 4. Don't have an approved leave request
+   * Finds employees in reminder window (10-19 minutes after shift start)
+   * This ensures reminder is sent ONLY ONCE per shift
+   *
+   * Logic:
+   * 1. Shift start time was 10-19 minutes ago (narrow window)
+   * 2. Status = SCHEDULED (not checked in yet)
+   * 3. No check_in_time yet
+   *
+   * Example:
+   * - Current time: 13:15
+   * - Shift starts at 13:00
+   * - Minutes elapsed: 15 → IN WINDOW (10-19) → Send reminder
+   * - If current time is 13:25 → 25 minutes → OUT OF WINDOW → Skip
    */
-  private async findEmployeesWithMissingCheckIn(
-    thresholdTime: Date,
-  ): Promise<any[]> {
+  private async findEmployeesInReminderWindow(): Promise<any[]> {
     const query = `
-      WITH active_shifts_today AS (
-        SELECT 
-          es.employee_id,
-          es.employee_code,
-          es.shift_date,
-          ws.start_time,
-          ws.end_time,
-          ws.schedule_name,
-          CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp as shift_start_timestamp
-        FROM employee_shifts es
-        INNER JOIN work_schedules ws ON es.work_schedule_id = ws.id
-        WHERE 
-          es.shift_date = CURRENT_DATE
-          AND ws.status = 'ACTIVE'
-          AND es.status = 'SCHEDULED'
-          -- Shift start time was before threshold (10 minutes ago)
-          AND CONCAT(es.shift_date::text, ' ', ws.start_time::text)::timestamp <= $1
-      )
-      SELECT DISTINCT
-        ast.employee_id,
-        ast.employee_code,
-        ast.schedule_name,
-        ast.start_time,
-        ast.shift_start_timestamp,
-        EXTRACT(EPOCH FROM (NOW() - ast.shift_start_timestamp))/60 as minutes_late
-      FROM active_shifts_today ast
+      SELECT 
+        es.id as shift_id,
+        es.employee_id,
+        es.employee_code,
+        es.shift_date,
+        es.scheduled_start_time,
+        es.scheduled_end_time,
+        (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp as shift_start_ts,
+        EXTRACT(EPOCH FROM (NOW() + INTERVAL '7 hours' - (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp))/60 as minutes_since_start
+      FROM employee_shifts es
       WHERE 
-        -- Employee hasn't checked in yet today
-        NOT EXISTS (
-          SELECT 1 FROM employee_shifts es2
-          WHERE es2.employee_id = ast.employee_id
-          AND es2.shift_date = CURRENT_DATE
-          AND es2.check_in_time IS NOT NULL
-        )
-      ORDER BY ast.employee_id;
+        es.shift_date = CURRENT_DATE
+        AND es.status = 'SCHEDULED'
+        AND es.check_in_time IS NULL
+        AND es.shift_type = 'REGULAR'
+        -- Only in reminder window: 10-19 minutes after shift start
+        AND EXTRACT(EPOCH FROM (NOW() + INTERVAL '7 hours' - (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp))/60 BETWEEN 10 AND 19
+      ORDER BY es.employee_id;
     `;
 
-    return await this.dataSource.query(query, [thresholdTime]);
+    return await this.dataSource.query(query);
   }
 
   /**
    * Sends push notification reminder to employee via Notification Service using RabbitMQ
    */
-  private sendReminderNotification(employee: {
-    employee_id: number;
-    employee_code: string;
-    schedule_name: string;
-    start_time: string;
-    minutes_late: number;
-  }): void {
+  private sendReminderNotification(employee: any): void {
     const notificationPayload = {
       recipientId: employee.employee_id,
       title: '⏰ Nhắc nhở Check-in',
-      message: `Chào ${employee.employee_code}, bạn chưa check-in cho ca ${employee.schedule_name} (${employee.start_time}). Vui lòng check-in ngay để tránh bị tính vắng mặt!`,
+      message: `Chào ${employee.employee_code}, bạn chưa check-in cho ca ${employee.scheduled_start_time}. Vui lòng check-in ngay để tránh bị tính vắng mặt!`,
       notificationType: 'ATTENDANCE_REMINDER',
       priority: 'HIGH',
       channels: ['PUSH', 'IN_APP'],
       metadata: {
         eventType: 'attendance.missing-check-in',
-        scheduleName: employee.schedule_name,
-        shiftStartTime: employee.start_time,
-        minutesLate: Math.floor(employee.minutes_late),
+        shiftId: employee.shift_id,
+        shiftStartTime: employee.scheduled_start_time,
+        minutesSinceStart: Math.floor(employee.minutes_since_start),
       },
     };
 
@@ -170,7 +147,7 @@ export class CheckMissingAttendanceProcessor {
     this.notificationClient.emit('notification.send', notificationPayload);
 
     this.logger.log(
-      `✅ [CRON] Sent reminder event to ${employee.employee_code} (ID: ${employee.employee_id}) - ${Math.floor(employee.minutes_late)} minutes late`,
+      `✅ [CRON] Sent reminder to ${employee.employee_code} (shift_id=${employee.shift_id}) - ${Math.floor(employee.minutes_since_start)} minutes since start`,
     );
   }
 
@@ -184,11 +161,7 @@ export class CheckMissingAttendanceProcessor {
   }> {
     this.logger.log('🔧 [MANUAL] Manually triggered missing attendance check');
 
-    const thresholdTime = new Date(
-      Date.now() - this.MINUTES_THRESHOLD * 60 * 1000,
-    );
-    const missingEmployees =
-      await this.findEmployeesWithMissingCheckIn(thresholdTime);
+    const missingEmployees = await this.findEmployeesInReminderWindow();
 
     let successCount = 0;
     let failCount = 0;

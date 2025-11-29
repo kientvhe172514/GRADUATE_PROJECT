@@ -40,7 +40,7 @@ export class ScheduleVerificationRemindersUseCase {
         // This can be expanded based on business requirements
         if (verifications.length < 3) {
           this.logger.log(`Shift ${shift.id} needs verification reminder`);
-          
+
           // ✅ Send reminder notification
           this.sendVerificationReminder(shift, verifications.length);
         }

@@ -28,9 +28,7 @@ import { ShiftGeneratorService } from '../../application/services/shift-generato
 export class WeeklyShiftGeneratorProcessor {
   private readonly logger = new Logger(WeeklyShiftGeneratorProcessor.name);
 
-  constructor(
-    private readonly shiftGeneratorService: ShiftGeneratorService,
-  ) {}
+  constructor(private readonly shiftGeneratorService: ShiftGeneratorService) {}
 
   /**
    * Runs every Sunday at 23:00 Vietnam time
@@ -66,9 +64,7 @@ export class WeeklyShiftGeneratorProcessor {
           `⚠️ [CRON] ${result.errors.length} employees had errors:`,
         );
         result.errors.forEach((err) => {
-          this.logger.warn(
-            `  - Employee ${err.employeeId}: ${err.error}`,
-          );
+          this.logger.warn(`  - Employee ${err.employeeId}: ${err.error}`);
         });
       }
     } catch (error) {

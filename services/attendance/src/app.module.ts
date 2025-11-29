@@ -12,6 +12,8 @@ import { ScheduledGpsCheckProcessor } from './infrastructure/cron/scheduled-gps-
 import { WeeklyShiftGeneratorProcessor } from './infrastructure/cron/weekly-shift-generator.processor';
 import { EndOfDayAbsentMarkerProcessor } from './infrastructure/cron/end-of-day-absent-marker.processor';
 import { AttendanceReconciliationProcessor } from './infrastructure/cron/attendance-reconciliation.processor';
+import { MarkAbsentInsufficientGpsProcessor } from './infrastructure/cron/mark-absent-insufficient-gps.processor';
+import { MarkAbsentMissingCheckProcessor } from './infrastructure/cron/mark-absent-missing-check.processor';
 import { WorkScheduleModule } from './application/work-schedule/work-schedule.module';
 import { BeaconModule } from './application/beacon/beacon.module';
 import { AttendanceCheckModule } from './application/attendance-check/attendance-check.module';
@@ -29,6 +31,7 @@ import { HealthController } from './health.controller';
 import { GpsController } from './presentation/controllers/gps.controller';
 import { CronTestController } from './presentation/controllers/cron-test.controller';
 import { GpsCheckConfigController } from './presentation/controllers/gps-check-config.controller';
+import { AttendanceCheckRecordController } from './presentation/controllers/attendance-check-record.controller';
 
 @Module({
   imports: [
@@ -146,6 +149,7 @@ import { GpsCheckConfigController } from './presentation/controllers/gps-check-c
     GpsController,
     CronTestController,
     GpsCheckConfigController,
+    AttendanceCheckRecordController,
     EmployeeEventListener,
     LeaveEventListener,
     FaceVerificationResultConsumer,
@@ -163,6 +167,8 @@ import { GpsCheckConfigController } from './presentation/controllers/gps-check-c
     WeeklyShiftGeneratorProcessor,
     EndOfDayAbsentMarkerProcessor,
     AttendanceReconciliationProcessor,
+    MarkAbsentInsufficientGpsProcessor,
+    MarkAbsentMissingCheckProcessor,
   ],
 })
 export class AppModule {}

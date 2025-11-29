@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
+import { BaseEmployeeFilterDto } from './base-employee-filter.dto';
 
 export class ManagerSummaryDto {
   @ApiProperty({ example: 1 })
@@ -28,23 +27,12 @@ export class ManagerSummaryDto {
   position_name?: string;
 }
 
-export class ListManagersDto {
-  @ApiProperty({ required: false, type: String, description: 'Tìm kiếm theo mã nhân viên, email hoặc họ tên (hỗ trợ tiếng Việt có dấu)' })
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @ApiProperty({ required: false, type: Number, description: 'Lọc theo phòng ban' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  department_id?: number;
-
-  @ApiProperty({ required: false, type: Number, description: 'Lọc theo vị trí' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  position_id?: number;
+/**
+ * DTO for listing managers
+ * Extends BaseEmployeeFilterDto to reuse common filters
+ */
+export class ListManagersDto extends BaseEmployeeFilterDto {
+  // No additional fields needed - all filters inherited from base
 }
 
 export class ListManagersResponseDto {

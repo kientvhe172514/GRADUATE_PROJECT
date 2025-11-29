@@ -35,7 +35,10 @@ export class GetManagersUseCase {
       searchCriteria.department_id = dto.department_id;
     }
 
-    const { employees } = await this.employeeRepository.findWithPagination(searchCriteria);
+    const { employees, total } = await this.employeeRepository.findWithPagination(searchCriteria);
+    
+    console.log(`📊 Found ${total} employees with position_id=3 and status=ACTIVE`);
+    console.log(`📋 Employees:`, employees.map((e: any) => ({ id: e.id, name: e.full_name, status: e.status, position_id: e.position_id })));
 
     // Step 2: Get all departments to find already assigned manager_ids
     const { departments } = await this.departmentRepository.findWithPagination({
@@ -51,6 +54,8 @@ export class GetManagersUseCase {
         .map((dept) => dept.manager_id!)
     );
 
+    console.log(`📍 Departments with assigned managers:`, Array.from(assignedManagerIds));
+
     // Step 3: Filter out employees who are already assigned as department managers
     const managers: ManagerSummaryDto[] = employees
       .filter((employee: any) => !assignedManagerIds.has(employee.id))
@@ -65,6 +70,8 @@ export class GetManagersUseCase {
         position_name: employee.position_name || null,
       }))
       .slice(0, 100); // Limit to 100 results
+
+    console.log(`✅ Available managers (not assigned): ${managers.length}`);
 
     const response: ListManagersResponseDto = {
       managers,

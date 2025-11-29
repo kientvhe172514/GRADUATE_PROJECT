@@ -59,7 +59,7 @@ export class CapturePresenceVerificationUseCase {
         'presence_verification_rounds_completed',
         1,
       );
-      
+
       this.logger.log(
         `✅ Incremented presence_verification_rounds_completed for shift ${data.shiftId}`,
       );
