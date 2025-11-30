@@ -29,4 +29,6 @@ export class EmployeeEntity {
   updated_at?: Date;
   created_by?: number;
   updated_by?: number;
+  // Relations
+  department?: any;
 }

@@ -32,7 +32,10 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
   }
 
   async findById(id: number): Promise<Employee | null> {
-    const entity = await this.repository.findOne({ where: { id } });
+    const entity = await this.repository.findOne({ 
+      where: { id },
+      relations: ['department']
+    });
     return entity ? EmployeeMapper.toDomain(entity) : null;
   }
 

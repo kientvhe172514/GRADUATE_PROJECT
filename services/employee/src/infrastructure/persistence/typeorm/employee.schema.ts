@@ -50,4 +50,14 @@ export const EmployeeSchema = new EntitySchema<EmployeeEntity>({
     created_by: { type: 'bigint', nullable: true, transformer: bigintTransformer },
     updated_by: { type: 'bigint', nullable: true, transformer: bigintTransformer },
   },
+  relations: {
+    department: {
+      type: 'many-to-one',
+      target: 'Department',
+      joinColumn: {
+        name: 'department_id',
+        referencedColumnName: 'id',
+      },
+    },
+  },
 });

@@ -92,7 +92,16 @@ export class EmployeeDetailDto {
   @ApiProperty()
   updated_by?: number;
 
-  constructor(employee: Employee) {
+  @ApiProperty({ required: false })
+  department?: {
+    id: number;
+    name?: string;
+    office_latitude?: number;
+    office_longitude?: number;
+    allowed_check_in_radius_meters?: number;
+  };
+
+  constructor(employee: Employee & { department?: any }) {
     this.id = employee.id!;
     this.account_id = employee.account_id;
     this.employee_code = employee.employee_code;
@@ -123,5 +132,6 @@ export class EmployeeDetailDto {
     this.updated_at = employee.updated_at;
     this.created_by = employee.created_by;
     this.updated_by = employee.updated_by;
+    this.department = employee.department;
   }
 }

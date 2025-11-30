@@ -113,6 +113,20 @@ export class RequestFaceVerificationUseCase {
       }
     }
 
+    // Prevent numeric overflow when writing to DB columns with limited precision
+    // attendance_check_records.distance_from_office_meters is decimal(7,2) -> max 99999.99
+    const DISTANCE_MAX = 99999.99;
+    if (distanceFromOffice !== undefined && distanceFromOffice !== null) {
+      if (!isFinite(distanceFromOffice) || Number.isNaN(distanceFromOffice)) {
+        distanceFromOffice = undefined;
+      } else if (distanceFromOffice > DISTANCE_MAX) {
+        this.logger.warn(
+          `Distance from office (${distanceFromOffice}m) exceeds column max; capping to ${DISTANCE_MAX}m`,
+        );
+        distanceFromOffice = DISTANCE_MAX;
+      }
+    }
+
     // Step 3: Find employee shift using SMART TIME-BASED MATCHING
     // This handles:
     // - Early check-in (6am for 8am shift)
@@ -269,34 +283,36 @@ export class RequestFaceVerificationUseCase {
 
     try {
       // Query Employee Service to get employee's department office coordinates
+      // Using standard RPC pattern 'employee.get' (returns wrapped response)
       const response = await firstValueFrom(
         this.employeeClient
-          .send('get_employee_detail', { employee_id: employeeId })
+          .send('employee.get', { id: employeeId })
           .pipe(
             timeout(2500), // 2.5s timeout
             catchError((error) => {
               this.logger.debug(
-                `Employee Service RPC failed: ${error.message}`,
+                `Employee Service RPC failed: ${error?.message || 'Unknown error'}`,
               );
               return of(null); // Return null on error
             }),
           ),
       );
 
+      // Extract employee from wrapped response: { status, statusCode, message, data }
+      const employee = response?.data;
+      
       if (
-        response &&
-        response.department &&
-        response.department.office_latitude &&
-        response.department.office_longitude
+        employee &&
+        employee.department &&
+        employee.department.office_latitude &&
+        employee.department.office_longitude
       ) {
-        office_latitude = Number(response.department.office_latitude);
-        office_longitude = Number(response.department.office_longitude);
+        office_latitude = Number(employee.department.office_latitude);
+        office_longitude = Number(employee.department.office_longitude);
 
-        // Use department's allowed check-in radius if available
-        if (response.department.allowed_check_in_radius_meters) {
-          max_distance_meters = Number(
-            response.department.allowed_check_in_radius_meters,
-          );
+        // Use department's office radius (Department schema field: office_radius_meters)
+        if (employee.department.office_radius_meters) {
+          max_distance_meters = Number(employee.department.office_radius_meters);
         }
 
         this.logger.log(
