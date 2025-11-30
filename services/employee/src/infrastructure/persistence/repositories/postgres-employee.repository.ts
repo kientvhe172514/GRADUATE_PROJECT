@@ -32,10 +32,13 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
   }
 
   async findById(id: number): Promise<Employee | null> {
-    const entity = await this.repository.findOne({ 
-      where: { id },
-      relations: ['department']
-    });
+    // Manual left join with department to avoid foreign key constraint issues
+    const entity = await this.repository
+      .createQueryBuilder('employee')
+      .leftJoinAndSelect('Department', 'department', 'department.id = employee.department_id')
+      .where('employee.id = :id', { id })
+      .getOne();
+    
     return entity ? EmployeeMapper.toDomain(entity) : null;
   }
 

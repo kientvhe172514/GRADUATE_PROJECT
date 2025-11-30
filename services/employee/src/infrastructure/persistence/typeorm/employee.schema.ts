@@ -50,14 +50,6 @@ export const EmployeeSchema = new EntitySchema<EmployeeEntity>({
     created_by: { type: 'bigint', nullable: true, transformer: bigintTransformer },
     updated_by: { type: 'bigint', nullable: true, transformer: bigintTransformer },
   },
-  relations: {
-    department: {
-      type: 'many-to-one',
-      target: 'Department',
-      joinColumn: {
-        name: 'department_id',
-        referencedColumnName: 'id',
-      },
-    },
-  },
+  // Note: No TypeORM relation to avoid foreign key constraints
+  // Department will be manually joined when needed
 });
