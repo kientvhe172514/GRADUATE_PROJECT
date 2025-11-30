@@ -81,7 +81,9 @@ export class ProcessFaceVerificationResultUseCase {
         }
 
         // Update employee shift based on check_type
-        if (attendanceCheck.check_type === 'CHECK_IN') {
+        // Normalize to lowercase to handle case mismatch
+        const checkType = String(attendanceCheck.check_type).toLowerCase();
+        if (checkType === 'check_in') {
           // Calculate late minutes
           const lateMinutes = this.calculateLateMinutes(
             event.verification_time,
@@ -99,7 +101,7 @@ export class ProcessFaceVerificationResultUseCase {
             `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${event.verification_time.toISOString()}, ` +
               `late_minutes=${lateMinutes}, status=IN_PROGRESS`,
           );
-        } else if (attendanceCheck.check_type === 'CHECK_OUT') {
+        } else if (checkType === 'check_out') {
           if (shift.check_in_time) {
             // Calculate work hours and overtime based on scheduled shift duration
             const { actualWorkHours, overtimeHours } =
