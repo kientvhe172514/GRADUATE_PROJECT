@@ -32,10 +32,12 @@ import { GpsController } from './presentation/controllers/gps.controller';
 import { CronTestController } from './presentation/controllers/cron-test.controller';
 import { GpsCheckConfigController } from './presentation/controllers/gps-check-config.controller';
 import { AttendanceCheckRecordController } from './presentation/controllers/attendance-check-record.controller';
+import { RedisModule } from './infrastructure/redis/redis.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    RedisModule,
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],

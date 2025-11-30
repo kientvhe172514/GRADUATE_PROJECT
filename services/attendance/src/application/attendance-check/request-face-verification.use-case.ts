@@ -75,8 +75,8 @@ export class RequestFaceVerificationUseCase {
       `Processing ${command.check_type} request for employee ${command.employee_code}`,
     );
 
-    // Step 1: Validate session token (beacon already validated)
-    const sessionValidation = this.validateBeaconUseCase.validateSession(
+    // Step 1: Validate session token (beacon already validated) - Now using Redis
+    const sessionValidation = await this.validateBeaconUseCase.validateSession(
       command.session_token,
       command.employee_id,
     );

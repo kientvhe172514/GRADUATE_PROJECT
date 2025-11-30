@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BeaconRepository } from '../../infrastructure/repositories/beacon.repository';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 
 export interface ValidateBeaconCommand {
   employee_id: number;
@@ -21,18 +22,23 @@ export interface ValidateBeaconResult {
   message: string;
 }
 
+interface BeaconSession {
+  employeeId: number;
+  beaconId: number;
+  expiresAt: string; // ISO string for Redis storage
+}
+
 @Injectable()
 export class ValidateBeaconUseCase {
-  private readonly SESSION_TIMEOUT_MINUTES = 10; // Increased from 5 to 10 minutes
-  private readonly beaconSessions = new Map<
-    string,
-    { employeeId: number; beaconId: number; expiresAt: Date }
-  >();
+  private readonly logger = new Logger(ValidateBeaconUseCase.name);
+  private readonly SESSION_TIMEOUT_MINUTES = 10; // Session timeout in minutes
+  private readonly SESSION_TIMEOUT_SECONDS = this.SESSION_TIMEOUT_MINUTES * 60; // Convert to seconds for Redis
+  private readonly REDIS_PREFIX = 'beacon_session:'; // Redis key prefix
 
-  constructor(private readonly beaconRepository: BeaconRepository) {
-    // Clean expired sessions every minute
-    setInterval(() => this.cleanExpiredSessions(), 60000);
-  }
+  constructor(
+    private readonly beaconRepository: BeaconRepository,
+    private readonly redisService: RedisService,
+  ) {}
 
   async execute(command: ValidateBeaconCommand): Promise<ValidateBeaconResult> {
     // Validate beacon
@@ -62,15 +68,27 @@ export class ValidateBeaconUseCase {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + this.SESSION_TIMEOUT_MINUTES);
 
-    // Store session
-    this.beaconSessions.set(sessionToken, {
+    // Store session in Redis with automatic expiration
+    const session: BeaconSession = {
       employeeId: command.employee_id,
       beaconId: validationResult.beacon!.id,
-      expiresAt,
-    });
+      expiresAt: expiresAt.toISOString(),
+    };
 
-    console.log(
-      `✅ Session created: token="${sessionToken}", employeeId=${command.employee_id}, expiresAt=${expiresAt.toISOString()}, totalSessions=${this.beaconSessions.size}`,
+    const redisKey = this.REDIS_PREFIX + sessionToken;
+    await this.redisService.setObject(
+      redisKey,
+      session,
+      this.SESSION_TIMEOUT_SECONDS,
+    );
+
+    // Get total active sessions count
+    const allSessionKeys = await this.redisService.keys(
+      this.REDIS_PREFIX + '*',
+    );
+
+    this.logger.log(
+      `✅ Session created in Redis: token="${sessionToken}", employeeId=${command.employee_id}, expiresAt=${expiresAt.toISOString()}, totalSessions=${allSessionKeys.length}`,
     );
 
     return {
@@ -85,40 +103,53 @@ export class ValidateBeaconUseCase {
     };
   }
 
-  validateSession(
+  async validateSession(
     sessionToken: string,
     employeeId: number,
-  ): {
+  ): Promise<{
     valid: boolean;
     beaconId?: number;
     error?: string;
-  } {
-    console.log(
+  }> {
+    this.logger.log(
       `🔍 Validating session: token="${sessionToken}", employeeId=${employeeId}`,
     );
-    console.log(`📊 Total active sessions: ${this.beaconSessions.size}`);
 
-    const session = this.beaconSessions.get(sessionToken);
+    const redisKey = this.REDIS_PREFIX + sessionToken;
+    const session = await this.redisService.getObject<BeaconSession>(redisKey);
 
     if (!session) {
-      console.error(
-        `❌ Session not found in memory. Available sessions: ${Array.from(this.beaconSessions.keys()).join(', ')}`,
+      // Get all active sessions for debugging
+      const allSessionKeys = await this.redisService.keys(
+        this.REDIS_PREFIX + '*',
+      );
+      this.logger.error(
+        `❌ Session not found in Redis. Total active sessions: ${allSessionKeys.length}`,
       );
       return { valid: false, error: 'Invalid session token' };
     }
 
     if (session.employeeId !== employeeId) {
+      this.logger.warn(
+        `❌ Employee ID mismatch: expected ${session.employeeId}, got ${employeeId}`,
+      );
       return { valid: false, error: 'Session token does not match employee' };
     }
 
-    if (new Date() > session.expiresAt) {
-      this.beaconSessions.delete(sessionToken);
+    // Check if session expired (Redis should auto-delete, but double-check)
+    const expiresAt = new Date(session.expiresAt);
+    if (new Date() > expiresAt) {
+      await this.redisService.delete(redisKey);
+      this.logger.warn(`❌ Session expired at ${session.expiresAt}`);
       return {
         valid: false,
         error: 'Session expired. Please scan beacon again',
       };
     }
 
+    this.logger.log(
+      `✅ Session validated successfully for employee ${employeeId}`,
+    );
     return { valid: true, beaconId: session.beaconId };
   }
 
@@ -126,14 +157,5 @@ export class ValidateBeaconUseCase {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
     return `beacon_${employeeId}_${beaconId}_${timestamp}_${random}`;
-  }
-
-  private cleanExpiredSessions(): void {
-    const now = new Date();
-    for (const [token, session] of this.beaconSessions.entries()) {
-      if (now > session.expiresAt) {
-        this.beaconSessions.delete(token);
-      }
-    }
   }
 }
