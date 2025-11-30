@@ -24,22 +24,43 @@ export enum AttendancePeriodFilter {
 }
 
 export class GetMyAttendanceQueryDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     enum: AttendancePeriodFilter,
     example: AttendancePeriodFilter.MONTH,
-    description: 'Filter period: day, week, month, or year',
+    description:
+      '🔄 DEPRECATED: Use start_date + end_date instead. Filter period: day, week, month, or year',
   })
+  @IsOptional()
   @IsEnum(AttendancePeriodFilter)
-  period: AttendancePeriodFilter;
+  period?: AttendancePeriodFilter;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '2025-11-05',
     description:
-      'Reference date (YYYY-MM-DD). Used as end date for week/month/year filters. ' +
+      '🔄 DEPRECATED: Use start_date + end_date instead. Reference date (YYYY-MM-DD). Used as end date for week/month/year filters. ' +
       'WEEK: Monday → reference_date | MONTH: 1st → reference_date | YEAR: Jan 1 → reference_date',
   })
+  @IsOptional()
   @IsDateString()
-  reference_date: string;
+  reference_date?: string;
+
+  @ApiPropertyOptional({
+    example: '2025-11-01',
+    description:
+      '✅ NEW: Start date (YYYY-MM-DD) for custom date range filter. If not provided, will use period + reference_date logic.',
+  })
+  @IsOptional()
+  @IsDateString()
+  start_date?: string;
+
+  @ApiPropertyOptional({
+    example: '2025-11-30',
+    description:
+      '✅ NEW: End date (YYYY-MM-DD) for custom date range filter. If not provided, will use period + reference_date logic.',
+  })
+  @IsOptional()
+  @IsDateString()
+  end_date?: string;
 
   @ApiPropertyOptional({
     enum: ShiftStatus,

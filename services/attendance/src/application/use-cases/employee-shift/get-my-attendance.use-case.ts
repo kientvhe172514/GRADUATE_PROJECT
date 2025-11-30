@@ -51,13 +51,32 @@ export class GetMyAttendanceUseCase {
       );
     }
 
-    const referenceDate = new Date(query.reference_date);
+    // Support both new (start_date + end_date) and old (period + reference_date) formats
+    let startDate: Date;
+    let endDate: Date;
 
-    // Calculate period range
-    const { startDate, endDate } = this.calculatePeriodRange(
-      referenceDate,
-      query.period,
-    );
+    if (query.start_date && query.end_date) {
+      // ✅ NEW: Direct date range
+      startDate = new Date(query.start_date);
+      endDate = new Date(query.end_date);
+      console.log(
+        `📅 Using custom date range: ${query.start_date} → ${query.end_date}`,
+      );
+    } else if (query.period && query.reference_date) {
+      // 🔄 DEPRECATED: Period-based calculation
+      const referenceDate = new Date(query.reference_date);
+      const range = this.calculatePeriodRange(referenceDate, query.period);
+      startDate = range.startDate;
+      endDate = range.endDate;
+      console.log(
+        `📅 Using period ${query.period} with reference ${query.reference_date}`,
+      );
+    } else {
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        'Either provide start_date + end_date OR period + reference_date',
+      );
+    }
 
     // Fetch all shifts in the period for this employee
     const allShifts = await this.shiftRepository.findByDateRange(
@@ -79,9 +98,17 @@ export class GetMyAttendanceUseCase {
 
     // Sort by shift_date descending (newest first)
     filteredShifts = filteredShifts.sort((a, b) => {
-      const dateA = a.get_props().shift_date.getTime();
-      const dateB = b.get_props().shift_date.getTime();
-      return dateB - dateA;
+      const propsA = a.get_props();
+      const propsB = b.get_props();
+      const dateA =
+        propsA.shift_date instanceof Date
+          ? propsA.shift_date
+          : new Date(propsA.shift_date);
+      const dateB =
+        propsB.shift_date instanceof Date
+          ? propsB.shift_date
+          : new Date(propsB.shift_date);
+      return dateB.getTime() - dateA.getTime();
     });
 
     // Calculate summary
