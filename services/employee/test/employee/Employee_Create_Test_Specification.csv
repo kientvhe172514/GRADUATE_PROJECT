@@ -9,29 +9,29 @@ Condition,Preconditions,,,,,,,,,,,,,,,,,
 ,,,email 'john.doe@company.com' ALREADY EXISTS,,,,,O,,,,,,,,,,
 ,,,Employee NOT yet linked to account,,,,,,,,,,O,,,,,
 ,employee_code,,,,,,,,,,,,,,,,,
-,,,"	""EMP001""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,"""EMP001""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
 ,first_name,,,,,,,,,,,,,,,,,
-,,,"	""John""",O,,O,O,O,,,,,,O,O,O,O,
-,,,"	""Nguy?n""",,O,,,,O,,,,,,,,,
-,,,"	""Alexander""",,,,,,,,,O,,,,,,
+,,,"""John""",O,,O,O,O,,,,,,O,O,O,O,
+,,,"""Nguy?n""",,O,,,,O,,,,,,,,,
+,,,"""Alexander""",,,,,,,,,O,,,,,,
 ,last_name,,,,,,,,,,,,,,,,,
-,,,"	""Doe""",O,,O,O,O,,,,,,O,O,O,O,
-,,,"	""Van Th�nh""",,O,,,,O,,,,,,,,,
-,,,"	""Montgomery-Williams""",,,,,,,,,O,,,,,,
+,,,"""Doe""",O,,O,O,O,,,,,,O,O,O,O,
+,,,"""V?n Th�nh""",,O,,,,O,,,,,,,,,
+,,,"""Montgomery-Williams""",,,,,,,,,O,,,,,,
 ,date_of_birth,,,,,,,,,,,,,,,,,
-,,,"	""1990-01-01""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,"""1990-01-01""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
 ,gender,,,,,,,,,,,,,,,,,
-,,,"	""MALE""",O,O,O,O,O,O,O,,O,O,O,O,O,O,O
-,,,"	""OTHER""",,,,,,,,O,,,,,,,
+,,,"""MALE""",O,O,O,O,O,O,O,,O,O,O,O,O,O,O
+,,,"""OTHER""",,,,,,,,O,,,,,,,
 ,email,,,,,,,,,,,,,,,,,
-,,,"	""john.doe@company.com""",O,O,O,O,O,O,O,O,O,O,,,,O,
-,,,"	""invalid-email-format""",,,,,,,,,,,,O,,,
-,,,"	""test.user+tag@company.co.uk""",,,,,,,,,,,,,,,
+,,,"""john.doe@company.com""",O,O,O,O,O,O,O,O,O,O,,,,O,
+,,,"""invalid-email-format""",,,,,,,,,,,,O,,,
+,,,"""test.user+tag@company.co.uk""",,,,,,,,,,,,,,,
 ,phone_number,,phone_number,,,,,,,,,,,,,,,
-,,,"	""   """,O,O,,O,O,O,O,O,O,O,,,,,
-,,,"	""0912345678""",,,O,,,,,,,,,,,,
-,,,"	""123456789""",,,,,,,,,,,,,,O,
-,,,"	""09123456ab""",,,,,,,,,,,,,,,O
+,,,""" """,O,O,,O,O,O,O,O,O,O,,,,,
+,,,"""0912345678""",,,O,,,,,,,,,,,,
+,,,"""123456789""",,,,,,,,,,,,,,O,
+,,,"""09123456ab""",,,,,,,,,,,,,,,O
 ,department_id,,,,,,,,,,,,,,,,,
 ,,,1,O,O,,O,O,O,O,O,O,O,O,O,O,O,O
 ,,,undefined,,,O,,,,,,,,,,,,
@@ -42,33 +42,32 @@ Condition,Preconditions,,,,,,,,,,,,,,,,,
 ,,,2,O,O,,O,O,O,O,O,O,O,O,O,O,O,O
 ,,,undefined,,,O,,,,,,,,,,,,
 ,hire_date,,,,,,,,,,,,,,,,,
-,,,"	""2025-10-07""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,"""2025-10-07""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
 ,employment_type,,,,,,,,,,,,,,,,,
-,,,"	""FULL_TIME""",O,O,O,O,O,O,,O,O,O,O,O,O,O,O
-,,,"	""CONTRACT""",,,,,,,O,,,,,,,,
+,,,"""FULL_TIME""",O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,,,"""CONTRACT""",,,,,,,O,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 Confirm,Return,,,,,,,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published with suggested_role:""EMPLOYEE""",,,O,,,,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published with suggested_role:""EMPLOYEE"" (default)",,,,O,,,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:undefined, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}}",,,,,O,,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Nguyễn Văn Thành"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), employment_type:""CONTRACT"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,O,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), gender:""OTHER"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,O,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Alexander Montgomery-Williams"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,O,,,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:undefined, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}}",,,,,,,,,,,O,,,,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), phone_number:""0912345678"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,,,O,,,
-,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""test.user+tag@company.co.uk"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,,,,,,O
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published with suggested_role:""EMPLOYEE""",O,,,,,,,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published with suggested_role:""EMPLOYEE"" (default)",,O,,,,,,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:undefined, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}}",,,O,,,,,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Nguyễn Văn Thành"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,O,,,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), employment_type:""CONTRACT"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), gender:""OTHER"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,O,,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Alexander Montgomery-Williams"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,,,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:undefined, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}}",,,,,,,,,O,,,,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:Date('2025-10-07'), phone_number:""0912345678"", onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,O,,,
+,,,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""test.user+tag@company.co.uk"", hire_date:Date('2025-10-07'), onboarding_status:""PENDING"", created_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,,,,O
 ,,,,,,,,,,,,,,,,,,
 ,Exception,,,,,,,,,,,,,,,,,
-,,"""Employee code already exists""",,,,,O,,,,,,,,,,,
-,,"""Employee email already exists""",,,,,,O,,,,,,,,,,
-,,"""Invalid email format""",,,,,,,,,,,,,O,,,
-,,"""Phone number must be exactly 10 digits""",,,,,,,,,,,,,,O,O,O
+,,,"""Employee code already exists""",,,,O,,,,,,,,,,,
+,,,"""Employee email already exists""",,,,,O,,,,,,,,,,
+,,,"""Invalid email format""",,,,,,,,,,,,O,,,
+,,,"""Phone number must be exactly 10 digits""",,,,,,,,,,,,,O,O,
 ,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 ,Log Message,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
-Result,Test Result,,,,,,,,,,,,,,,,,
-,,PASS,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
-,"Type (N: Normal, A: Abnormal, B: Boundary)",,,N,N,N,A,A,N,N,N,N,N,A,A,A,N,N
+,,,,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,A,A,N,N,N,N,N,A,A,A,N,N

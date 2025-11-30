@@ -1,0 +1,76 @@
+,,,,CLRTC01,CLRTC02,CLRTC03,CLRTC04,CLRTC05,CLRTC06,CLRTC07,CLRTC08,CLRTC09,CLRTC10,CLRTC11,CLRTC12,CLRTC13,CLRTC14
+Condition,Precondition,,,,,,,,,,,,,,,,
+,,,Can connect to database,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,Employee service is available,O,O,O,O,O,O,O,O,O,O,O,O,,O
+,,,Employee with ID 100 EXISTS with employee_code 'EMP001',O,O,O,O,O,O,O,O,O,O,O,O,,O
+,,,Employee with ID 999 does NOT exist,,,,,,,,,,,,,,O
+,,,Leave type with ID 1 EXISTS,O,O,O,O,O,O,O,O,O,O,O,O,O,
+,,,Leave type with ID 1 has deducts_from_balance = true,O,O,O,O,O,O,O,O,O,O,,,O,
+,,,Leave type with ID 1 has deducts_from_balance = false,,,,,,,,,,,O,,,
+,,,Leave type with ID 999 does NOT exist,,,,,,,,,,,,,,,O
+,,,Leave balance EXISTS for employee 100 and leave type 1 with remaining_days = 10,O,O,O,O,O,O,O,O,O,,,,,
+,,,Leave balance EXISTS for employee 100 and leave type 1 with remaining_days = 2,,,,,,,,,,O,,,,
+,,,Leave balance does NOT exist for employee 100 and leave type 1,,,,,,,,,,,,,O,
+,,,No overlapping leave requests exist,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,Overlapping PENDING leave request exists,,,,,,,O,,,,,,,
+,,,Overlapping APPROVED leave request exists,,,,,,,,O,,,,,,
+,,,,,,,,,,,,,,,,,
+,employeeId,,,,,,,,,,,,,,,,
+,,,100,O,O,O,O,O,O,O,O,O,O,O,O,O,
+,,,999,,,,,,,,,,,,,,,O
+,leave_type_id,,,,,,,,,,,,,,,,
+,,,1,O,O,O,O,O,O,O,O,O,O,O,O,O,
+,,,999,,,,,,,,,,,,,,,O
+,start_date,,,,,,,,,,,,,,,,
+,,,"""2025-03-10""",O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,end_date,,,,,,,,,,,,,,,,
+,,,"""2025-03-12""",O,,,,,,,,,,,,,O
+,,,"""2025-03-14""",,O,O,O,,O,O,O,O,O,O,O,O,
+,,,"""2025-03-16""",,,,,O,,,,,,,,,,
+,,,"""2025-03-09""",,,,,,,,,,,,,,,O
+,is_half_day_start,,,,,,,,,,,,,,,,
+,,,false,O,O,,O,O,O,O,O,O,O,O,O,O,O
+,,,true,,,O,,,,,,,,,,,
+,is_half_day_end,,,,,,,,,,,,,,,,
+,,,false,O,O,O,,O,O,O,O,O,O,O,O,O,O
+,,,true,,,,O,,,,,,,,,,,
+,reason,,,,,,,,,,,,,,,,
+,,,"""Family emergency""",O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,supporting_document_url,,,,,,,,,,,,,,,,
+,,,"""https://example.com/doc.pdf""",O,,,,,,,,,,,,,
+,,,undefined,,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,,,,,,,,,,,,,,,
+Confirm,Return,,,,,,,,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-12"", total_calendar_days:3, total_working_days:3, total_leave_days:3, is_half_day_start:false, is_half_day_end:false, reason:""Family emergency"", supporting_document_url:""https://example.com/doc.pdf"", status:""PENDING"", approval_level:1} + Leave balance updated (pending_days increased, remaining_days decreased) + Transaction created + Event published",,,O,,,,,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-14"", total_calendar_days:5, total_working_days:5, total_leave_days:5, is_half_day_start:false, is_half_day_end:false, reason:""Family emergency"", status:""PENDING"", approval_level:1} + Leave balance updated + Transaction created + Event published",,,,O,,,,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-14"", total_calendar_days:5, total_working_days:4.5, total_leave_days:4.5, is_half_day_start:true, is_half_day_end:false, reason:""Family emergency"", status:""PENDING"", approval_level:1} + Leave balance updated + Transaction created + Event published",,,,,O,,,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-14"", total_calendar_days:5, total_working_days:4.5, total_leave_days:4.5, is_half_day_start:false, is_half_day_end:true, reason:""Family emergency"", status:""PENDING"", approval_level:1} + Leave balance updated + Transaction created + Event published",,,,,,O,,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-16"", total_calendar_days:7, total_working_days:5, total_leave_days:5, is_half_day_start:false, is_half_day_end:false, reason:""Family emergency"", status:""PENDING"", approval_level:1} + Leave balance updated + Transaction created + Event published (Weekend days excluded)",,,,,,O,,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-14"", total_calendar_days:5, total_working_days:5, total_leave_days:5, is_half_day_start:false, is_half_day_end:false, reason:""Family emergency"", status:""PENDING"", approval_level:1} + NO balance update (deducts_from_balance = false) + NO transaction created + Event published",,,,,,,O,,,,,,,,
+,"{id:1, employee_id:100, employee_code:""EMP001"", department_id:10, leave_type_id:1, start_date:""2025-03-10"", end_date:""2025-03-14"", total_calendar_days:5, total_working_days:5, total_leave_days:5, is_half_day_start:false, is_half_day_end:false, reason:""Family emergency"", status:""PENDING"", approval_level:1} + Leave balance updated + Transaction created + Event published",,,,,,,,O,,,,,,,
+,,,,,,,,,,,,,,,,,
+,Exception,,,,,,,,,,,,,,,,
+,,,"""Employee information not found. Please ensure your employee profile exists."" (BusinessException EMPLOYEE_NOT_FOUND, statusCode 404)",,,,,,,,,,,,,,,O
+,,,"""Employee information incomplete. Missing employee code."" (BusinessException EMPLOYEE_NOT_FOUND, statusCode 404)",,,,,,,,,,,,,,,,
+,,,"""Leave type not found"" (BusinessException LEAVE_TYPE_NOT_FOUND, statusCode 404)",,,,,,,,,,,,,,,O
+,,,"""Start date must be before or equal to end date"" (BusinessException INVALID_LEAVE_DATE_RANGE, statusCode 400)",,,,,,,,,,,,,,,O
+,,,"""You already have a pending or approved leave request during this period"" (BusinessException LEAVE_REQUEST_OVERLAPS, statusCode 400)",,,,,,,,O,O,,,,,,,
+,,,"""Leave balance not found. Please contact HR to initialize your leave balance."" (BusinessException LEAVE_BALANCE_NOT_FOUND, statusCode 404)",,,,,,,,,,,,,O,,
+,,,"""Insufficient leave balance. Required: 5.00 days, Available: 2.00 days"" (BusinessException INSUFFICIENT_LEAVE_BALANCE, statusCode 400)",,,,,,,,,,O,,,,,
+,,,,,,,,,,,,,,,,,
+,Log message,,,,,,,,,,,,,,,,
+,,,Employee service called with get_employee_by_id,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,LeaveTypeRepository.findById called,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,LeaveRecordRepository.findByDateRange called,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,LeaveBalanceRepository.findByEmployeeLeaveTypeAndYear called,O,O,O,O,O,O,O,O,O,O,,,O,
+,,,LeaveBalanceRepository.update called with new pending_days and remaining_days,O,O,O,O,O,O,O,,,,,,,
+,,,LeaveRecordRepository.create called,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,LeaveBalanceTransactionRepository.create called with transaction_type LEAVE_PENDING,O,O,O,O,O,O,O,,,,,,,
+,,,EventPublisher.publish called with leave.requested event,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,LeaveRecord created with status PENDING,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,LeaveRecord created with approval_level 1,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,Total calendar days calculated correctly,O,O,O,O,O,O,O,,,,O,O,O,O
+,,,Total working days calculated correctly (excluding weekends),O,O,O,O,O,O,O,,,,O,O,O,O
+,,,Half day adjustments applied correctly,,,O,O,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,N,B,B,N,A,A,A,N,A,N,A

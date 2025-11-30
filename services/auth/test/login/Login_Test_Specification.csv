@@ -1,0 +1,106 @@
+,,,,LTCID01,LTCID02,LTCID03,LTCID04,LTCID05,LTCID06,LTCID07,LTCID08,LTCID09,LTCID10,LTCID11,LTCID12,LTCID13,LTCID14,LTCID15,LTCID16,LTCID17,LTCID18,LTCID19,LTCID20,LTCID21,LTCID22,LTCID23
+Condition,Precondition,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,Can connect to database,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,Account with email 'active@company.com' EXISTS with status ACTIVE,O,O,O,O,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,,O,O,O
+,,,Account with email 'inactive@company.com' EXISTS with status INACTIVE,,,,,,,,,,,,,,,,,,,,,O,,,
+,,,Account with email 'locked@company.com' EXISTS with status LOCKED,,,,,,,,,,,,,,,,,,,,O,,,,
+,,,Account with email 'suspended@company.com' EXISTS with status SUSPENDED,,,,,,,,,,,,,,,,,,,O,,,,,
+,,,Account has failed_login_attempts = 0,,,,,,,,,O,,,,,,,,,,,,,,
+,,,Account has failed_login_attempts = 2,,,,,,,,,,,O,,,,,,,,,,,
+,,,Account has failed_login_attempts = 3,,,,,O,,,,,,,,,,,,,,,,,
+,,,Account has failed_login_attempts = 4,,,,,,O,,,O,,,,,,,,,,,,,,,
+,,,Account has failed_login_attempts = 5,,,,,,,,,,O,,,,,,,,,,,,,
+,,,Account has locked_until in future,,,,,,,,,,,,O,,,,,,,,,,,,
+,,,Account has locked_until in past,,,,,,,,,,,,,O,,,,,,,,,,,
+,,,Account has active temporary password (must_change_password = true),,,,,,,,,,,,,,O,,,,,,,,,,,
+,,,Account has active temporary password (must_change_password = false),,,,,,,,,,,,,,,,,O,,,,,,,,
+,,,Account has expired temporary password,,,,,,,,,,,,,,,O,,,,,,,,
+,,,Account has active temp password but using regular password,,,,,,,,,,,,,,,,,O,,,,,,,,
+,,,Device session creation succeeds,O,O,O,O,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,,O,O
+,,,Device session creation fails,,,,,,,,,,,,,,,,,,,,,O,,
+,email,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""active@company.com""",O,O,O,O,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,,O,O,O
+,,,"""inactive@company.com""",,,,,,,,,,,,,,,,,,,,O,,,
+,,,"""locked@company.com""",,,,,,,,,,,,,,,,,,,O,,,,
+,,,"""suspended@company.com""",,,,,,,,,,,,,,,,,O,,,,,
+,,,"""nonexistent@company.com""",,,,,,,O,,,,,,,,,,,,,,,
+,password,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""correct_password""",O,O,O,O,O,O,,,,O,O,O,O,,,,,O,O,O,,O,O
+,,,"""wrong_password""",,,,,,,,O,O,O,,,,,,,,,,,,,
+,,,"""temp_password123""",,,,,,,,,,,,,,,O,,O,,,,,,,
+,device_id,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""device_123""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,device_name,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""iPhone 14""",O,,,,,,,,,,,,,,,,,,,,,O,O
+,,,"""Samsung Galaxy S23""",,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,,,
+,,,undefined,,,O,,,,,,,,,,,,,,,,,,,,,
+,device_os,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""iOS 17""",O,,,,,,,,,,,,,,,,,,,,,O,O
+,,,"""Android 14""",,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,,,
+,,,undefined,,,O,,,,,,,,,,,,,,,,,,,,,
+,platform,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,ANDROID,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,fcm_token,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""fcm_token_xyz""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,ip_address,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""192.168.1.100""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,user_agent,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""Mozilla/5.0 (iPhone)""",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,location,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"{latitude: 10.762622, longitude: 106.660172}",O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,role,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,EMPLOYEE,O,,,O,O,O,,O,O,O,O,O,O,O,O,O,O,,,,,O,O
+,,,ADMIN,,O,,,,,,,,,,,,,,,,,,,,,,
+,,,HR_MANAGER,,,O,,,,,,,,,,,,,,,,,,,,,
+,employee_id,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,100,O,,,O,O,O,,O,O,O,O,O,O,O,O,O,O,,,,,O,O
+,,,200,,,O,,,,,,,,,,,,,,,,,,,,,
+,,,undefined,,O,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Confirm,Return,,,,,,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged",,,O,,,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Admin"", role:""ADMIN"", employee_id:undefined}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged",,,,O,,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created",,,,O,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""Jane Manager"", role:""HR_MANAGER"", employee_id:200}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged",,,,,O,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged + failed_login_attempts reset to 0",,,,,,O,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged + failed_login_attempts reset to 0",,,,,,,O,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged + failed_login_attempts reset to 0",,,,,,,,,,,O,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged + Account unlocked",,,,,,,,,,,,,,O,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful. Please change your temporary password."", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:true, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS_TEMP_PASSWORD + Device session created + Device activity logged",,,,,,,,,,,,,,,O,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged",,,,,,,,,,,,,,,,,O,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Device session created + Device activity logged + Hashing service called 2 times",,,,,,,,,,,,,,,,,,,O,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published + Audit log LOGIN_SUCCESS + Refresh token created even when device session fails",,,,,,,,,,,,,,,,,,,,,,,O,,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Refresh token created with correct account_id, token_hash, ip_address, user_agent",,,,,,,,,,,,,,,,,,,,,,,,O,
+,"{status:""SUCCESS"", statusCode:200, message:""Login successful"", data:{access_token:""jwt_access_token"", refresh_token:""jwt_refresh_token"", must_change_password:false, user:{id:1, email:""active@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", employee_id:100}}} + Event published with user_logged_in containing account data",,,,,,,,,,,,,,,,,,,,,,,,,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Exception,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,"""Invalid credentials""" (Account not found),,,,,,,O,,,,,,,,,,,,,,,,,
+,,,"""Invalid credentials""" (Wrong password),,,,,,,,O,,,,,,,,,,,,,,,,,
+,,,"""Invalid credentials""" (Failed attempts incremented to 5),,,,,,,,,O,,,,,,,,,,,,,,,,
+,,,"""Invalid credentials""" (Failed attempts incremented to 6 and account locked),,,,,,,,,,O,,,,,,,,,,,,,,,
+,,,"""Invalid credentials""" (Expired temporary password),,,,,,,,,,,,,,,O,,,,,,,,,,
+,,,"""Account is temporarily locked due to too many failed login attempts""",,,,,,,,,,,,O,,,,,,,,,,,,,
+,,,"""Account is inactive. Please contact administrator.""",,,,,,,,,,,,,,,,,,,,,,O,,,
+,,,"""Account has been locked. Please contact administrator.""",,,,,,,,,,,,,,,,,,,O,,,,
+,,,"""Account has been suspended. Please contact administrator.""",,,,,,,,,,,,,,,,,O,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Log message,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Account not found',,,,,,,O,,,,,,,,,,,,,,,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Invalid password',,,,,,,,O,O,O,,,,,,,,,,,,,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Account locked',,,,,,,,,,,,O,,,,,,,,,,,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Account status: INACTIVE',,,,,,,,,,,,,,,,,,,,,,O,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Account status: LOCKED',,,,,,,,,,,,,,,,,,,O,,,,
+,,,Audit log: LOGIN_FAILED with error_message: 'Account status: SUSPENDED',,,,,,,,,,,,,,,,,O,,,,,
+,,,Audit log: LOGIN_SUCCESS,O,O,O,O,O,O,,,,O,O,O,O,,,,,O,,,,,O,O
+,,,Audit log: LOGIN_SUCCESS_TEMP_PASSWORD,,,,,,,,,,,,,,,O,,,,,,,,,
+,,,Device activity: LOGIN with status SUCCESS,O,O,O,O,O,O,,,,O,O,O,O,O,,O,O,O,,,,,O,O
+,,,Device session created with correct account_id,O,O,O,O,O,O,,,,O,O,O,O,O,,O,O,O,,,,,O,O
+,,,Refresh token created,O,O,O,O,O,O,,,,O,O,O,O,O,,O,O,O,,,,O,O,O
+,,,Event published: user_logged_in,O,O,O,O,O,O,,,,O,O,O,O,O,,O,O,O,,,,,O,O
+,,,Failed login attempts incremented,,,,,,,,O,O,O,,,,,,,,,,,,,,,
+,,,Account locked after 5 failed attempts,,,,,,,,,,O,,,,,,,,,,,,,,,
+,,,Failed login attempts reset to 0,,,,,O,O,,,,,O,,,,,,,,,,,,,,,
+,,,Hashing service compare called 2 times,,,,,,,,,,,,,,,,,,,O,,,,,,,,
+,,,Device session creation error handled gracefully,,,,,,,,,,,,,,,,,,,,,,,O,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,N,N,N,A,A,A,A,N,B,B,N,A,N,N,A,A,A,N,N,N

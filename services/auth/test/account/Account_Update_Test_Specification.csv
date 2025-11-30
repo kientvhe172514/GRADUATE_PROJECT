@@ -1,152 +1,86 @@
-Test Spec,Target,TC_001,TC_002,TC_003,TC_004,TC_005,TC_006,TC_007,TC_008,TC_009,TC_010,TC_011,TC_012
-,Update Account Use Case,Update account with all fields,Update account with partial fields,Update account with different email,Update only status field,Update only role field,Update external_ids and metadata,Throw error when account not found,Throw error when email already exists,Update employee_code and employee_id,Verify sync_version incremented,Handle empty update dto,Update position and department names
-,,,,,,,,,,,,
-Preconditions,,,,,,,,,,,,
-,,"	""- Can connect to database""",O,O,O,O,O,O,O,O,O,O,O,O
-,,"	""- account_id 1 EXISTS""",O,O,O,O,O,O,,O,O,O,O,O
-,,"	""- account_id 999 does NOT exist""",,,,,,,O,,,,,
-,,"	""- email 'new@company.com' does NOT exist""",O,,,,,,,,,,,,
-,,"	""- email 'existing@company.com' ALREADY EXISTS""",,,,,,,,,O,,,,
-,,"	""- Event publishing service available""",O,O,O,O,O,O,,O,O,O,O,O
-,,,,,,,,,,,,
-Input,account_id,,,,,,,,,,,
+,,,,UTCID01,UTCID02,UTCID03,UTCID04,UTCID05,UTCID06,UTCID07,UTCID08,UTCID09,UTCID10,UTCID11,UTCID12
+Condition,Precondition,,,,,,,,,,,,,,
+,,,Can connect to database,O,O,O,O,O,O,O,O,O,O,O,O
+,,,account_id 1 EXISTS,O,O,O,O,O,O,,O,O,O,O,O
+,,,account_id 999 does NOT exist,,,,,,,O,,,,,
+,,,email 'new@company.com' does NOT exist,O,,,,,,,,,,,
+,,,email 'existing@company.com' ALREADY EXISTS,,,,,,,,O,,,,
+,,,,,,,,,,,,,,,
+,account_id,,,,,,,,,,,,,,
 ,,,1,O,O,O,O,O,O,,O,O,O,O,O
 ,,,999,,,,,,,O,,,,,
-,email,,,,,,,,,,,
-,,,"	""john.new@company.com""",O,,,,,,,,,,
-,,,"	""john.different@company.com""",,,O,,,,,,,,,
-,,,"	""existing@company.com""",,,,,,,,,O,,,,
-,,,undefined (omitted),,O,,O,O,O,,,O,O,O,O
-,role,,,,,,,,,,,
-,,,AccountRole.HR_MANAGER,O,,,,,,,,,,
-,,,AccountRole.ADMIN,,,,,O,,,,,,
-,,,undefined (omitted),,O,O,O,,O,O,O,O,O,O
-,status,,,,,,,,,,,
-,,,AccountStatus.ACTIVE,O,,,,,,,,,,
-,,,AccountStatus.INACTIVE,,,,O,,,,,,,
-,,,undefined (omitted),,O,O,,O,O,O,O,O,O,O
-,employee_id,,,,,,,,,,,
-,,,101,O,,,,,,,,,,
-,,,999,,,,,,,,,O,,
-,,,undefined (omitted),,O,O,O,O,O,O,O,,O,O,O
-,employee_code,,,,,,,,,,,
-,,,"	""EMP002""",O,,,,,,,,,,
-,,,"	""EMP999""",,,,,,,,,O,,
-,,,undefined (omitted),,O,O,O,O,O,O,O,,O,O,O
-,full_name,,,,,,,,,,,
-,,,"	""John Updated Doe""",O,,,,,,,,,,
-,,,"	""John Updated Only Name""",,,O,,,,,,,,,
-,,,"	""John Different Email""",,,O,,,,,,,,,
-,,,"	""Updated Name""",,,,,,,O,O,,,,
-,,,"	""Test Sync Version""",,,,,,,,,O,,,
-,,,undefined (omitted),,,,,O,O,,,,O,O
-,department_id,,,,,,,,,,,
-,,,20,O,,,,,,,,,,
-,,,30,,O,,,,,,,,,
-,,,50,,,,,,,,,,,O
-,,,undefined (omitted),,,O,O,O,O,O,O,O,O,O,
-,department_name,,,,,,,,,,,
-,,,"	""Sales""",O,,,,,,,,,,
-,,,"	""Human Resources""",,,,,,,,,,,O
-,,,undefined (omitted),,O,O,O,O,O,O,O,O,O,O,
-,position_id,,,,,,,,,,,
-,,,10,O,,,,,,,,,,
-,,,20,,,,,,,,,,,O
-,,,undefined (omitted),,O,O,O,O,O,O,O,O,O,O,
-,position_name,,,,,,,,,,,
-,,,"	""Senior Engineer""",O,,,,,,,,,,
-,,,"	""HR Manager""",,,,,,,,,,,O
-,,,undefined (omitted),,O,O,O,O,O,O,O,O,O,O,
-,external_ids,,,,,,,,,,,
-,,,"{ldap_id:'12345'}",O,,,,,,,,,,
-,,,"{ldap_id:'99999', ad_id:'AD123'}",,,,,,,O,,,,,
-,,,undefined (omitted),,O,O,O,O,,O,O,O,O,O,O
-,metadata,,,,,,,,,,,
-,,,"{note:'Updated user'}",O,,,,,,,,,,
-,,,"{notes:'Important user', tags:['vip','manager']}",,,,,,,O,,,,,
-,,,undefined (omitted),,O,O,O,O,,O,O,O,O,O,O
-,,,,,,,,,,,,
-Confirm,Return,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.new@company.com"", full_name:""John Updated Doe"", role:""HR_MANAGER"", status:""ACTIVE"", department_id:20, department_name:""Sales"", position_id:10, position_name:""Senior Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published with 'account_updated'",,,O,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Updated Only Name"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:30, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,O,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.different@company.com"", full_name:""John Different Email"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,O,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""INACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,O,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""ADMIN"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z'), external_ids:{ldap_id:'99999', ad_id:'AD123'}, metadata:{notes:'Important user', tags:['vip','manager']}}} + Event published",,,,,,,,O,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", employee_id:999, employee_code:""EMP999"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,O,,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""Test Sync Version"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,O,
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,O
-,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:50, department_name:""Human Resources"", position_id:20, position_name:""HR Manager"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,O
-,,,,,,,,,,,,
-,Exception,,,,,,,,,,,
-,,"BusinessException with errorCode:""ACCOUNT_NOT_FOUND"" + message:""Account not found"" + statusCode:404",,,,,,,O,,,,,
-,,"BusinessException with errorCode:""ACCOUNT_ALREADY_EXISTS"" + message:""Account email already exists"" + statusCode:409",,,,,,,,,,O,,,,
-,,,,,,,,,,,,
-,Verification Points,,,,,,,,,,,
-,,mockAccountRepository.findById called with 1,O,O,O,O,O,O,,O,O,O,O,O
-,,mockAccountRepository.findById called with 999,,,,,,,O,,,,,
-,,mockAccountRepository.findById returns COMMON_EXISTING_ACCOUNT,O,O,O,O,O,O,,O,O,O,O,O
-,,mockAccountRepository.findById returns null,,,,,,,O,,,,,
-,,mockAccountRepository.findByEmail called with 'john.new@company.com',O,,,,,,,,,,,,
-,,mockAccountRepository.findByEmail called with 'john.different@company.com',,,O,,,,,,,,,
-,,mockAccountRepository.findByEmail called with 'existing@company.com',,,,,,,,,,O,,,,
-,,mockAccountRepository.findByEmail returns null,O,,O,,,,,,,,,
-,,mockAccountRepository.findByEmail returns anotherAccount (id:2),,,,,,,,,,O,,,,
-,,mockAccountRepository.findByEmail NOT called,,O,,O,O,O,,,O,O,O,O
-,,mockAccountRepository.update called,O,O,O,O,O,O,,,O,O,O,O
-,,mockAccountRepository.update NOT called,,,,,,,O,O,,,,
-,,mockAccountRepository.update called exactly 1 time,O,O,O,O,O,O,,,O,O,O,O
-,,mockEventPublisher.publish called,O,O,O,O,O,O,,,O,O,O,O
-,,mockEventPublisher.publish NOT called,,,,,,,O,O,,,,
-,,mockEventPublisher.publish called exactly 1 time,O,O,O,O,O,O,,,O,O,O,O
-,,Updated account includes email:'john.new@company.com',O,,,,,,,,,,,,
-,,Updated account includes email:'john.different@company.com',,,O,,,,,,,,,
-,,Updated account includes full_name:'John Updated Doe',O,,,,,,,,,,
-,,Updated account includes full_name:'John Updated Only Name',,O,,,,,,,,,
-,,Updated account includes full_name:'John Different Email',,,O,,,,,,,,,
-,,Updated account includes full_name:'Test Sync Version',,,,,,,,,,O,,
-,,Updated account includes role:HR_MANAGER,O,,,,,,,,,,
-,,Updated account includes role:ADMIN,,,,,O,,,,,,
-,,Updated account includes status:ACTIVE,O,,O,,,,,,,,
-,,Updated account includes status:INACTIVE,,,,O,,,,,,,
-,,Updated account includes department_id:20,O,,,,,,,,,,
-,,Updated account includes department_id:30,,O,,,,,,,,,
-,,Updated account includes department_id:50,,,,,,,,,,,O
-,,Updated account includes department_name:'Sales',O,,,,,,,,,,
-,,Updated account includes department_name:'Human Resources',,,,,,,,,,,O
-,,Updated account includes position_id:10,O,,,,,,,,,,
-,,Updated account includes position_id:20,,,,,,,,,,,O
-,,Updated account includes position_name:'Senior Engineer',O,,,,,,,,,,
-,,Updated account includes position_name:'HR Manager',,,,,,,,,,,O
-,,Updated account includes employee_id:101,O,,,,,,,,,,
-,,Updated account includes employee_id:999,,,,,,,,,O,,
-,,Updated account includes employee_code:'EMP002',O,,,,,,,,,,
-,,Updated account includes employee_code:'EMP999',,,,,,,,,O,,
-,,Updated account includes external_ids:{ldap_id:'12345'},O,,,,,,,,,,
-,,Updated account includes external_ids:{ldap_id:'99999', ad_id:'AD123'},,,,,,O,,,,,
-,,Updated account includes metadata:{note:'Updated user'},O,,,,,,,,,,
-,,Updated account includes metadata:{notes:'Important user', tags:['vip','manager']},,,,,,O,,,,,
-,,Updated account includes sync_version:2,O,O,O,O,O,O,,,O,O,O,O
-,,Updated account includes updated_at:Date('2025-11-09T10:00:00Z'),O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes id:1,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes email field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes full_name field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes role field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes status field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes department_id field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes department_name field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes position_id field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes position_name field,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes sync_version:2,O,O,O,O,O,O,,,O,O,O,O
-,,Returned data includes updated_at:Date('2025-11-09T10:00:00Z'),O,O,O,O,O,O,,,O,O,O,O
-,,Exception thrown is BusinessException,,,,,,,O,O,,,,
-,,Exception errorCode is ACCOUNT_NOT_FOUND,,,,,,,O,,,,,
-,,Exception errorCode is ACCOUNT_ALREADY_EXISTS,,,,,,,,,,O,,,,
-,,Exception message is 'Account not found',,,,,,,O,,,,,
-,,Exception message is 'Account email already exists',,,,,,,,,,O,,,,
-,,Exception statusCode is 404,,,,,,,O,,,,,
-,,Exception statusCode is 409,,,,,,,,,,O,,,,
-,,,,,,,,,,,,
-Result,Test Result,,,,,,,,,,,
-,,PASS,O,O,O,O,O,O,O,O,O,O,O,O
-,"Type (N: Normal, A: Abnormal, B: Boundary)",,,N,N,N,N,N,N,A,A,N,N,B,N
+,email,,,,,,,,,,,,,,
+,,,"""john.new@company.com""",O,,,O,O,O,O,O,O,O,O,O
+,,,"""john.different@company.com""",,,O,,,,,,,,,
+,,,"""existing@company.com""",,,,,,,,,,,,
+,,,undefined,,O,,,,,,,,,,
+,role,,,,,,,,,,,,,,
+,,,HR_MANAGER,O,,,,,,,,,,,
+,,,ADMIN,,,,,O,,,,,,,
+,,,EMPLOYEE,,O,O,O,,O,O,O,O,O,O,
+,status,,,,,,,,,,,,,,
+,,,ACTIVE,O,,O,,O,O,O,O,O,O,O,
+,,,INACTIVE,,,,O,,,,,,,,
+,,,undefined,,O,,,,,,,,,,
+,employee_id,,,,,,,,,,,,,,
+,,,101,O,,,,,,,,,,,
+,,,999,,,,,,,,,O,,,
+,,,undefined,,O,O,O,O,O,O,O,,O,O,O
+,employee_code,,,,,,,,,,,,,,
+,,,"""EMP002""",O,,,,,,,,,,,
+,,,"""EMP999""",,,,,,,,,O,,,
+,,,undefined,,O,O,O,O,O,O,O,,O,O,O
+,full_name,,,,,,,,,,,,,,
+,,,"""John Updated Doe""",O,,,,,,,,,,,
+,,,"""John Updated Only Name""",,O,O,,,,,,,,,
+,,,"""John Different Email""",,,O,,,,,,,,,
+,,,"""Updated Name""",,,,,,,O,O,,,,
+,,,"""Test Sync Version""",,,,,,,,,O,,,
+,,,undefined,,,,,O,O,,,,O,O,
+,department_id,,,,,,,,,,,,,,
+,,,20,O,,,,,,,,,,,
+,,,30,,O,,,,,,,,,,
+,,,50,,,,,,,,,,,O,
+,,,undefined,,,O,O,O,O,O,O,O,O,,
+,department_name,,,,,,,,,,,,,,
+,,,"""Sales""",O,,,,,,,,,,,
+,,,"""Human Resources""",,,,,,,,,,,O,
+,,,undefined,,O,O,O,O,O,O,O,O,O,,
+,position_id,,,,,,,,,,,,,,
+,,,10,O,,,,,,,,,,,
+,,,20,,,,,,,,,,,,O
+,,,undefined,,O,O,O,O,O,O,O,O,O,O,
+,position_name,,,,,,,,,,,,,,
+,,,"""Senior Engineer""",O,,,,,,,,,,,
+,,,"""HR Manager""",,,,,,,,,,,O,
+,,,undefined,,O,O,O,O,O,O,O,O,O,,
+,external_ids,,,,,,,,,,,,,,
+,,,{ldap_id:'12345'},O,,,,,,,,,,,
+,,,"{ldap_id:'99999', ad_id:'AD123'}",,,,,,O,,,,,,
+,,,undefined,,O,O,O,O,,O,O,O,O,O,O
+,metadata,,,,,,,,,,,,,,
+,,,{note:'Updated user'},O,,,,,,,,,,,
+,,,"{notes:'Important user', tags:['vip','manager']}",,,,,,O,,,,,,
+,,,undefined,,O,O,O,O,,O,O,O,O,O,O
+,,,,,,,,,,,,,,,
+Confirm,Return,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.new@company.com"", full_name:""John Updated Doe"", role:""HR_MANAGER"", status:""ACTIVE"", department_id:20, department_name:""Sales"", position_id:10, position_name:""Senior Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published with 'account_updated'",,,O,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Updated Only Name"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:30, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,O,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.different@company.com"", full_name:""John Different Email"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,O,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""INACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,O,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""ADMIN"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,O,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z'), external_ids:{ldap_id:'99999', ad_id:'AD123'}, metadata:{notes:'Important user', tags:['vip','manager']}}} + Event published",,,,,,,,O,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", employee_id:999, employee_code:""EMP999"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,O,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""Test Sync Version"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,O,,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:10, department_name:""Engineering"", position_id:5, position_name:""Software Engineer"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,,O,
+,"{status:""SUCCESS"", statusCode:200, message:""Account updated"", data:{id:1, email:""john.doe@company.com"", full_name:""John Doe"", role:""EMPLOYEE"", status:""ACTIVE"", department_id:50, department_name:""Human Resources"", position_id:20, position_name:""HR Manager"", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}} + Event published",,,,,,,,,,,,,,O
+,,,,,,,,,,,,,,,
+,Exception,,,,,,,,,,,,,,
+,,,"""Account not found""",,,,,,,O,,,,,
+,,,"""Account email already exists""",,,,,,,,O,,,,
+,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+,Log message,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,N,N,N,A,A,N,N,B,N
