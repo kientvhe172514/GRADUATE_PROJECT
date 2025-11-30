@@ -16,6 +16,13 @@ import {
   ApiPropertyOptional,
 } from '@nestjs/swagger';
 import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
+import {
   Permissions,
   CurrentUser,
   JwtPayload,
@@ -35,15 +42,23 @@ class ValidateBeaconDto {
     example: 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825',
     description: 'Beacon UUID',
   })
+  @IsString()
+  @IsNotEmpty()
   beacon_uuid: string;
 
   @ApiProperty({ example: 1, description: 'Beacon major number' })
+  @IsNumber()
+  @IsNotEmpty()
   beacon_major: number;
 
   @ApiProperty({ example: 100, description: 'Beacon minor number' })
+  @IsNumber()
+  @IsNotEmpty()
   beacon_minor: number;
 
   @ApiProperty({ example: -65, description: 'Signal strength (RSSI in dBm)' })
+  @IsNumber()
+  @IsNotEmpty()
   rssi: number;
 }
 
@@ -52,6 +67,8 @@ class RequestFaceVerificationDto {
     example: 'beacon_sess_123_5_1732252800000',
     description: 'Session token from beacon validation',
   })
+  @IsString()
+  @IsNotEmpty()
   session_token: string;
 
   @ApiProperty({
@@ -59,39 +76,52 @@ class RequestFaceVerificationDto {
     enum: ['check_in', 'check_out'],
     description: 'Check type',
   })
+  @IsEnum(['check_in', 'check_out'])
+  @IsNotEmpty()
   check_type: 'check_in' | 'check_out';
 
   @ApiProperty({
     example: '2025-11-22',
     description: 'Shift date (YYYY-MM-DD)',
   })
+  @IsNotEmpty()
   shift_date: Date;
 
   @ApiPropertyOptional({
     example: 10.762622,
     description: 'GPS latitude (optional but recommended)',
   })
+  @IsOptional()
+  @IsNumber()
   latitude?: number;
 
   @ApiPropertyOptional({
     example: 106.660172,
     description: 'GPS longitude (optional but recommended)',
   })
+  @IsOptional()
+  @IsNumber()
   longitude?: number;
 
   @ApiPropertyOptional({ example: 15, description: 'GPS accuracy in meters' })
+  @IsOptional()
+  @IsNumber()
   location_accuracy?: number;
 
   @ApiPropertyOptional({
     example: 'android-device-abc123',
     description: 'Device identifier',
   })
+  @IsOptional()
+  @IsString()
   device_id?: string;
 
   @ApiPropertyOptional({
     example: '192.168.1.100',
     description: 'Client IP address',
   })
+  @IsOptional()
+  @IsString()
   ip_address?: string;
 }
 
