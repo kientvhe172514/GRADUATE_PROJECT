@@ -248,7 +248,19 @@ export class GetMyAttendanceUseCase {
       }
 
       totalWorkHours += props.work_hours ?? 0;
-      totalOvertimeHours += props.overtime_hours ?? 0;
+
+      // ✅ OVERTIME CALCULATION LOGIC:
+      // - OVERTIME shifts (shift_type='OVERTIME'): count ALL work_hours as overtime
+      //   (because entire shift is overtime - created from approved overtime_request)
+      // - REGULAR shifts: only count overtime_hours field
+      //   (overtime within regular shift, e.g., staying late)
+      if (props.shift_type === 'OVERTIME') {
+        // For OVERTIME shifts, ALL work hours are overtime
+        totalOvertimeHours += props.work_hours ?? 0;
+      } else {
+        // For REGULAR shifts, only add the overtime_hours field
+        totalOvertimeHours += props.overtime_hours ?? 0;
+      }
 
       if (props.late_minutes && props.late_minutes > 0) {
         timesLate++;

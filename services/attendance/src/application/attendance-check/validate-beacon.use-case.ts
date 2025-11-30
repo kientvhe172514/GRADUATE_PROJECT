@@ -23,7 +23,7 @@ export interface ValidateBeaconResult {
 
 @Injectable()
 export class ValidateBeaconUseCase {
-  private readonly SESSION_TIMEOUT_MINUTES = 5;
+  private readonly SESSION_TIMEOUT_MINUTES = 10; // Increased from 5 to 10 minutes
   private readonly beaconSessions = new Map<
     string,
     { employeeId: number; beaconId: number; expiresAt: Date }
@@ -69,6 +69,10 @@ export class ValidateBeaconUseCase {
       expiresAt,
     });
 
+    console.log(
+      `✅ Session created: token="${sessionToken}", employeeId=${command.employee_id}, expiresAt=${expiresAt.toISOString()}, totalSessions=${this.beaconSessions.size}`,
+    );
+
     return {
       success: true,
       beacon_validated: true,
@@ -89,9 +93,17 @@ export class ValidateBeaconUseCase {
     beaconId?: number;
     error?: string;
   } {
+    console.log(
+      `🔍 Validating session: token="${sessionToken}", employeeId=${employeeId}`,
+    );
+    console.log(`📊 Total active sessions: ${this.beaconSessions.size}`);
+
     const session = this.beaconSessions.get(sessionToken);
 
     if (!session) {
+      console.error(
+        `❌ Session not found in memory. Available sessions: ${Array.from(this.beaconSessions.keys()).join(', ')}`,
+      );
       return { valid: false, error: 'Invalid session token' };
     }
 

@@ -18,6 +18,91 @@ export class ManualEditShiftUseCase {
     private readonly attendanceEditLogRepository: AttendanceEditLogRepository,
   ) {}
 
+  /**
+   * Calculate late minutes based on scheduled start time
+   */
+  private calculateLateMinutes(
+    checkInTime: Date,
+    shiftDate: Date,
+    scheduledStartTime: string, // "HH:mm:ss"
+  ): number {
+    const [hours, minutes] = scheduledStartTime.split(':').map(Number);
+    const scheduledStart = new Date(shiftDate);
+    scheduledStart.setHours(hours, minutes, 0, 0);
+
+    const diffMs = checkInTime.getTime() - scheduledStart.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    return diffMinutes > 0 ? diffMinutes : 0;
+  }
+
+  /**
+   * Calculate work hours and overtime hours
+   */
+  private calculateWorkAndOvertimeHours(
+    checkInTime: Date,
+    checkOutTime: Date,
+    shiftDate: Date,
+    scheduledStartTime: string,
+    scheduledEndTime: string,
+  ): { actualWorkHours: number; overtimeHours: number } {
+    // Parse scheduled times
+    const [startHours, startMinutes] = scheduledStartTime
+      .split(':')
+      .map(Number);
+    const [endHours, endMinutes] = scheduledEndTime.split(':').map(Number);
+
+    const scheduledStart = new Date(shiftDate);
+    scheduledStart.setHours(startHours, startMinutes, 0, 0);
+
+    let scheduledEnd = new Date(shiftDate);
+    scheduledEnd.setHours(endHours, endMinutes, 0, 0);
+
+    // Handle overnight shifts
+    if (scheduledEnd <= scheduledStart) {
+      scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate actual work duration
+    const actualWorkMs = checkOutTime.getTime() - checkInTime.getTime();
+    const actualWorkHours = Math.max(0, actualWorkMs / (1000 * 60 * 60));
+
+    // Calculate scheduled work duration
+    const scheduledWorkMs = scheduledEnd.getTime() - scheduledStart.getTime();
+    const scheduledWorkHours = scheduledWorkMs / (1000 * 60 * 60);
+
+    // Calculate overtime
+    const overtimeHours = Math.max(0, actualWorkHours - scheduledWorkHours);
+
+    return {
+      actualWorkHours: Math.round(actualWorkHours * 100) / 100,
+      overtimeHours: Math.round(overtimeHours * 100) / 100,
+    };
+  }
+
+  /**
+   * Calculate early leave minutes
+   */
+  private calculateEarlyLeaveMinutes(
+    checkOutTime: Date,
+    shiftDate: Date,
+    scheduledEndTime: string,
+  ): number {
+    const [hours, minutes] = scheduledEndTime.split(':').map(Number);
+    let scheduledEnd = new Date(shiftDate);
+    scheduledEnd.setHours(hours, minutes, 0, 0);
+
+    // Handle overnight shifts
+    if (checkOutTime < scheduledEnd && scheduledEnd.getHours() < 12) {
+      scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    const diffMs = scheduledEnd.getTime() - checkOutTime.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    return diffMinutes > 0 ? diffMinutes : 0;
+  }
+
   async execute(
     shiftId: number,
     dto: ManualEditShiftDto,
@@ -63,17 +148,69 @@ export class ManualEditShiftUseCase {
     };
 
     // Map DTO -> persistence fields
-    if (dto.check_in_time) {
-      applyChange('check_in_time', new Date(dto.check_in_time));
+    const newCheckInTime = dto.check_in_time
+      ? new Date(dto.check_in_time)
+      : null;
+    const newCheckOutTime = dto.check_out_time
+      ? new Date(dto.check_out_time)
+      : null;
+
+    if (newCheckInTime) {
+      applyChange('check_in_time', newCheckInTime);
     }
-    if (dto.check_out_time) {
-      applyChange('check_out_time', new Date(dto.check_out_time));
+    if (newCheckOutTime) {
+      applyChange('check_out_time', newCheckOutTime);
     }
     if (dto.status) {
       applyChange('status', dto.status);
     }
     if (dto.notes !== undefined) {
       applyChange('notes', dto.notes);
+    }
+
+    // ✅ Recalculate metrics when check_in_time or check_out_time is updated
+    const finalCheckInTime = newCheckInTime || shiftSchema.check_in_time;
+    const finalCheckOutTime = newCheckOutTime || shiftSchema.check_out_time;
+
+    if (finalCheckInTime) {
+      // Calculate late_minutes
+      const lateMinutes = this.calculateLateMinutes(
+        finalCheckInTime,
+        shiftSchema.shift_date,
+        shiftSchema.scheduled_start_time,
+      );
+      if (lateMinutes !== shiftSchema.late_minutes) {
+        applyChange('late_minutes', lateMinutes);
+      }
+    }
+
+    if (finalCheckInTime && finalCheckOutTime) {
+      // Calculate work_hours and overtime_hours
+      const { actualWorkHours, overtimeHours } =
+        this.calculateWorkAndOvertimeHours(
+          finalCheckInTime,
+          finalCheckOutTime,
+          shiftSchema.shift_date,
+          shiftSchema.scheduled_start_time,
+          shiftSchema.scheduled_end_time,
+        );
+
+      if (actualWorkHours !== shiftSchema.work_hours) {
+        applyChange('work_hours', actualWorkHours);
+      }
+      if (overtimeHours !== shiftSchema.overtime_hours) {
+        applyChange('overtime_hours', overtimeHours);
+      }
+
+      // Calculate early_leave_minutes
+      const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
+        finalCheckOutTime,
+        shiftSchema.shift_date,
+        shiftSchema.scheduled_end_time,
+      );
+      if (earlyLeaveMinutes !== shiftSchema.early_leave_minutes) {
+        applyChange('early_leave_minutes', earlyLeaveMinutes);
+      }
     }
 
     if (logs.length === 0) {
