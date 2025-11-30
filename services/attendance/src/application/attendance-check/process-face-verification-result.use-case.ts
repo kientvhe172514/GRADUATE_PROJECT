@@ -101,11 +101,15 @@ export class ProcessFaceVerificationResultUseCase {
           );
         } else if (attendanceCheck.check_type === 'CHECK_OUT') {
           if (shift.check_in_time) {
-            // Calculate work hours (difference between check_out and check_in)
-            const workHours =
-              (event.verification_time.getTime() -
-                shift.check_in_time.getTime()) /
-              (1000 * 60 * 60);
+            // Calculate work hours and overtime based on scheduled shift duration
+            const { actualWorkHours, overtimeHours } =
+              this.calculateWorkAndOvertimeHours(
+                shift.check_in_time,
+                event.verification_time,
+                shift.shift_date,
+                shift.scheduled_start_time,
+                shift.scheduled_end_time,
+              );
 
             // Calculate early leave minutes
             const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
@@ -119,14 +123,15 @@ export class ProcessFaceVerificationResultUseCase {
               {
                 check_out_time: event.verification_time,
                 check_out_record_id: event.attendance_check_id,
-                work_hours: parseFloat(workHours.toFixed(2)),
+                work_hours: actualWorkHours,
+                overtime_hours: overtimeHours,
                 early_leave_minutes: earlyLeaveMinutes,
                 status: 'COMPLETED',
               },
             );
             this.logger.log(
               `✅ Updated shift ${attendanceCheck.shift_id}: check_out_time=${event.verification_time.toISOString()}, ` +
-                `work_hours=${workHours.toFixed(2)}, early_leave_minutes=${earlyLeaveMinutes}, status=COMPLETED`,
+                `work_hours=${actualWorkHours}h, overtime_hours=${overtimeHours}h, early_leave_minutes=${earlyLeaveMinutes}, status=COMPLETED`,
             );
           }
         }
@@ -142,6 +147,84 @@ export class ProcessFaceVerificationResultUseCase {
 
       // TODO: Trigger alert to HR department
       // TODO: Create anomaly record for investigation
+    }
+  }
+
+  /**
+   * Calculate actual work hours and overtime hours based on scheduled shift
+   * Business Rules:
+   * 1. Work hours = time within scheduled shift (start to end)
+   * 2. Don't count time BEFORE scheduled_start_time
+   * 3. Don't count time AFTER scheduled_end_time as work_hours (it's overtime)
+   * 4. Overtime = time after scheduled_end_time (if checked out late)
+   *
+   * Example: 6am check-in, 7pm check-out for 8am-5pm shift
+   * - Work hours: 9h (8am-5pm)
+   * - Overtime hours: 2h (5pm-7pm)
+   */
+  private calculateWorkAndOvertimeHours(
+    checkInTime: Date,
+    checkOutTime: Date,
+    shiftDate: Date,
+    scheduledStartTime: string, // Format: 'HH:mm:ss'
+    scheduledEndTime: string, // Format: 'HH:mm:ss'
+  ): { actualWorkHours: number; overtimeHours: number } {
+    try {
+      // Parse scheduled times
+      const [startHour, startMin] = scheduledStartTime.split(':').map(Number);
+      const [endHour, endMin] = scheduledEndTime.split(':').map(Number);
+
+      const scheduledStart = new Date(shiftDate);
+      scheduledStart.setHours(startHour, startMin, 0, 0);
+
+      const scheduledEnd = new Date(shiftDate);
+      scheduledEnd.setHours(endHour, endMin, 0, 0);
+
+      // Handle overnight shifts (end time < start time)
+      if (scheduledEnd <= scheduledStart) {
+        scheduledEnd.setDate(scheduledEnd.getDate() + 1);
+      }
+
+      // Determine effective work start time (max of check_in and scheduled_start)
+      // If check-in is 6am but shift starts at 8am, work starts at 8am
+      const effectiveStartTime =
+        checkInTime > scheduledStart ? checkInTime : scheduledStart;
+
+      // Determine effective work end time (min of check_out and scheduled_end)
+      // If check-out is 7pm but shift ends at 5pm, regular work ends at 5pm
+      const effectiveEndTime =
+        checkOutTime < scheduledEnd ? checkOutTime : scheduledEnd;
+
+      // Calculate actual work hours (within scheduled shift)
+      let actualWorkHours = 0;
+      if (effectiveEndTime > effectiveStartTime) {
+        actualWorkHours =
+          (effectiveEndTime.getTime() - effectiveStartTime.getTime()) /
+          (1000 * 60 * 60);
+      }
+
+      // Calculate overtime hours (time after scheduled_end_time)
+      let overtimeHours = 0;
+      if (checkOutTime > scheduledEnd) {
+        overtimeHours =
+          (checkOutTime.getTime() - scheduledEnd.getTime()) / (1000 * 60 * 60);
+      }
+
+      return {
+        actualWorkHours: parseFloat(actualWorkHours.toFixed(2)),
+        overtimeHours: parseFloat(overtimeHours.toFixed(2)),
+      };
+    } catch (error) {
+      this.logger.error(
+        `❌ Error calculating work/overtime hours: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      // Fallback: simple difference
+      const totalHours =
+        (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+      return {
+        actualWorkHours: parseFloat(totalHours.toFixed(2)),
+        overtimeHours: 0,
+      };
     }
   }
 
