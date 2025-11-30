@@ -104,8 +104,9 @@ export class AttendanceCheckRecordController {
       FROM attendance_check_records
       ${whereClause}
     `;
-    const countResult = await this.attendanceCheckRepository['repository']
-      .manager.query(countQuery, params);
+    const countResult = await this.attendanceCheckRepository[
+      'repository'
+    ].manager.query(countQuery, params);
     const total = parseInt(countResult[0]?.total || '0', 10);
 
     // Get paginated data
@@ -150,8 +151,9 @@ export class AttendanceCheckRecordController {
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-    const records = await this.attendanceCheckRepository['repository']
-      .manager.query(dataQuery, [...params, limit, offset]);
+    const records = await this.attendanceCheckRepository[
+      'repository'
+    ].manager.query(dataQuery, [...params, limit, offset]);
 
     return ApiResponseDto.success(
       {

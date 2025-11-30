@@ -121,7 +121,7 @@ export class RequestFaceVerificationUseCase {
     // Priority: OVERTIME > REGULAR (if both match)
 
     const currentTime = new Date().toTimeString().substring(0, 5); // "HH:MM"
-    
+
     let shift = await this.employeeShiftRepository.findActiveShiftByTime(
       command.employee_id,
       command.shift_date,

@@ -83,10 +83,7 @@ export class MarkAbsentMissingCheckProcessor {
         `✅ [CRON] Completed in ${duration}s. Marked ${markedCount}/${shiftsToMark.length} shifts as ABSENT`,
       );
     } catch (error) {
-      this.logger.error(
-        '❌ [CRON] Error in missing check detection:',
-        error,
-      );
+      this.logger.error('❌ [CRON] Error in missing check detection:', error);
     }
   }
 

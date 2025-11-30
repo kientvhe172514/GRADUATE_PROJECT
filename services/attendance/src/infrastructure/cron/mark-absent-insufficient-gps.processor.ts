@@ -23,9 +23,7 @@ import { DataSource } from 'typeorm';
  */
 @Injectable()
 export class MarkAbsentInsufficientGpsProcessor {
-  private readonly logger = new Logger(
-    MarkAbsentInsufficientGpsProcessor.name,
-  );
+  private readonly logger = new Logger(MarkAbsentInsufficientGpsProcessor.name);
 
   constructor(private readonly dataSource: DataSource) {}
 
@@ -39,9 +37,7 @@ export class MarkAbsentInsufficientGpsProcessor {
   })
   async markAbsentForInsufficientGps() {
     const startTime = Date.now();
-    this.logger.log(
-      '🔍 [CRON] Starting GPS verification check for today...',
-    );
+    this.logger.log('🔍 [CRON] Starting GPS verification check for today...');
 
     try {
       // Find shifts with insufficient GPS verification
