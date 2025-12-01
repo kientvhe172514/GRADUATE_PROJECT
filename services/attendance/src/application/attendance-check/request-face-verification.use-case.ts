@@ -239,7 +239,7 @@ export class RequestFaceVerificationUseCase {
     );
 
     // Step 5: Publish event to Face Recognition Service
-    // 🔧 SIMPLE FIX: Just send the message body, MassTransit handles envelope automatically
+    // 🔧 MassTransit REQUIRES envelope format with specific structure
     const event: FaceVerificationRequestEvent = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
@@ -250,16 +250,36 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64,
     };
 
-    // Emit with MassTransit-compatible routing key
-    // Pattern format: namespace.ClassName (MassTransit naming convention)
+    // Create MassTransit-compatible envelope
+    // Ref: https://masstransit.io/documentation/configuration/topology/message
+    const messageId = crypto.randomUUID();
+    const conversationId = crypto.randomUUID();
+    const sourceAddress =
+      'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/attendance-service';
+    const destinationAddress =
+      'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/face_recognition_queue';
+
+    const envelope = {
+      messageId,
+      conversationId,
+      sourceAddress,
+      destinationAddress,
+      messageType: [
+        'urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent',
+      ],
+      message: event,
+      sentTime: new Date().toISOString(),
+    };
+
+    // Emit with routing key (MassTransit naming convention)
     this.faceRecognitionClient.emit(
       'Zentry.Contracts.Events.FaceVerificationRequestedEvent',
-      event,
+      envelope,
     );
 
     this.logger.log(
-      `📤 Published face verification event to queue: ` +
-        `attendance_check_id=${attendanceCheck.id}, ` +
+      `📤 Published face verification event to queue (MassTransit envelope): ` +
+        `messageId=${messageId}, attendance_check_id=${attendanceCheck.id}, ` +
         `employee=${command.employee_code}` +
         `${command.face_embedding_base64 ? ' (with face)' : ' (auto-approve)'}`,
     );
