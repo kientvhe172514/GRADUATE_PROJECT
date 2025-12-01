@@ -138,6 +138,7 @@ SELECT
     scheduled_end_time,
     shift_type,
     check_in_time,
+    check_out_time,
     shift_start_ts,
     shift_end_ts,
     presence_verification_rounds_required,
@@ -148,6 +149,10 @@ WHERE
     -- ✅ FIX TIMEZONE: Cộng 7 tiếng để NOW() (UTC) thành giờ Việt Nam
     (NOW() + INTERVAL '7 hours') BETWEEN shift_start_ts AND shift_end_ts
     AND presence_verification_required = true
+    -- ✅ FIX: Chỉ check GPS cho nhân viên đã check-in nhưng chưa check-out
+    AND check_in_time IS NOT NULL
+    AND check_out_time IS NULL
+    AND status = 'IN_PROGRESS'
     -- Dùng COALESCE để tránh lỗi nếu cột completed đang null
     AND COALESCE(presence_verification_rounds_completed, 0) < presence_verification_rounds_required
 ORDER BY employee_id;

@@ -250,12 +250,18 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64, // 🆕 Include face embedding
     };
 
-    // Wrap in MassTransit envelope format
+    // Wrap in MassTransit envelope format with required metadata
     const massTransitMessage = {
+      messageId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      conversationId: `checkin-${command.employee_id}-${Date.now()}`,
+      sourceAddress: 'rabbitmq://localhost/attendance-service',
+      destinationAddress:
+        'rabbitmq://localhost/face_recognition_queue',
       messageType: [
         'urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent',
       ],
       message: event,
+      sentTime: new Date().toISOString(),
     };
 
     this.faceRecognitionClient.emit(
