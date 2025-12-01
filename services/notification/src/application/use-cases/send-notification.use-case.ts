@@ -60,6 +60,13 @@ export class SendNotificationUseCase {
       this.logger.log(`📨 [SEND] Preference details: emailEnabled=${preference.emailEnabled}, pushEnabled=${preference.pushEnabled}, inAppEnabled=${preference.inAppEnabled}`);
     }
 
+    // Determine if this is a system critical notification (ignore user preferences)
+    const isSystemCritical = 
+      dto.notificationType === NotificationType.SYSTEM_ALERT ||
+      dto.notificationType === NotificationType.ACCOUNT_LOCKED ||
+      dto.notificationType === NotificationType.GPS_CHECK_REQUEST ||
+      dto.priority === Priority.URGENT;
+
     // 2. Filter channels based on preferences (or use all for system critical)
     const enabledChannels = isSystemCritical 
       ? (dto.channels || [ChannelType.PUSH]).map((type) => new DeliveryChannel(type, true))
