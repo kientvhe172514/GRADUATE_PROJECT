@@ -123,6 +123,15 @@ class RequestFaceVerificationDto {
   @IsOptional()
   @IsString()
   ip_address?: string;
+
+  @ApiPropertyOptional({
+    example: 'base64_encoded_face_embedding_binary...',
+    description:
+      'Face embedding as Base64 string (512 float32 = 2048 bytes). If provided, Face Service will verify; if omitted, auto-approved for testing.',
+  })
+  @IsOptional()
+  @IsString()
+  face_embedding_base64?: string;
 }
 
 @ApiTags('Attendance Check')
@@ -210,6 +219,7 @@ export class AttendanceCheckController {
       location_accuracy: dto.location_accuracy,
       device_id: dto.device_id,
       ip_address: dto.ip_address || req.ip,
+      face_embedding_base64: dto.face_embedding_base64, // 🆕 Forward face embedding
     };
 
     return this.requestFaceVerificationUseCase.execute(command);

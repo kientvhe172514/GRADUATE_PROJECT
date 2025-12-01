@@ -32,6 +32,8 @@ export interface RequestFaceVerificationCommand {
   // Device info
   device_id?: string;
   ip_address?: string;
+  // Face data (optional - if provided, Face Service will verify; if omitted, auto-approved)
+  face_embedding_base64?: string;
 }
 
 export interface FaceVerificationRequestEvent {
@@ -41,6 +43,7 @@ export interface FaceVerificationRequestEvent {
   shift_id: number;
   check_type: 'check_in' | 'check_out';
   request_time: Date;
+  face_embedding_base64?: string; // 🆕 Face embedding for verification
 }
 
 @Injectable()
@@ -243,12 +246,14 @@ export class RequestFaceVerificationUseCase {
       shift_id: shift.id,
       check_type: command.check_type,
       request_time: new Date(),
+      face_embedding_base64: command.face_embedding_base64, // 🆕 Include face embedding
     };
 
     this.faceRecognitionClient.emit('face_verification_requested', event);
 
     this.logger.log(
-      `📤 Published face_verification_requested event for attendance_check_id=${attendanceCheck.id}`,
+      `📤 Published face_verification_requested event for attendance_check_id=${attendanceCheck.id}` +
+        `${command.face_embedding_base64 ? ' (with face embedding)' : ' (auto-approve mode)'}`,
     );
 
     return {

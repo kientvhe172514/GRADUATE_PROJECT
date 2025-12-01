@@ -21,54 +21,23 @@ public class AttendanceFaceVerificationController : ControllerBase
     }
 
     /// <summary>
-    /// Mobile app calls this endpoint to upload face image for verification
-    /// Called AFTER beacon validation completes
+    /// [DEPRECATED] This HTTP endpoint is replaced by RabbitMQ event-driven flow.
+    /// Face embeddings are now sent via Attendance Service → RabbitMQ → Face Service.
+    /// Keep this endpoint for backward compatibility only.
     /// </summary>
+    [Obsolete("Use RabbitMQ event 'face_verification_requested' instead")]
     [HttpPost("verify")]
     [ProducesResponseType(typeof(VerifyFaceForAttendanceResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> VerifyFaceForAttendance(
-        [FromForm] VerifyFaceForAttendanceRequest request,
-        CancellationToken cancellationToken)
+    public IActionResult VerifyFaceForAttendance()
     {
-        _logger.LogInformation(
-            "📸 Received face image upload for AttendanceCheckId={AttendanceCheckId}, EmployeeId={EmployeeId}",
-            request.AttendanceCheckId, request.EmployeeId);
-
-        if (request.FaceImage == null || request.FaceImage.Length == 0)
-        {
-            return BadRequest(new { message = "Face image is required" });
-        }
-
-        // Read image data
-        byte[] imageData;
-        using (var ms = new MemoryStream())
-        {
-            await request.FaceImage.CopyToAsync(ms, cancellationToken);
-            imageData = ms.ToArray();
-        }
-
-        var command = new VerifyFaceForAttendanceCommand
-        {
-            AttendanceCheckId = request.AttendanceCheckId,
-            EmployeeId = request.EmployeeId,
-            EmployeeCode = request.EmployeeCode,
-            CheckType = request.CheckType,
-            RequestTime = DateTime.UtcNow,
-            FaceImageData = imageData
-        };
-
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return Ok(result);
+        _logger.LogWarning("⚠️ DEPRECATED ENDPOINT called: POST /api/face-id/attendance/verify");
+        
+        return BadRequest(new 
+        { 
+            message = "This endpoint is deprecated. Use event-driven flow: " +
+                     "Client → Attendance Service → RabbitMQ → Face Service",
+            deprecated_since = "2024-12-01"
+        });
     }
-}
-
-public record VerifyFaceForAttendanceRequest
-{
-    public int AttendanceCheckId { get; init; }
-    public int EmployeeId { get; init; }
-    public string EmployeeCode { get; init; } = string.Empty;
-    public string CheckType { get; init; } = string.Empty;
-    public IFormFile FaceImage { get; init; } = null!;
 }

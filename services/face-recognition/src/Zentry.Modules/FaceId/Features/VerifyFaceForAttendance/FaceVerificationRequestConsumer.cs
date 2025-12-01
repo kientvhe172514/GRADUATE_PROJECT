@@ -14,6 +14,7 @@ public record FaceVerificationRequestedEvent
     public int AttendanceCheckId { get; init; }
     public string CheckType { get; init; } = string.Empty; // "check_in" or "check_out"
     public DateTime RequestTime { get; init; }
+    public string? FaceEmbeddingBase64 { get; init; } // 🆕 Face embedding for verification
 }
 
 /// <summary>
@@ -44,16 +45,14 @@ public class FaceVerificationRequestConsumer : IConsumer<FaceVerificationRequest
 
         try
         {
-            // TODO: Get face image from mobile app (via SignalR or polling API)
-            // For now, assume face image will be provided separately
-            
             var command = new VerifyFaceForAttendanceCommand
             {
                 AttendanceCheckId = evt.AttendanceCheckId,
                 EmployeeId = evt.EmployeeId,
                 EmployeeCode = evt.EmployeeCode,
                 CheckType = evt.CheckType,
-                RequestTime = evt.RequestTime
+                RequestTime = evt.RequestTime,
+                FaceEmbeddingBase64 = evt.FaceEmbeddingBase64 // 🆕 Pass face embedding
             };
 
             await _mediator.Send(command);

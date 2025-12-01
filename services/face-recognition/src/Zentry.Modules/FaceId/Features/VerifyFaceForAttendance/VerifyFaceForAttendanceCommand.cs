@@ -13,8 +13,8 @@ public record VerifyFaceForAttendanceCommand : IRequest<VerifyFaceForAttendanceR
     public string CheckType { get; init; } = string.Empty;
     public DateTime RequestTime { get; init; }
     
-    // Face image will be provided via separate API call
-    public byte[]? FaceImageData { get; init; }
+    // Face embedding as Base64 string (sent from client via Attendance Service)
+    public string? FaceEmbeddingBase64 { get; init; }
 }
 
 public record VerifyFaceForAttendanceResult
