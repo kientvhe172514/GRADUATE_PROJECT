@@ -239,6 +239,7 @@ export class RequestFaceVerificationUseCase {
     );
 
     // Step 5: Publish event to Face Recognition Service
+    // 🔧 FIX: Wrap event in MassTransit-compatible format
     const event: FaceVerificationRequestEvent = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
@@ -249,7 +250,18 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64, // 🆕 Include face embedding
     };
 
-    this.faceRecognitionClient.emit('face_verification_requested', event);
+    // Wrap in MassTransit envelope format
+    const massTransitMessage = {
+      messageType: [
+        'urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent',
+      ],
+      message: event,
+    };
+
+    this.faceRecognitionClient.emit(
+      'face_verification_requested',
+      massTransitMessage,
+    );
 
     this.logger.log(
       `📤 Published face_verification_requested event for attendance_check_id=${attendanceCheck.id}` +

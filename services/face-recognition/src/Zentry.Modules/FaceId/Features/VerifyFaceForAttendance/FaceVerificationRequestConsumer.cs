@@ -1,6 +1,7 @@
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 
@@ -9,11 +10,25 @@ namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 /// </summary>
 public record FaceVerificationRequestedEvent
 {
+    [JsonPropertyName("employee_id")]
     public int EmployeeId { get; init; }
+    
+    [JsonPropertyName("employee_code")]
     public string EmployeeCode { get; init; } = string.Empty;
+    
+    [JsonPropertyName("attendance_check_id")]
     public int AttendanceCheckId { get; init; }
+    
+    [JsonPropertyName("shift_id")]
+    public int ShiftId { get; init; }
+    
+    [JsonPropertyName("check_type")]
     public string CheckType { get; init; } = string.Empty; // "check_in" or "check_out"
+    
+    [JsonPropertyName("request_time")]
     public DateTime RequestTime { get; init; }
+    
+    [JsonPropertyName("face_embedding_base64")]
     public string? FaceEmbeddingBase64 { get; init; } // 🆕 Face embedding for verification
 }
 
@@ -67,9 +82,10 @@ public class FaceVerificationRequestConsumer : IConsumer<FaceVerificationRequest
                 "❌ Failed to process face verification request for EmployeeId={EmployeeId} (AttendanceCheckId={AttendanceCheckId})",
                 evt.EmployeeId, evt.AttendanceCheckId);
             
-            // Publish failure event (simplified event structure)
+            // Publish failure event
             await context.Publish(new FaceVerificationCompletedEvent
             {
+                AttendanceCheckId = evt.AttendanceCheckId,
                 EmployeeId = evt.EmployeeId,
                 FaceVerified = false,
                 FaceConfidence = 0,

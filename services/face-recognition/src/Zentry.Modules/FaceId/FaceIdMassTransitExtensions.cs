@@ -27,8 +27,9 @@ public static class FaceIdMassTransitExtensions
                 x.ExchangeType = "fanout";
             });
             
-            // 🔧 CRITICAL FIX: Use RawJsonDeserializer for NestJS messages (no envelope wrapper)
-            e.UseRawJsonDeserializer(RawSerializerOptions.AddTransportHeaders);
+            // 🔧 CRITICAL FIX: Accept MassTransit envelope format from NestJS
+            // NestJS now sends: { messageType: ["urn:message:..."], message: {...} }
+            // MassTransit will auto-deserialize this standard format
             
             e.ConfigureConsumer<FaceVerificationRequestConsumer>(context);
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(10)));

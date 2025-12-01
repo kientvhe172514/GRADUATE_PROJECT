@@ -185,6 +185,11 @@ ORDER BY employee_id;
     // Emit event qua RabbitMQ để Notification Service xử lý
     this.notificationClient.emit('notification.request_gps_check', payload);
 
+    this.logger.log(
+      `📤 [GPS-CHECK] Emitted event 'notification.request_gps_check' for employee ${employee.employee_id}`,
+    );
+    this.logger.debug(`   Payload: ${JSON.stringify(payload, null, 2)}`);
+
     this.logger.debug(
       `📍 GPS check ${employee.presence_verification_rounds_completed + 1}/${employee.presence_verification_rounds_required} for employee ${employee.employee_code} (shift_id: ${employee.shift_id})`,
     );

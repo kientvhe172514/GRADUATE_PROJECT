@@ -164,6 +164,7 @@ public class VerifyFaceForAttendanceCommandHandler
     {
         var evt = new FaceVerificationCompletedEvent
         {
+            AttendanceCheckId = command.AttendanceCheckId,
             EmployeeId = command.EmployeeId,
             FaceVerified = verified,
             FaceConfidence = confidence,
@@ -174,9 +175,9 @@ public class VerifyFaceForAttendanceCommandHandler
         await _publishEndpoint.Publish(evt);
         
         _logger.LogInformation(
-            "📤 Published face_verification_completed event: EmployeeId={EmployeeId}, " +
+            "📤 Published face_verification_completed event: AttendanceCheckId={AttendanceCheckId}, EmployeeId={EmployeeId}, " +
             "Verified={Verified}, Confidence={Confidence:P1}",
-            command.EmployeeId, verified, confidence);
+            command.AttendanceCheckId, command.EmployeeId, verified, confidence);
     }
 
     private async Task PublishFailureEvent(
@@ -186,6 +187,7 @@ public class VerifyFaceForAttendanceCommandHandler
     {
         var evt = new FaceVerificationCompletedEvent
         {
+            AttendanceCheckId = command.AttendanceCheckId,
             EmployeeId = command.EmployeeId,
             FaceVerified = false,
             FaceConfidence = confidence,
@@ -196,8 +198,8 @@ public class VerifyFaceForAttendanceCommandHandler
         await _publishEndpoint.Publish(evt);
         
         _logger.LogWarning(
-            "📤 Published face_verification_completed (FAILURE) event: EmployeeId={EmployeeId}, " +
+            "📤 Published face_verification_completed (FAILURE) event: AttendanceCheckId={AttendanceCheckId}, EmployeeId={EmployeeId}, " +
             "Error={Error}",
-            command.EmployeeId, errorMessage);
+            command.AttendanceCheckId, command.EmployeeId, errorMessage);
     }
 }

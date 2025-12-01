@@ -60,11 +60,13 @@ export class SendNotificationUseCase {
       this.logger.log(`📨 [SEND] Preference details: emailEnabled=${preference.emailEnabled}, pushEnabled=${preference.pushEnabled}, inAppEnabled=${preference.inAppEnabled}`);
     }
 
-    // 2. Filter channels based on preferences
-    const enabledChannels = this.filterChannelsByPreference(
-      dto.channels || [ChannelType.IN_APP],
-      preference,
-    );
+    // 2. Filter channels based on preferences (or use all for system critical)
+    const enabledChannels = isSystemCritical 
+      ? (dto.channels || [ChannelType.PUSH]).map((type) => new DeliveryChannel(type, true))
+      : this.filterChannelsByPreference(
+          dto.channels || [ChannelType.IN_APP],
+          preference,
+        );
     this.logger.log(`📨 [SEND] Enabled channels after filter: ${JSON.stringify(enabledChannels.map(c => c.type))}`);
 
     // 3. Create notification entity

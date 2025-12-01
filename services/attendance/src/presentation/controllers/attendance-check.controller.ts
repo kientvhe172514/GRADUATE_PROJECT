@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Req,
   UnauthorizedException,
+  Inject,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,6 +29,7 @@ import {
   CurrentUser,
   JwtPayload,
 } from '@graduate-project/shared-common';
+import { ClientProxy } from '@nestjs/microservices';
 import {
   ValidateBeaconUseCase,
   ValidateBeaconCommand,
@@ -36,6 +39,8 @@ import {
   RequestFaceVerificationCommand,
 } from '../../application/attendance-check/request-face-verification.use-case';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
+import { ValidateGpsUseCase } from '../../application/attendance-check/validate-gps.use-case';
+import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
 class ValidateBeaconDto {
   @ApiProperty({
@@ -134,14 +139,47 @@ class RequestFaceVerificationDto {
   face_embedding_base64?: string;
 }
 
+/**
+ * 🆕 DTO for GPS webhook verification
+ * Called by mobile app when receiving GPS_CHECK_REQUEST push notification
+ */
+class VerifyGpsWebhookDto {
+  @ApiProperty({
+    example: 10.762622,
+    description: 'GPS latitude from mobile device',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  latitude: number;
+
+  @ApiProperty({
+    example: 106.660172,
+    description: 'GPS longitude from mobile device',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  longitude: number;
+
+  @ApiPropertyOptional({ example: 15, description: 'GPS accuracy in meters' })
+  @IsOptional()
+  @IsNumber()
+  location_accuracy?: number;
+}
+
 @ApiTags('Attendance Check')
 @ApiBearerAuth()
 @Controller('attendance-check')
 export class AttendanceCheckController {
+  private readonly logger = new Logger(AttendanceCheckController.name);
+
   constructor(
     private readonly validateBeaconUseCase: ValidateBeaconUseCase,
     private readonly requestFaceVerificationUseCase: RequestFaceVerificationUseCase,
     private readonly employeeServiceClient: EmployeeServiceClient,
+    private readonly validateGpsUseCase: ValidateGpsUseCase,
+    private readonly employeeShiftRepository: EmployeeShiftRepository,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
   ) {}
 
   @Post('validate-beacon')
@@ -223,5 +261,173 @@ export class AttendanceCheckController {
     };
 
     return this.requestFaceVerificationUseCase.execute(command);
+  }
+
+  /**
+   * 🆕 GPS Webhook - Called by mobile app when receiving GPS_CHECK_REQUEST push
+   * 
+   * Flow:
+   * 1. Cron gửi silent push → App nhận
+   * 2. App lấy GPS hiện tại
+   * 3. App gọi endpoint này để verify GPS
+   * 4. Server validate GPS + update shift
+   * 5. Nếu GPS sai → Server gửi lại notification cảnh báo
+   * 
+   * Backend tự động:
+   * - Extract employee_id từ JWT token
+   * - Tìm shift đang active của employee
+   * - Validate GPS có trong office radius không
+   * - Tăng presence_verification_rounds_completed
+   * - Gửi notification nếu GPS outside geofence
+   */
+  @Post('gps-webhook/verify')
+  @Permissions('attendance.checkin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '📍 Verify GPS location during shift (Background webhook)',
+    description:
+      'Called by mobile app when receiving GPS_CHECK_REQUEST push notification. ' +
+      'Backend will validate GPS location and update shift verification status.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'GPS verification result',
+    schema: {
+      type: 'object',
+      properties: {
+        is_valid: { type: 'boolean' },
+        distance_from_office_meters: { type: 'number' },
+        message: { type: 'string' },
+        shift_id: { type: 'number' },
+        verification_round: { type: 'number' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid JWT token',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No active shift found for employee',
+  })
+  async verifyGpsWebhook(
+    @Body() dto: VerifyGpsWebhookDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const employeeId = user.employee_id;
+    if (!employeeId) {
+      throw new UnauthorizedException('Employee ID not found in JWT token');
+    }
+
+    this.logger.log(
+      `📍 [GPS-WEBHOOK] Received GPS verification from employee ${employeeId}`,
+    );
+    this.logger.debug(
+      `   Location: [${dto.latitude}, ${dto.longitude}], accuracy: ${dto.location_accuracy}m`,
+    );
+
+    // 1. Tìm shift đang active của employee
+    const currentTime = new Date().toTimeString().substring(0, 5);
+    const today = new Date();
+
+    const activeShift =
+      await this.employeeShiftRepository.findActiveShiftByTime(
+        employeeId,
+        today,
+        currentTime,
+      );
+
+    if (!activeShift) {
+      this.logger.warn(
+        `⚠️ [GPS-WEBHOOK] No active shift found for employee ${employeeId}`,
+      );
+      return {
+        is_valid: false,
+        message: 'No active shift found. GPS check skipped.',
+      };
+    }
+
+    this.logger.log(
+      `   Found active shift: ${activeShift.id} (${activeShift.shift_type})`,
+    );
+
+    // 2. Get office coordinates từ employee's department
+    const employee =
+      await this.employeeServiceClient.getEmployeeById(employeeId);
+    let officeLatitude = 10.762622; // Default
+    let officeLongitude = 106.660172;
+    let maxDistanceMeters = 500;
+
+    // Employee service returns department as nested object, not just ID
+    const dept = employee as any;
+    if (
+      dept?.department?.office_latitude &&
+      dept?.department?.office_longitude
+    ) {
+      officeLatitude = Number(dept.department.office_latitude);
+      officeLongitude = Number(dept.department.office_longitude);
+      if (dept.department.office_radius_meters) {
+        maxDistanceMeters = Number(dept.department.office_radius_meters);
+      }
+    }
+
+    // 3. Validate GPS
+    const gpsResult = this.validateGpsUseCase.execute({
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      location_accuracy: dto.location_accuracy,
+      office_latitude: officeLatitude,
+      office_longitude: officeLongitude,
+      max_distance_meters: maxDistanceMeters,
+    });
+
+    this.logger.log(
+      `   GPS validation: ${gpsResult.is_valid ? '✅ VALID' : '⚠️ INVALID'}`,
+    );
+    this.logger.log(
+      `   Distance from office: ${gpsResult.distance_from_office_meters}m`,
+    );
+
+    // 4. Update shift verification counter
+    const currentRound =
+      (activeShift.presence_verification_rounds_completed || 0) + 1;
+    await this.employeeShiftRepository.update(activeShift.id, {
+      presence_verification_rounds_completed: currentRound,
+    });
+
+    this.logger.log(
+      `   Updated shift verification: round ${currentRound}/${activeShift.presence_verification_rounds_required}`,
+    );
+
+    // 5. Nếu GPS invalid → Gửi notification cảnh báo
+    if (!gpsResult.is_valid) {
+      this.logger.warn(
+        `   ⚠️ GPS outside geofence! Sending alert notification...`,
+      );
+
+      this.notificationClient.emit('notification.gps_outside_zone', {
+        type: 'GPS_ALERT',
+        recipientId: employeeId,
+        silent: false, // Show notification với âm thanh
+        title: '⚠️ GPS Warning',
+        body: `You are ${Math.round(gpsResult.distance_from_office_meters)}m away from office (max: ${maxDistanceMeters}m)`,
+        metadata: {
+          shiftId: activeShift.id,
+          distance: gpsResult.distance_from_office_meters,
+          maxDistance: maxDistanceMeters,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    return {
+      is_valid: gpsResult.is_valid,
+      distance_from_office_meters: gpsResult.distance_from_office_meters,
+      message: gpsResult.message,
+      shift_id: activeShift.id,
+      verification_round: currentRound,
+      required_rounds: activeShift.presence_verification_rounds_required,
+    };
   }
 }
