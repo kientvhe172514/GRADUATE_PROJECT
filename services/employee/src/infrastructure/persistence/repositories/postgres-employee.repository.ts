@@ -156,6 +156,13 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
       paramIndex++;
     }
 
+    // Filter by account_ids array - check if array exists and has items
+    if (criteria.account_ids !== undefined && Array.isArray(criteria.account_ids) && criteria.account_ids.length > 0) {
+      whereConditions.push(`e.account_id = ANY($${paramIndex})`);
+      whereParams.push(criteria.account_ids);
+      paramIndex++;
+    }
+
     // Search in employee_code, email, or full_name
     // Support both exact match (with diacritics) and fuzzy match (without diacritics)
     if (criteria.search && criteria.search.trim()) {
