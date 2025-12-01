@@ -51,9 +51,10 @@ import {
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
           const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          // ✅ NEW: Use RPC queue for synchronous request/response
           const faceRecognitionQueue =
-            configService.get<string>('RABBITMQ_FACE_RECOGNITION_QUEUE') ||
-            'face_recognition_queue';
+            configService.get<string>('RABBITMQ_FACE_RECOGNITION_RPC_QUEUE') ||
+            'face_verification_rpc_queue';
           return {
             transport: Transport.RMQ,
             options: {

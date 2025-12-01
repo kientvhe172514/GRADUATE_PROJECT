@@ -234,6 +234,13 @@ export class AttendanceCheckController {
   ) {
     // Extract employee_id from JWT token
     const employeeId = user.employee_id;
+    
+    // 🔍 DEBUG LOG
+    this.logger.log(
+      `📨 [API] Request face verification - JWT user: ${JSON.stringify(user)}`,
+    );
+    this.logger.log(`   employee_id from JWT: ${employeeId}`);
+    
     if (!employeeId) {
       throw new UnauthorizedException('Employee ID not found in JWT token');
     }
@@ -244,6 +251,10 @@ export class AttendanceCheckController {
     if (!employee) {
       throw new UnauthorizedException(`Employee not found: ${employeeId}`);
     }
+
+    this.logger.log(
+      `   Employee fetched: id=${employee.id}, code=${employee.employee_code}, dept=${employee.department_id}`,
+    );
 
     const command: RequestFaceVerificationCommand = {
       employee_id: employee.id,

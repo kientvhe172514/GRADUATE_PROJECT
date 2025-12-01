@@ -238,9 +238,8 @@ export class RequestFaceVerificationUseCase {
       `✅ Attendance check record created: ID=${attendanceCheck.id}, beacon_validated=true, gps_validated=${gpsValidated}`,
     );
 
-    // Step 5: Publish event to Face Recognition Service
-    // � Send PLAIN JSON (Face Recognition uses RawJsonDeserializer)
-    const event: FaceVerificationRequestEvent = {
+    // Step 5: SYNC RPC face verification (immediate response)
+    const rpcRequest = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
       attendance_check_id: attendanceCheck.id,
@@ -250,24 +249,82 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64,
     };
 
-    // ✅ Emit plain JSON - Face Recognition will deserialize with UseRawJsonDeserializer
-    this.faceRecognitionClient.emit('face.verification.requested', event);
-
+    // ✅ NEW: SYNC RPC call for immediate response
     this.logger.log(
-      `📤 Published face verification event: ` +
-        `attendance_check_id=${attendanceCheck.id}, ` +
-        `employee=${command.employee_code}` +
-        `${command.face_embedding_base64 ? ' (with face)' : ' (auto-approve)'}`,
+      `📤 Sending SYNC RPC request: attendance_check_id=${attendanceCheck.id}`,
     );
 
-    return {
-      success: true,
-      attendance_check_id: attendanceCheck.id,
-      shift_id: shift.id,
-      message:
-        `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} initiated. ` +
-        `Beacon: ✅ ${gpsValidated ? '| GPS: ✅' : '| GPS: ⏭️ (skipped)'} | Face: ⏳ (pending verification)`,
-    };
+    try {
+      const faceResult = await firstValueFrom(
+        this.faceRecognitionClient
+          .send('face.verification.verify', rpcRequest)
+          .pipe(
+            timeout(15000),
+            catchError((error) => {
+              this.logger.error(`❌ RPC failed: ${error?.message}`);
+              return of({
+                success: false,
+                attendance_check_id: attendanceCheck.id,
+                employee_id: command.employee_id,
+                face_verified: false,
+                face_confidence: 0,
+                error_message: error?.message || 'Unavailable',
+                message: 'Service unavailable',
+              });
+            }),
+          ),
+      );
+
+      this.logger.log(
+        `✅ RPC Response received: face_verified=${faceResult.face_verified}`,
+      );
+
+      await this.attendanceCheckRepository.updateFaceVerification(
+        attendanceCheck.id,
+        {
+          face_verified: faceResult.face_verified,
+          face_confidence: faceResult.face_confidence,
+        },
+      );
+
+      if (faceResult.face_verified) {
+        if (command.check_type === 'check_in') {
+          await this.updateEmployeeShiftUseCase.executeCheckIn({
+            shift_id: shift.id,
+            check_in_time: new Date(),
+            check_record_id: attendanceCheck.id,
+          });
+        } else {
+          await this.updateEmployeeShiftUseCase.executeCheckOut({
+            shift_id: shift.id,
+            check_out_time: new Date(),
+            check_record_id: attendanceCheck.id,
+          });
+        }
+      }
+
+      const statusMsg = faceResult.face_verified
+        ? `Face: ✅ (${(faceResult.face_confidence * 100).toFixed(1)}%)`
+        : `Face: ❌`;
+
+      return {
+        success: faceResult.face_verified,
+        attendance_check_id: attendanceCheck.id,
+        shift_id: shift.id,
+        message:
+          `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} ${faceResult.face_verified ? 'successful' : 'failed'}. ` +
+          `Beacon: ✅ | GPS: ${gpsValidated ? '✅' : '⏭️'} | ${statusMsg}`,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${(error as Error).message}`);
+      
+      return {
+        success: false,
+        attendance_check_id: attendanceCheck.id,
+        shift_id: shift.id,
+        message: `${command.check_type} failed. Beacon: ✅ | Face: ❌`,
+      };
+    }
   }
 
   /**

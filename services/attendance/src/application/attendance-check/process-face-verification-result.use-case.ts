@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
@@ -22,6 +23,8 @@ export class ProcessFaceVerificationResultUseCase {
   constructor(
     private readonly attendanceCheckRepository: AttendanceCheckRepository,
     private readonly employeeShiftRepository: EmployeeShiftRepository,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
   ) {}
 
   async execute(event: FaceVerificationResultEvent): Promise<void> {
@@ -62,6 +65,15 @@ export class ProcessFaceVerificationResultUseCase {
         `✅ Attendance check ${event.attendance_check_id} completed successfully for employee ${event.employee_code}`,
       );
 
+      // 📲 Send success notification to employee
+      this.notificationClient.emit('attendance.check.success', {
+        employeeId: event.employee_id,
+        attendanceCheckId: event.attendance_check_id,
+        checkType: 'check_in', // Will be updated below based on actual check_type
+        confidence: event.face_confidence,
+        timestamp: event.verification_time.toISOString(),
+      });
+
       // Get attendance check to find shift_id and check_type
       const attendanceCheck = await this.attendanceCheckRepository.findById(
         event.attendance_check_id,
@@ -101,6 +113,17 @@ export class ProcessFaceVerificationResultUseCase {
             `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${event.verification_time.toISOString()}, ` +
               `late_minutes=${lateMinutes}, status=IN_PROGRESS`,
           );
+
+          // 📲 Send CHECK-IN success notification with details
+          this.notificationClient.emit('attendance.check_in.success', {
+            employeeId: event.employee_id,
+            attendanceCheckId: event.attendance_check_id,
+            shiftId: attendanceCheck.shift_id,
+            checkInTime: event.verification_time.toISOString(),
+            lateMinutes: lateMinutes,
+            scheduledStartTime: shift.scheduled_start_time,
+            confidence: event.face_confidence,
+          });
         } else if (checkType === 'check_out') {
           if (shift.check_in_time) {
             // Calculate work hours and overtime based on scheduled shift duration
@@ -135,6 +158,19 @@ export class ProcessFaceVerificationResultUseCase {
               `✅ Updated shift ${attendanceCheck.shift_id}: check_out_time=${event.verification_time.toISOString()}, ` +
                 `work_hours=${actualWorkHours}h, overtime_hours=${overtimeHours}h, early_leave_minutes=${earlyLeaveMinutes}, status=COMPLETED`,
             );
+
+            // 📲 Send CHECK-OUT success notification with work summary
+            this.notificationClient.emit('attendance.check_out.success', {
+              employeeId: event.employee_id,
+              attendanceCheckId: event.attendance_check_id,
+              shiftId: attendanceCheck.shift_id,
+              checkOutTime: event.verification_time.toISOString(),
+              workHours: actualWorkHours,
+              overtimeHours: overtimeHours,
+              earlyLeaveMinutes: earlyLeaveMinutes,
+              scheduledEndTime: shift.scheduled_end_time,
+              confidence: event.face_confidence,
+            });
           }
         }
 
@@ -146,6 +182,16 @@ export class ProcessFaceVerificationResultUseCase {
         `❌ Attendance check ${event.attendance_check_id} failed for employee ${event.employee_code}: ` +
           (event.error_message || `Low confidence ${event.face_confidence}`),
       );
+
+      // 📲 Send FAILURE notification to employee
+      this.notificationClient.emit('attendance.check.failed', {
+        employeeId: event.employee_id,
+        attendanceCheckId: event.attendance_check_id,
+        confidence: event.face_confidence,
+        minimumRequired: this.MINIMUM_CONFIDENCE,
+        errorMessage: event.error_message || `Face confidence too low (${event.face_confidence} < ${this.MINIMUM_CONFIDENCE})`,
+        timestamp: event.verification_time.toISOString(),
+      });
 
       // TODO: Trigger alert to HR department
       // TODO: Create anomaly record for investigation
