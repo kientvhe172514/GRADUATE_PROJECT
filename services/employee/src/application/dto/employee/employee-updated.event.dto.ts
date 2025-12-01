@@ -8,6 +8,7 @@ export class EmployeeUpdatedEventDto {
   email: string;
   department_id?: number;
   position_id?: number;
+  hire_date: Date;
   status: string;
   updated_at: Date;
 
@@ -19,6 +20,7 @@ export class EmployeeUpdatedEventDto {
     this.email = employee.email;
     this.department_id = employee.department_id;
     this.position_id = employee.position_id;
+    this.hire_date = employee.hire_date;
     this.status = employee.status;
     this.updated_at = employee.updated_at!;
   }

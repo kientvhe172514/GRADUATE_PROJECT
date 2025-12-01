@@ -17,18 +17,38 @@ export class EmployeeEventListener {
 
   constructor(private readonly dataSource: DataSource) {}
 
-  @EventPattern('employee.created')
+  @EventPattern('employee_created')
   async handleEmployeeCreated(@Payload() data: any) {
-    this.logger.log(`📥 Received: employee.created for ${data.employee_code}`);
+    this.logger.log(`📥 Received: employee_created for ${data.employee_code}`);
     
     try {
+      // Fetch department and position names if IDs are provided
+      let departmentName = null;
+      let positionName = null;
+
+      if (data.department_id) {
+        const deptResult = await this.dataSource.query(
+          `SELECT department_name FROM departments_cache WHERE department_id = $1 LIMIT 1`,
+          [data.department_id],
+        );
+        departmentName = deptResult[0]?.department_name || null;
+      }
+
+      if (data.position_id) {
+        const posResult = await this.dataSource.query(
+          `SELECT position_name FROM positions_cache WHERE position_id = $1 LIMIT 1`,
+          [data.position_id],
+        );
+        positionName = posResult[0]?.position_name || null;
+      }
+
       await this.dataSource.query(
         `INSERT INTO employees_cache (
           employee_id, employee_code, full_name, email, 
-          department_id, department_name, position_name, status, 
-          created_at, updated_at
+          department_id, department_name, position_id, position_name, 
+          join_date, status, synced_at, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), NOW())
         ON CONFLICT (employee_id) 
         DO UPDATE SET
           employee_code = EXCLUDED.employee_code,
@@ -36,17 +56,22 @@ export class EmployeeEventListener {
           email = EXCLUDED.email,
           department_id = EXCLUDED.department_id,
           department_name = EXCLUDED.department_name,
+          position_id = EXCLUDED.position_id,
           position_name = EXCLUDED.position_name,
+          join_date = EXCLUDED.join_date,
           status = EXCLUDED.status,
+          synced_at = NOW(),
           updated_at = NOW()`,
         [
           data.id,
           data.employee_code,
           data.full_name,
           data.email,
-          data.department_id,
-          data.department_name || 'Unknown',
-          data.position_name || 'Unknown',
+          data.department_id || null,
+          departmentName,
+          data.position_id || null,
+          positionName,
+          data.hire_date,
           data.status || 'ACTIVE',
         ],
       );
@@ -57,11 +82,31 @@ export class EmployeeEventListener {
     }
   }
 
-  @EventPattern('employee.updated')
+  @EventPattern('employee_updated')
   async handleEmployeeUpdated(@Payload() data: any) {
-    this.logger.log(`📥 Received: employee.updated for ${data.employee_code}`);
+    this.logger.log(`📥 Received: employee_updated for employee_id=${data.employee_id}`);
     
     try {
+      // Fetch department and position names if IDs are provided
+      let departmentName = null;
+      let positionName = null;
+
+      if (data.department_id) {
+        const deptResult = await this.dataSource.query(
+          `SELECT department_name FROM departments_cache WHERE department_id = $1 LIMIT 1`,
+          [data.department_id],
+        );
+        departmentName = deptResult[0]?.department_name || null;
+      }
+
+      if (data.position_id) {
+        const posResult = await this.dataSource.query(
+          `SELECT position_name FROM positions_cache WHERE position_id = $1 LIMIT 1`,
+          [data.position_id],
+        );
+        positionName = posResult[0]?.position_name || null;
+      }
+
       await this.dataSource.query(
         `UPDATE employees_cache SET
           employee_code = $2,
@@ -69,18 +114,23 @@ export class EmployeeEventListener {
           email = $4,
           department_id = $5,
           department_name = $6,
-          position_name = $7,
-          status = $8,
+          position_id = $7,
+          position_name = $8,
+          join_date = $9,
+          status = $10,
+          synced_at = NOW(),
           updated_at = NOW()
         WHERE employee_id = $1`,
         [
-          data.id,
+          data.employee_id,
           data.employee_code,
           data.full_name,
           data.email,
-          data.department_id,
-          data.department_name || 'Unknown',
-          data.position_name || 'Unknown',
+          data.department_id || null,
+          departmentName,
+          data.position_id || null,
+          positionName,
+          data.hire_date,
           data.status || 'ACTIVE',
         ],
       );
@@ -91,14 +141,15 @@ export class EmployeeEventListener {
     }
   }
 
-  @EventPattern('employee.terminated')
+  @EventPattern('employee_terminated')
   async handleEmployeeTerminated(@Payload() data: any) {
-    this.logger.log(`📥 Received: employee.terminated for ${data.employee_code}`);
+    this.logger.log(`📥 Received: employee_terminated for ${data.employee_code}`);
     
     try {
       await this.dataSource.query(
         `UPDATE employees_cache SET
           status = 'TERMINATED',
+          synced_at = NOW(),
           updated_at = NOW()
         WHERE employee_id = $1`,
         [data.id],
@@ -110,23 +161,65 @@ export class EmployeeEventListener {
     }
   }
 
-  @EventPattern('employee.department-changed')
-  async handleEmployeeDepartmentChanged(@Payload() data: any) {
-    this.logger.log(`📥 Received: employee.department-changed for employee ${data.employee_id}`);
+  @EventPattern('employee_department_assigned')
+  async handleEmployeeDepartmentAssigned(@Payload() data: any) {
+    this.logger.log(`📥 Received: employee_department_assigned for employee_id=${data.employee_id}`);
     
     try {
+      // Fetch department name
+      let departmentName = null;
+      if (data.to_department_id) {
+        const deptResult = await this.dataSource.query(
+          `SELECT department_name FROM departments_cache WHERE department_id = $1 LIMIT 1`,
+          [data.to_department_id],
+        );
+        departmentName = deptResult[0]?.department_name || null;
+      }
+
       await this.dataSource.query(
         `UPDATE employees_cache SET
           department_id = $2,
           department_name = $3,
+          synced_at = NOW(),
           updated_at = NOW()
         WHERE employee_id = $1`,
-        [data.employee_id, data.new_department_id, data.new_department_name],
+        [data.employee_id, data.to_department_id, departmentName],
       );
       
       this.logger.log(`✅ Updated department for employee ${data.employee_id}`);
     } catch (error) {
       this.logger.error(`❌ Failed to update department for employee ${data.employee_id}:`, error);
+    }
+  }
+
+  @EventPattern('employee_position_assigned')
+  async handleEmployeePositionAssigned(@Payload() data: any) {
+    this.logger.log(`📥 Received: employee_position_assigned for employee_id=${data.employee_id}`);
+    
+    try {
+      // Fetch position name
+      let positionName = null;
+      if (data.to_position_id) {
+        const posResult = await this.dataSource.query(
+          `SELECT position_name FROM positions_cache WHERE position_id = $1 LIMIT 1`,
+          [data.to_position_id],
+        );
+        positionName = posResult[0]?.position_name || null;
+      }
+
+      await this.dataSource.query(
+        `UPDATE employees_cache SET
+          position_id = $2,
+          position_name = $3,
+          synced_at = NOW(),
+          updated_at = NOW()
+        WHERE employee_id = $1`,
+        [data.employee_id, data.to_position_id, positionName],
+      );
+      
+      this.logger.log(`✅ Updated position for employee ${data.employee_id}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update position for employee ${data.employee_id}:`, error);
     }
   }
 
@@ -152,13 +245,33 @@ export class EmployeeEventListener {
 
     for (const employee of employees) {
       try {
+        // Fetch department and position names if IDs exist
+        let departmentName = null;
+        let positionName = null;
+
+        if (employee.department_id) {
+          const deptResult = await this.dataSource.query(
+            `SELECT department_name FROM departments_cache WHERE department_id = $1 LIMIT 1`,
+            [employee.department_id],
+          );
+          departmentName = deptResult[0]?.department_name || null;
+        }
+
+        if (employee.position_id) {
+          const posResult = await this.dataSource.query(
+            `SELECT position_name FROM positions_cache WHERE position_id = $1 LIMIT 1`,
+            [employee.position_id],
+          );
+          positionName = posResult[0]?.position_name || null;
+        }
+
         await this.dataSource.query(
           `INSERT INTO employees_cache (
             employee_id, employee_code, full_name, email,
-            department_id, department_name, position_name, status,
-            created_at, updated_at
+            department_id, department_name, position_id, position_name,
+            join_date, status, synced_at, created_at, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), NOW())
           ON CONFLICT (employee_id) 
           DO UPDATE SET
             employee_code = EXCLUDED.employee_code,
@@ -166,8 +279,11 @@ export class EmployeeEventListener {
             email = EXCLUDED.email,
             department_id = EXCLUDED.department_id,
             department_name = EXCLUDED.department_name,
+            position_id = EXCLUDED.position_id,
             position_name = EXCLUDED.position_name,
+            join_date = EXCLUDED.join_date,
             status = EXCLUDED.status,
+            synced_at = NOW(),
             updated_at = NOW()`,
           [
             employee.id || employee.employee_id,
@@ -175,8 +291,10 @@ export class EmployeeEventListener {
             employee.full_name,
             employee.email || '',
             employee.department_id || null,
-            employee.department_name || 'Unknown',
-            employee.position_name || 'Unknown',
+            departmentName,
+            employee.position_id || null,
+            positionName,
+            employee.hire_date || employee.join_date,
             employee.status || 'ACTIVE',
           ],
         );

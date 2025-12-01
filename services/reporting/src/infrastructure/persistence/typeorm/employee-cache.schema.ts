@@ -1,14 +1,18 @@
 import { EntitySchema } from 'typeorm';
 
 export interface EmployeeCacheEntity {
+  id: number;
   employee_id: number;
   employee_code: string;
   full_name: string;
   email: string;
   department_id: number;
   department_name: string;
+  position_id: number;
   position_name: string;
+  join_date: Date;
   status: string;
+  synced_at: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -17,15 +21,23 @@ export const EmployeeCacheSchema = new EntitySchema<EmployeeCacheEntity>({
   name: 'EmployeeCache',
   tableName: 'employees_cache',
   columns: {
-    employee_id: {
-      type: 'int',
+    id: {
+      type: 'bigint',
       primary: true,
-      comment: 'ID from employee service',
+      generated: true,
+      comment: 'Auto-increment primary key for cache table',
+    },
+    employee_id: {
+      type: 'bigint',
+      nullable: false,
+      unique: true,
+      comment: 'References employees.id from employee_db',
     },
     employee_code: {
       type: 'varchar',
       length: 50,
       nullable: false,
+      unique: true,
     },
     full_name: {
       type: 'varchar',
@@ -46,16 +58,30 @@ export const EmployeeCacheSchema = new EntitySchema<EmployeeCacheEntity>({
       length: 255,
       nullable: true,
     },
+    position_id: {
+      type: 'int',
+      nullable: true,
+    },
     position_name: {
       type: 'varchar',
       length: 255,
       nullable: true,
     },
+    join_date: {
+      type: 'date',
+      nullable: true,
+      comment: 'Employee hire_date from employee service',
+    },
     status: {
       type: 'varchar',
-      length: 50,
+      length: 20,
       default: 'ACTIVE',
       comment: 'ACTIVE, INACTIVE, TERMINATED',
+    },
+    synced_at: {
+      type: 'timestamp',
+      default: () => 'CURRENT_TIMESTAMP',
+      comment: 'Last sync timestamp from employee service',
     },
     created_at: {
       type: 'timestamp',
@@ -68,19 +94,27 @@ export const EmployeeCacheSchema = new EntitySchema<EmployeeCacheEntity>({
   },
   indices: [
     {
-      name: 'idx_employee_cache_code',
+      name: 'idx_employees_cache_employee_id',
+      columns: ['employee_id'],
+    },
+    {
+      name: 'idx_employees_cache_code',
       columns: ['employee_code'],
     },
     {
-      name: 'idx_employee_cache_department',
+      name: 'idx_employees_cache_department_id',
       columns: ['department_id'],
     },
     {
-      name: 'idx_employee_cache_status',
+      name: 'idx_employees_cache_position_id',
+      columns: ['position_id'],
+    },
+    {
+      name: 'idx_employees_cache_status',
       columns: ['status'],
     },
     {
-      name: 'idx_employee_cache_full_name',
+      name: 'idx_employees_cache_full_name',
       columns: ['full_name'],
     },
   ],
