@@ -18,11 +18,17 @@ public static class FaceIdMassTransitExtensions
         IBusRegistrationContext context)
     {
         // Queue to receive face verification requests from Attendance Service (NestJS)
-        // 🔧 FIX: Use RawJsonDeserializer to accept PLAIN JSON from NestJS (like other services)
+        // 🔧 Accept PLAIN JSON from NestJS without MassTransit envelope
         cfg.ReceiveEndpoint("face_recognition_queue", e =>
         {
-            // ✅ Use Raw JSON Deserializer - accepts plain JSON without MassTransit envelope
-            // This makes Face Recognition compatible with NestJS ClientProxy.emit() format
+            // ✅ CRITICAL: Use Raw JSON Deserializer with AnyMessageType
+            // This allows MassTransit to accept plain JSON objects from NestJS ClientProxy.emit()
+            // WITHOUT requiring MassTransit envelope wrapper
+            e.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
+            
+            // 🆕 Clear default deserializers to force raw JSON only
+            e.ClearSerialization();
+            e.UseRawJsonSerializer(RawSerializerOptions.AnyMessageType);
             e.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
             
             e.ConfigureConsumer<FaceVerificationRequestConsumer>(context);

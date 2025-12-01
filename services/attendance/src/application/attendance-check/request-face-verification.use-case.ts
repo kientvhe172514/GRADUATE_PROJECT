@@ -239,7 +239,7 @@ export class RequestFaceVerificationUseCase {
     );
 
     // Step 5: Publish event to Face Recognition Service
-    // Send PLAIN JSON event (same as other NestJS services)
+    // � Send PLAIN JSON (Face Recognition uses RawJsonDeserializer)
     const event: FaceVerificationRequestEvent = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
@@ -250,7 +250,7 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64,
     };
 
-    // Emit directly without envelope (Face Recognition will handle plain JSON via RawJsonDeserializer)
+    // ✅ Emit plain JSON - Face Recognition will deserialize with UseRawJsonDeserializer
     this.faceRecognitionClient.emit('face.verification.requested', event);
 
     this.logger.log(
