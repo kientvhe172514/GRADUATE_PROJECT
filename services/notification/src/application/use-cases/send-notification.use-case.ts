@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Notification } from '../../domain/entities/notification.entity';
 import { NotificationPreference } from '../../domain/entities/notification-preference.entity';
 import { Priority } from '../../domain/enums/priority.enum';
+import { NotificationType } from '../../domain/enums/notification-type.enum';
 import {
   DeliveryChannel,
   ChannelType,
