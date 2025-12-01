@@ -239,7 +239,7 @@ export class RequestFaceVerificationUseCase {
     );
 
     // Step 5: Publish event to Face Recognition Service
-    // 🔧 FIX: Wrap event in MassTransit-compatible format
+    // 🔧 FIX: MassTransit envelope format (must be at root level for SystemTextJsonMessageSerializer)
     const event: FaceVerificationRequestEvent = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
@@ -250,13 +250,14 @@ export class RequestFaceVerificationUseCase {
       face_embedding_base64: command.face_embedding_base64, // 🆕 Include face embedding
     };
 
-    // Wrap in MassTransit envelope format with required metadata
-    const massTransitMessage = {
+    // MassTransit SystemTextJsonMessageSerializer expects this exact structure:
+    // Root level must have: messageId, messageType, message (NOT wrapped in extra layers)
+    const massTransitEnvelope = {
       messageId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
       conversationId: `checkin-${command.employee_id}-${Date.now()}`,
-      sourceAddress: 'rabbitmq://localhost/attendance-service',
+      sourceAddress: 'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/attendance-service',
       destinationAddress:
-        'rabbitmq://localhost/face_recognition_queue',
+        'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/face_recognition_queue',
       messageType: [
         'urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent',
       ],
@@ -264,13 +265,18 @@ export class RequestFaceVerificationUseCase {
       sentTime: new Date().toISOString(),
     };
 
+    // ⚠️ CRITICAL: NestJS emit() wraps this in { pattern, data }, but MassTransit needs envelope at root
+    // We need to use raw RabbitMQ publish instead of NestJS RMQ wrapper
+    // Temporary workaround: Send envelope directly (will need to fix transport layer)
     this.faceRecognitionClient.emit(
       'face_verification_requested',
-      massTransitMessage,
+      massTransitEnvelope,
     );
 
     this.logger.log(
-      `📤 Published face_verification_requested event for attendance_check_id=${attendanceCheck.id}` +
+      `📤 Published MassTransit envelope to face_recognition_queue: ` +
+        `messageId=${massTransitEnvelope.messageId}, ` +
+        `attendance_check_id=${attendanceCheck.id}` +
         `${command.face_embedding_base64 ? ' (with face embedding)' : ' (auto-approve mode)'}`,
     );
 

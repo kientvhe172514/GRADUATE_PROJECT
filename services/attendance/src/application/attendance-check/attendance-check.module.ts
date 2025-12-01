@@ -18,6 +18,7 @@ import { ProcessFaceVerificationResultUseCase } from './process-face-verificatio
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
 import { ValidateEmployeeLocationUseCase } from './validate-employee-location.use-case';
 import { RabbitMQEventPublisher } from '../../infrastructure/messaging/rabbitmq-event.publisher';
+import { MassTransitSerializer } from '../../infrastructure/messaging/masstransit-serializer';
 import { PresenceVerificationModule } from '../presence-verification/presence-verification.module';
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
@@ -62,6 +63,9 @@ import {
               queueOptions: {
                 durable: true,
               },
+              // 🔧 FIX: Use custom serializer for MassTransit compatibility
+              // This removes NestJS { pattern, data } wrapper and sends envelope directly
+              serializer: new MassTransitSerializer(),
             },
           };
         },
