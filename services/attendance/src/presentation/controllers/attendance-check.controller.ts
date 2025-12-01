@@ -406,20 +406,19 @@ export class AttendanceCheckController {
         `   ⚠️ GPS outside geofence! Distance: ${Math.round(gpsResult.distance_from_office_meters)}m (max: ${maxDistanceMeters}m)`,
       );
 
-      // TODO: Add handler in Notification service for 'notification.gps_outside_zone' event
-      // this.notificationClient.emit('notification.gps_outside_zone', {
-      //   type: 'GPS_ALERT',
-      //   recipientId: employeeId,
-      //   silent: false,
-      //   title: '⚠️ GPS Warning',
-      //   body: `You are ${Math.round(gpsResult.distance_from_office_meters)}m away from office (max: ${maxDistanceMeters}m)`,
-      //   metadata: {
-      //     shiftId: activeShift.id,
-      //     distance: gpsResult.distance_from_office_meters,
-      //     maxDistance: maxDistanceMeters,
-      //     timestamp: new Date().toISOString(),
-      //   },
-      // });
+      // Gửi alert notification (handler: attendance.location_out_of_range)
+      this.notificationClient.emit('attendance.location_out_of_range', {
+        employeeId: employeeId,
+        shiftId: activeShift.id,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        timestamp: new Date().toISOString(),
+        validation: {
+          is_valid: false,
+          distance_from_office_meters: gpsResult.distance_from_office_meters,
+          max_distance_meters: maxDistanceMeters,
+        },
+      });
     }
 
     return {
