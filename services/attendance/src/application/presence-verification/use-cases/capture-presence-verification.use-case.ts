@@ -34,10 +34,34 @@ export class CapturePresenceVerificationUseCase {
       `Capturing presence verification for employee ${data.employeeId}, shift ${data.shiftId}, round ${data.roundNumber}`,
     );
 
+    // ✅ FIX: Auto-calculate round number if 0 (from GPS webhook)
+    let actualRoundNumber = data.roundNumber;
+    if (actualRoundNumber === 0) {
+      try {
+        const shift = await this.employeeShiftRepository.findOne({
+          where: { id: Number(data.shiftId) },
+          select: ['presence_verification_rounds_completed'],
+        });
+        
+        if (shift) {
+          // Next round = current completed + 1
+          actualRoundNumber = (shift.presence_verification_rounds_completed || 0) + 1;
+          this.logger.debug(
+            `Auto-calculated round number for shift ${data.shiftId}: ${actualRoundNumber}`,
+          );
+        } else {
+          actualRoundNumber = 1; // Default if shift not found
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to get current round: ${error.message}. Using round 1`);
+        actualRoundNumber = 1;
+      }
+    }
+
     const verification = new PresenceVerificationRoundEntity({
       employee_id: Number(data.employeeId),
       shift_id: Number(data.shiftId),
-      round_number: data.roundNumber,
+      round_number: actualRoundNumber, // ✅ Use calculated round number
       captured_at: new Date(),
       latitude: data.location.latitude,
       longitude: data.location.longitude,

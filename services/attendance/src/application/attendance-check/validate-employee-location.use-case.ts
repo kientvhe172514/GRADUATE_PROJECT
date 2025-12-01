@@ -81,12 +81,12 @@ export class ValidateEmployeeLocationUseCase {
       `GPS validation result for employee ${employeeId}: ${validation.is_valid ? 'VALID' : 'INVALID'} (distance: ${validation.distance_from_office_meters}m)`,
     );
 
-    // 3. Persist presence verification round
+    // 3. Persist presence verification round (captureUseCase will auto-calculate round number)
     try {
       await this.captureUseCase.execute({
         employeeId: String(employeeId),
         shiftId: String(shiftId),
-        roundNumber: 1, // Client webhook = round 1
+        roundNumber: 0, // ✅ FIX: Use 0 to signal auto-calculation in CapturePresenceVerificationUseCase
         imageUrl: '', // No image from GPS webhook
         location: { latitude, longitude },
         validation: {

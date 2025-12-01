@@ -244,11 +244,11 @@ builder.Services.AddMassTransit(x =>
         cfg.UseDelayedMessageScheduler();
         cfg.UseInMemoryOutbox(context);
 
-        // Message serialization
-        cfg.UseRawJsonSerializer();
+        // Message serialization - Use default JSON serializer with custom options
+        // Note: face_recognition_queue uses UseRawJsonDeserializer for NestJS compatibility
         cfg.ConfigureJsonSerializerOptions(options =>
         {
-            options.PropertyNamingPolicy = null;
+            options.PropertyNamingPolicy = null; // Match C# property names (PascalCase)
             return options;
         });
 

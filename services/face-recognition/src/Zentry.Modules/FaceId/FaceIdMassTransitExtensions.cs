@@ -27,6 +27,9 @@ public static class FaceIdMassTransitExtensions
                 x.ExchangeType = "fanout";
             });
             
+            // 🔧 CRITICAL FIX: Use RawJsonDeserializer for NestJS messages (no envelope wrapper)
+            e.UseRawJsonDeserializer(RawSerializerOptions.AddTransportHeaders);
+            
             e.ConfigureConsumer<FaceVerificationRequestConsumer>(context);
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(10)));
             e.PrefetchCount = 10; // Process up to 10 messages concurrently
