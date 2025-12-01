@@ -120,14 +120,17 @@ export class ScheduledGpsCheckProcessor {
             
             -- Ca thường (trong ngày)
             ELSE (es.shift_date::text || ' ' || es.scheduled_end_time)::timestamp
-        END as shift_end_ts
+        END as shift_end_ts,
+        
+        -- 🔧 DEBUG: Tính giờ hiện tại VN
+        NOW() + INTERVAL '7 hours' as current_vn_time
         
     FROM employee_shifts es
     WHERE 
-        -- ✅ Lấy cả ca của ngày hôm qua (để bắt được ca đêm 22h hôm qua -> 6h sáng nay)
-        es.shift_date >= CURRENT_DATE - INTERVAL '1 day'
-        AND es.shift_date <= CURRENT_DATE
-        AND es.status IN ('IN_PROGRESS', 'SCHEDULED')
+        -- ✅ FIX TIMEZONE: Dùng giờ VN thay vì CURRENT_DATE (UTC)
+        -- Lấy ngày hiện tại theo giờ VN
+        es.shift_date >= (NOW() + INTERVAL '7 hours')::date - INTERVAL '1 day'
+        AND es.shift_date <= (NOW() + INTERVAL '7 hours')::date
 )
 SELECT 
     id as shift_id,
@@ -139,21 +142,27 @@ SELECT
     shift_type,
     check_in_time,
     check_out_time,
+    status,
     shift_start_ts,
     shift_end_ts,
+    current_vn_time,
+    -- 🔧 DEBUG: Check xem có trong khoảng thời gian không
+    CASE 
+        WHEN current_vn_time BETWEEN shift_start_ts AND shift_end_ts THEN 'YES'
+        ELSE 'NO'
+    END as is_in_time_range,
     presence_verification_rounds_required,
     presence_verification_rounds_completed
 FROM calculated_shifts
 WHERE 
-    -- 3. Logic lọc chính: Giờ hiện tại (VN) phải nằm trong ca
-    -- ✅ FIX TIMEZONE: Cộng 7 tiếng để NOW() (UTC) thành giờ Việt Nam
-    (NOW() + INTERVAL '7 hours') BETWEEN shift_start_ts AND shift_end_ts
-    AND presence_verification_required = true
-    -- ✅ FIX: Chỉ check GPS cho nhân viên đã check-in nhưng chưa check-out
-    AND check_in_time IS NOT NULL
-    AND check_out_time IS NULL
-    AND status = 'IN_PROGRESS'
-    -- Dùng COALESCE để tránh lỗi nếu cột completed đang null
+    presence_verification_required = true
+    -- ✅ Chỉ lấy shifts ĐANG TRONG KHOẢNG THỜI GIAN hiện tại
+    AND current_vn_time BETWEEN shift_start_ts AND shift_end_ts
+    -- 🔧 TEST: Tạm BỎ điều kiện check-in để test GPS cho SCHEDULED shifts
+    -- AND check_in_time IS NOT NULL
+    -- AND check_out_time IS NULL
+    -- AND status = 'IN_PROGRESS'
+    -- ✅ Chưa đủ số lần GPS check theo config
     AND COALESCE(presence_verification_rounds_completed, 0) < presence_verification_rounds_required
 ORDER BY employee_id;
     `;
