@@ -178,10 +178,13 @@ ORDER BY employee_id;
    * Mobile app nhận message → Wake background service → Tự động gửi GPS
    */
   private requestGpsCheck(employee: any): void {
+    // 🔧 FIX: Flatten payload structure - app cần action ở root level
     const payload = {
       type: 'GPS_CHECK_REQUEST',
+      action: 'BACKGROUND_GPS_SYNC', // ✅ Move to root level for Flutter app
       recipientId: employee.employee_id,
-      silent: true, // ✅ FIX: Thêm field này để client biết đây là silent push
+      silent: true,
+      shiftId: employee.shift_id, // ✅ Also at root for easy access
       metadata: {
         shiftId: employee.shift_id,
         shiftType: employee.shift_type,
@@ -192,7 +195,6 @@ ORDER BY employee_id;
         roundsRequired: employee.presence_verification_rounds_required,
         roundsCompleted: employee.presence_verification_rounds_completed,
         timestamp: new Date().toISOString(),
-        action: 'BACKGROUND_GPS_SYNC',
       },
     };
 
