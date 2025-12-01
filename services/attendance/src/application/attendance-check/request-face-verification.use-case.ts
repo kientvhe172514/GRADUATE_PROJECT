@@ -239,7 +239,7 @@ export class RequestFaceVerificationUseCase {
     );
 
     // Step 5: Publish event to Face Recognition Service
-    // 🔧 FIX: MassTransit envelope format (must be at root level for SystemTextJsonMessageSerializer)
+    // 🔧 SIMPLE FIX: Just send the message body, MassTransit handles envelope automatically
     const event: FaceVerificationRequestEvent = {
       employee_id: command.employee_id,
       employee_code: command.employee_code,
@@ -247,37 +247,21 @@ export class RequestFaceVerificationUseCase {
       shift_id: shift.id,
       check_type: command.check_type,
       request_time: new Date(),
-      face_embedding_base64: command.face_embedding_base64, // 🆕 Include face embedding
+      face_embedding_base64: command.face_embedding_base64,
     };
 
-    // MassTransit SystemTextJsonMessageSerializer expects this exact structure:
-    // Root level must have: messageId, messageType, message (NOT wrapped in extra layers)
-    const massTransitEnvelope = {
-      messageId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-      conversationId: `checkin-${command.employee_id}-${Date.now()}`,
-      sourceAddress: 'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/attendance-service',
-      destinationAddress:
-        'rabbitmq://rabbitmq-srv.infrastructure.svc.cluster.local/face_recognition_queue',
-      messageType: [
-        'urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent',
-      ],
-      message: event,
-      sentTime: new Date().toISOString(),
-    };
-
-    // ⚠️ CRITICAL: NestJS emit() wraps this in { pattern, data }, but MassTransit needs envelope at root
-    // We need to use raw RabbitMQ publish instead of NestJS RMQ wrapper
-    // Temporary workaround: Send envelope directly (will need to fix transport layer)
+    // Emit with MassTransit-compatible routing key
+    // Pattern format: namespace.ClassName (MassTransit naming convention)
     this.faceRecognitionClient.emit(
-      'face_verification_requested',
-      massTransitEnvelope,
+      'Zentry.Contracts.Events.FaceVerificationRequestedEvent',
+      event,
     );
 
     this.logger.log(
-      `📤 Published MassTransit envelope to face_recognition_queue: ` +
-        `messageId=${massTransitEnvelope.messageId}, ` +
-        `attendance_check_id=${attendanceCheck.id}` +
-        `${command.face_embedding_base64 ? ' (with face embedding)' : ' (auto-approve mode)'}`,
+      `📤 Published face verification event to queue: ` +
+        `attendance_check_id=${attendanceCheck.id}, ` +
+        `employee=${command.employee_code}` +
+        `${command.face_embedding_base64 ? ' (with face)' : ' (auto-approve)'}`,
     );
 
     return {

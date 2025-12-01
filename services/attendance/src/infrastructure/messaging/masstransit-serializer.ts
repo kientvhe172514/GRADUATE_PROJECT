@@ -39,10 +39,23 @@ export class MassTransitSerializer implements Serializer {
       'message' in payload
     ) {
       // This is a MassTransit envelope - send as-is (unwrapped)
-      return Buffer.from(JSON.stringify(payload));
+      const jsonString = JSON.stringify(payload);
+      
+      // 🔍 DEBUG: Log what we're actually sending
+      console.log('📤 [MassTransitSerializer] Sending envelope to queue:');
+      console.log('   Length:', jsonString.length, 'bytes');
+      console.log('   Keys:', Object.keys(payload).join(', '));
+      console.log('   MessageType:', payload.messageType);
+      console.log('   MessageId:', payload.messageId);
+      if (jsonString.length < 500) {
+        console.log('   Full payload:', jsonString);
+      }
+      
+      return Buffer.from(jsonString);
     }
 
     // Otherwise, fall back to default NestJS format (for non-MassTransit consumers)
+    console.log('⚠️ [MassTransitSerializer] Payload not recognized as MassTransit envelope, using default format');
     return Buffer.from(JSON.stringify(value));
   }
 
