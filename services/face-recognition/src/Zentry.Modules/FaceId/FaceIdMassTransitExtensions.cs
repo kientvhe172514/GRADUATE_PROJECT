@@ -18,18 +18,14 @@ public static class FaceIdMassTransitExtensions
         IBusRegistrationContext context)
     {
         // Queue to receive face verification requests from Attendance Service (NestJS)
-        // 🔧 FIX: Listen to exchange with event name pattern (NestJS → .NET interop)
+        // 🔧 FIX: Direct queue binding (no exchange) - NestJS sends to queue directly
         cfg.ReceiveEndpoint("face_recognition_queue", e =>
         {
-            // Bind to exchange with event name (NestJS publishes with this pattern)
-            e.Bind("face_verification_requested", x =>
-            {
-                x.ExchangeType = "fanout";
-            });
+            // 🔧 REMOVED exchange binding - NestJS ClientProxy.emit() sends directly to queue
+            // with routing key = event name (Zentry.Contracts.Events.FaceVerificationRequestedEvent)
             
-            // 🔧 CRITICAL FIX: Accept MassTransit envelope format from NestJS
-            // NestJS now sends: { messageType: ["urn:message:..."], message: {...} }
-            // MassTransit will auto-deserialize this standard format
+            // MassTransit will automatically create queue binding for message type
+            // Pattern: urn:message:Zentry.Contracts.Events:FaceVerificationRequestedEvent
             
             e.ConfigureConsumer<FaceVerificationRequestConsumer>(context);
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(10)));
