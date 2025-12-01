@@ -403,22 +403,23 @@ export class AttendanceCheckController {
     // 5. Nếu GPS invalid → Gửi notification cảnh báo
     if (!gpsResult.is_valid) {
       this.logger.warn(
-        `   ⚠️ GPS outside geofence! Sending alert notification...`,
+        `   ⚠️ GPS outside geofence! Distance: ${Math.round(gpsResult.distance_from_office_meters)}m (max: ${maxDistanceMeters}m)`,
       );
 
-      this.notificationClient.emit('notification.gps_outside_zone', {
-        type: 'GPS_ALERT',
-        recipientId: employeeId,
-        silent: false, // Show notification với âm thanh
-        title: '⚠️ GPS Warning',
-        body: `You are ${Math.round(gpsResult.distance_from_office_meters)}m away from office (max: ${maxDistanceMeters}m)`,
-        metadata: {
-          shiftId: activeShift.id,
-          distance: gpsResult.distance_from_office_meters,
-          maxDistance: maxDistanceMeters,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      // TODO: Add handler in Notification service for 'notification.gps_outside_zone' event
+      // this.notificationClient.emit('notification.gps_outside_zone', {
+      //   type: 'GPS_ALERT',
+      //   recipientId: employeeId,
+      //   silent: false,
+      //   title: '⚠️ GPS Warning',
+      //   body: `You are ${Math.round(gpsResult.distance_from_office_meters)}m away from office (max: ${maxDistanceMeters}m)`,
+      //   metadata: {
+      //     shiftId: activeShift.id,
+      //     distance: gpsResult.distance_from_office_meters,
+      //     maxDistance: maxDistanceMeters,
+      //     timestamp: new Date().toISOString(),
+      //   },
+      // });
     }
 
     return {
