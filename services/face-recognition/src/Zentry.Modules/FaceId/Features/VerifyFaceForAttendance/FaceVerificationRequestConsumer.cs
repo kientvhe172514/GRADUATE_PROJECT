@@ -65,15 +65,13 @@ public class FaceVerificationRequestConsumer : IConsumer<FaceVerificationRequest
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "❌ Failed to process face verification request for AttendanceCheckId={AttendanceCheckId}",
-                evt.AttendanceCheckId);
+                "❌ Failed to process face verification request for EmployeeId={EmployeeId} (AttendanceCheckId={AttendanceCheckId})",
+                evt.EmployeeId, evt.AttendanceCheckId);
             
-            // Publish failure event
+            // Publish failure event (simplified event structure)
             await context.Publish(new FaceVerificationCompletedEvent
             {
-                AttendanceCheckId = evt.AttendanceCheckId,
                 EmployeeId = evt.EmployeeId,
-                EmployeeCode = evt.EmployeeCode,
                 FaceVerified = false,
                 FaceConfidence = 0,
                 VerificationTime = DateTime.UtcNow,
