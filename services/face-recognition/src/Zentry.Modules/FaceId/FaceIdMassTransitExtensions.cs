@@ -17,9 +17,16 @@ public static class FaceIdMassTransitExtensions
     public static void ConfigureFaceIdReceiveEndpoints(this IRabbitMqBusFactoryConfigurator cfg,
         IBusRegistrationContext context)
     {
-        // Queue to receive face verification requests from Attendance Service
+        // Queue to receive face verification requests from Attendance Service (NestJS)
+        // 🔧 FIX: Listen to exchange with event name pattern (NestJS → .NET interop)
         cfg.ReceiveEndpoint("face_recognition_queue", e =>
         {
+            // Bind to exchange with event name (NestJS publishes with this pattern)
+            e.Bind("face_verification_requested", x =>
+            {
+                x.ExchangeType = "fanout";
+            });
+            
             e.ConfigureConsumer<FaceVerificationRequestConsumer>(context);
             e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(10)));
             e.PrefetchCount = 10; // Process up to 10 messages concurrently
