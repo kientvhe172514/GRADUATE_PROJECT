@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Zentry.Modules.FaceId.Dtos;
+using Zentry.Modules.FaceId.Features.DeleteFaceId;
 using Zentry.Modules.FaceId.Features.RegisterFaceId;
 using Zentry.Modules.FaceId.Features.UpdateFaceId;
 using Zentry.Modules.FaceId.Features.VerifyFaceId;
@@ -263,6 +264,51 @@ public class FaceIdController(IMediator mediator, IFaceIdRepository faceIdReposi
         }
         catch (Exception ex)
         {
+            return StatusCode(500, new
+            {
+                Success = false,
+                Message = "Internal server error: " + ex.Message,
+                Timestamp = DateTime.UtcNow.ToString("o")
+            });
+        }
+    }
+
+    [HttpDelete("{userId}")]
+    [ProducesResponseType(typeof(DeleteFaceIdResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(string userId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest(new { Success = false, Message = "User ID is required" });
+
+            // Parse userId as int
+            if (!int.TryParse(userId, out var intUserId))
+            {
+                return BadRequest(new { Success = false, Message = $"Invalid User ID format. Expected int, received: {userId}" });
+            }
+
+            // Create and send command
+            var command = new DeleteFaceIdCommand(intUserId);
+            var result = await mediator.Send(command);
+
+            if (result.Success)
+                return Ok(result);
+            
+            // If user doesn't have face ID, return 404
+            if (result.Message.Contains("does not have"))
+                return NotFound(result);
+                
+            return BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [FaceIdController.Delete] Exception: {ex.GetType().Name}");
+            Console.WriteLine($"   Message: {ex.Message}");
+            Console.WriteLine($"   StackTrace: {ex.StackTrace}");
+            
             return StatusCode(500, new
             {
                 Success = false,
