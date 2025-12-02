@@ -244,11 +244,15 @@ builder.Services.AddMassTransit(x =>
         cfg.UseDelayedMessageScheduler();
         cfg.UseInMemoryOutbox(context);
 
-        // Message serialization - Use default JSON serializer with custom options
-        // Note: face_recognition_queue uses UseRawJsonDeserializer for NestJS compatibility
+        // ✅ Message serialization - Configure for NestJS compatibility
+        // Use Raw JSON Serializer for plain JSON (no MassTransit envelope) with snake_case
+        cfg.UseRawJsonSerializer(RawSerializerOptions.AddTransportHeaders);
+        
+        // Configure System.Text.Json options for snake_case property names
         cfg.ConfigureJsonSerializerOptions(options =>
         {
-            options.PropertyNamingPolicy = null; // Match C# property names (PascalCase)
+            options.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower; // ✅ snake_case for NestJS
+            options.PropertyNameCaseInsensitive = true; // Accept both formats
             return options;
         });
 
