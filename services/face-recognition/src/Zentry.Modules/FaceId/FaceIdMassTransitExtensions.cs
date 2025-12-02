@@ -41,11 +41,8 @@ public static class FaceIdMassTransitExtensions
         // ===== ✅ NEW: SYNC RPC Queue for immediate response =====
         cfg.ReceiveEndpoint("face_verification_rpc_queue", e =>
         {
-            // Use Raw JSON for NestJS compatibility
-            e.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
-            e.ClearSerialization();
-            e.UseRawJsonSerializer(RawSerializerOptions.AnyMessageType);
-            e.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
+            // ✅ DON'T use Raw JSON - use default deserializer that respects JsonPropertyName
+            // Raw JSON ignores attributes! Default deserializer will map snake_case -> PascalCase via attributes
             
             e.ConfigureConsumer<FaceVerificationRpcConsumer>(context);
             e.UseMessageRetry(r => r.Interval(2, TimeSpan.FromSeconds(5))); // Shorter retry for RPC

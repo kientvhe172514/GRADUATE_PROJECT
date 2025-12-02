@@ -251,8 +251,9 @@ export class RequestFaceVerificationUseCase {
 
     // ✅ NEW: SYNC RPC call for immediate response
     this.logger.log(
-      `📤 Sending SYNC RPC request: attendance_check_id=${attendanceCheck.id}`,
+      `📤 Sending SYNC RPC request: employee_id=${command.employee_id}, attendance_check_id=${attendanceCheck.id}`,
     );
+    this.logger.debug(`📦 RPC Request payload: ${JSON.stringify(rpcRequest)}`);
 
     try {
       const faceResult = await firstValueFrom(
