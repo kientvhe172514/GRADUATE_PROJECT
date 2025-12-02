@@ -166,7 +166,16 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             };
         }
 
-        // Send response back to caller (Attendance Service)
+        // ✅ Debug: Check reply-to address from incoming message
+        var replyToAddress = context.ResponseAddress ?? context.SourceAddress;
+        _logger.LogInformation(
+            "🔍 [DEBUG] Response details: FaceVerified={FaceVerified}, Confidence={Confidence:P1}, " +
+            "ReplyTo={ReplyTo}, CorrelationId={CorrelationId}",
+            response.FaceVerified, response.FaceConfidence, 
+            replyToAddress, context.RequestId ?? context.CorrelationId);
+
+        // Send direct response (NestJS ClientProxy.send() expects plain object)
+        // MassTransit RespondAsync will automatically use the reply-to queue from request headers
         await context.RespondAsync(response);
         
         _logger.LogInformation(

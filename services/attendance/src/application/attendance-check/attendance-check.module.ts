@@ -63,6 +63,10 @@ import {
               queueOptions: {
                 durable: true,
               },
+              // ✅ RPC Configuration for proper request/response
+              noAck: false, // Require acknowledgment
+              persistent: true, // Message persistence
+              prefetchCount: 1, // Process one message at a time for RPC
               // ✅ No custom serializer needed - MassTransit handles it
             },
           };

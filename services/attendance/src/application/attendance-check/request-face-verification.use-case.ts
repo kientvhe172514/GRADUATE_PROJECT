@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom, timeout, catchError, of } from 'rxjs';
+import { firstValueFrom, timeout, catchError, of, retry } from 'rxjs';
 import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { ValidateBeaconUseCase } from './validate-beacon.use-case';
@@ -260,7 +260,7 @@ export class RequestFaceVerificationUseCase {
         this.faceRecognitionClient
           .send('face.verification.verify', rpcRequest)
           .pipe(
-            timeout(15000),
+            timeout(30000), // ⬆️ Increased from 15s to 30s for RabbitMQ + MassTransit RPC
             catchError((error) => {
               this.logger.error(`❌ RPC failed: ${error?.message}`);
               return of({
@@ -278,6 +278,9 @@ export class RequestFaceVerificationUseCase {
 
       this.logger.log(
         `✅ RPC Response received: face_verified=${faceResult.face_verified}`,
+      );
+      this.logger.debug(
+        `📦 Full RPC Response: ${JSON.stringify(faceResult)}`,
       );
 
       await this.attendanceCheckRepository.updateFaceVerification(
