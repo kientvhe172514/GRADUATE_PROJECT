@@ -91,13 +91,16 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
 {
     private readonly IMediator _mediator;
     private readonly ILogger<FaceVerificationRpcConsumer> _logger;
+    private readonly IBus _bus; // 🆕 Inject IBus for sending responses
 
     public FaceVerificationRpcConsumer(
         IMediator mediator,
-        ILogger<FaceVerificationRpcConsumer> logger)
+        ILogger<FaceVerificationRpcConsumer> logger,
+        IBus bus) // 🆕 Inject IBus
     {
         _mediator = mediator;
         _logger = logger;
+        _bus = bus; // 🆕 Store IBus instance
     }
 
     public async Task Consume(ConsumeContext<NestJsRpcEnvelope> context)
@@ -219,60 +222,46 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             "AttendanceCheckId={AttendanceCheckId}, Success={Success}",
             response.FaceVerified, response.FaceConfidence, response.AttendanceCheckId, response.Success);
 
-        // ✅ BYPASS MassTransit: Use raw RabbitMQ Client to send to Direct Reply-To queue
+        // ✅ SOLUTION: Use IBus to send response via Default Exchange with manual RoutingKey
         if (!string.IsNullOrEmpty(replyToQueue) && !string.IsNullOrEmpty(correlationId))
         {
             try
             {
-                // Get RabbitMQ Channel from MassTransit context
-                // Try IChannel first (RabbitMQ.Client v6+), fallback to IModel (v5)
-                if (context.TryGetPayload(out IChannel? channel))
+                // 1. Get Host Address from IBus to construct URI for Default Exchange
+                Uri hostAddress = _bus.Address;
+                
+                // 2. Create URI pointing to Default Exchange (empty string "")
+                // Use the replyToQueue directly as the destination
+                var replyUri = new Uri($"{hostAddress.Scheme}://{hostAddress.Host}:{hostAddress.Port}/{replyToQueue}");
+
+                _logger.LogInformation(
+                    "🔍 [DEBUG] Sending to Reply URI: {Uri}", 
+                    replyUri);
+
+                // 3. Get SendEndpoint for Reply Queue
+                var sendEndpoint = await _bus.GetSendEndpoint(replyUri);
+                
+                // 4. Send Response with CorrelationId
+                await sendEndpoint.Send(response, ctx =>
                 {
-                    // Serialize response to JSON
-                    var jsonOptions = new System.Text.Json.JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                    };
-                    var responseJson = System.Text.Json.JsonSerializer.Serialize(response, jsonOptions);
-                    var responseBody = System.Text.Encoding.UTF8.GetBytes(responseJson);
-
-                    // Create RabbitMQ BasicProperties
-                    var properties = new BasicProperties
-                    {
-                        CorrelationId = correlationId,
-                        ContentType = "application/json",
-                        DeliveryMode = DeliveryModes.Transient // Non-persistent (ephemeral reply queue)
-                    };
-
+                    // Set Correlation ID (convert string to Guid if possible)
+                    ctx.CorrelationId = Guid.TryParse(correlationId, out var guid) 
+                        ? guid 
+                        : Guid.NewGuid();
+                    
                     _logger.LogInformation(
-                        "📤 [RPC] Sending RAW response to ReplyTo={ReplyTo}, CorrelationId={CorrelationId}, " +
-                        "Size={Size} bytes",
-                        replyToQueue, correlationId, responseBody.Length);
-
-                    // Publish directly to Default Exchange with ReplyTo as routing key
-                    // Direct Reply-To uses default exchange ("") with queue name as routing key
-                    await channel.BasicPublishAsync(
-                        exchange: string.Empty, // Default exchange
-                        routingKey: replyToQueue, // Direct Reply-To queue name
-                        mandatory: false,
-                        basicProperties: properties,
-                        body: responseBody);
-
-                    _logger.LogInformation(
-                        "✅ [RPC] RAW response sent successfully to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
-                        replyToQueue, request.AttendanceCheckId);
-                }
-                else
-                {
-                    _logger.LogError("❌ [RPC] Could not access RabbitMQ IChannel from context");
-                    throw new InvalidOperationException("RabbitMQ IChannel not available in context");
-                }
+                        "📤 [RPC] Sending response with CorrelationId={CorrelationId}",
+                        ctx.CorrelationId);
+                });
+                
+                _logger.LogInformation(
+                    "✅ [RPC] Response sent successfully via IBus to {ReplyQueue} for AttendanceCheckId={AttendanceCheckId}",
+                    replyToQueue, request.AttendanceCheckId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, 
-                    "❌ [RPC] Failed to send RAW response to {ReplyTo}", replyToQueue);
+                    "❌ [RPC] Failed to send response via IBus: ReplyTo={ReplyTo}", replyToQueue);
                 throw;
             }
         }
