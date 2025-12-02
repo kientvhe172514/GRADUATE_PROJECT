@@ -166,20 +166,26 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             };
         }
 
-        // ✅ Debug: Check reply-to address from incoming message
-        var replyToAddress = context.ResponseAddress ?? context.SourceAddress;
+        // ✅ Get ReplyTo address from the request headers
+        var replyToAddress = context.ResponseAddress;
+        var correlationId = context.RequestId ?? context.CorrelationId;
+        
         _logger.LogInformation(
-            "🔍 [DEBUG] Response details: FaceVerified={FaceVerified}, Confidence={Confidence:P1}, " +
-            "ReplyTo={ReplyTo}, CorrelationId={CorrelationId}",
-            response.FaceVerified, response.FaceConfidence, 
-            replyToAddress, context.RequestId ?? context.CorrelationId);
+            "🔍 [DEBUG] Response metadata: ReplyTo={ReplyTo}, CorrelationId={CorrelationId}, " +
+            "ResponseAddress={ResponseAddress}, SourceAddress={SourceAddress}",
+            replyToAddress, correlationId, context.ResponseAddress, context.SourceAddress);
+        
+        _logger.LogInformation(
+            "🔍 [DEBUG] Response payload: FaceVerified={FaceVerified}, Confidence={Confidence:P1}, " +
+            "AttendanceCheckId={AttendanceCheckId}, Success={Success}",
+            response.FaceVerified, response.FaceConfidence, response.AttendanceCheckId, response.Success);
 
-        // Send direct response (NestJS ClientProxy.send() expects plain object)
-        // MassTransit RespondAsync will automatically use the reply-to queue from request headers
+        // ✅ CRITICAL FIX: Send response with proper correlation
+        // MassTransit RespondAsync should auto-route to NestJS temporary reply queue
         await context.RespondAsync(response);
         
         _logger.LogInformation(
-            "📤 [RPC] Response sent to Attendance Service for AttendanceCheckId={AttendanceCheckId}",
-            request.AttendanceCheckId);
+            "📤 [RPC] Response sent successfully to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
+            replyToAddress, request.AttendanceCheckId);
     }
 }

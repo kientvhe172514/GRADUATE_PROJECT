@@ -63,11 +63,11 @@ import {
               queueOptions: {
                 durable: true,
               },
-              // ✅ RPC Configuration for proper request/response
-              noAck: false, // Require acknowledgment
-              persistent: true, // Message persistence
-              prefetchCount: 1, // Process one message at a time for RPC
-              // ✅ No custom serializer needed - MassTransit handles it
+              // ✅ CRITICAL: RabbitMQ Direct Reply-To does NOT support acknowledgment
+              // noAck MUST be true (or omitted) for RPC pattern with temporary reply queues
+              noAck: true, // ⚠️ Required for Direct Reply-To pattern
+              persistent: true, // Message persistence for request queue
+              prefetchCount: 1, // Process one RPC request at a time
             },
           };
         },
