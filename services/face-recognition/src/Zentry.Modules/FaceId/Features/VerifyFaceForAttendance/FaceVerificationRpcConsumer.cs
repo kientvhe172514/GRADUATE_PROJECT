@@ -3,6 +3,7 @@ using MassTransit.RabbitMqTransport;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using RabbitMQ.Client;
 
 namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 
@@ -218,29 +219,60 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             "AttendanceCheckId={AttendanceCheckId}, Success={Success}",
             response.FaceVerified, response.FaceConfidence, response.AttendanceCheckId, response.Success);
 
-        // ✅ Send response directly to ReplyTo queue with correlation ID
+        // ✅ BYPASS MassTransit: Use raw RabbitMQ Client to send to Direct Reply-To queue
         if (!string.IsNullOrEmpty(replyToQueue) && !string.IsNullOrEmpty(correlationId))
         {
             try
             {
-                // Send to Direct Reply-To pseudo-queue
-                var sendEndpoint = await context.GetSendEndpoint(new Uri($"queue:{replyToQueue}"));
-                await sendEndpoint.Send(response, ctx =>
+                // Get RabbitMQ Channel from MassTransit context
+                // Try IChannel first (RabbitMQ.Client v6+), fallback to IModel (v5)
+                if (context.TryGetPayload(out IChannel? channel))
                 {
-                    ctx.CorrelationId = Guid.TryParse(correlationId, out var guid) ? guid : Guid.NewGuid();
+                    // Serialize response to JSON
+                    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    };
+                    var responseJson = System.Text.Json.JsonSerializer.Serialize(response, jsonOptions);
+                    var responseBody = System.Text.Encoding.UTF8.GetBytes(responseJson);
+
+                    // Create RabbitMQ BasicProperties
+                    var properties = new BasicProperties
+                    {
+                        CorrelationId = correlationId,
+                        ContentType = "application/json",
+                        DeliveryMode = DeliveryModes.Transient // Non-persistent (ephemeral reply queue)
+                    };
+
                     _logger.LogInformation(
-                        "📤 [RPC] Sending to ReplyTo queue={Queue}, correlationId={CorrelationId}",
-                        replyToQueue, ctx.CorrelationId);
-                });
-                
-                _logger.LogInformation(
-                    "✅ [RPC] Response sent to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
-                    replyToQueue, request.AttendanceCheckId);
+                        "📤 [RPC] Sending RAW response to ReplyTo={ReplyTo}, CorrelationId={CorrelationId}, " +
+                        "Size={Size} bytes",
+                        replyToQueue, correlationId, responseBody.Length);
+
+                    // Publish directly to Default Exchange with ReplyTo as routing key
+                    // Direct Reply-To uses default exchange ("") with queue name as routing key
+                    await channel.BasicPublishAsync(
+                        exchange: string.Empty, // Default exchange
+                        routingKey: replyToQueue, // Direct Reply-To queue name
+                        mandatory: false,
+                        basicProperties: properties,
+                        body: responseBody);
+
+                    _logger.LogInformation(
+                        "✅ [RPC] RAW response sent successfully to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
+                        replyToQueue, request.AttendanceCheckId);
+                }
+                else
+                {
+                    _logger.LogError("❌ [RPC] Could not access RabbitMQ IChannel from context");
+                    throw new InvalidOperationException("RabbitMQ IChannel not available in context");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, 
-                    "❌ [RPC] Failed to send response to {ReplyTo}", replyToQueue);
+                    "❌ [RPC] Failed to send RAW response to {ReplyTo}", replyToQueue);
                 throw;
             }
         }
