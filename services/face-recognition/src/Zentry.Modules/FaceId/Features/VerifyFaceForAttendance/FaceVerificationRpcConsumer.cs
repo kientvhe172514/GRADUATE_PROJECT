@@ -6,7 +6,23 @@ using System.Text.Json.Serialization;
 namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 
 /// <summary>
-/// RPC Request/Response model for synchronous face verification
+/// NestJS RPC Message Envelope - ClientProxy.send() wraps data in this structure
+/// Pattern: { "pattern": "...", "data": {...}, "id": "..." }
+/// </summary>
+public record NestJsRpcEnvelope
+{
+    [JsonPropertyName("pattern")]
+    public string Pattern { get; init; } = string.Empty;
+    
+    [JsonPropertyName("data")]
+    public FaceVerificationRpcRequest Data { get; init; } = new();
+    
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// RPC Request for face verification - ACTUAL data nested in NestJsRpcEnvelope.data
 /// This is for NEW HR employee attendance system (NOT old school system)
 /// ✅ Uses JsonPropertyName for explicit mapping from NestJS snake_case
 /// </summary>
@@ -67,9 +83,9 @@ public record FaceVerificationRpcResponse
 
 /// <summary>
 /// RPC Consumer for SYNCHRONOUS face verification requests from Attendance Service
-/// Replaces async event-based consumer for immediate response
+/// ✅ Consumes NestJsRpcEnvelope wrapper to match ClientProxy.send() structure
 /// </summary>
-public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
+public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
 {
     private readonly IMediator _mediator;
     private readonly ILogger<FaceVerificationRpcConsumer> _logger;
@@ -82,14 +98,16 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
         _logger = logger;
     }
 
-    public async Task Consume(ConsumeContext<FaceVerificationRpcRequest> context)
+    public async Task Consume(ConsumeContext<NestJsRpcEnvelope> context)
     {
-        var request = context.Message;
+        var envelope = context.Message;
+        var request = envelope.Data; // Extract actual data from NestJS envelope
         
         // 🔍 DEBUG: Log raw message body to see what MassTransit actually received
         var rawBody = context.ReceiveContext.GetBody();
         var rawJson = System.Text.Encoding.UTF8.GetString(rawBody);
         _logger.LogInformation("🔍 [DEBUG] Raw message body: {RawJson}", rawJson);
+        _logger.LogInformation("🔍 [DEBUG] Envelope Pattern: {Pattern}, ID: {Id}", envelope.Pattern, envelope.Id);
         
         _logger.LogInformation(
             "📨 [RPC] Received SYNC face verification request: AttendanceCheckId={AttendanceCheckId}, " +
