@@ -36,6 +36,7 @@ public record FaceVerificationRpcRequest
 
 /// <summary>
 /// Response returned synchronously to Attendance Service
+/// ✅ Uses JsonPropertyName for explicit mapping to NestJS snake_case
 /// </summary>
 public record FaceVerificationRpcResponse
 {
@@ -45,15 +46,23 @@ public record FaceVerificationRpcResponse
     [JsonPropertyName("attendance_check_id")]
     public int AttendanceCheckId { get; init; }
     
-    // ✅ Use snake_case property names directly (Raw JSON Serializer requirement)
-    public bool success { get; init; }
-    public int attendance_check_id { get; init; }
-    public int employee_id { get; init; }
-    public bool face_verified { get; init; }
-    public double face_confidence { get; init; }
-    public DateTime verification_time { get; init; }
-    public string? error_message { get; init; }
-    public string? message { get; init; }
+    [JsonPropertyName("employee_id")]
+    public int EmployeeId { get; init; }
+    
+    [JsonPropertyName("face_verified")]
+    public bool FaceVerified { get; init; }
+    
+    [JsonPropertyName("face_confidence")]
+    public double FaceConfidence { get; init; }
+    
+    [JsonPropertyName("verification_time")]
+    public DateTime VerificationTime { get; init; }
+    
+    [JsonPropertyName("error_message")]
+    public string? ErrorMessage { get; init; }
+    
+    [JsonPropertyName("message")]
+    public string? Message { get; init; }
 }
 
 /// <summary>
@@ -105,14 +114,14 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
             
             response = new FaceVerificationRpcResponse
             {
-                success = result.Success,
-                attendance_check_id = request.AttendanceCheckId,
-                employee_id = request.EmployeeId,
-                face_verified = result.FaceVerified,
-                face_confidence = result.FaceConfidence,
-                verification_time = DateTime.UtcNow,
-                error_message = result.Success ? null : result.Message,
-                message = result.Message
+                Success = result.Success,
+                AttendanceCheckId = request.AttendanceCheckId,
+                EmployeeId = request.EmployeeId,
+                FaceVerified = result.FaceVerified,
+                FaceConfidence = result.FaceConfidence,
+                VerificationTime = DateTime.UtcNow,
+                ErrorMessage = result.Success ? null : result.Message,
+                Message = result.Message
             };
             
             _logger.LogInformation(
@@ -128,14 +137,14 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
             
             response = new FaceVerificationRpcResponse
             {
-                success = false,
-                attendance_check_id = request.AttendanceCheckId,
-                employee_id = request.EmployeeId,
-                face_verified = false,
-                face_confidence = 0,
-                verification_time = DateTime.UtcNow,
-                error_message = $"Face verification error: {ex.Message}",
-                message = "Internal error during face verification"
+                Success = false,
+                AttendanceCheckId = request.AttendanceCheckId,
+                EmployeeId = request.EmployeeId,
+                FaceVerified = false,
+                FaceConfidence = 0,
+                VerificationTime = DateTime.UtcNow,
+                ErrorMessage = $"Face verification error: {ex.Message}",
+                Message = "Internal error during face verification"
             };
         }
 
