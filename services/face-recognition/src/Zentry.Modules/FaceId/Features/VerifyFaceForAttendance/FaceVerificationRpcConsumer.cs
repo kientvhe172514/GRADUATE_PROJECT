@@ -65,6 +65,11 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
     {
         var request = context.Message;
         
+        // 🔍 DEBUG: Log raw message body to see what MassTransit actually received
+        var rawBody = context.ReceiveContext.GetBody();
+        var rawJson = System.Text.Encoding.UTF8.GetString(rawBody);
+        _logger.LogInformation("🔍 [DEBUG] Raw message body: {RawJson}", rawJson);
+        
         _logger.LogInformation(
             "📨 [RPC] Received SYNC face verification request: AttendanceCheckId={AttendanceCheckId}, " +
             "EmployeeId={EmployeeId}, EmployeeCode={EmployeeCode}, CheckType={CheckType}",
