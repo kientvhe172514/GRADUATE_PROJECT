@@ -42,7 +42,7 @@ export class ApproveOvertimeRequestUseCase {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const employeeInfo: any = await firstValueFrom(
       this.employeeClient.send('employee.get', {
-        employee_id: request.employee_id,
+        id: request.employee_id, // ✅ Fixed: Employee Service expects "id" not "employee_id"
       }),
     );
 
