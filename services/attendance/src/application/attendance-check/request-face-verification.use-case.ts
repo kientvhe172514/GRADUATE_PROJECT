@@ -256,13 +256,23 @@ export class RequestFaceVerificationUseCase {
     this.logger.debug(`📦 RPC Request payload: ${JSON.stringify(rpcRequest)}`);
 
     try {
+      // 🔍 DEBUG: Log RPC call details before sending
+      this.logger.debug(
+        `🔍 [DEBUG] RPC Pattern: face.verification.verify, Queue: face_verification_rpc_queue`,
+      );
+
       const faceResult = await firstValueFrom(
         this.faceRecognitionClient
           .send('face.verification.verify', rpcRequest)
           .pipe(
             timeout(30000), // ⬆️ Increased from 15s to 30s for RabbitMQ + MassTransit RPC
             catchError((error) => {
-              this.logger.error(`❌ RPC failed: ${error?.message}`);
+              this.logger.error(
+                `❌ RPC failed after 30s: ${error?.message || error}`,
+              );
+              this.logger.error(
+                `❌ Error type: ${error?.constructor?.name}, timeout: ${error?.name === 'TimeoutError'}`,
+              );
               return of({
                 success: false,
                 attendance_check_id: attendanceCheck.id,
@@ -277,7 +287,7 @@ export class RequestFaceVerificationUseCase {
       );
 
       this.logger.log(
-        `✅ RPC Response received: face_verified=${faceResult.face_verified}`,
+        `✅ RPC Response received: face_verified=${faceResult.face_verified}, confidence=${faceResult.face_confidence}`,
       );
       this.logger.debug(
         `📦 Full RPC Response: ${JSON.stringify(faceResult)}`,
