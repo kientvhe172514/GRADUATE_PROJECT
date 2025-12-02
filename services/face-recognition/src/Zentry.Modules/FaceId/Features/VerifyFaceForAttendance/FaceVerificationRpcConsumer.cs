@@ -2,6 +2,7 @@ using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using RabbitMQ.Client;
 
 namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 
@@ -166,26 +167,51 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             };
         }
 
-        // ✅ Get ReplyTo address from the request headers
-        var replyToAddress = context.ResponseAddress;
-        var correlationId = context.RequestId ?? context.CorrelationId;
+        // ✅ CRITICAL FIX: Manually extract reply-to and correlation-id from RabbitMQ headers
+        // NestJS Direct Reply-To uses amq.rabbitmq.reply-to.* queues
+        var replyToQueue = context.Headers.Get<string>("replyTo") ?? 
+                          context.Headers.Get<string>("reply-to") ??
+                          context.Headers.Get<string>("reply_to");
+        
+        var correlationId = context.Headers.Get<string>("correlationId") ?? 
+                           context.Headers.Get<string>("correlation-id") ??
+                           context.Headers.Get<string>("correlation_id") ??
+                           context.RequestId?.ToString() ?? 
+                           context.CorrelationId?.ToString();
         
         _logger.LogInformation(
-            "🔍 [DEBUG] Response metadata: ReplyTo={ReplyTo}, CorrelationId={CorrelationId}, " +
-            "ResponseAddress={ResponseAddress}, SourceAddress={SourceAddress}",
-            replyToAddress, correlationId, context.ResponseAddress, context.SourceAddress);
+            "🔍 [DEBUG] Extracted from headers: ReplyTo={ReplyTo}, CorrelationId={CorrelationId}, " +
+            "ResponseAddress={ResponseAddress}, RequestId={RequestId}",
+            replyToQueue, correlationId, context.ResponseAddress, context.RequestId);
         
         _logger.LogInformation(
             "🔍 [DEBUG] Response payload: FaceVerified={FaceVerified}, Confidence={Confidence:P1}, " +
             "AttendanceCheckId={AttendanceCheckId}, Success={Success}",
             response.FaceVerified, response.FaceConfidence, response.AttendanceCheckId, response.Success);
 
-        // ✅ CRITICAL FIX: Send response with proper correlation
-        // MassTransit RespondAsync should auto-route to NestJS temporary reply queue
-        await context.RespondAsync(response);
+        // ✅ Send response - if we have explicit reply-to, use it; otherwise let MassTransit auto-route
+        if (!string.IsNullOrEmpty(replyToQueue) && !string.IsNullOrEmpty(correlationId))
+        {
+            // Manual send to Direct Reply-To queue with correlation ID
+            var sendEndpoint = await context.GetSendEndpoint(new Uri($"queue:{replyToQueue}"));
+            await sendEndpoint.Send(response, ctx =>
+            {
+                ctx.CorrelationId = Guid.TryParse(correlationId, out var guid) ? guid : Guid.NewGuid();
+                _logger.LogInformation(
+                    "📤 [RPC] Manually sending response to queue={Queue}, correlationId={CorrelationId}",
+                    replyToQueue, ctx.CorrelationId);
+            });
+        }
+        else
+        {
+            // Fallback: Use MassTransit's RespondAsync (might not work for Direct Reply-To)
+            _logger.LogWarning(
+                "⚠️ [RPC] ReplyTo or CorrelationId not found in headers, using RespondAsync fallback");
+            await context.RespondAsync(response);
+        }
         
         _logger.LogInformation(
-            "📤 [RPC] Response sent successfully to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
-            replyToAddress, request.AttendanceCheckId);
+            "✅ [RPC] Response sent successfully to {ReplyAddress} for AttendanceCheckId={AttendanceCheckId}",
+            replyToQueue ?? "RespondAsync", request.AttendanceCheckId);
     }
 }
