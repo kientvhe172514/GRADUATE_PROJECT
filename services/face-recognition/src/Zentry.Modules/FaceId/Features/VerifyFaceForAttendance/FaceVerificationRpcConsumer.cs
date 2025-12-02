@@ -8,18 +8,30 @@ namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 /// <summary>
 /// RPC Request/Response model for synchronous face verification
 /// This is for NEW HR employee attendance system (NOT old school system)
-/// ⚠️ Properties use snake_case to match NestJS JSON (Raw JSON Deserializer ignores JsonPropertyName)
+/// ✅ Uses JsonPropertyName for explicit mapping from NestJS snake_case
 /// </summary>
 public record FaceVerificationRpcRequest
 {
-    // ✅ Use snake_case property names directly (Raw JSON Deserializer requirement)
-    public int employee_id { get; init; }
-    public string employee_code { get; init; } = string.Empty;
-    public int attendance_check_id { get; init; }
-    public int shift_id { get; init; }
-    public string check_type { get; init; } = string.Empty; // "check_in" or "check_out"
-    public DateTime request_time { get; init; }
-    public string? face_embedding_base64 { get; init; }
+    [JsonPropertyName("employee_id")]
+    public int EmployeeId { get; init; }
+    
+    [JsonPropertyName("employee_code")]
+    public string EmployeeCode { get; init; } = string.Empty;
+    
+    [JsonPropertyName("attendance_check_id")]
+    public int AttendanceCheckId { get; init; }
+    
+    [JsonPropertyName("shift_id")]
+    public int ShiftId { get; init; }
+    
+    [JsonPropertyName("check_type")]
+    public string CheckType { get; init; } = string.Empty; // "check_in" or "check_out"
+    
+    [JsonPropertyName("request_time")]
+    public DateTime RequestTime { get; init; }
+    
+    [JsonPropertyName("face_embedding_base64")]
+    public string? FaceEmbeddingBase64 { get; init; }
 }
 
 /// <summary>
@@ -73,7 +85,7 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
         _logger.LogInformation(
             "📨 [RPC] Received SYNC face verification request: AttendanceCheckId={AttendanceCheckId}, " +
             "EmployeeId={EmployeeId}, EmployeeCode={EmployeeCode}, CheckType={CheckType}",
-            request.attendance_check_id, request.employee_id, request.employee_code, request.check_type);
+            request.AttendanceCheckId, request.EmployeeId, request.EmployeeCode, request.CheckType);
 
         FaceVerificationRpcResponse response;
         
@@ -81,12 +93,12 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
         {
             var command = new VerifyFaceForAttendanceCommand
             {
-                AttendanceCheckId = request.attendance_check_id,
-                EmployeeId = request.employee_id,
-                EmployeeCode = request.employee_code,
-                CheckType = request.check_type,
-                RequestTime = request.request_time,
-                FaceEmbeddingBase64 = request.face_embedding_base64
+                AttendanceCheckId = request.AttendanceCheckId,
+                EmployeeId = request.EmployeeId,
+                EmployeeCode = request.EmployeeCode,
+                CheckType = request.CheckType,
+                RequestTime = request.RequestTime,
+                FaceEmbeddingBase64 = request.FaceEmbeddingBase64
             };
 
             var result = await _mediator.Send(command);
@@ -94,8 +106,8 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
             response = new FaceVerificationRpcResponse
             {
                 success = result.Success,
-                attendance_check_id = request.attendance_check_id,
-                employee_id = request.employee_id,
+                attendance_check_id = request.AttendanceCheckId,
+                employee_id = request.EmployeeId,
                 face_verified = result.FaceVerified,
                 face_confidence = result.FaceConfidence,
                 verification_time = DateTime.UtcNow,
@@ -106,19 +118,19 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
             _logger.LogInformation(
                 "✅ [RPC] Face verification completed: AttendanceCheckId={AttendanceCheckId}, " +
                 "FaceVerified={FaceVerified}, Confidence={Confidence:P1}",
-                request.attendance_check_id, result.FaceVerified, result.FaceConfidence);
+                request.AttendanceCheckId, result.FaceVerified, result.FaceConfidence);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex,
                 "❌ [RPC] Failed to process face verification: EmployeeId={EmployeeId}, AttendanceCheckId={AttendanceCheckId}",
-                request.employee_id, request.attendance_check_id);
+                request.EmployeeId, request.AttendanceCheckId);
             
             response = new FaceVerificationRpcResponse
             {
                 success = false,
-                attendance_check_id = request.attendance_check_id,
-                employee_id = request.employee_id,
+                attendance_check_id = request.AttendanceCheckId,
+                employee_id = request.EmployeeId,
                 face_verified = false,
                 face_confidence = 0,
                 verification_time = DateTime.UtcNow,
@@ -132,6 +144,6 @@ public class FaceVerificationRpcConsumer : IConsumer<FaceVerificationRpcRequest>
         
         _logger.LogInformation(
             "📤 [RPC] Response sent to Attendance Service for AttendanceCheckId={AttendanceCheckId}",
-            request.attendance_check_id);
+            request.AttendanceCheckId);
     }
 }
