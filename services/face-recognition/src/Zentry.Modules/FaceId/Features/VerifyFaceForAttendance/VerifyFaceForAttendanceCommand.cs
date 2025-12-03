@@ -7,8 +7,8 @@ namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
 /// </summary>
 public record VerifyFaceForAttendanceCommand : IRequest<VerifyFaceForAttendanceResult>
 {
-    public int AttendanceCheckId { get; init; }
-    public int EmployeeId { get; init; }
+    public string AttendanceCheckId { get; init; } = string.Empty;
+    public string EmployeeId { get; init; } = string.Empty;
     public string EmployeeCode { get; init; } = string.Empty;
     public string CheckType { get; init; } = string.Empty;
     public DateTime RequestTime { get; init; }

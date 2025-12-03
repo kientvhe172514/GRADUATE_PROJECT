@@ -62,8 +62,8 @@ public class FaceVerificationRequestConsumer : IConsumer<FaceVerificationRequest
         {
             var command = new VerifyFaceForAttendanceCommand
             {
-                AttendanceCheckId = evt.AttendanceCheckId,
-                EmployeeId = evt.EmployeeId,
+                AttendanceCheckId = evt.AttendanceCheckId.ToString(),
+                EmployeeId = evt.EmployeeId.ToString(),
                 EmployeeCode = evt.EmployeeCode,
                 CheckType = evt.CheckType,
                 RequestTime = evt.RequestTime,

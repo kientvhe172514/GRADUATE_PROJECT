@@ -20,8 +20,8 @@ public record NestJsRpcEnvelope(
 /// RPC Request for face verification (from NestJS attendance service)
 /// </summary>
 public record FaceVerificationRpcRequest(
-    [property: JsonPropertyName("attendance_check_id")] int AttendanceCheckId,
-    [property: JsonPropertyName("employee_id")] int EmployeeId,
+    [property: JsonPropertyName("attendance_check_id"), JsonConverter(typeof(FlexibleStringConverter))] string AttendanceCheckId,
+    [property: JsonPropertyName("employee_id"), JsonConverter(typeof(FlexibleStringConverter))] string EmployeeId,
     [property: JsonPropertyName("employee_code")] string EmployeeCode,
     [property: JsonPropertyName("check_type")] string CheckType,
     [property: JsonPropertyName("request_time")] DateTime RequestTime,
@@ -192,5 +192,27 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             _logger.LogError("❌ [RPC] ReplyTo or CorrelationId missing");
             throw new InvalidOperationException("ReplyTo or CorrelationId not found");
         }
+    }
+}
+
+/// <summary>
+/// Custom JSON converter that can handle both Number and String tokens
+/// </summary>
+public class FlexibleStringConverter : System.Text.Json.Serialization.JsonConverter<string>
+{
+    public override string? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+            return reader.GetString();
+        
+        if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+            return reader.GetInt32().ToString();
+        
+        throw new System.Text.Json.JsonException($"Cannot convert {reader.TokenType} to string");
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, string value, System.Text.Json.JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value);
     }
 }

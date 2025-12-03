@@ -30,7 +30,8 @@ public class VerifyFaceForAttendanceCommandHandler
         try
         {
             // Check if employee has registered face ID
-            var exists = await _faceIdRepository.ExistsByUserIdAsync(command.EmployeeId, cancellationToken);
+            var employeeId = int.Parse(command.EmployeeId);
+            var exists = await _faceIdRepository.ExistsByUserIdAsync(employeeId, cancellationToken);
             
             if (!exists)
             {
@@ -120,8 +121,9 @@ public class VerifyFaceForAttendanceCommandHandler
                 "🔍 Verifying face embedding for employee {EmployeeCode} (AttendanceCheckId={AttendanceCheckId})",
                 command.EmployeeCode, command.AttendanceCheckId);
             
+            var employeeIdInt = int.Parse(command.EmployeeId);
             var (isMatch, similarity) = await _faceIdRepository.VerifyAsync(
-                command.EmployeeId,
+                employeeIdInt,
                 embeddingFloats,
                 (float)MIN_CONFIDENCE_THRESHOLD,
                 cancellationToken);
@@ -164,8 +166,8 @@ public class VerifyFaceForAttendanceCommandHandler
     {
         var evt = new FaceVerificationCompletedEvent
         {
-            AttendanceCheckId = command.AttendanceCheckId,
-            EmployeeId = command.EmployeeId,
+            AttendanceCheckId = int.Parse(command.AttendanceCheckId),
+            EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = verified,
             FaceConfidence = confidence,
             VerificationTime = DateTime.UtcNow,
@@ -187,8 +189,8 @@ public class VerifyFaceForAttendanceCommandHandler
     {
         var evt = new FaceVerificationCompletedEvent
         {
-            AttendanceCheckId = command.AttendanceCheckId,
-            EmployeeId = command.EmployeeId,
+            AttendanceCheckId = int.Parse(command.AttendanceCheckId),
+            EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = false,
             FaceConfidence = confidence,
             VerificationTime = DateTime.UtcNow,
