@@ -230,13 +230,31 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
                 // 1. Get Host Address from IBus to construct URI for Default Exchange
                 Uri hostAddress = _bus.Address;
                 
-                // 2. Create URI pointing to Default Exchange (empty string "")
-                // Use the replyToQueue directly as the destination
-                var replyUri = new Uri($"{hostAddress.Scheme}://{hostAddress.Host}:{hostAddress.Port}/{replyToQueue}");
+                // 2. Build a safe reply URI using UriBuilder.
+                // Some host addresses may not include a valid port (-1) or the
+                // replyToQueue can contain characters that break a naive string URI.
+                var builder = new UriBuilder
+                {
+                    Scheme = hostAddress.Scheme,
+                    Host = hostAddress.Host,
+                    Path = replyToQueue
+                };
 
-                _logger.LogInformation(
-                    "🔍 [DEBUG] Sending to Reply URI: {Uri}", 
-                    replyUri);
+                if (!hostAddress.IsDefaultPort && hostAddress.Port > 0)
+                {
+                    try
+                    {
+                        builder.Port = hostAddress.Port;
+                    }
+                    catch
+                    {
+                        _logger.LogWarning("⚠️ [RPC] Host address port invalid; omitting port when building reply URI");
+                    }
+                }
+
+                var replyUri = builder.Uri;
+
+                _logger.LogInformation("🔍 [DEBUG] Sending to Reply URI: {Uri}", replyUri);
 
                 // 3. Get SendEndpoint for Reply Queue
                 var sendEndpoint = await _bus.GetSendEndpoint(replyUri);
