@@ -222,73 +222,39 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
             "AttendanceCheckId={AttendanceCheckId}, Success={Success}",
             response.FaceVerified, response.FaceConfidence, response.AttendanceCheckId, response.Success);
 
-        // ✅ SOLUTION: Use IBus to send response via Default Exchange with manual RoutingKey
-        if (!string.IsNullOrEmpty(replyToQueue) && !string.IsNullOrEmpty(correlationId))
+        // ✅ FINAL SOLUTION: Use context.RespondAsync() for Direct Reply-To
+        // MassTransit's RespondAsync() automatically handles:
+        // 1. Direct Reply-To queue names with special characters (=, /)
+        // 2. Setting CorrelationId from the incoming message
+        // 3. Routing to the correct temporary reply queue
+        if (!string.IsNullOrEmpty(correlationId))
         {
             try
             {
-                // 1. Get Host Address from IBus to construct URI for Default Exchange
-                Uri hostAddress = _bus.Address;
-                
-                // 2. Build a safe reply URI using UriBuilder.
-                // Some host addresses may not include a valid port (-1) or the
-                // replyToQueue can contain characters that break a naive string URI.
-                var builder = new UriBuilder
-                {
-                    Scheme = hostAddress.Scheme,
-                    Host = hostAddress.Host,
-                    Path = replyToQueue
-                };
+                _logger.LogInformation(
+                    "� [RPC] Sending response via RespondAsync with CorrelationId={CorrelationId}",
+                    correlationId);
 
-                if (!hostAddress.IsDefaultPort && hostAddress.Port > 0)
-                {
-                    try
-                    {
-                        builder.Port = hostAddress.Port;
-                    }
-                    catch
-                    {
-                        _logger.LogWarning("⚠️ [RPC] Host address port invalid; omitting port when building reply URI");
-                    }
-                }
-
-                var replyUri = builder.Uri;
-
-                _logger.LogInformation("🔍 [DEBUG] Sending to Reply URI: {Uri}", replyUri);
-
-                // 3. Get SendEndpoint for Reply Queue
-                var sendEndpoint = await _bus.GetSendEndpoint(replyUri);
-                
-                // 4. Send Response with CorrelationId
-                await sendEndpoint.Send(response, ctx =>
-                {
-                    // Set Correlation ID (convert string to Guid if possible)
-                    ctx.CorrelationId = Guid.TryParse(correlationId, out var guid) 
-                        ? guid 
-                        : Guid.NewGuid();
-                    
-                    _logger.LogInformation(
-                        "📤 [RPC] Sending response with CorrelationId={CorrelationId}",
-                        ctx.CorrelationId);
-                });
+                // Use RespondAsync - MassTransit handles everything internally
+                await context.RespondAsync(response);
                 
                 _logger.LogInformation(
-                    "✅ [RPC] Response sent successfully via IBus to {ReplyQueue} for AttendanceCheckId={AttendanceCheckId}",
-                    replyToQueue, request.AttendanceCheckId);
+                    "✅ [RPC] Response sent successfully for AttendanceCheckId={AttendanceCheckId}",
+                    request.AttendanceCheckId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, 
-                    "❌ [RPC] Failed to send response via IBus: ReplyTo={ReplyTo}", replyToQueue);
+                    "❌ [RPC] Failed to send response via RespondAsync: CorrelationId={CorrelationId}", 
+                    correlationId);
                 throw;
             }
         }
         else
         {
             _logger.LogError(
-                "❌ [RPC] Cannot send response: ReplyTo={ReplyTo}, CorrelationId={CorrelationId}",
-                replyToQueue ?? "NULL", correlationId ?? "NULL");
-            throw new InvalidOperationException("ReplyTo address not found in RabbitMQ message properties");
+                "❌ [RPC] Cannot send response: CorrelationId is null or empty");
+            throw new InvalidOperationException("CorrelationId not found in message");
         }
     }
 }
