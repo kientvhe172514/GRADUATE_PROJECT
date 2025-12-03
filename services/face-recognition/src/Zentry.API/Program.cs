@@ -213,29 +213,66 @@ builder.Services.AddSingleton<IConnectionFactory>(sp =>
     {
         try
         {
-            // Parse URI: amqp://user:pass@host:port/vhost
-            var uri = new Uri(rabbitMqConnectionString);
+            // ✅ FIX: Xử lý password có ký tự đặc biệt (@ trong password)
+            // Format: amqp://user:pass@host:port/vhost
+            // Nếu password có @, URI parser sẽ confused
+            
+            string host = "localhost";
+            int port = 5672;
+            string username = "guest";
+            string password = "guest";
+            string vhost = "/";
+            
+            // Parse thủ công để handle @ trong password
+            if (rabbitMqConnectionString.StartsWith("amqp://"))
+            {
+                var withoutScheme = rabbitMqConnectionString.Substring("amqp://".Length);
+                
+                // Tìm vị trí của @ cuối cùng (trước host)
+                var lastAtIndex = withoutScheme.LastIndexOf('@');
+                
+                if (lastAtIndex > 0)
+                {
+                    // Extract user:pass
+                    var userInfo = withoutScheme.Substring(0, lastAtIndex);
+                    var hostInfo = withoutScheme.Substring(lastAtIndex + 1);
+                    
+                    // Parse user:pass
+                    var colonIndex = userInfo.IndexOf(':');
+                    if (colonIndex > 0)
+                    {
+                        username = userInfo.Substring(0, colonIndex);
+                        password = userInfo.Substring(colonIndex + 1);
+                    }
+                    
+                    // Parse host:port/vhost
+                    var slashIndex = hostInfo.IndexOf('/');
+                    var hostPort = slashIndex > 0 ? hostInfo.Substring(0, slashIndex) : hostInfo;
+                    vhost = slashIndex > 0 ? hostInfo.Substring(slashIndex + 1) : "/";
+                    
+                    var portIndex = hostPort.IndexOf(':');
+                    if (portIndex > 0)
+                    {
+                        host = hostPort.Substring(0, portIndex);
+                        int.TryParse(hostPort.Substring(portIndex + 1), out port);
+                    }
+                    else
+                    {
+                        host = hostPort;
+                    }
+                }
+            }
             
             var factory = new ConnectionFactory
             {
-                HostName = uri.Host,
-                Port = uri.Port > 0 ? uri.Port : 5672,
-                VirtualHost = string.IsNullOrEmpty(uri.AbsolutePath) || uri.AbsolutePath == "/" 
-                    ? "/" : uri.AbsolutePath.TrimStart('/'),
+                HostName = host,
+                Port = port,
+                UserName = username,
+                Password = password,
+                VirtualHost = string.IsNullOrEmpty(vhost) ? "/" : vhost,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
-            
-            // Parse user:pass from UserInfo
-            if (!string.IsNullOrEmpty(uri.UserInfo))
-            {
-                var userInfo = uri.UserInfo.Split(':');
-                factory.UserName = userInfo[0];
-                if (userInfo.Length > 1)
-                {
-                    factory.Password = Uri.UnescapeDataString(userInfo[1]); // Decode URL-encoded password
-                }
-            }
             
             Console.WriteLine($"✅ Raw RabbitMQ Client: {factory.HostName}:{factory.Port} (user: {factory.UserName})");
             return factory;
