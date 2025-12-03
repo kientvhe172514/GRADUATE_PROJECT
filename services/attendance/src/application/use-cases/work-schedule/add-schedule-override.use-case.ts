@@ -1,13 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { AddScheduleOverrideDto, ScheduleOverrideType } from '../../dtos/schedule-override.dto';
+import {
+  EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
+  WORK_SCHEDULE_REPOSITORY,
+} from '../../tokens';
 
 @Injectable()
 export class AddScheduleOverrideUseCase {
   constructor(
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
+    @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepo: IWorkScheduleRepository,
   ) {}
 

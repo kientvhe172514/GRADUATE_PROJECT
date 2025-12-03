@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { ScheduleOverrideDto } from '../../dtos/schedule-override.dto';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 
 @Injectable()
 export class ListScheduleOverridesUseCase {
-  constructor(private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository) {}
+  constructor(
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+    private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
+  ) {}
 
   /**
    * List all overrides for a given assignment id

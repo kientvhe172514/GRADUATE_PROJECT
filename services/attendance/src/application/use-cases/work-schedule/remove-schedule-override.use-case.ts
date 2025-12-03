@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 
 @Injectable()
 export class RemoveScheduleOverrideUseCase {
-  constructor(private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository) {}
+  constructor(
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+    private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
+  ) {}
 
   async execute(assignmentId: number, overrideId: string): Promise<void> {
     const assignment = await this.employeeWorkScheduleRepo.findById(assignmentId);

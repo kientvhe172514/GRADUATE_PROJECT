@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 /**
  * Query parameters for calendar view - now shows work schedule assignments instead of shifts
@@ -25,7 +25,12 @@ export class EmployeeShiftCalendarQueryDto {
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  @Type(() => Number)
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.map((v: any) => parseInt(String(v), 10));
+    }
+    return [parseInt(String(value), 10)];
+  })
   employee_ids?: number[];
 
   @ApiPropertyOptional({

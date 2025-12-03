@@ -1,10 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { ShiftGeneratorService } from '../../services/shift-generator.service';
 import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
 import { EmployeeServiceClient } from '../../../infrastructure/external-services/employee-service.client';
-import { ScheduleOverrideType, ScheduleOverrideStatus } from '../../dtos/schedule-override.dto';
+import {
+  ScheduleOverrideType,
+  ScheduleOverrideStatus,
+} from '../../dtos/schedule-override.dto';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 
 /**
  * Cron job that runs at 00:00 and 12:00 daily to process pending schedule_overrides
@@ -15,6 +19,7 @@ export class ProcessScheduleOverridesUseCase {
   private readonly logger = new Logger(ProcessScheduleOverridesUseCase.name);
 
   constructor(
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
     private readonly shiftGeneratorService: ShiftGeneratorService,
     private readonly employeeShiftRepository: EmployeeShiftRepository,

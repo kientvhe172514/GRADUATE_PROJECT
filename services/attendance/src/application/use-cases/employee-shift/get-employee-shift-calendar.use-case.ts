@@ -35,34 +35,38 @@ export class GetEmployeeShiftCalendarUseCase {
       let employeeMap = new Map<number, EmployeeInfo>();
       let targetEmployeeIds: number[] | undefined;
 
-      if (query.employee_name) {
-        if (query.employee_ids && query.employee_ids.length > 0) {
-          employeeMap =
-            await this.employeeServiceClient.getEmployeesByIds(
-              query.employee_ids,
-            );
-        } else {
-          return ApiResponseDto.success(
-            { data: [], total: 0 },
-            'Please provide employee_ids when searching by name',
-          );
-        }
-
-        const searchLower = query.employee_name.toLowerCase();
-        const matchingEmployees = Array.from(employeeMap.values()).filter(
-          (emp) => emp.full_name.toLowerCase().includes(searchLower),
+      // Step 1: Determine target employee IDs
+      if (query.employee_ids && query.employee_ids.length > 0) {
+        // Fetch employee info first
+        employeeMap = await this.employeeServiceClient.getEmployeesByIds(
+          query.employee_ids,
         );
 
-        targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
-
-        if (targetEmployeeIds.length === 0) {
-          return ApiResponseDto.success(
-            { data: [], total: 0 },
-            'No employees found matching search criteria',
+        // If employee_name search is provided, filter by name
+        if (query.employee_name) {
+          const searchLower = query.employee_name.toLowerCase();
+          const matchingEmployees = Array.from(employeeMap.values()).filter(
+            (emp) => emp.full_name.toLowerCase().includes(searchLower),
           );
+
+          targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
+
+          if (targetEmployeeIds.length === 0) {
+            return ApiResponseDto.success(
+              { data: [], total: 0 },
+              'No employees found matching search criteria',
+            );
+          }
+        } else {
+          // Use all provided employee IDs
+          targetEmployeeIds = query.employee_ids;
         }
-      } else if (query.employee_ids && query.employee_ids.length > 0) {
-        targetEmployeeIds = query.employee_ids;
+      } else if (query.employee_name) {
+        // If only employee_name provided without IDs, we can't search
+        return ApiResponseDto.success(
+          { data: [], total: 0 },
+          'Please provide employee_ids when searching by name',
+        );
       }
 
       type AssignmentWithSchedule = {
