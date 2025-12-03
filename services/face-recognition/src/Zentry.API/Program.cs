@@ -205,17 +205,56 @@ else
 builder.Services.AddSingleton<IConnectionFactory>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var rabbitMqHost = configuration["RabbitMQ:Host"] ?? "localhost";
-    var rabbitMqPort = int.Parse(configuration["RabbitMQ:Port"] ?? "5672");
-    var rabbitMqUser = configuration["RabbitMQ:User"] ?? "guest";
-    var rabbitMqPassword = configuration["RabbitMQ:Password"] ?? "guest";
     
+    // ✅ Dùng chung ConnectionString với MassTransit luôn cho đỡ rối
+    var rabbitMqConnectionString = configuration["RabbitMQ:ConnectionString"];
+    
+    if (!string.IsNullOrEmpty(rabbitMqConnectionString))
+    {
+        try
+        {
+            // Parse URI: amqp://user:pass@host:port/vhost
+            var uri = new Uri(rabbitMqConnectionString);
+            
+            var factory = new ConnectionFactory
+            {
+                HostName = uri.Host,
+                Port = uri.Port > 0 ? uri.Port : 5672,
+                VirtualHost = string.IsNullOrEmpty(uri.AbsolutePath) || uri.AbsolutePath == "/" 
+                    ? "/" : uri.AbsolutePath.TrimStart('/'),
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+            };
+            
+            // Parse user:pass from UserInfo
+            if (!string.IsNullOrEmpty(uri.UserInfo))
+            {
+                var userInfo = uri.UserInfo.Split(':');
+                factory.UserName = userInfo[0];
+                if (userInfo.Length > 1)
+                {
+                    factory.Password = Uri.UnescapeDataString(userInfo[1]); // Decode URL-encoded password
+                }
+            }
+            
+            Console.WriteLine($"✅ Raw RabbitMQ Client: {factory.HostName}:{factory.Port} (user: {factory.UserName})");
+            return factory;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to parse RabbitMQ:ConnectionString: {ex.Message}");
+            throw;
+        }
+    }
+    
+    // Fallback: ko có ConnectionString thì dùng localhost
+    Console.WriteLine("⚠️ RabbitMQ:ConnectionString not found, using localhost defaults");
     return new ConnectionFactory
     {
-        HostName = rabbitMqHost,
-        Port = rabbitMqPort,
-        UserName = rabbitMqUser,
-        Password = rabbitMqPassword,
+        HostName = "localhost",
+        Port = 5672,
+        UserName = "guest",
+        Password = "guest",
         AutomaticRecoveryEnabled = true,
         NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
     };
