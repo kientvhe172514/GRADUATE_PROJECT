@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly;
+using RabbitMQ.Client;
 using Zentry.Infrastructure;
 using Zentry.Infrastructure.Messaging.HealthCheck;
 using Zentry.Infrastructure.Messaging.Heartbeat;
@@ -199,6 +200,27 @@ else
 {
     Console.WriteLine("⚠️  RabbitMQ:ConnectionString not found, skipping RabbitMQ health checks");
 }
+
+// ===== RAW RABBITMQ CLIENT (for Direct Reply-To) =====
+builder.Services.AddSingleton<IConnectionFactory>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var rabbitMqHost = configuration["RabbitMQ:Host"] ?? "localhost";
+    var rabbitMqPort = int.Parse(configuration["RabbitMQ:Port"] ?? "5672");
+    var rabbitMqUser = configuration["RabbitMQ:User"] ?? "guest";
+    var rabbitMqPassword = configuration["RabbitMQ:Password"] ?? "guest";
+    
+    return new ConnectionFactory
+    {
+        HostName = rabbitMqHost,
+        Port = rabbitMqPort,
+        UserName = rabbitMqUser,
+        Password = rabbitMqPassword,
+        AutomaticRecoveryEnabled = true,
+        NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+    };
+});
+Console.WriteLine("✅ Raw RabbitMQ IConnectionFactory registered for Direct Reply-To");
 
 // ===== CẤU HÌNH MASSTRANSIT =====
 builder.Services.AddMassTransit(x =>
