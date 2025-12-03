@@ -34,6 +34,13 @@ import {
   UpdateAssignmentDatesDto,
   EmployeeWorkScheduleDto,
 } from '../../application/dtos/work-schedule.dto';
+import {
+  AddScheduleOverrideDto,
+  ScheduleOverrideDto,
+} from '../../application/dtos/schedule-override.dto';
+import { AddScheduleOverrideUseCase } from '../../application/use-cases/work-schedule/add-schedule-override.use-case';
+import { ListScheduleOverridesUseCase } from '../../application/use-cases/work-schedule/list-schedule-overrides.use-case';
+import { RemoveScheduleOverrideUseCase } from '../../application/use-cases/work-schedule/remove-schedule-override.use-case';
 import { CreateWorkScheduleUseCase } from '../../application/use-cases/work-schedule/create-work-schedule.use-case';
 import { UpdateWorkScheduleUseCase } from '../../application/use-cases/work-schedule/update-work-schedule.use-case';
 import { ListWorkSchedulesUseCase } from '../../application/use-cases/work-schedule/list-work-schedules.use-case';
@@ -62,6 +69,9 @@ export class WorkScheduleController {
     private readonly removeScheduleAssignmentUseCase: RemoveScheduleAssignmentUseCase,
     private readonly updateScheduleAssignmentUseCase: UpdateScheduleAssignmentUseCase,
     private readonly deleteEmployeeShiftUseCase: DeleteEmployeeShiftUseCase,
+    private readonly addScheduleOverrideUseCase: AddScheduleOverrideUseCase,
+    private readonly listScheduleOverridesUseCase: ListScheduleOverridesUseCase,
+    private readonly removeScheduleOverrideUseCase: RemoveScheduleOverrideUseCase,
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
   ) {}
@@ -266,5 +276,38 @@ export class WorkScheduleController {
     @Param('shiftId', ParseIntPipe) shiftId: number,
   ): Promise<ApiResponseDto<void>> {
     return this.deleteEmployeeShiftUseCase.execute(shiftId);
+  }
+
+  @Post('assignments/:assignmentId/overrides')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a schedule override for an assignment' })
+  async addOverride(
+    @Param('assignmentId', ParseIntPipe) assignmentId: number,
+    @Body() dto: AddScheduleOverrideDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ApiResponseDto<void>> {
+    await this.addScheduleOverrideUseCase.execute(assignmentId, dto, user.sub);
+    return ApiResponseDto.success(undefined, 'Override added');
+  }
+
+  @Get('assignments/:assignmentId/overrides')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List schedule overrides for an assignment' })
+  async listOverrides(
+    @Param('assignmentId', ParseIntPipe) assignmentId: number,
+  ): Promise<ApiResponseDto<ScheduleOverrideDto[]>> {
+    const data = await this.listScheduleOverridesUseCase.execute(assignmentId);
+    return ApiResponseDto.success(data, 'Overrides retrieved');
+  }
+
+  @Delete('assignments/:assignmentId/overrides/:overrideId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a schedule override from an assignment' })
+  async removeOverride(
+    @Param('assignmentId', ParseIntPipe) assignmentId: number,
+    @Param('overrideId') overrideId: string,
+  ): Promise<ApiResponseDto<void>> {
+    await this.removeScheduleOverrideUseCase.execute(assignmentId, overrideId);
+    return ApiResponseDto.success(undefined, 'Override removed');
   }
 }

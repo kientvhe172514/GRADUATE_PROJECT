@@ -1,5 +1,35 @@
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 
+export enum ScheduleOverrideType {
+  SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
+  OVERTIME = 'OVERTIME',
+}
+
+export enum ScheduleOverrideStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface ScheduleOverride {
+  id: string;
+  type: ScheduleOverrideType;
+  from_date: string;
+  to_date?: string;
+  override_work_schedule_id?: number;
+  overtime_start_time?: string;
+  overtime_end_time?: string;
+  reason: string;
+  created_by: number;
+  created_at: string;
+  status: ScheduleOverrideStatus;
+  shift_created: boolean;
+  processed_at?: string;
+  error_message?: string;
+}
+
 export interface EmployeeWorkScheduleProps {
   id?: number;
   employee_id: number;
@@ -8,6 +38,7 @@ export interface EmployeeWorkScheduleProps {
   effective_to?: Date;
   created_at?: Date;
   created_by?: number;
+  schedule_overrides?: ScheduleOverride[];
 }
 
 export class EmployeeWorkSchedule {
@@ -55,6 +86,10 @@ export class EmployeeWorkSchedule {
     return this.props.effective_to;
   }
 
+  get schedule_overrides(): ScheduleOverride[] {
+    return this.props.schedule_overrides ?? [];
+  }
+
   // --- Business Logic ---
 
   public is_active_on(date: Date): boolean {
@@ -85,6 +120,128 @@ export class EmployeeWorkSchedule {
       );
     }
     this.props.effective_to = effective_to;
+  }
+
+  /**
+   * Add a schedule override (either schedule change or overtime)
+   */
+  public add_schedule_override(
+    override: Omit<
+      ScheduleOverride,
+      'id' | 'created_at' | 'status' | 'shift_created'
+    >,
+  ): void {
+    if (!this.props.schedule_overrides) {
+      this.props.schedule_overrides = [];
+    }
+
+    const newOverride: ScheduleOverride = {
+      ...override,
+      id: this.generate_uuid(),
+      created_at: new Date().toISOString(),
+      status: ScheduleOverrideStatus.PENDING,
+      shift_created: false,
+    };
+
+    this.props.schedule_overrides.push(newOverride);
+  }
+
+  /**
+   * Update override status
+   */
+  public update_override_status(
+    override_id: string,
+    status: ScheduleOverrideStatus,
+    error_message?: string,
+  ): void {
+    const override = this.props.schedule_overrides?.find(
+      (o) => o.id === override_id,
+    );
+    if (!override) {
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        `Override with id ${override_id} not found`,
+        404,
+      );
+    }
+
+    override.status = status;
+    if (
+      status === ScheduleOverrideStatus.COMPLETED ||
+      status === ScheduleOverrideStatus.FAILED
+    ) {
+      override.processed_at = new Date().toISOString();
+    }
+    if (error_message) {
+      override.error_message = error_message;
+    }
+  }
+
+  /**
+   * Mark override as shift created
+   */
+  public mark_override_shift_created(override_id: string): void {
+    const override = this.props.schedule_overrides?.find(
+      (o) => o.id === override_id,
+    );
+    if (!override) {
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        `Override with id ${override_id} not found`,
+        404,
+      );
+    }
+
+    override.shift_created = true;
+  }
+
+  /**
+   * Remove a schedule override
+   */
+  public remove_schedule_override(override_id: string): void {
+    if (!this.props.schedule_overrides) {
+      return;
+    }
+
+    const index = this.props.schedule_overrides.findIndex(
+      (o) => o.id === override_id,
+    );
+    if (index === -1) {
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        `Override with id ${override_id} not found`,
+        404,
+      );
+    }
+
+    this.props.schedule_overrides.splice(index, 1);
+  }
+
+  /**
+   * Get pending overrides for a specific date
+   */
+  public get_pending_overrides_for_date(date: string): ScheduleOverride[] {
+    if (!this.props.schedule_overrides) {
+      return [];
+    }
+
+    return this.props.schedule_overrides.filter(
+      (override) =>
+        override.status === ScheduleOverrideStatus.PENDING &&
+        override.from_date <= date &&
+        (!override.to_date || override.to_date >= date),
+    );
+  }
+
+  /**
+   * Simple UUID generator
+   */
+  private generate_uuid(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
   }
 
   public toJSON() {

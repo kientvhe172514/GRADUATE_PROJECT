@@ -60,6 +60,15 @@ export class EmployeeWorkScheduleSchema {
   })
   effective_to: Date | null;
 
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+    default: '[]',
+    comment:
+      'Array of schedule overrides (temporary changes and overtime requests)',
+  })
+  schedule_overrides: any[] | null;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 

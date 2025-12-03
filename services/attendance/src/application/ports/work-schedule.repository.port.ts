@@ -32,4 +32,12 @@ export interface IEmployeeWorkScheduleRepository {
     id: number,
     assignment: Partial<EmployeeWorkSchedule>,
   ): Promise<EmployeeWorkSchedule>;
+
+  // Schedule override methods
+  findPendingOverridesForDate(
+    date: string,
+  ): Promise<EmployeeWorkSchedule[]>;
+  findAssignmentsByEmployeeIds(
+    employeeIds: number[],
+  ): Promise<EmployeeWorkSchedule[]>;
 }

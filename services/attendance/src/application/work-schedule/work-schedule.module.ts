@@ -13,6 +13,10 @@ import { AssignScheduleToEmployeesUseCase } from '../use-cases/work-schedule/ass
 import { RemoveScheduleAssignmentUseCase } from '../use-cases/work-schedule/remove-schedule-assignment.use-case';
 import { UpdateScheduleAssignmentUseCase } from '../use-cases/work-schedule/update-schedule-assignment.use-case';
 import { DeleteEmployeeShiftUseCase } from '../use-cases/work-schedule/delete-employee-shift.use-case';
+import { AddScheduleOverrideUseCase } from '../use-cases/work-schedule/add-schedule-override.use-case';
+import { ListScheduleOverridesUseCase } from '../use-cases/work-schedule/list-schedule-overrides.use-case';
+import { RemoveScheduleOverrideUseCase } from '../use-cases/work-schedule/remove-schedule-override.use-case';
+import { ProcessScheduleOverridesUseCase } from '../use-cases/work-schedule/process-schedule-overrides.use-case';
 import {
   TypeOrmWorkScheduleRepository,
   TypeOrmEmployeeWorkScheduleRepository,
@@ -64,6 +68,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     RemoveScheduleAssignmentUseCase,
     UpdateScheduleAssignmentUseCase,
     DeleteEmployeeShiftUseCase,
+  AddScheduleOverrideUseCase,
+  ListScheduleOverridesUseCase,
+  RemoveScheduleOverrideUseCase,
+  ProcessScheduleOverridesUseCase,
 
     // Services
     ShiftGeneratorService,

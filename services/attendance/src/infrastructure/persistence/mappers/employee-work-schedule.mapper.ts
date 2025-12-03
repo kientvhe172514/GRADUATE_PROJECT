@@ -30,6 +30,12 @@ export class EmployeeWorkScheduleMapper {
           ? new Date(schema.created_at)
           : schema.created_at,
       created_by: schema.created_by ?? undefined,
+      // Map schedule_overrides JSONB column
+      schedule_overrides: schema.schedule_overrides
+        ? Array.isArray(schema.schedule_overrides)
+          ? schema.schedule_overrides
+          : []
+        : [],
     }) as EmployeeWorkScheduleWithRelation;
 
     // Attach work_schedule relation if present
@@ -51,6 +57,7 @@ export class EmployeeWorkScheduleMapper {
       effective_from: props.effective_from,
       effective_to: props.effective_to,
       created_by: props.created_by,
+      schedule_overrides: props.schedule_overrides ?? [],
     };
   }
 }

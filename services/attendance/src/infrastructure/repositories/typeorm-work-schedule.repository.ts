@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, In } from 'typeorm';
 import { WorkScheduleSchema } from '../persistence/typeorm/work-schedule.schema';
 import { EmployeeWorkScheduleSchema } from '../persistence/typeorm/employee-work-schedule.schema';
 import {
@@ -146,5 +146,48 @@ export class TypeOrmEmployeeWorkScheduleRepository
       throw new Error('Assignment not found after update');
     }
     return EmployeeWorkScheduleMapper.toDomain(updated);
+  }
+
+  /**
+   * Find all assignments that have pending schedule overrides for a specific date
+   * Used by cronjob to process overrides and create shifts
+   */
+  async findPendingOverridesForDate(
+    date: string,
+  ): Promise<EmployeeWorkSchedule[]> {
+    const schemas = await this.repository
+      .createQueryBuilder('ews')
+      .where(
+        `EXISTS (
+        SELECT 1 FROM jsonb_array_elements(ews.schedule_overrides) AS override
+        WHERE override->>'status' = :status
+        AND override->>'from_date' <= :date
+        AND (override->>'to_date' IS NULL OR override->>'to_date' >= :date)
+      )`,
+        { status: 'PENDING', date },
+      )
+      .getMany();
+
+    return schemas.map((schema) => EmployeeWorkScheduleMapper.toDomain(schema));
+  }
+
+  /**
+   * Find assignments for multiple employees (bulk fetch)
+   * Used to efficiently query multiple employee schedules at once
+   */
+  async findAssignmentsByEmployeeIds(
+    employeeIds: number[],
+  ): Promise<EmployeeWorkSchedule[]> {
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    const schemas = await this.repository.find({
+      where: { employee_id: In(employeeIds) },
+      relations: ['work_schedule'],
+      order: { employee_id: 'ASC', effective_from: 'DESC' },
+    });
+
+    return schemas.map((schema) => EmployeeWorkScheduleMapper.toDomain(schema));
   }
 }
