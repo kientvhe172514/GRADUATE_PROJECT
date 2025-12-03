@@ -206,6 +206,18 @@ export class WorkScheduleDto {
   }
 }
 
+interface WorkScheduleInfo {
+  id: number;
+  schedule_name: string;
+  schedule_type: string;
+  start_time?: string;
+  end_time?: string;
+  break_duration_minutes: number;
+  late_tolerance_minutes: number;
+  early_leave_tolerance_minutes: number;
+  status: string;
+}
+
 export class EmployeeWorkScheduleDto {
   @ApiProperty()
   id: number;
@@ -222,12 +234,33 @@ export class EmployeeWorkScheduleDto {
   @ApiPropertyOptional()
   effective_to?: Date;
 
-  constructor(entity: EmployeeWorkSchedule) {
+  @ApiPropertyOptional({ description: 'Work schedule details if included' })
+  work_schedule?: WorkScheduleInfo;
+
+  constructor(
+    entity: EmployeeWorkSchedule & { work_schedule?: WorkScheduleInfo },
+  ) {
     const props = entity.toJSON();
     this.id = props.id;
     this.employee_id = props.employee_id;
     this.work_schedule_id = props.work_schedule_id;
     this.effective_from = props.effective_from;
     this.effective_to = props.effective_to;
+
+    // Include work_schedule info if available
+    if (entity.work_schedule) {
+      this.work_schedule = {
+        id: entity.work_schedule.id,
+        schedule_name: entity.work_schedule.schedule_name,
+        schedule_type: entity.work_schedule.schedule_type,
+        start_time: entity.work_schedule.start_time,
+        end_time: entity.work_schedule.end_time,
+        break_duration_minutes: entity.work_schedule.break_duration_minutes,
+        late_tolerance_minutes: entity.work_schedule.late_tolerance_minutes,
+        early_leave_tolerance_minutes:
+          entity.work_schedule.early_leave_tolerance_minutes,
+        status: entity.work_schedule.status,
+      };
+    }
   }
 }

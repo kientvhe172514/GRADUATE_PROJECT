@@ -17,6 +17,7 @@ import { ApproveOvertimeRequestUseCase } from '../use-cases/overtime/approve-ove
 import { RejectOvertimeRequestUseCase } from '../use-cases/overtime/reject-overtime-request.use-case';
 import { CancelOvertimeRequestUseCase } from '../use-cases/overtime/cancel-overtime-request.use-case';
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.modul
   providers: [
     OvertimeRequestRepository,
     EmployeeShiftRepository,
+    EmployeeServiceClient,
     CreateOvertimeRequestUseCase,
     GetMyOvertimeRequestsUseCase,
     ListOvertimeRequestsUseCase,

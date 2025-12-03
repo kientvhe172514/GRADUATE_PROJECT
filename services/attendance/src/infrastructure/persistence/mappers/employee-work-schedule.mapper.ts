@@ -1,9 +1,16 @@
 import { EmployeeWorkSchedule } from '../../../domain/entities/employee-work-schedule.entity';
 import { EmployeeWorkScheduleSchema } from '../typeorm/employee-work-schedule.schema';
+import { WorkScheduleSchema } from '../typeorm/work-schedule.schema';
+
+interface EmployeeWorkScheduleWithRelation extends EmployeeWorkSchedule {
+  work_schedule?: WorkScheduleSchema;
+}
 
 export class EmployeeWorkScheduleMapper {
-  static toDomain(schema: EmployeeWorkScheduleSchema): EmployeeWorkSchedule {
-    return new EmployeeWorkSchedule({
+  static toDomain(
+    schema: EmployeeWorkScheduleSchema & { work_schedule?: WorkScheduleSchema },
+  ): EmployeeWorkScheduleWithRelation {
+    const domain = new EmployeeWorkSchedule({
       id: schema.id,
       employee_id: schema.employee_id,
       work_schedule_id: schema.work_schedule_id,
@@ -23,7 +30,14 @@ export class EmployeeWorkScheduleMapper {
           ? new Date(schema.created_at)
           : schema.created_at,
       created_by: schema.created_by ?? undefined,
-    });
+    }) as EmployeeWorkScheduleWithRelation;
+
+    // Attach work_schedule relation if present
+    if (schema.work_schedule) {
+      domain.work_schedule = schema.work_schedule;
+    }
+
+    return domain;
   }
 
   static toPersistence(

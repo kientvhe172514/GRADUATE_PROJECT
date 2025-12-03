@@ -6,6 +6,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import { WorkScheduleSchema } from './work-schedule.schema';
 
 /**
  * EmployeeWorkScheduleSchema - TypeORM Schema for employee_work_schedules table
@@ -44,6 +45,10 @@ export class EmployeeWorkScheduleSchema {
 
   @Column({ comment: 'References work_schedules.id' })
   work_schedule_id: number;
+
+  @ManyToOne(() => WorkScheduleSchema, { eager: false })
+  @JoinColumn({ name: 'work_schedule_id' })
+  work_schedule?: WorkScheduleSchema;
 
   @Column({ type: 'date', comment: 'Ngày bắt đầu áp dụng lịch làm việc' })
   effective_from: Date;

@@ -115,7 +115,11 @@ export class TypeOrmEmployeeWorkScheduleRepository
   async findAssignmentsByEmployeeId(
     employeeId: number,
   ): Promise<EmployeeWorkSchedule[]> {
-    const schemas = await this.repository.findBy({ employee_id: employeeId });
+    const schemas = await this.repository.find({
+      where: { employee_id: employeeId },
+      relations: ['work_schedule'],
+      order: { effective_from: 'DESC' },
+    });
     return schemas.map(EmployeeWorkScheduleMapper.toDomain);
   }
 
