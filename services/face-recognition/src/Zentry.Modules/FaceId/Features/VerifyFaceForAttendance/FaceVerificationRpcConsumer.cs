@@ -20,8 +20,8 @@ public record NestJsRpcEnvelope(
 /// RPC Request for face verification (from NestJS attendance service)
 /// </summary>
 public record FaceVerificationRpcRequest(
-    [property: JsonPropertyName("attendance_check_id")] string AttendanceCheckId,
-    [property: JsonPropertyName("employee_id")] string EmployeeId,
+    [property: JsonPropertyName("attendance_check_id")] int AttendanceCheckId,
+    [property: JsonPropertyName("employee_id")] int EmployeeId,
     [property: JsonPropertyName("employee_code")] string EmployeeCode,
     [property: JsonPropertyName("check_type")] string CheckType,
     [property: JsonPropertyName("request_time")] DateTime RequestTime,
@@ -93,8 +93,8 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
         {
             var command = new VerifyFaceForAttendanceCommand
             {
-                AttendanceCheckId = int.Parse(request.AttendanceCheckId),
-                EmployeeId = int.Parse(request.EmployeeId),
+                AttendanceCheckId = request.AttendanceCheckId,
+                EmployeeId = request.EmployeeId,
                 EmployeeCode = request.EmployeeCode,
                 CheckType = request.CheckType,
                 RequestTime = request.RequestTime,
