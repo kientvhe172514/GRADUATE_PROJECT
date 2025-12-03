@@ -1,18 +1,16 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+﻿import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../tokens';
+import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import {
-  EMPLOYEE_SHIFT_REPOSITORY,
-  WORK_SCHEDULE_REPOSITORY,
-} from '../../tokens';
-import { IEmployeeShiftRepository } from '../../ports/employee-shift.repository.port';
-import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { EmployeeServiceClient } from '../../../infrastructure/external-services/employee-service.client';
-import { ShiftStatus } from '../../../domain/entities/employee-shift.entity';
+  EmployeeServiceClient,
+  EmployeeInfo,
+} from '../../../infrastructure/external-services/employee-service.client';
 import {
   EmployeeShiftCalendarQueryDto,
   EmployeeShiftCalendarResponseDto,
   EmployeeCalendarDto,
-  ShiftCalendarItemDto,
+  WorkScheduleAssignmentDto,
 } from '../../dtos/employee-shift-calendar.dto';
 
 @Injectable()
@@ -20,10 +18,8 @@ export class GetEmployeeShiftCalendarUseCase {
   private readonly logger = new Logger(GetEmployeeShiftCalendarUseCase.name);
 
   constructor(
-    @Inject(EMPLOYEE_SHIFT_REPOSITORY)
-    private readonly shiftRepository: IEmployeeShiftRepository,
-    @Inject(WORK_SCHEDULE_REPOSITORY)
-    private readonly workScheduleRepository: IWorkScheduleRepository,
+    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
+    private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
     private readonly employeeServiceClient: EmployeeServiceClient,
   ) {}
 
@@ -31,244 +27,196 @@ export class GetEmployeeShiftCalendarUseCase {
     query: EmployeeShiftCalendarQueryDto,
   ): Promise<ApiResponseDto<EmployeeShiftCalendarResponseDto>> {
     try {
-      this.logger.log(
-        `📅 Fetching calendar view: ${query.from_date} to ${query.to_date}`,
-      );
+      const limit = query.limit ?? 20;
+      const offset = query.offset ?? 0;
 
-      // 1. Fetch all shifts for the date range
-      const from = new Date(query.from_date);
-      const to = new Date(query.to_date);
-      const allShifts = await this.shiftRepository.findByDateRange(from, to);
+      this.logger.log('Fetching work schedule assignments');
 
-      this.logger.log(`📊 Found ${allShifts.length} shifts in date range`);
+      let employeeMap = new Map<number, EmployeeInfo>();
+      let targetEmployeeIds: number[] | undefined;
 
-      // 2. Filter shifts based on query parameters
-      let filteredShifts = allShifts;
+      if (query.employee_name) {
+        if (query.employee_ids && query.employee_ids.length > 0) {
+          employeeMap =
+            await this.employeeServiceClient.getEmployeesByIds(
+              query.employee_ids,
+            );
+        } else {
+          return ApiResponseDto.success(
+            { data: [], total: 0 },
+            'Please provide employee_ids when searching by name',
+          );
+        }
+
+        const searchLower = query.employee_name.toLowerCase();
+        const matchingEmployees = Array.from(employeeMap.values()).filter(
+          (emp) => emp.full_name.toLowerCase().includes(searchLower),
+        );
+
+        targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
+
+        if (targetEmployeeIds.length === 0) {
+          return ApiResponseDto.success(
+            { data: [], total: 0 },
+            'No employees found matching search criteria',
+          );
+        }
+      } else if (query.employee_ids && query.employee_ids.length > 0) {
+        targetEmployeeIds = query.employee_ids;
+      }
+
+      type AssignmentWithSchedule = {
+        id: number;
+        employee_id: number;
+        work_schedule_id: number;
+        effective_from: Date;
+        effective_to?: Date;
+        work_schedule?: any;
+      };
+
+      let allAssignments: AssignmentWithSchedule[] = [];
+
+      if (targetEmployeeIds && targetEmployeeIds.length > 0) {
+        for (const empId of targetEmployeeIds) {
+          const assignments =
+            await this.employeeWorkScheduleRepo.findAssignmentsByEmployeeId(
+              empId,
+            );
+          allAssignments.push(...(assignments as any[]));
+        }
+      } else {
+        return ApiResponseDto.success(
+          { data: [], total: 0 },
+          'Please provide employee_ids or employee_name filter',
+        );
+      }
+
+      const employeeIds = [
+        ...new Set(allAssignments.map((a) => a.employee_id)),
+      ] as number[];
+
+      if (employeeMap.size === 0 && employeeIds.length > 0) {
+        employeeMap =
+          await this.employeeServiceClient.getEmployeesByIds(employeeIds);
+      }
 
       if (query.department_id) {
-        filteredShifts = filteredShifts.filter(
-          (shift) => shift.get_props().department_id === query.department_id,
-        );
-        this.logger.log(
-          `🏢 Filtered to ${filteredShifts.length} shifts for department ${query.department_id}`,
-        );
-      }
+        const filteredEmpIds = Array.from(employeeMap.values())
+          .filter((emp) => emp.department_id === query.department_id)
+          .map((emp) => emp.id);
 
-      if (query.employee_ids && query.employee_ids.length > 0) {
-        filteredShifts = filteredShifts.filter((shift) =>
-          query.employee_ids!.includes(shift.get_props().employee_id),
-        );
-        this.logger.log(
-          `👥 Filtered to ${filteredShifts.length} shifts for ${query.employee_ids.length} employees`,
+        allAssignments = allAssignments.filter((a) =>
+          filteredEmpIds.includes(a.employee_id),
         );
       }
 
-      // 3. Group shifts by employee_id
-      const shiftsByEmployee = new Map<number, typeof filteredShifts>();
-      filteredShifts.forEach((shift) => {
-        const props = shift.get_props();
-        if (!shiftsByEmployee.has(props.employee_id)) {
-          shiftsByEmployee.set(props.employee_id, []);
+      const assignmentsByEmployee = new Map<number, any[]>();
+      allAssignments.forEach((assignment) => {
+        if (!assignmentsByEmployee.has(assignment.employee_id)) {
+          assignmentsByEmployee.set(assignment.employee_id, []);
         }
-        shiftsByEmployee.get(props.employee_id)!.push(shift);
+        assignmentsByEmployee.get(assignment.employee_id)!.push(assignment);
       });
 
-      this.logger.log(
-        `👤 Grouped shifts for ${shiftsByEmployee.size} unique employees`,
+      const employeeIdsToShow = Array.from(assignmentsByEmployee.keys());
+      const total = employeeIdsToShow.length;
+      const paginatedEmployeeIds = employeeIdsToShow.slice(
+        offset,
+        offset + limit,
       );
 
-      // 4. Fetch employee details via RPC
-      const employeeIds = Array.from(shiftsByEmployee.keys());
-      const employeeMap =
-        await this.employeeServiceClient.getEmployeesByIds(employeeIds);
-
-      this.logger.log(
-        `✅ Fetched details for ${employeeMap.size} employees via RPC`,
-      );
-
-      // 5. Fetch all unique work schedule IDs
-      const scheduleIds = new Set<number>();
-      filteredShifts.forEach((shift) => {
-        const scheduleId = shift.get_props().work_schedule_id;
-        if (scheduleId) {
-          scheduleIds.add(scheduleId);
-        }
-      });
-
-      // Fetch work schedules in parallel
-      const scheduleMap = new Map<number, string>();
-      await Promise.all(
-        Array.from(scheduleIds).map(async (scheduleId) => {
-          const schedule =
-            await this.workScheduleRepository.findById(scheduleId);
-          if (schedule) {
-            scheduleMap.set(scheduleId, schedule.schedule_name);
-          }
-        }),
-      );
-
-      this.logger.log(`📋 Fetched ${scheduleMap.size} work schedule names`);
-
-      // 6. Build response
       const employees: EmployeeCalendarDto[] = [];
-      const missingEmployeeIds: number[] = [];
 
-      for (const [employeeId, shifts] of shiftsByEmployee.entries()) {
+      for (const employeeId of paginatedEmployeeIds) {
         const employeeInfo = employeeMap.get(employeeId);
+        const assignments = assignmentsByEmployee.get(employeeId) || [];
 
-        // Track missing employee but still show shifts with partial info
         if (!employeeInfo) {
-          this.logger.warn(
-            `⚠️ Employee info not found for ID: ${employeeId} - Employee may have been deleted`,
-          );
-          missingEmployeeIds.push(employeeId);
-
-          // Create placeholder employee info with shifts
-          const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
-            const props = shift.get_props();
-            const scheduleName = props.work_schedule_id
-              ? scheduleMap.get(props.work_schedule_id) || 'Unknown Schedule'
-              : 'No Schedule';
-
-            return {
-              shift_id: props.id!,
-              shift_date: this.formatShiftDate(props.shift_date),
-              schedule_name: scheduleName,
-              start_time: props.scheduled_start_time,
-              end_time: props.scheduled_end_time,
-              status: props.status ?? ShiftStatus.SCHEDULED,
-              shift_type: props.shift_type || 'REGULAR',
-              check_in_time: props.check_in_time
-                ? this.formatTime(props.check_in_time)
-                : undefined,
-              check_out_time: props.check_out_time
-                ? this.formatTime(props.check_out_time)
-                : undefined,
-              work_hours: props.work_hours ?? 0,
-              overtime_hours: props.overtime_hours ?? 0,
-              late_minutes: props.late_minutes ?? 0,
-              early_leave_minutes: props.early_leave_minutes ?? 0,
-            };
-          });
-
-          shiftItems.sort((a, b) => a.shift_date.localeCompare(b.shift_date));
-
-          employees.push({
-            employee_id: employeeId,
-            employee_code: `DELETED_${employeeId}`,
-            full_name: `[Employee Not Found - ID: ${employeeId}]`,
-            department_name: 'N/A',
-            department_id: 0,
-            shifts: shiftItems,
-          });
-
           continue;
         }
 
-        // Map shifts to calendar items
-        const shiftItems: ShiftCalendarItemDto[] = shifts.map((shift) => {
-          const props = shift.get_props();
-          const scheduleName = props.work_schedule_id
-            ? scheduleMap.get(props.work_schedule_id) || 'Unknown Schedule'
-            : 'No Schedule';
+        const assignmentDtos: WorkScheduleAssignmentDto[] = assignments.map(
+          (assignment) => {
+            const ws = (assignment as any).work_schedule;
+            return {
+              assignment_id: assignment.id,
+              work_schedule_id: assignment.work_schedule_id,
+              effective_from: this.formatDate(assignment.effective_from),
+              effective_to: assignment.effective_to
+                ? this.formatDate(assignment.effective_to)
+                : undefined,
+              work_schedule: ws
+                ? {
+                    id: ws.id,
+                    schedule_name: ws.schedule_name,
+                    schedule_type: ws.schedule_type,
+                    start_time: ws.start_time,
+                    end_time: ws.end_time,
+                    break_duration_minutes: ws.break_duration_minutes,
+                    late_tolerance_minutes: ws.late_tolerance_minutes,
+                    early_leave_tolerance_minutes:
+                      ws.early_leave_tolerance_minutes,
+                    status: ws.status,
+                  }
+                : {
+                    id: 0,
+                    schedule_name: 'Unknown',
+                    schedule_type: 'UNKNOWN',
+                    start_time: undefined,
+                    end_time: undefined,
+                    break_duration_minutes: 0,
+                    late_tolerance_minutes: 0,
+                    early_leave_tolerance_minutes: 0,
+                    status: 'UNKNOWN',
+                  },
+            };
+          },
+        );
 
-          return {
-            shift_id: props.id!,
-            shift_date: this.formatShiftDate(props.shift_date),
-            schedule_name: scheduleName,
-            start_time: props.scheduled_start_time,
-            end_time: props.scheduled_end_time,
-            status: props.status ?? ShiftStatus.SCHEDULED,
-            shift_type: props.shift_type || 'REGULAR',
-            check_in_time: props.check_in_time
-              ? this.formatTime(props.check_in_time)
-              : undefined,
-            check_out_time: props.check_out_time
-              ? this.formatTime(props.check_out_time)
-              : undefined,
-            work_hours: props.work_hours ?? 0,
-            overtime_hours: props.overtime_hours ?? 0,
-            late_minutes: props.late_minutes ?? 0,
-            early_leave_minutes: props.early_leave_minutes ?? 0,
-          };
-        });
-
-        // Sort shifts by date
-        shiftItems.sort((a, b) => a.shift_date.localeCompare(b.shift_date));
+        assignmentDtos.sort((a, b) =>
+          b.effective_from.localeCompare(a.effective_from),
+        );
 
         employees.push({
           employee_id: employeeInfo.id,
           employee_code: employeeInfo.employee_code,
           full_name: employeeInfo.full_name,
-          department_name: 'N/A', // Will be fetched later if needed
+          email: employeeInfo.email,
+          department_name: 'N/A',
           department_id: employeeInfo.department_id ?? 0,
-          shifts: shiftItems,
+          assignments: assignmentDtos,
         });
       }
 
-      // Sort employees by employee_code
       employees.sort((a, b) => a.employee_code.localeCompare(b.employee_code));
 
       const response: EmployeeShiftCalendarResponseDto = {
-        from_date: query.from_date,
-        to_date: query.to_date,
-        total_employees: employees.length,
-        employees,
+        data: employees,
+        total,
       };
 
-      let message = 'Employee shift calendar retrieved successfully';
-      if (missingEmployeeIds.length > 0) {
-        message += ` (Warning: ${missingEmployeeIds.length} employee(s) not found: ${missingEmployeeIds.join(', ')})`;
-        this.logger.warn(
-          `⚠️ ${missingEmployeeIds.length} employee(s) not found in Employee Service: ${missingEmployeeIds.join(', ')}`,
-        );
-      }
-
-      this.logger.log(
-        `✨ Calendar view generated for ${employees.length} employees`,
+      return ApiResponseDto.success(
+        response,
+        'Work schedule assignments retrieved successfully',
       );
-
-      return ApiResponseDto.success(response, message);
     } catch (error) {
-      this.logger.error('❌ Failed to get calendar view:', error);
+      this.logger.error('Failed to get work schedule assignments:', error);
       throw error;
     }
   }
 
-  /**
-   * Format Date to HH:MM string
-   */
-  private formatTime(date: Date): string {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-
-  /**
-   * Safely convert shift_date to ISO string (YYYY-MM-DD)
-   * Handles both Date objects and string inputs
-   */
-  private formatShiftDate(shiftDate: Date | string): string {
-    if (!shiftDate) {
-      this.logger.warn('⚠️ shift_date is null or undefined');
-      return new Date().toISOString().split('T')[0];
-    }
+  private formatDate(date: Date | string): string {
+    if (!date) return new Date().toISOString().split('T')[0];
 
     try {
-      // If already a Date object
-      if (shiftDate instanceof Date) {
-        return shiftDate.toISOString().split('T')[0];
+      if (date instanceof Date) {
+        return date.toISOString().split('T')[0];
       }
-
-      // If string, convert to Date first
-      if (typeof shiftDate === 'string') {
-        return new Date(shiftDate).toISOString().split('T')[0];
+      if (typeof date === 'string') {
+        return new Date(date).toISOString().split('T')[0];
       }
-
-      // Fallback: try to convert whatever it is to Date
-      return new Date(shiftDate as any).toISOString().split('T')[0];
+      return new Date(date as any).toISOString().split('T')[0];
     } catch (error) {
-      this.logger.error(`❌ Error formatting shift_date: ${shiftDate}`, error);
       return new Date().toISOString().split('T')[0];
     }
   }

@@ -1,32 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsDateString,
-  IsInt,
-  IsOptional,
-  IsArray,
-  ArrayMinSize,
-} from 'class-validator';
+import { IsInt, IsOptional, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ShiftStatus } from '../../domain/entities/employee-shift.entity';
 
 /**
- * Query parameters for calendar view
+ * Query parameters for calendar view - now shows work schedule assignments instead of shifts
  */
 export class EmployeeShiftCalendarQueryDto {
-  @ApiProperty({
-    example: '2025-01-01',
-    description: 'Start date of the calendar view (inclusive)',
-  })
-  @IsDateString()
-  from_date: string;
-
-  @ApiProperty({
-    example: '2025-01-31',
-    description: 'End date of the calendar view (inclusive)',
-  })
-  @IsDateString()
-  to_date: string;
-
   @ApiPropertyOptional({
     example: 10,
     description:
@@ -41,101 +20,88 @@ export class EmployeeShiftCalendarQueryDto {
     type: [Number],
     example: [1, 2, 3],
     description:
-      'Filter by specific employee IDs. If not provided, returns all employees in department/organization',
+      'Filter by specific employee IDs (can be 1 or more). If not provided, returns all employees in department/organization',
   })
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   @Type(() => Number)
   employee_ids?: number[];
+
+  @ApiPropertyOptional({
+    example: 'John Doe',
+    description: 'Search by employee name (partial match)',
+  })
+  @IsOptional()
+  employee_name?: string;
+
+  @ApiPropertyOptional({
+    example: 20,
+    description: 'Number of records per page (default: 20)',
+    default: 20,
+  })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Offset for pagination (default: 0)',
+    default: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  offset?: number;
 }
 
 /**
- * Shift information for a specific date in calendar view
+ * Work schedule assignment information
  */
-export class ShiftCalendarItemDto {
+export class WorkScheduleAssignmentDto {
   @ApiProperty({
     example: 1,
-    description: 'Employee shift record ID',
+    description: 'Assignment ID',
   })
-  shift_id: number;
+  assignment_id: number;
 
   @ApiProperty({
-    example: '2025-01-15',
-    description: 'Date of the shift',
+    example: 1,
+    description: 'Work schedule ID',
   })
-  shift_date: string;
+  work_schedule_id: number;
 
   @ApiProperty({
-    example: 'Morning Shift',
-    description: 'Work schedule name (e.g., Morning Shift, Afternoon Shift)',
+    example: '2025-01-01',
+    description: 'Effective from date',
   })
-  schedule_name: string;
-
-  @ApiProperty({
-    example: '08:00',
-    description: 'Scheduled start time (HH:MM format)',
-  })
-  start_time: string;
-
-  @ApiProperty({
-    example: '17:00',
-    description: 'Scheduled end time (HH:MM format)',
-  })
-  end_time: string;
-
-  @ApiProperty({
-    enum: ShiftStatus,
-    example: ShiftStatus.COMPLETED,
-    description: 'Shift status',
-  })
-  status: ShiftStatus;
-
-  @ApiProperty({
-    example: 'REGULAR',
-    description: 'Shift type (REGULAR, OVERTIME)',
-  })
-  shift_type: string;
+  effective_from: string;
 
   @ApiPropertyOptional({
-    example: '08:15',
-    description: 'Actual check-in time (HH:MM format)',
+    example: '2025-12-31',
+    description: 'Effective to date (null = indefinite)',
   })
-  check_in_time?: string;
-
-  @ApiPropertyOptional({
-    example: '17:30',
-    description: 'Actual check-out time (HH:MM format)',
-  })
-  check_out_time?: string;
+  effective_to?: string;
 
   @ApiProperty({
-    example: 8.5,
-    description: 'Total work hours',
+    description: 'Work schedule details',
   })
-  work_hours: number;
-
-  @ApiProperty({
-    example: 1.5,
-    description: 'Overtime hours',
-  })
-  overtime_hours: number;
-
-  @ApiProperty({
-    example: 15,
-    description: 'Late arrival minutes',
-  })
-  late_minutes: number;
-
-  @ApiProperty({
-    example: 0,
-    description: 'Early leave minutes',
-  })
-  early_leave_minutes: number;
+  work_schedule: {
+    id: number;
+    schedule_name: string;
+    schedule_type: string;
+    start_time?: string;
+    end_time?: string;
+    break_duration_minutes: number;
+    late_tolerance_minutes: number;
+    early_leave_tolerance_minutes: number;
+    status: string;
+  };
 }
 
 /**
- * Employee information with their shifts in calendar view
+ * Employee information with their work schedule assignments
  */
 export class EmployeeCalendarDto {
   @ApiProperty({
@@ -157,6 +123,12 @@ export class EmployeeCalendarDto {
   full_name: string;
 
   @ApiProperty({
+    example: 'john.doe@company.com',
+    description: 'Email of employee',
+  })
+  email: string;
+
+  @ApiProperty({
     example: 'Engineering',
     description: 'Department name',
   })
@@ -169,37 +141,26 @@ export class EmployeeCalendarDto {
   department_id: number;
 
   @ApiProperty({
-    type: [ShiftCalendarItemDto],
-    description: 'List of shifts for this employee within the date range',
+    type: [WorkScheduleAssignmentDto],
+    description:
+      'List of work schedule assignments for this employee (past and current)',
   })
-  shifts: ShiftCalendarItemDto[];
+  assignments: WorkScheduleAssignmentDto[];
 }
 
 /**
- * Calendar view response
+ * Calendar view response - work schedule assignments
  */
 export class EmployeeShiftCalendarResponseDto {
   @ApiProperty({
-    example: '2025-01-01',
-    description: 'Start date of the calendar period',
-  })
-  from_date: string;
-
-  @ApiProperty({
-    example: '2025-01-31',
-    description: 'End date of the calendar period',
-  })
-  to_date: string;
-
-  @ApiProperty({
-    example: 5,
-    description: 'Total number of employees in this calendar view',
-  })
-  total_employees: number;
-
-  @ApiProperty({
     type: [EmployeeCalendarDto],
-    description: 'List of employees with their shift schedules',
+    description: 'List of employees with their work schedule assignments',
   })
-  employees: EmployeeCalendarDto[];
+  data: EmployeeCalendarDto[];
+
+  @ApiProperty({
+    example: 100,
+    description: 'Total number of employees matching the query',
+  })
+  total: number;
 }
