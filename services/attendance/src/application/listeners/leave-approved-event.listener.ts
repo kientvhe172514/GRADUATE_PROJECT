@@ -140,6 +140,8 @@ export class LeaveApprovedEventListener {
         const fromDate = new Date(payload.startDate);
         const toDate = new Date(payload.endDate);
         const currentDate = new Date(fromDate);
+        let hasError = false;
+        let errorMessage = '';
 
         while (currentDate <= toDate) {
           const dateStr = currentDate.toISOString().split('T')[0];
@@ -152,32 +154,43 @@ export class LeaveApprovedEventListener {
               dateStr,
             );
 
-            // Mark override as completed for this date
-            assignment.mark_override_shift_created(newOverride.id);
-            assignment.update_override_status(
-              newOverride.id,
-              ScheduleOverrideStatus.COMPLETED,
+            this.logger.debug(
+              `✅ Processed ON_LEAVE for employee ${payload.employeeId} on ${dateStr}`,
             );
           } catch (error) {
             this.logger.error(
               `Failed to process ON_LEAVE override for date ${dateStr}`,
               error,
             );
-            assignment.update_override_status(
-              newOverride.id,
-              ScheduleOverrideStatus.FAILED,
-              (error as Error).message || 'Failed to process override',
-            );
+            hasError = true;
+            errorMessage = (error as Error).message || 'Failed to process override';
+            // Don't break - continue processing remaining dates
           }
 
           currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Mark override status AFTER processing all dates
+        if (hasError) {
+          assignment.update_override_status(
+            newOverride.id,
+            ScheduleOverrideStatus.FAILED,
+            errorMessage,
+          );
+        } else {
+          assignment.mark_override_shift_created(newOverride.id);
+          assignment.update_override_status(
+            newOverride.id,
+            ScheduleOverrideStatus.COMPLETED,
+          );
         }
 
         // Save the updated assignment with override status
         await this.employeeWorkScheduleRepo.save(assignment);
 
         this.logger.log(
-          `✅ Completed ON_LEAVE override processing for employee ${payload.employeeId}`,
+          `✅ Completed ON_LEAVE override processing for employee ${payload.employeeId}: ` +
+          `${hasError ? 'FAILED' : 'COMPLETED'}`,
         );
       }
     } catch (error) {
