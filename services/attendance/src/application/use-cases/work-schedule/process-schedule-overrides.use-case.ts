@@ -41,9 +41,58 @@ export class ProcessScheduleOverridesUseCase {
       try {
         const pending = assignment.get_pending_overrides_for_date(dateStr);
 
-        // Process SCHEDULE_CHANGE before OVERTIME
+        // Process in order: ON_LEAVE > SCHEDULE_CHANGE > OVERTIME
+        const leaveRequests = pending.filter((o) => o.type === ScheduleOverrideType.ON_LEAVE);
         const changes = pending.filter((o) => o.type === ScheduleOverrideType.SCHEDULE_CHANGE);
         const otRequests = pending.filter((o) => o.type === ScheduleOverrideType.OVERTIME);
+
+        // ON_LEAVE: Mark shift as ON_LEAVE (no work shift created)
+        for (const leave of leaveRequests) {
+          // Check if shift already exists for this date
+          const existingShift = await this.employeeShiftRepository.findByEmployeeAndDate(
+            assignment.employee_id,
+            new Date(dateStr),
+          );
+
+          if (existingShift) {
+            // Update existing shift to ON_LEAVE status
+            existingShift.status = 'ON_LEAVE';
+            await this.employeeShiftRepository.update(existingShift.id, {
+              status: 'ON_LEAVE',
+              notes: `Leave: ${leave.reason}`,
+            });
+          } else {
+            // Create ON_LEAVE shift placeholder
+            await this.employeeShiftRepository.create({
+              employee_id: assignment.employee_id,
+              employee_code: '', // Will be filled by fetching employee info if needed
+              department_id: 0, // Will be filled if needed
+              shift_date: new Date(dateStr),
+              work_schedule_id: assignment.work_schedule_id,
+              scheduled_start_time: '00:00',
+              scheduled_end_time: '00:00',
+              presence_verification_required: false,
+              presence_verification_rounds_required: 0,
+            });
+
+            // Update to ON_LEAVE status
+            const createdShift = await this.employeeShiftRepository.findByEmployeeAndDate(
+              assignment.employee_id,
+              new Date(dateStr),
+            );
+            if (createdShift) {
+              createdShift.status = 'ON_LEAVE';
+              await this.employeeShiftRepository.update(createdShift.id, {
+                status: 'ON_LEAVE',
+                notes: `Leave: ${leave.reason}`,
+              });
+            }
+          }
+
+          assignment.mark_override_shift_created(leave.id);
+          assignment.update_override_status(leave.id, ScheduleOverrideStatus.COMPLETED);
+          await this.employeeWorkScheduleRepo.save(assignment);
+        }
 
         // Schedule changes: create shifts based on override_work_schedule_id
         for (const change of changes) {

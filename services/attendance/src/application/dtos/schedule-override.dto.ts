@@ -12,6 +12,7 @@ import {
 export enum ScheduleOverrideType {
   SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
   OVERTIME = 'OVERTIME',
+  ON_LEAVE = 'ON_LEAVE', // When employee has approved leave
 }
 
 export enum ScheduleOverrideStatus {
@@ -86,6 +87,16 @@ export class AddScheduleOverrideDto {
   })
   @ValidateIf((o) => o.type === ScheduleOverrideType.OVERTIME)
   overtime_end_time?: string;
+
+  @ApiPropertyOptional({
+    example: 123,
+    description:
+      'Leave request ID for ON_LEAVE (required if type is ON_LEAVE)',
+  })
+  @IsOptional()
+  @IsInt()
+  @ValidateIf((o) => o.type === ScheduleOverrideType.ON_LEAVE)
+  leave_request_id?: number;
 
   @ApiProperty({
     example: 'Chuyển sang ca tối tạm thời',

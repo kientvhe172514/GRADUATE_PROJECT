@@ -3,6 +3,7 @@ import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 export enum ScheduleOverrideType {
   SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
   OVERTIME = 'OVERTIME',
+  ON_LEAVE = 'ON_LEAVE', // When employee has approved leave
 }
 
 export enum ScheduleOverrideStatus {
@@ -18,9 +19,10 @@ export interface ScheduleOverride {
   type: ScheduleOverrideType;
   from_date: string;
   to_date?: string;
-  override_work_schedule_id?: number;
-  overtime_start_time?: string;
-  overtime_end_time?: string;
+  override_work_schedule_id?: number; // For SCHEDULE_CHANGE
+  overtime_start_time?: string; // For OVERTIME
+  overtime_end_time?: string; // For OVERTIME
+  leave_request_id?: number; // For ON_LEAVE
   reason: string;
   created_by: number;
   created_at: string;

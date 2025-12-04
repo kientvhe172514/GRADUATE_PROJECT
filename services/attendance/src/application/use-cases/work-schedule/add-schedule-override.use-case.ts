@@ -37,6 +37,8 @@ export class AddScheduleOverrideUseCase {
       await this.validateScheduleChange(dto);
     } else if (dto.type === ScheduleOverrideType.OVERTIME) {
       await this.validateOvertime(assignment, dto);
+    } else if (dto.type === ScheduleOverrideType.ON_LEAVE) {
+      await this.validateOnLeave(dto);
     }
 
     // Add the override to the assignment
@@ -47,6 +49,7 @@ export class AddScheduleOverrideUseCase {
       override_work_schedule_id: dto.override_work_schedule_id,
       overtime_start_time: dto.overtime_start_time,
       overtime_end_time: dto.overtime_end_time,
+      leave_request_id: (dto as any).leave_request_id,
       reason: dto.reason,
       created_by: userId,
     });
@@ -254,5 +257,34 @@ export class AddScheduleOverrideUseCase {
 
     // Check for overlap: ranges overlap if one starts before the other ends
     return s1 < e2 && s2 < e1;
+  }
+
+  private async validateOnLeave(dto: AddScheduleOverrideDto): Promise<void> {
+    // Ensure required fields are present
+    if (!(dto as any).leave_request_id) {
+      throw new BusinessException(
+        ErrorCodes.MISSING_REQUIRED_FIELDS,
+        'leave_request_id is required for ON_LEAVE',
+        400,
+      );
+    }
+
+    // Ensure to_date is provided for leave (can span multiple days)
+    if (!dto.to_date) {
+      throw new BusinessException(
+        ErrorCodes.MISSING_REQUIRED_FIELDS,
+        'to_date is required for ON_LEAVE',
+        400,
+      );
+    }
+
+    // Validate date range
+    if (dto.from_date > dto.to_date) {
+      throw new BusinessException(
+        ErrorCodes.INVALID_DATE_RANGE,
+        'from_date cannot be after to_date',
+        400,
+      );
+    }
   }
 }
