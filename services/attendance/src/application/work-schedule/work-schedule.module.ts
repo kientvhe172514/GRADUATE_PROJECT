@@ -26,6 +26,7 @@ import {
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
 } from '../../application/tokens';
 import { ShiftGeneratorService } from '../services/shift-generator.service';
+import { ProcessOnLeaveOverrideService } from '../services/process-on-leave-override.service';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.module';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
@@ -71,10 +72,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   AddScheduleOverrideUseCase,
   ListScheduleOverridesUseCase,
   RemoveScheduleOverrideUseCase,
-  ProcessScheduleOverridesUseCase,
+    ProcessScheduleOverridesUseCase,
 
     // Services
     ShiftGeneratorService,
+    ProcessOnLeaveOverrideService,
     EmployeeShiftRepository,
     EmployeeServiceClient,
 

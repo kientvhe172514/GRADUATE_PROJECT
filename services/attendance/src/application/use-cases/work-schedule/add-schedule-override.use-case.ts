@@ -1,20 +1,24 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { AddScheduleOverrideDto, ScheduleOverrideType } from '../../dtos/schedule-override.dto';
+import { AddScheduleOverrideDto, ScheduleOverrideType, ScheduleOverrideStatus } from '../../dtos/schedule-override.dto';
 import {
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
   WORK_SCHEDULE_REPOSITORY,
 } from '../../tokens';
+import { ProcessOnLeaveOverrideService } from '../../services/process-on-leave-override.service';
 
 @Injectable()
 export class AddScheduleOverrideUseCase {
+  private readonly logger = new Logger(AddScheduleOverrideUseCase.name);
+
   constructor(
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
     @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepo: IWorkScheduleRepository,
+    private readonly processOnLeaveService: ProcessOnLeaveOverrideService,
   ) {}
 
   async execute(
@@ -54,8 +58,71 @@ export class AddScheduleOverrideUseCase {
       created_by: userId,
     });
 
-    // Save the assignment
+    // Save the assignment first to persist the override
     await this.employeeWorkScheduleRepo.save(assignment);
+
+    // For ON_LEAVE overrides, process them immediately (synchronous)
+    if (dto.type === ScheduleOverrideType.ON_LEAVE) {
+      this.logger.log(
+        `🏖️ Processing ON_LEAVE override immediately for assignment ${assignmentId}`,
+      );
+
+      // Get the newly created override(s)
+      const overrides = assignment.schedule_overrides || [];
+      const newOverride = overrides[overrides.length - 1]; // Latest added
+
+      if (!newOverride) {
+        throw new BusinessException(
+          ErrorCodes.INVALID_INPUT,
+          'Failed to create override',
+          500,
+        );
+      }
+
+      // Process each date in the range
+      const fromDate = new Date(dto.from_date);
+      const toDate = new Date(dto.to_date!);
+      const currentDate = new Date(fromDate);
+
+      while (currentDate <= toDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+
+        try {
+          await this.processOnLeaveService.processOnLeaveOverride(
+            newOverride,
+            assignment.employee_id,
+            assignment.work_schedule_id,
+            dateStr,
+          );
+
+          // Mark override as completed for this date
+          assignment.mark_override_shift_created(newOverride.id);
+          assignment.update_override_status(
+            newOverride.id,
+            ScheduleOverrideStatus.COMPLETED,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to process ON_LEAVE override for date ${dateStr}`,
+            error,
+          );
+          assignment.update_override_status(
+            newOverride.id,
+            ScheduleOverrideStatus.FAILED,
+            (error as any).message || 'Failed to process override',
+          );
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Save the updated assignment with override status
+      await this.employeeWorkScheduleRepo.save(assignment);
+
+      this.logger.log(
+        `✅ Completed ON_LEAVE override processing for assignment ${assignmentId}`,
+      );
+    }
   }
 
   private async validateScheduleChange(dto: AddScheduleOverrideDto): Promise<void> {

@@ -9,9 +9,10 @@ import {
   ScheduleOverrideStatus,
 } from '../../dtos/schedule-override.dto';
 import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../tokens';
+import { ProcessOnLeaveOverrideService } from '../../services/process-on-leave-override.service';
 
 /**
- * Cron job that runs at 00:00 and 12:00 daily to process pending schedule_overrides
+ * Cron job that runs at 00:00 daily to process pending schedule_overrides
  * It will process overrides for the next day only.
  */
 @Injectable()
@@ -24,6 +25,7 @@ export class ProcessScheduleOverridesUseCase {
     private readonly shiftGeneratorService: ShiftGeneratorService,
     private readonly employeeShiftRepository: EmployeeShiftRepository,
     private readonly employeeServiceClient: EmployeeServiceClient,
+    private readonly processOnLeaveService: ProcessOnLeaveOverrideService,
   ) {}
 
   // Run ONLY at 00:00 (midnight) server time to create shifts for the next day
@@ -48,50 +50,29 @@ export class ProcessScheduleOverridesUseCase {
 
         // ON_LEAVE: Mark shift as ON_LEAVE (no work shift created)
         for (const leave of leaveRequests) {
-          // Check if shift already exists for this date
-          const existingShift = await this.employeeShiftRepository.findByEmployeeAndDate(
-            assignment.employee_id,
-            new Date(dateStr),
-          );
-
-          if (existingShift) {
-            // Update existing shift to ON_LEAVE status
-            existingShift.status = 'ON_LEAVE';
-            await this.employeeShiftRepository.update(existingShift.id, {
-              status: 'ON_LEAVE',
-              notes: `Leave: ${leave.reason}`,
-            });
-          } else {
-            // Create ON_LEAVE shift placeholder
-            await this.employeeShiftRepository.create({
-              employee_id: assignment.employee_id,
-              employee_code: '', // Will be filled by fetching employee info if needed
-              department_id: 0, // Will be filled if needed
-              shift_date: new Date(dateStr),
-              work_schedule_id: assignment.work_schedule_id,
-              scheduled_start_time: '00:00',
-              scheduled_end_time: '00:00',
-              presence_verification_required: false,
-              presence_verification_rounds_required: 0,
-            });
-
-            // Update to ON_LEAVE status
-            const createdShift = await this.employeeShiftRepository.findByEmployeeAndDate(
+          try {
+            await this.processOnLeaveService.processOnLeaveOverride(
+              leave,
               assignment.employee_id,
-              new Date(dateStr),
+              assignment.work_schedule_id,
+              dateStr,
             );
-            if (createdShift) {
-              createdShift.status = 'ON_LEAVE';
-              await this.employeeShiftRepository.update(createdShift.id, {
-                status: 'ON_LEAVE',
-                notes: `Leave: ${leave.reason}`,
-              });
-            }
-          }
 
-          assignment.mark_override_shift_created(leave.id);
-          assignment.update_override_status(leave.id, ScheduleOverrideStatus.COMPLETED);
-          await this.employeeWorkScheduleRepo.save(assignment);
+            assignment.mark_override_shift_created(leave.id);
+            assignment.update_override_status(leave.id, ScheduleOverrideStatus.COMPLETED);
+            await this.employeeWorkScheduleRepo.save(assignment);
+          } catch (error) {
+            this.logger.error(
+              `Failed to process ON_LEAVE override ${leave.id} for date ${dateStr}`,
+              error,
+            );
+            assignment.update_override_status(
+              leave.id,
+              ScheduleOverrideStatus.FAILED,
+              (error as any).message || 'Failed to process ON_LEAVE',
+            );
+            await this.employeeWorkScheduleRepo.save(assignment);
+          }
         }
 
         // Schedule changes: create shifts based on override_work_schedule_id

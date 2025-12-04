@@ -14,6 +14,8 @@ export interface CreateShiftDto {
   shift_type?: string; // 'REGULAR' or 'OVERTIME'
   presence_verification_required: boolean;
   presence_verification_rounds_required: number;
+  status?: string;
+  notes?: string;
 }
 
 export interface UpdateShiftDto {
