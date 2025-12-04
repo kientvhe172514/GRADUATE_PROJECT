@@ -13,6 +13,7 @@ import { GetHolidaysUseCase } from './use-cases/get-holidays.use-case';
 import { GetHolidaysByYearUseCase } from './use-cases/get-holidays-by-year.use-case';
 import { BulkCreateHolidaysUseCase } from './use-cases/bulk-create-holidays.use-case';
 import { HolidayController } from '../../presentation/controllers/holiday.controller';
+import { HolidayRpcController } from '../../presentation/controllers/holiday-rpc.controller';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { HolidayController } from '../../presentation/controllers/holiday.contro
       },
     ]),
   ],
-  controllers: [HolidayController],
+  controllers: [HolidayController, HolidayRpcController],
   providers: [
     {
       provide: HOLIDAY_REPOSITORY,

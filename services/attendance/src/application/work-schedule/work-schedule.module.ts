@@ -32,6 +32,7 @@ import { GpsCheckConfigModule } from '../gps-check-config/gps-check-config.modul
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 import { HolidayServiceClient } from '../../infrastructure/external-services/holiday-service.client';
 import { HolidayEventListener } from '../listeners/holiday-event.listener';
+import { LeaveApprovedEventListener } from '../listeners/leave-approved-event.listener';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
@@ -98,6 +99,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
     // Listeners
     HolidayEventListener,
+    LeaveApprovedEventListener,
 
     // Repositories
     {

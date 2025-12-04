@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 import { ScheduleOverride } from '../../domain/entities/employee-work-schedule.entity';
+import { ShiftStatus } from '../../domain/entities/employee-shift.entity';
 
 /**
  * Shared service to process ON_LEAVE overrides
@@ -48,7 +49,7 @@ export class ProcessOnLeaveOverrideService {
         `Updating existing shift ${existingShift.id} to ON_LEAVE status`,
       );
       await this.employeeShiftRepository.update(existingShift.id, {
-        status: 'ON_LEAVE',
+        status: ShiftStatus.ON_LEAVE.valueOf(),
         notes: `Leave: ${override.reason || 'Approved leave'}`,
       });
     } else {
@@ -79,7 +80,7 @@ export class ProcessOnLeaveOverrideService {
         work_schedule_id: workScheduleId,
         scheduled_start_time: '00:00',
         scheduled_end_time: '00:00',
-        status: 'ON_LEAVE',
+        status: ShiftStatus.ON_LEAVE.valueOf(),
         presence_verification_required: false,
         presence_verification_rounds_required: 0,
         notes: `Leave: ${override.reason || 'Approved leave'}`,

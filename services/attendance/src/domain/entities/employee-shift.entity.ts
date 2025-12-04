@@ -4,7 +4,8 @@ export enum ShiftStatus {
   SCHEDULED = 'SCHEDULED',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
-  ON_LEAVE = 'ON_LEAVE', // For integration with Leave Service
+  ON_LEAVE = 'ON_LEAVE', // For integration with Leave Service  
+  HOLIDAY = 'HOLIDAY', // For company holidays
   ABSENT = 'ABSENT',
 }
 

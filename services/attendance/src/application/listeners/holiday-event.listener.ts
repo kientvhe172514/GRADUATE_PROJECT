@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
+import { ShiftStatus } from '../../domain/entities/employee-shift.entity';
 
 interface HolidayEventPayload {
   id: number;
@@ -118,7 +119,7 @@ export class HolidayEventListener {
       // Holiday is active - update shifts
       for (const shift of shifts) {
         // Skip shifts that are already ON_LEAVE (employee took leave)
-        if (shift.status === 'ON_LEAVE') {
+        if (shift.status === ShiftStatus.ON_LEAVE.valueOf()) {
           this.logger.debug(
             `Shift ${shift.id} is already ON_LEAVE, skipping holiday update`,
           );
@@ -143,7 +144,7 @@ export class HolidayEventListener {
 
         // Update shift status to HOLIDAY
         await this.employeeShiftRepository.update(shift.id, {
-          status: 'HOLIDAY',
+          status: ShiftStatus.HOLIDAY.valueOf(),
           notes: `Holiday: ${holiday.holiday_name}`,
         });
 

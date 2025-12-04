@@ -25,12 +25,41 @@ export enum ScheduleOverrideStatus {
 
 /**
  * DTO for creating a schedule override (schedule change or overtime)
+ * 
+ * EXAMPLES BY TYPE:
+ * 
+ * 1. SCHEDULE_CHANGE (Thay đổi ca làm việc):
+ * {
+ *   "type": "SCHEDULE_CHANGE",
+ *   "from_date": "2025-12-01",
+ *   "to_date": "2025-12-31",
+ *   "override_work_schedule_id": 5,
+ *   "reason": "Chuyển sang ca tối tạm thời"
+ * }
+ * 
+ * 2. OVERTIME (Làm thêm giờ):
+ * {
+ *   "type": "OVERTIME",
+ *   "from_date": "2025-12-15",
+ *   "overtime_start_time": "18:00",
+ *   "overtime_end_time": "22:00",
+ *   "reason": "Làm thêm giờ dự án X"
+ * }
+ * 
+ * 3. ON_LEAVE (Nghỉ phép - auto created by leave.approved event):
+ * {
+ *   "type": "ON_LEAVE",
+ *   "from_date": "2025-12-20",
+ *   "to_date": "2025-12-22",
+ *   "leave_request_id": 123,
+ *   "reason": "Annual leave"
+ * }
  */
 export class AddScheduleOverrideDto {
   @ApiProperty({
     enum: ScheduleOverrideType,
     example: ScheduleOverrideType.SCHEDULE_CHANGE,
-    description: 'Type of override: SCHEDULE_CHANGE or OVERTIME',
+    description: 'Type of override: SCHEDULE_CHANGE, OVERTIME, or ON_LEAVE',
   })
   @IsEnum(ScheduleOverrideType)
   type: ScheduleOverrideType;
