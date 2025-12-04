@@ -343,4 +343,30 @@ export class EmployeeShiftRepository {
 
     return result.affected || 0;
   }
+
+  /**
+   * Find shifts for multiple employees in a date range
+   * Used for calendar view
+   */
+  async findByEmployeeIdsAndDateRange(
+    employeeIds: number[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EmployeeShiftSchema[]> {
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    return this.repository
+      .createQueryBuilder('shift')
+      .where('shift.employee_id IN (:...employeeIds)', { employeeIds })
+      .andWhere('shift.shift_date BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .orderBy('shift.employee_id', 'ASC')
+      .addOrderBy('shift.shift_date', 'ASC')
+      .addOrderBy('shift.scheduled_start_time', 'ASC')
+      .getMany();
+  }
 }

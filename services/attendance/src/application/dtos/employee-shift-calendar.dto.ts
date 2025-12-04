@@ -112,7 +112,60 @@ export class WorkScheduleAssignmentDto {
 }
 
 /**
- * Employee information with their work schedule assignments
+ * Employee shift (actual shift created from work schedule)
+ */
+export class EmployeeShiftDto {
+  @ApiProperty({
+    example: 1,
+    description: 'Shift ID',
+  })
+  shift_id: number;
+
+  @ApiProperty({
+    example: '2025-12-04',
+    description: 'Shift date',
+  })
+  shift_date: string;
+
+  @ApiProperty({
+    example: '09:00',
+    description: 'Shift start time',
+  })
+  start_time: string;
+
+  @ApiProperty({
+    example: '18:00',
+    description: 'Shift end time',
+  })
+  end_time: string;
+
+  @ApiPropertyOptional({
+    example: 60,
+    description: 'Break duration in minutes',
+  })
+  break_duration_minutes?: number;
+
+  @ApiProperty({
+    example: 'SCHEDULED',
+    description: 'Shift status',
+  })
+  status: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Work schedule ID this shift was created from',
+  })
+  work_schedule_id?: number;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Whether this shift was created from an override',
+  })
+  is_override?: boolean;
+}
+
+/**
+ * Employee information with their work schedule assignments and shifts
  */
 export class EmployeeCalendarDto {
   @ApiProperty({
@@ -157,6 +210,13 @@ export class EmployeeCalendarDto {
       'List of work schedule assignments for this employee (past and current)',
   })
   assignments: WorkScheduleAssignmentDto[];
+
+  @ApiPropertyOptional({
+    type: [EmployeeShiftDto],
+    description:
+      'List of actual shifts created for this employee (upcoming and recent)',
+  })
+  shifts?: EmployeeShiftDto[];
 }
 
 /**

@@ -11,7 +11,9 @@ import {
   EmployeeShiftCalendarResponseDto,
   EmployeeCalendarDto,
   WorkScheduleAssignmentDto,
+  EmployeeShiftDto,
 } from '../../dtos/employee-shift-calendar.dto';
+import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
 
 @Injectable()
 export class GetEmployeeShiftCalendarUseCase {
@@ -21,6 +23,7 @@ export class GetEmployeeShiftCalendarUseCase {
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
     private readonly employeeServiceClient: EmployeeServiceClient,
+    private readonly employeeShiftRepository: EmployeeShiftRepository,
   ) {}
 
   async execute(
@@ -155,6 +158,36 @@ export class GetEmployeeShiftCalendarUseCase {
         `📊 Total employees: ${total}, Paginated: ${paginatedEmployeeIds.length}`,
       );
 
+      // Fetch shifts for paginated employees (last 30 days + next 30 days)
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 30);
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 30);
+
+      let allShifts: any[] = [];
+      if (paginatedEmployeeIds.length > 0) {
+        allShifts =
+          await this.employeeShiftRepository.findByEmployeeIdsAndDateRange(
+            paginatedEmployeeIds,
+            startDate,
+            endDate,
+          );
+        this.logger.log(
+          `📅 Fetched ${allShifts.length} shifts for ${paginatedEmployeeIds.length} employees`,
+        );
+      }
+
+      // Group shifts by employee
+      const shiftsByEmployee = new Map<number, any[]>();
+      allShifts.forEach((shift) => {
+        const empId = Number(shift.employee_id);
+        if (!shiftsByEmployee.has(empId)) {
+          shiftsByEmployee.set(empId, []);
+        }
+        shiftsByEmployee.get(empId)!.push(shift);
+      });
+
       const employees: EmployeeCalendarDto[] = [];
 
       for (const employeeId of paginatedEmployeeIds) {
@@ -219,6 +252,24 @@ export class GetEmployeeShiftCalendarUseCase {
           b.effective_from.localeCompare(a.effective_from),
         );
 
+        // Map shifts to DTO
+        const shiftsForEmployee = shiftsByEmployee.get(employeeId) || [];
+        const shiftDtos: EmployeeShiftDto[] = shiftsForEmployee.map(
+          (shift: any) => ({
+            shift_id: shift.id,
+            shift_date: this.formatDate(shift.shift_date),
+            start_time: shift.scheduled_start_time,
+            end_time: shift.scheduled_end_time,
+            break_duration_minutes: shift.break_duration_minutes,
+            status: shift.status,
+            work_schedule_id: shift.work_schedule_id,
+            is_override: shift.shift_type === 'OVERTIME',
+          }),
+        );
+
+        // Sort shifts by date (newest first)
+        shiftDtos.sort((a, b) => b.shift_date.localeCompare(a.shift_date));
+
         employees.push({
           employee_id: employeeInfo.id,
           employee_code: employeeInfo.employee_code,
@@ -227,6 +278,7 @@ export class GetEmployeeShiftCalendarUseCase {
           department_name: 'N/A',
           department_id: employeeInfo.department_id ?? 0,
           assignments: assignmentDtos,
+          shifts: shiftDtos,
         });
       }
 
