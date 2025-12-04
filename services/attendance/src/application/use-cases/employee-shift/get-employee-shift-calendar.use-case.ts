@@ -101,9 +101,9 @@ export class GetEmployeeShiftCalendarUseCase {
         );
       }
 
-      // Get unique employee IDs from all assignments
+      // Get unique employee IDs from all assignments (ensure NUMBER type)
       const employeeIds = [
-        ...new Set(allAssignments.map((a) => a.employee_id)),
+        ...new Set(allAssignments.map((a) => Number(a.employee_id))),
       ] as number[];
       this.logger.log(`👥 Found ${employeeIds.length} unique employee IDs`);
 
@@ -125,13 +125,14 @@ export class GetEmployeeShiftCalendarUseCase {
         );
       }
 
-      // Group assignments by employee
+      // Group assignments by employee (ensure employee_id is NUMBER)
       const assignmentsByEmployee = new Map<number, any[]>();
       allAssignments.forEach((assignment) => {
-        if (!assignmentsByEmployee.has(assignment.employee_id)) {
-          assignmentsByEmployee.set(assignment.employee_id, []);
+        const empId = Number(assignment.employee_id); // Force convert to number
+        if (!assignmentsByEmployee.has(empId)) {
+          assignmentsByEmployee.set(empId, []);
         }
-        assignmentsByEmployee.get(assignment.employee_id)!.push(assignment);
+        assignmentsByEmployee.get(empId)!.push(assignment);
       });
 
       // Paginate at employee level (not assignment level)
@@ -154,7 +155,10 @@ export class GetEmployeeShiftCalendarUseCase {
 
         if (!employeeInfo) {
           this.logger.warn(
-            `⚠️ Employee ID ${employeeId} not found in employeeMap`,
+            `⚠️ Employee ID ${employeeId} (type: ${typeof employeeId}) not found in employeeMap`,
+          );
+          this.logger.debug(
+            `Available keys in employeeMap: ${Array.from(employeeMap.keys()).join(', ')}`,
           );
           continue;
         }

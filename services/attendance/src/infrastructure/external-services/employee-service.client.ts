@@ -112,6 +112,17 @@ export class EmployeeServiceClient {
         `✅ Fetched ${employeeMap.size} employees: [${fetchedIds.join(', ')}]`,
       );
 
+      // DEBUG: Test Map.has() directly
+      this.logger.debug(
+        `🔍 Testing Map.has(): employeeMap.has(11) = ${employeeMap.has(11)}`,
+      );
+      this.logger.debug(
+        `🔍 Map keys type check: ${fetchedIds.map((id) => `${id}:${typeof id}`).join(', ')}`,
+      );
+      this.logger.debug(
+        `🔍 Requested IDs type check: ${employeeIds.map((id) => `${id}:${typeof id}`).join(', ')}`,
+      );
+
       // Log missing employees
       const missingIds = employeeIds.filter((id) => !employeeMap.has(id));
       if (missingIds.length > 0) {
