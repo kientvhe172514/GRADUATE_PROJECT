@@ -4,6 +4,7 @@ import { IEmployeeWorkScheduleRepository } from '../../ports/work-schedule.repos
 import { ShiftGeneratorService } from '../../services/shift-generator.service';
 import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
 import { EmployeeServiceClient } from '../../../infrastructure/external-services/employee-service.client';
+import { HolidayServiceClient } from '../../../infrastructure/external-services/holiday-service.client';
 import {
   ScheduleOverrideType,
   ScheduleOverrideStatus,
@@ -14,6 +15,7 @@ import { ProcessOnLeaveOverrideService } from '../../services/process-on-leave-o
 /**
  * Cron job that runs at 00:00 daily to process pending schedule_overrides
  * It will process overrides for the next day only.
+ * Also checks holidays and skips shift creation on company holidays.
  */
 @Injectable()
 export class ProcessScheduleOverridesUseCase {
@@ -26,6 +28,7 @@ export class ProcessScheduleOverridesUseCase {
     private readonly employeeShiftRepository: EmployeeShiftRepository,
     private readonly employeeServiceClient: EmployeeServiceClient,
     private readonly processOnLeaveService: ProcessOnLeaveOverrideService,
+    private readonly holidayServiceClient: HolidayServiceClient,
   ) {}
 
   // Run ONLY at 00:00 (midnight) server time to create shifts for the next day
@@ -36,6 +39,13 @@ export class ProcessScheduleOverridesUseCase {
     const dateStr = nextDay.toISOString().split('T')[0];
 
     this.logger.log(`🕐 [00:00] Processing schedule overrides for date ${dateStr}`);
+
+    // Check if next day is a holiday (company-wide check)
+    const isHoliday = await this.holidayServiceClient.isHoliday(dateStr);
+    if (isHoliday) {
+      this.logger.log(`🏖️ ${dateStr} is a holiday - skipping regular shift creation`);
+      // Note: ON_LEAVE overrides will still be processed (they don't need shift creation)
+    }
 
     const assignments = await this.employeeWorkScheduleRepo.findPendingOverridesForDate(dateStr);
 
@@ -76,7 +86,21 @@ export class ProcessScheduleOverridesUseCase {
         }
 
         // Schedule changes: create shifts based on override_work_schedule_id
+        // Skip if it's a holiday (no need to create regular shifts on holidays)
         for (const change of changes) {
+          if (isHoliday) {
+            this.logger.log(
+              `Skipping SCHEDULE_CHANGE override ${change.id} - ${dateStr} is a holiday`,
+            );
+            assignment.update_override_status(
+              change.id,
+              ScheduleOverrideStatus.FAILED,
+              'Cannot create shift on holiday',
+            );
+            await this.employeeWorkScheduleRepo.save(assignment);
+            continue;
+          }
+
           // Load the new work schedule from DB via repository (via shift creation helper)
           if (!change.override_work_schedule_id) {
             assignment.update_override_status(change.id, ScheduleOverrideStatus.FAILED, 'Missing override_work_schedule_id');
@@ -100,7 +124,21 @@ export class ProcessScheduleOverridesUseCase {
         }
 
         // Overtime: create overtime shifts with provided time ranges
+        // Skip if it's a holiday (no overtime on holidays)
         for (const ot of otRequests) {
+          if (isHoliday) {
+            this.logger.log(
+              `Skipping OVERTIME override ${ot.id} - ${dateStr} is a holiday`,
+            );
+            assignment.update_override_status(
+              ot.id,
+              ScheduleOverrideStatus.FAILED,
+              'Cannot create overtime shift on holiday',
+            );
+            await this.employeeWorkScheduleRepo.save(assignment);
+            continue;
+          }
+
           if (!ot.overtime_start_time || !ot.overtime_end_time) {
             assignment.update_override_status(ot.id, ScheduleOverrideStatus.FAILED, 'Missing overtime time range');
             await this.employeeWorkScheduleRepo.save(assignment);

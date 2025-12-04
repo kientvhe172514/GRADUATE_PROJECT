@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HolidaySchema } from '../../infrastructure/persistence/typeorm/holiday.schema';
 import { PostgresHolidayRepository } from '../../infrastructure/persistence/repositories/postgres-holiday.repository';
 import { HOLIDAY_REPOSITORY } from '../tokens';
@@ -13,7 +15,24 @@ import { BulkCreateHolidaysUseCase } from './use-cases/bulk-create-holidays.use-
 import { HolidayController } from '../../presentation/controllers/holiday.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([HolidaySchema])],
+  imports: [
+    TypeOrmModule.forFeature([HolidaySchema]),
+    ClientsModule.registerAsync([
+      {
+        name: 'ATTENDANCE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL')!],
+            queue: 'attendance_queue', // Hardcoded - attendance service queue name
+            queueOptions: { durable: true },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
+  ],
   controllers: [HolidayController],
   providers: [
     {
