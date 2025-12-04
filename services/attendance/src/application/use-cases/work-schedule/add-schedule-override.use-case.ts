@@ -117,7 +117,69 @@ export class AddScheduleOverrideUseCase {
       );
     }
 
-    // Load the work_schedule to check for time overlap
+    // Validate overtime time range
+    const overtimeStart = dto.overtime_start_time;
+    const overtimeEnd = dto.overtime_end_time;
+    
+    if (overtimeStart >= overtimeEnd) {
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        'overtime_start_time must be before overtime_end_time',
+        400,
+      );
+    }
+
+    // Check for existing overrides on the same date
+    const existingOverrides = assignment.schedule_overrides || [];
+    const sameDateOverrides = existingOverrides.filter((override: any) => {
+      const overrideFromDate = new Date(override.from_date).toISOString().split('T')[0];
+      const dtoFromDate = new Date(dto.from_date).toISOString().split('T')[0];
+      return overrideFromDate === dtoFromDate && override.status !== 'FAILED';
+    });
+
+    // Check for time conflicts with existing overrides
+    for (const existingOverride of sameDateOverrides) {
+      if (existingOverride.type === ScheduleOverrideType.OVERTIME) {
+        // Check if overtime hours overlap with another overtime
+        if (
+          this.timeRangesOverlap(
+            existingOverride.overtime_start_time,
+            existingOverride.overtime_end_time,
+            overtimeStart,
+            overtimeEnd,
+          )
+        ) {
+          throw new BusinessException(
+            ErrorCodes.INVALID_INPUT,
+            `Overtime hours (${overtimeStart} - ${overtimeEnd}) overlap with existing overtime (${existingOverride.overtime_start_time} - ${existingOverride.overtime_end_time})`,
+            400,
+          );
+        }
+      } else if (existingOverride.type === ScheduleOverrideType.SCHEDULE_CHANGE) {
+        // If there's a schedule change override, load that schedule to check times
+        const overrideSchedule = await this.workScheduleRepo.findById(
+          existingOverride.override_work_schedule_id,
+        );
+        if (overrideSchedule?.start_time && overrideSchedule?.end_time) {
+          if (
+            this.timeRangesOverlap(
+              overrideSchedule.start_time,
+              overrideSchedule.end_time,
+              overtimeStart,
+              overtimeEnd,
+            )
+          ) {
+            throw new BusinessException(
+              ErrorCodes.INVALID_INPUT,
+              `Overtime hours (${overtimeStart} - ${overtimeEnd}) overlap with schedule change override (${overrideSchedule.start_time} - ${overrideSchedule.end_time})`,
+              400,
+            );
+          }
+        }
+      }
+    }
+
+    // Load the CURRENT work_schedule to check for time overlap
     const workSchedule = await this.workScheduleRepo.findById(
       assignment.work_schedule_id,
     );
@@ -129,37 +191,43 @@ export class AddScheduleOverrideUseCase {
       );
     }
 
-    // Check if overtime overlaps with regular work hours
-    const regularStartTime = workSchedule.start_time;
-    const regularEndTime = workSchedule.end_time;
-    const overtimeStart = dto.overtime_start_time;
-    const overtimeEnd = dto.overtime_end_time;
+    // Check if there's a schedule change for this date
+    const scheduleChangeForDate = sameDateOverrides.find(
+      (o: any) => o.type === ScheduleOverrideType.SCHEDULE_CHANGE,
+    );
 
-    // Only perform overlap check if the regular schedule has defined times
-    if (regularStartTime && regularEndTime) {
+    let activeStartTime: string | undefined;
+    let activeEndTime: string | undefined;
+
+    if (scheduleChangeForDate) {
+      // Use the override schedule times
+      const overrideSchedule = await this.workScheduleRepo.findById(
+        scheduleChangeForDate.override_work_schedule_id,
+      );
+      activeStartTime = overrideSchedule?.start_time;
+      activeEndTime = overrideSchedule?.end_time;
+    } else {
+      // Use regular schedule times
+      activeStartTime = workSchedule.start_time;
+      activeEndTime = workSchedule.end_time;
+    }
+
+    // Check if overtime overlaps with active work hours
+    if (activeStartTime && activeEndTime) {
       if (
         this.timeRangesOverlap(
-          regularStartTime,
-          regularEndTime,
+          activeStartTime,
+          activeEndTime,
           overtimeStart,
           overtimeEnd,
         )
       ) {
         throw new BusinessException(
           ErrorCodes.INVALID_INPUT,
-          `Overtime hours (${overtimeStart} - ${overtimeEnd}) cannot overlap with regular work schedule hours (${regularStartTime} - ${regularEndTime})`,
+          `Overtime hours (${overtimeStart} - ${overtimeEnd}) cannot overlap with work schedule hours (${activeStartTime} - ${activeEndTime})`,
           400,
         );
       }
-    }
-
-    // Validate overtime time range
-    if (overtimeStart >= overtimeEnd) {
-      throw new BusinessException(
-        ErrorCodes.INVALID_INPUT,
-        'overtime_start_time must be before overtime_end_time',
-        400,
-      );
     }
   }
 

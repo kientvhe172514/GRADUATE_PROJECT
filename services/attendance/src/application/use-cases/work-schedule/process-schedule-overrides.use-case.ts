@@ -26,14 +26,14 @@ export class ProcessScheduleOverridesUseCase {
     private readonly employeeServiceClient: EmployeeServiceClient,
   ) {}
 
-  // Run at 00:00 and 12:00 server time
-  @Cron('0 0,12 * * *')
+  // Run ONLY at 00:00 (midnight) server time to create shifts for the next day
+  @Cron('0 0 * * *')
   public async handleCron() {
     const nextDay = new Date();
     nextDay.setDate(nextDay.getDate() + 1);
     const dateStr = nextDay.toISOString().split('T')[0];
 
-    this.logger.log(`Processing schedule overrides for date ${dateStr}`);
+    this.logger.log(`🕐 [00:00] Processing schedule overrides for date ${dateStr}`);
 
     const assignments = await this.employeeWorkScheduleRepo.findPendingOverridesForDate(dateStr);
 

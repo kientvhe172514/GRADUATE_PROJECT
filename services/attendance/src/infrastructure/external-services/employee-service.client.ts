@@ -69,6 +69,7 @@ export class EmployeeServiceClient {
   ): Promise<Map<number, EmployeeInfo>> {
     try {
       this.logger.log(`🔍 Fetching ${employeeIds.length} employees`);
+      this.logger.log(`📋 Requested IDs: [${employeeIds.join(', ')}]`);
 
       const response = await firstValueFrom(
         this.employeeClient
@@ -76,15 +77,23 @@ export class EmployeeServiceClient {
           .pipe(timeout(5000)),
       );
 
+      this.logger.debug(`📦 Raw RPC response:`, JSON.stringify(response));
+
       if (!response || !response.data) {
-        this.logger.warn(`⚠️ No employees found`);
+        this.logger.warn(`⚠️ No employees found - response structure invalid`);
+        this.logger.warn(`Response:`, JSON.stringify(response));
         return new Map();
       }
 
       const employees = response.data;
+      this.logger.log(`📊 Response contains ${employees.length} employees`);
+
       const employeeMap = new Map<number, EmployeeInfo>();
 
-      employees.forEach((employee: any) => {
+      employees.forEach((employee: any, index: number) => {
+        this.logger.debug(
+          `Processing employee ${index + 1}: ID=${employee.id}, code=${employee.employee_code}`,
+        );
         employeeMap.set(employee.id, {
           id: employee.id,
           employee_code: employee.employee_code,
@@ -96,7 +105,22 @@ export class EmployeeServiceClient {
         });
       });
 
-      this.logger.log(`✅ Fetched ${employeeMap.size} employees`);
+      const fetchedIds = Array.from(employeeMap.keys()).sort((a, b) => a - b);
+      this.logger.log(
+        `✅ Fetched ${employeeMap.size} employees: [${fetchedIds.join(', ')}]`,
+      );
+
+      // Log missing employees
+      const missingIds = employeeIds.filter((id) => !employeeMap.has(id));
+      if (missingIds.length > 0) {
+        this.logger.warn(
+          `⚠️ Missing ${missingIds.length} employees: [${missingIds.join(', ')}]`,
+        );
+        this.logger.warn(
+          `❌ Employee service did NOT return these IDs - they may not exist in employee database`,
+        );
+      }
+
       return employeeMap;
     } catch (error) {
       this.logger.error(`❌ Failed to fetch employees:`, error);
