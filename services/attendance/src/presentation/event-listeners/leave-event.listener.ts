@@ -1,6 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { DataSource } from 'typeorm';
+import { ShiftStatus, ShiftType } from '../../domain/entities/employee-shift.entity';
 
 interface LeaveApprovedEvent {
   leave_request_id: number;
@@ -47,15 +48,15 @@ export class LeaveEventListener {
         `
         UPDATE employee_shifts
         SET 
-          status = 'ON_LEAVE',
-          notes = COALESCE(notes, '') || ' [Auto-marked ON_LEAVE due to approved leave request #' || $1 || ']',
+          status = '${ShiftStatus.ON_LEAVE}',
+          notes = COALESCE(notes, '') || ' [Auto-marked ${ShiftStatus.ON_LEAVE} due to approved leave request #' || $1 || ']',
           updated_at = NOW()
         WHERE 
           employee_id = $2
           AND shift_date >= $3::date
           AND shift_date <= $4::date
-          AND shift_type = 'REGULAR'
-          AND status IN ('SCHEDULED', 'ABSENT')
+          AND shift_type = '${ShiftType.REGULAR}'
+          AND status IN ('${ShiftStatus.SCHEDULED}', '${ShiftStatus.ABSENT}')
         RETURNING id
       `,
         [
@@ -95,14 +96,14 @@ export class LeaveEventListener {
         `
         UPDATE employee_shifts
         SET 
-          status = 'SCHEDULED',
-          notes = COALESCE(notes, '') || ' [Reverted from ON_LEAVE due to leave cancellation at ' || NOW() || ']',
+          status = '${ShiftStatus.SCHEDULED}',
+          notes = COALESCE(notes, '') || ' [Reverted from ${ShiftStatus.ON_LEAVE} due to leave cancellation at ' || NOW() || ']',
           updated_at = NOW()
         WHERE 
           employee_id = $1
           AND shift_date >= $2::date
           AND shift_date <= $3::date
-          AND status = 'ON_LEAVE'
+          AND status = '${ShiftStatus.ON_LEAVE}'
           AND check_in_time IS NULL
         RETURNING id
       `,

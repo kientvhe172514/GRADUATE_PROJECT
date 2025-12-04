@@ -60,20 +60,44 @@ export class LeaveApprovedEventListener {
         return;
       }
 
-      // Use the first active assignment (employee should typically have one active assignment)
-      // If employee has multiple assignments, we create override for the primary one
-      const assignment = assignments[0];
+      // Find the assignment that covers the leave period
+      // Must check effective_from/effective_to range to select correct assignment
+      const leaveStart = new Date(payload.startDate);
+      const leaveEnd = new Date(payload.endDate);
+      
+      const matchingAssignment = assignments.find((a) => {
+        const assignStart = a.effective_from ? new Date(a.effective_from) : null;
+        const assignEnd = a.effective_to ? new Date(a.effective_to) : null;
+
+        // Assignment must start before or on leave start
+        const startValid = !assignStart || assignStart <= leaveStart;
+        // Assignment must end after or on leave start (or no end date = indefinite)
+        const endValid = !assignEnd || assignEnd >= leaveStart;
+
+        return startValid && endValid;
+      });
+
+      if (!matchingAssignment) {
+        this.logger.warn(
+          `⚠️ No work schedule assignment covers the leave period ${payload.startDate} to ${payload.endDate} ` +
+          `for employee ${payload.employeeId}. Cannot create ON_LEAVE override.`,
+        );
+        return;
+      }
+
+      const assignment = matchingAssignment;
 
       this.logger.debug(
         `Found ${assignments.length} work schedule assignment(s) for employee ${payload.employeeId}. ` +
-        `Using assignment ${assignment.id} (work_schedule_id: ${assignment.work_schedule_id})`,
+        `Using assignment ${assignment.id} (work_schedule_id: ${assignment.work_schedule_id}) ` +
+        `which covers period ${assignment.effective_from || 'unbounded'} to ${assignment.effective_to || 'unbounded'}`,
       );
 
       // Check if override already exists for this leave request
       const existingOverrides = assignment.schedule_overrides || [];
       const duplicateOverride = existingOverrides.find(
         (o) =>
-          o.type === ScheduleOverrideType.ON_LEAVE &&
+          o.type === 'ON_LEAVE' &&
           o.leave_request_id === payload.leaveId,
       );
 

@@ -44,14 +44,21 @@ export class ProcessOnLeaveOverrideService {
     );
 
     if (existingShift) {
-      // Update existing shift to ON_LEAVE status
-      this.logger.debug(
-        `Updating existing shift ${existingShift.id} to ON_LEAVE status`,
-      );
-      await this.employeeShiftRepository.update(existingShift.id, {
-        status: ShiftStatus.ON_LEAVE.valueOf(),
-        notes: `Leave: ${override.reason || 'Approved leave'}`,
-      });
+      // Only update if not already ON_LEAVE (idempotency)
+      if (existingShift.status === ShiftStatus.ON_LEAVE.valueOf()) {
+        this.logger.debug(
+          `Shift ${existingShift.id} already ON_LEAVE, skipping update`,
+        );
+      } else {
+        // Update existing shift to ON_LEAVE status
+        this.logger.debug(
+          `Updating existing shift ${existingShift.id} from ${existingShift.status} to ON_LEAVE status`,
+        );
+        await this.employeeShiftRepository.update(existingShift.id, {
+          status: ShiftStatus.ON_LEAVE.valueOf(),
+          notes: `Leave: ${override.reason || 'Approved leave'}`,
+        });
+      }
     } else {
       // Need to create placeholder shift first
       this.logger.debug(

@@ -24,42 +24,79 @@ export enum ScheduleOverrideStatus {
 }
 
 /**
- * DTO for creating a schedule override (schedule change or overtime)
+ * DTO for creating a schedule override
  * 
- * EXAMPLES BY TYPE:
+ * ⚠️ IMPORTANT: Choose ONE type and fill ONLY the required fields for that type!
  * 
- * 1. SCHEDULE_CHANGE (Thay đổi ca làm việc):
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 📋 TYPE 1: SCHEDULE_CHANGE (Thay đổi lịch làm việc tạm thời)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * Required fields:
+ * - type: "SCHEDULE_CHANGE"
+ * - from_date: "2025-12-01"
+ * - to_date: "2025-12-31" (optional, default = from_date)
+ * - override_work_schedule_id: 5
+ * - reason: "Chuyển sang ca tối tạm thời"
+ * 
+ * Example JSON:
  * {
  *   "type": "SCHEDULE_CHANGE",
  *   "from_date": "2025-12-01",
  *   "to_date": "2025-12-31",
  *   "override_work_schedule_id": 5,
- *   "reason": "Chuyển sang ca tối tạm thời"
+ *   "reason": "Chuyển sang ca tối tạm thời do yêu cầu dự án"
  * }
  * 
- * 2. OVERTIME (Làm thêm giờ):
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * ⏰ TYPE 2: OVERTIME (Đăng ký làm thêm giờ)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * Required fields:
+ * - type: "OVERTIME"
+ * - from_date: "2025-12-15"
+ * - overtime_start_time: "18:00"
+ * - overtime_end_time: "22:00"
+ * - reason: "Làm thêm giờ dự án X"
+ * 
+ * Example JSON:
  * {
  *   "type": "OVERTIME",
  *   "from_date": "2025-12-15",
  *   "overtime_start_time": "18:00",
  *   "overtime_end_time": "22:00",
- *   "reason": "Làm thêm giờ dự án X"
+ *   "reason": "Làm thêm giờ để hoàn thành sprint"
  * }
  * 
- * 3. ON_LEAVE (Nghỉ phép - auto created by leave.approved event):
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 🏖️ TYPE 3: ON_LEAVE (Nghỉ phép - thường tự động tạo)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * Required fields:
+ * - type: "ON_LEAVE"
+ * - from_date: "2025-12-20"
+ * - to_date: "2025-12-22" (optional, default = from_date)
+ * - leave_request_id: 123
+ * - reason: "Annual leave"
+ * 
+ * NOTE: This type is usually auto-created by the system when leave is approved.
+ * Manual creation via API is rarely needed.
+ * 
+ * Example JSON:
  * {
  *   "type": "ON_LEAVE",
  *   "from_date": "2025-12-20",
  *   "to_date": "2025-12-22",
  *   "leave_request_id": 123,
- *   "reason": "Annual leave"
+ *   "reason": "Annual leave - approved"
  * }
  */
 export class AddScheduleOverrideDto {
   @ApiProperty({
     enum: ScheduleOverrideType,
     example: ScheduleOverrideType.SCHEDULE_CHANGE,
-    description: 'Type of override: SCHEDULE_CHANGE, OVERTIME, or ON_LEAVE',
+    description: `Type of override. Choose ONE:
+    
+• SCHEDULE_CHANGE: Change work schedule temporarily
+• OVERTIME: Add overtime hours
+• ON_LEAVE: Mark as on leave (usually auto-created)`,
   })
   @IsEnum(ScheduleOverrideType)
   type: ScheduleOverrideType;
@@ -83,8 +120,7 @@ export class AddScheduleOverrideDto {
 
   @ApiPropertyOptional({
     example: 5,
-    description:
-      'New work schedule ID for SCHEDULE_CHANGE (required if type is SCHEDULE_CHANGE)',
+    description: '🔸 ONLY for SCHEDULE_CHANGE: The new work_schedule_id to use during this period',
   })
   @IsOptional()
   @IsInt()
@@ -93,8 +129,7 @@ export class AddScheduleOverrideDto {
 
   @ApiPropertyOptional({
     example: '18:00',
-    description:
-      'Overtime start time in HH:mm format (required if type is OVERTIME)',
+    description: '🔸 ONLY for OVERTIME: Start time in HH:mm format (24-hour)',
   })
   @IsOptional()
   @IsString()
@@ -106,8 +141,7 @@ export class AddScheduleOverrideDto {
 
   @ApiPropertyOptional({
     example: '22:00',
-    description:
-      'Overtime end time in HH:mm format (required if type is OVERTIME)',
+    description: '🔸 ONLY for OVERTIME: End time in HH:mm format (24-hour)',
   })
   @IsOptional()
   @IsString()
@@ -119,8 +153,7 @@ export class AddScheduleOverrideDto {
 
   @ApiPropertyOptional({
     example: 123,
-    description:
-      'Leave request ID for ON_LEAVE (required if type is ON_LEAVE)',
+    description: '🔸 ONLY for ON_LEAVE: Leave request ID from leave management system',
   })
   @IsOptional()
   @IsInt()

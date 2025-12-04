@@ -38,15 +38,17 @@ export class ProcessScheduleOverridesUseCase {
     nextDay.setDate(nextDay.getDate() + 1);
     const dateStr = nextDay.toISOString().split('T')[0];
 
-    this.logger.log(`🕐 [00:00] Processing schedule overrides for date ${dateStr}`);
+    this.logger.log(`🕐 [00:00] Processing shifts and overrides for date ${dateStr}`);
 
     // Check if next day is a holiday (company-wide check)
     const isHoliday = await this.holidayServiceClient.isHoliday(dateStr);
     if (isHoliday) {
       this.logger.log(`🏖️ ${dateStr} is a holiday - skipping regular shift creation`);
-      // Note: ON_LEAVE overrides will still be processed (they don't need shift creation)
     }
 
+    // STEP 1: Process pending overrides FIRST (ON_LEAVE, SCHEDULE_CHANGE, OVERTIME)
+    // These will create shifts based on override rules
+    this.logger.log(`🔄 Processing schedule overrides for ${dateStr}`);
     const assignments = await this.employeeWorkScheduleRepo.findPendingOverridesForDate(dateStr);
 
     for (const assignment of assignments) {
@@ -86,18 +88,14 @@ export class ProcessScheduleOverridesUseCase {
         }
 
         // Schedule changes: create shifts based on override_work_schedule_id
-        // Skip if it's a holiday (no need to create regular shifts on holidays)
+        // If it's a holiday, leave PENDING for retry when holiday is removed
         for (const change of changes) {
           if (isHoliday) {
             this.logger.log(
-              `Skipping SCHEDULE_CHANGE override ${change.id} - ${dateStr} is a holiday`,
+              `Skipping SCHEDULE_CHANGE override ${change.id} - ${dateStr} is a holiday (will retry later)`,
             );
-            assignment.update_override_status(
-              change.id,
-              ScheduleOverrideStatus.FAILED,
-              'Cannot create shift on holiday',
-            );
-            await this.employeeWorkScheduleRepo.save(assignment);
+            // Keep PENDING status instead of marking FAILED
+            // This allows retry when holiday is removed or on next non-holiday
             continue;
           }
 
@@ -194,6 +192,32 @@ export class ProcessScheduleOverridesUseCase {
           assignment.update_override_status(p.id, ScheduleOverrideStatus.FAILED, (err as any).message || 'Unknown error');
         }
         await this.employeeWorkScheduleRepo.save(assignment);
+      }
+    }
+
+    // STEP 2: Generate regular shifts for employees WITHOUT overrides
+    // Only if it's not a holiday
+    if (!isHoliday) {
+      this.logger.log(`📅 Generating regular shifts for employees without overrides on ${dateStr}`);
+      
+      try {
+        // Get employee IDs that already have overrides processed
+        const employeeIdsWithOverrides = new Set(assignments.map(a => a.employee_id));
+        
+        // Generate shifts for all employees, excluding those with overrides
+        // The generator will skip employees with overrides automatically via skipExisting
+        const result = await this.shiftGeneratorService.generateShifts({
+          startDate: new Date(dateStr),
+          endDate: new Date(dateStr),
+          skipExisting: true, // Skip employees who already have shifts (from overrides)
+        });
+        
+        this.logger.log(
+          `✅ Regular shift generation completed: ${result.shiftsCreated} created, ` +
+          `${result.shiftsSkipped} skipped (overrides or existing), ${result.errors.length} errors`,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to generate regular shifts for ${dateStr}`, error);
       }
     }
 
