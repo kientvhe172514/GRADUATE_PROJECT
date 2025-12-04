@@ -91,11 +91,13 @@ export class EmployeeServiceClient {
       const employeeMap = new Map<number, EmployeeInfo>();
 
       employees.forEach((employee: any, index: number) => {
+        // Ensure ID is a number (RPC might return string)
+        const employeeId = Number(employee.id);
         this.logger.debug(
-          `Processing employee ${index + 1}: ID=${employee.id}, code=${employee.employee_code}`,
+          `Processing employee ${index + 1}: ID=${employeeId} (type: ${typeof employee.id}), code=${employee.employee_code}`,
         );
-        employeeMap.set(employee.id, {
-          id: employee.id,
+        employeeMap.set(employeeId, {
+          id: employeeId,
           employee_code: employee.employee_code,
           email: employee.email,
           full_name: employee.full_name,
