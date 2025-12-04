@@ -237,6 +237,12 @@ export class EmployeeWorkScheduleDto {
   @ApiPropertyOptional({ description: 'Work schedule details if included' })
   work_schedule?: WorkScheduleInfo;
 
+  @ApiPropertyOptional({
+    type: 'array',
+    description: 'Schedule overrides (temporary schedule changes or overtime)',
+  })
+  schedule_overrides?: any[];
+
   constructor(
     entity: EmployeeWorkSchedule & { work_schedule?: WorkScheduleInfo },
   ) {
@@ -261,6 +267,11 @@ export class EmployeeWorkScheduleDto {
           entity.work_schedule.early_leave_tolerance_minutes,
         status: entity.work_schedule.status,
       };
+    }
+
+    // Include schedule_overrides if available
+    if (props.schedule_overrides && Array.isArray(props.schedule_overrides)) {
+      this.schedule_overrides = props.schedule_overrides;
     }
   }
 }

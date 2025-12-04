@@ -103,6 +103,12 @@ export class WorkScheduleAssignmentDto {
     early_leave_tolerance_minutes: number;
     status: string;
   };
+
+  @ApiPropertyOptional({
+    type: 'array',
+    description: 'Schedule overrides (temporary schedule changes or overtime)',
+  })
+  schedule_overrides?: any[];
 }
 
 /**

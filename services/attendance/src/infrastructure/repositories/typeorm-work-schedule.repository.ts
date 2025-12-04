@@ -190,4 +190,27 @@ export class TypeOrmEmployeeWorkScheduleRepository
 
     return schemas.map((schema) => EmployeeWorkScheduleMapper.toDomain(schema));
   }
+
+  /**
+   * Find all assignments with pagination
+   * Used for calendar view when no filters are provided
+   */
+  async findAllAssignments(
+    limit: number,
+    offset: number,
+  ): Promise<{ data: EmployeeWorkSchedule[]; total: number }> {
+    const [schemas, total] = await this.repository.findAndCount({
+      relations: ['work_schedule'],
+      order: { employee_id: 'ASC', effective_from: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+
+    return {
+      data: schemas.map((schema) =>
+        EmployeeWorkScheduleMapper.toDomain(schema),
+      ),
+      total,
+    };
+  }
 }

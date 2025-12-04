@@ -40,4 +40,8 @@ export interface IEmployeeWorkScheduleRepository {
   findAssignmentsByEmployeeIds(
     employeeIds: number[],
   ): Promise<EmployeeWorkSchedule[]>;
+  findAllAssignments(
+    limit: number,
+    offset: number,
+  ): Promise<{ data: EmployeeWorkSchedule[]; total: number }>;
 }
