@@ -96,17 +96,22 @@ export class GetEmployeeShiftCalendarUseCase {
           0,
         );
         allAssignments = result.data as any[];
+        this.logger.log(
+          `📦 Fetched ${allAssignments.length} assignments from database`,
+        );
       }
 
       // Get unique employee IDs from all assignments
       const employeeIds = [
         ...new Set(allAssignments.map((a) => a.employee_id)),
       ] as number[];
+      this.logger.log(`👥 Found ${employeeIds.length} unique employee IDs`);
 
       // Fetch employee info if not already fetched
       if (employeeMap.size === 0 && employeeIds.length > 0) {
         employeeMap =
           await this.employeeServiceClient.getEmployeesByIds(employeeIds);
+        this.logger.log(`✅ Fetched ${employeeMap.size} employees from service`);
       }
 
       // Apply department filter if provided
@@ -137,6 +142,10 @@ export class GetEmployeeShiftCalendarUseCase {
         offset + limit,
       );
 
+      this.logger.log(
+        `📊 Total employees: ${total}, Paginated: ${paginatedEmployeeIds.length}`,
+      );
+
       const employees: EmployeeCalendarDto[] = [];
 
       for (const employeeId of paginatedEmployeeIds) {
@@ -144,6 +153,9 @@ export class GetEmployeeShiftCalendarUseCase {
         const assignments = assignmentsByEmployee.get(employeeId) || [];
 
         if (!employeeInfo) {
+          this.logger.warn(
+            `⚠️ Employee ID ${employeeId} not found in employeeMap`,
+          );
           continue;
         }
 
@@ -207,6 +219,10 @@ export class GetEmployeeShiftCalendarUseCase {
       }
 
       employees.sort((a, b) => a.employee_code.localeCompare(b.employee_code));
+
+      this.logger.log(
+        `🎉 Final result: ${employees.length} employees with assignments`,
+      );
 
       const response: EmployeeShiftCalendarResponseDto = {
         data: employees,
