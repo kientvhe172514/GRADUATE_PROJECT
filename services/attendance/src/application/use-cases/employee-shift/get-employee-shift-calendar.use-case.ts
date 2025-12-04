@@ -120,8 +120,16 @@ export class GetEmployeeShiftCalendarUseCase {
           .filter((emp) => emp.department_id === query.department_id)
           .map((emp) => emp.id);
 
+        this.logger.log(
+          `🔍 Department filter: ${query.department_id}, matching ${filteredEmpIds.length} employees: [${filteredEmpIds.join(', ')}]`,
+        );
+
         allAssignments = allAssignments.filter((a) =>
-          filteredEmpIds.includes(a.employee_id),
+          filteredEmpIds.includes(Number(a.employee_id)), // Convert to number for comparison
+        );
+
+        this.logger.log(
+          `📊 After department filter: ${allAssignments.length} assignments remaining`,
         );
       }
 
