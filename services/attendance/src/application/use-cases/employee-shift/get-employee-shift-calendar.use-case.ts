@@ -90,139 +90,26 @@ export class GetEmployeeShiftCalendarUseCase {
           allAssignments.push(...(assignments as any[]));
         }
       } else {
-        // No filter provided - fetch all assignments with pagination
+        // No filter provided - fetch all assignments
         const result = await this.employeeWorkScheduleRepo.findAllAssignments(
-          limit,
-          offset,
+          999999, // Get all assignments first to group by employee
+          0,
         );
         allAssignments = result.data as any[];
-
-        // Get unique employee IDs from assignments
-        const employeeIds = [
-          ...new Set(allAssignments.map((a) => a.employee_id)),
-        ] as number[];
-
-        if (employeeIds.length > 0) {
-          employeeMap =
-            await this.employeeServiceClient.getEmployeesByIds(employeeIds);
-        }
-
-        // Apply department filter if provided
-        if (query.department_id) {
-          const filteredEmpIds = Array.from(employeeMap.values())
-            .filter((emp) => emp.department_id === query.department_id)
-            .map((emp) => emp.id);
-
-          allAssignments = allAssignments.filter((a) =>
-            filteredEmpIds.includes(a.employee_id),
-          );
-        }
-
-        // Group by employee and paginate
-        const assignmentsByEmployee = new Map<number, any[]>();
-        allAssignments.forEach((assignment) => {
-          if (!assignmentsByEmployee.has(assignment.employee_id)) {
-            assignmentsByEmployee.set(assignment.employee_id, []);
-          }
-          assignmentsByEmployee.get(assignment.employee_id)!.push(assignment);
-        });
-
-        const employeeIdsToShow = Array.from(assignmentsByEmployee.keys());
-        const total = employeeIdsToShow.length;
-
-        const employees: EmployeeCalendarDto[] = [];
-
-        for (const employeeId of employeeIdsToShow) {
-          const employeeInfo = employeeMap.get(employeeId);
-          const assignments = assignmentsByEmployee.get(employeeId) || [];
-
-          if (!employeeInfo) {
-            continue;
-          }
-
-          const assignmentDtos: WorkScheduleAssignmentDto[] = assignments.map(
-            (assignment) => {
-              const ws = (assignment as any).work_schedule;
-              const assignmentEntity = assignment as any;
-              return {
-                assignment_id: assignment.id,
-                work_schedule_id: assignment.work_schedule_id,
-                effective_from: this.formatDate(assignment.effective_from),
-                effective_to: assignment.effective_to
-                  ? this.formatDate(assignment.effective_to)
-                  : undefined,
-                work_schedule: ws
-                  ? {
-                      id: ws.id,
-                      schedule_name: ws.schedule_name,
-                      schedule_type: ws.schedule_type,
-                      start_time: ws.start_time,
-                      end_time: ws.end_time,
-                      break_duration_minutes: ws.break_duration_minutes,
-                      late_tolerance_minutes: ws.late_tolerance_minutes,
-                      early_leave_tolerance_minutes:
-                        ws.early_leave_tolerance_minutes,
-                      status: ws.status,
-                    }
-                  : {
-                      id: 0,
-                      schedule_name: 'Unknown',
-                      schedule_type: 'UNKNOWN',
-                      start_time: undefined,
-                      end_time: undefined,
-                      break_duration_minutes: 0,
-                      late_tolerance_minutes: 0,
-                      early_leave_tolerance_minutes: 0,
-                      status: 'UNKNOWN',
-                    },
-                schedule_overrides:
-                  assignmentEntity.schedule_overrides &&
-                  Array.isArray(assignmentEntity.schedule_overrides)
-                    ? assignmentEntity.schedule_overrides
-                    : [],
-              };
-            },
-          );
-
-          assignmentDtos.sort((a, b) =>
-            b.effective_from.localeCompare(a.effective_from),
-          );
-
-          employees.push({
-            employee_id: employeeInfo.id,
-            employee_code: employeeInfo.employee_code,
-            full_name: employeeInfo.full_name,
-            email: employeeInfo.email,
-            department_name: 'N/A',
-            department_id: employeeInfo.department_id ?? 0,
-            assignments: assignmentDtos,
-          });
-        }
-
-        employees.sort((a, b) =>
-          a.employee_code.localeCompare(b.employee_code),
-        );
-
-        const response: EmployeeShiftCalendarResponseDto = {
-          data: employees,
-          total,
-        };
-
-        return ApiResponseDto.success(
-          response,
-          'Work schedule assignments retrieved successfully',
-        );
       }
 
+      // Get unique employee IDs from all assignments
       const employeeIds = [
         ...new Set(allAssignments.map((a) => a.employee_id)),
       ] as number[];
 
+      // Fetch employee info if not already fetched
       if (employeeMap.size === 0 && employeeIds.length > 0) {
         employeeMap =
           await this.employeeServiceClient.getEmployeesByIds(employeeIds);
       }
 
+      // Apply department filter if provided
       if (query.department_id) {
         const filteredEmpIds = Array.from(employeeMap.values())
           .filter((emp) => emp.department_id === query.department_id)
@@ -233,6 +120,7 @@ export class GetEmployeeShiftCalendarUseCase {
         );
       }
 
+      // Group assignments by employee
       const assignmentsByEmployee = new Map<number, any[]>();
       allAssignments.forEach((assignment) => {
         if (!assignmentsByEmployee.has(assignment.employee_id)) {
@@ -241,6 +129,7 @@ export class GetEmployeeShiftCalendarUseCase {
         assignmentsByEmployee.get(assignment.employee_id)!.push(assignment);
       });
 
+      // Paginate at employee level (not assignment level)
       const employeeIdsToShow = Array.from(assignmentsByEmployee.keys());
       const total = employeeIdsToShow.length;
       const paginatedEmployeeIds = employeeIdsToShow.slice(
