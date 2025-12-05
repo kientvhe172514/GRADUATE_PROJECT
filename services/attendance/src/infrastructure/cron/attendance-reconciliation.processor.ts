@@ -114,8 +114,8 @@ export class AttendanceReconciliationProcessor {
       `
       UPDATE employee_shifts
       SET 
-        status = $1,
-        notes = COALESCE(notes, '') || ' [Reconciled from ABSENT to ' || $1 || ' due to late check-in at ' || NOW() || ']',
+        status = $1::VARCHAR,
+        notes = COALESCE(notes, '') || ' [Reconciled from ABSENT to ' || $1::VARCHAR || ' due to late check-in at ' || NOW() || ']',
         updated_at = NOW()
       WHERE id = $2
     `,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LeaveBalanceEntity } from '../../../domain/entities/leave-balance.entity';
@@ -12,9 +12,24 @@ export class PostgresLeaveBalanceRepository implements ILeaveBalanceRepository {
     private readonly repository: Repository<LeaveBalanceEntity>,
   ) {}
 
-  async findByEmployeeAndYear(employeeId: number, year: number): Promise<LeaveBalanceEntity[]> {
+  async findByEmployeeAndYear(employeeId: number | null, year: number): Promise<LeaveBalanceEntity[]> {
+    if (employeeId === null) {
+      // Return all balances for the year (used for batch operations like accrual)
+      return this.repository.find({ 
+        where: { year },
+        order: { id: 'ASC' }
+      });
+    }
+    // Return balances for specific employee
     return this.repository.find({ 
       where: { employee_id: employeeId, year },
+      order: { id: 'ASC' }
+    });
+  }
+
+  async findByLeaveTypeAndYear(leaveTypeId: number, year: number): Promise<LeaveBalanceEntity[]> {
+    return this.repository.find({
+      where: { leave_type_id: leaveTypeId, year },
       order: { id: 'ASC' }
     });
   }

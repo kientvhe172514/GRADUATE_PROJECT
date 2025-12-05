@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+﻿import { Inject, Injectable } from '@nestjs/common';
 import { ILeaveBalanceRepository } from '../../ports/leave-balance.repository.interface';
 import { ILeaveTypeRepository } from '../../ports/leave-type.repository.interface';
 import { LEAVE_BALANCE_REPOSITORY, LEAVE_TYPE_REPOSITORY } from '../../tokens';
@@ -21,15 +21,20 @@ export class InitializeEmployeeBalancesUseCase {
         results.push(exists);
         continue;
       }
-      const total = Number(lt.max_days_per_year || 0);
+
+      // 🎯 ACCRUAL MODE: Nếu leave type có is_accrued = true, khởi tạo = 0
+      // Sẽ tính từng tháng qua scheduler (monthly cron job)
+      const isAccrued = lt.is_accrued && (lt.accrual_rate || 0) > 0;
+      const initialDays = isAccrued ? 0 : Number(lt.max_days_per_year || 0);
+
       const created = await this.balances.create({
         employee_id: employeeId,
         leave_type_id: lt.id,
         year,
-        total_days: total,
+        total_days: initialDays,          // 0 nếu accrual, 12 nếu full allocation
         used_days: 0,
         pending_days: 0,
-        remaining_days: total,
+        remaining_days: initialDays,      // 0 nếu accrual, 12 nếu full allocation
         carried_over_days: 0,
         adjusted_days: 0,
       });
