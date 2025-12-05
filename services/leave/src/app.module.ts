@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -17,6 +18,7 @@ import { HealthController } from './health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {
