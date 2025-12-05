@@ -71,6 +71,10 @@ export class GetEmployeesAttendanceReportUseCase {
       ? 'WHERE ' + employeeFilters.join(' AND ')
       : '';
     
+    // Calculate pagination parameter indices AFTER all filters are added
+    const limitParamIndex = employeeParams.length + 1;
+    const offsetParamIndex = employeeParams.length + 2;
+    
     const aggregateQuery = `
       WITH employee_list AS (
         SELECT DISTINCT
@@ -139,7 +143,7 @@ export class GetEmployeesAttendanceReportUseCase {
       FROM employee_list el
       LEFT JOIN employee_attendance ea ON ea.employee_id = el.employee_id
       ORDER BY el.employee_code
-      LIMIT $${employeeParams.length + 1} OFFSET $${employeeParams.length + 2}
+      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `;
 
     employeeParams.push(query.limit!, offset);
