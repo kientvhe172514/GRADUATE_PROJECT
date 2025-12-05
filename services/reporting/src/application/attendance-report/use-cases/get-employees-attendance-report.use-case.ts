@@ -25,7 +25,14 @@ export class GetEmployeesAttendanceReportUseCase {
     // 1. Calculate date range based on period
     const { start_date, end_date } = this.calculateDateRange(query);
 
-    // 2. Build filter conditions
+    // 2. Determine if we can use monthly_summaries (fast path) or need to calculate on-the-fly (slow path)
+    const canUsePreCalculated = this.canUseMonthlyPreCalculated(query.period);
+    
+    if (canUsePreCalculated) {
+      return this.executeWithPreCalculatedSummaries(query, start_date, end_date);
+    }
+
+    // 3. Build filter conditions for real-time calculation
     const whereConditions: string[] = [
       `es.shift_date BETWEEN '${start_date}' AND '${end_date}'`,
     ];
@@ -37,13 +44,12 @@ export class GetEmployeesAttendanceReportUseCase {
     }
 
     if (query.search) {
+      const searchPattern = `%${query.search}%`;
       whereConditions.push(
-        `(e.full_name ILIKE $${params.length + 1} OR e.employee_code ILIKE $${params.length + 1})`,
+        `(e.full_name ILIKE $${params.length + 1} OR e.employee_code ILIKE $${params.length + 2})`,
       );
-      params.push(`%${query.search}%`);
+      params.push(searchPattern, searchPattern);
     }
-
-    const whereClause = whereConditions.join(' AND ');
 
     // 3. Get aggregated attendance data
     const offset = (query.page! - 1) * query.limit!;
@@ -280,6 +286,128 @@ export class GetEmployeesAttendanceReportUseCase {
     return {
       start_date: start.toISOString().split('T')[0],
       end_date: end.toISOString().split('T')[0],
+    };
+  }
+
+  /**
+   * Check if we can use pre-calculated monthly summaries
+   * Supports MONTH, QUARTER, YEAR periods
+   */
+  private canUseMonthlyPreCalculated(period?: string): boolean {
+    return (
+      period === ReportPeriod.MONTH ||
+      period === ReportPeriod.QUARTER ||
+      period === ReportPeriod.YEAR
+    );
+  }
+
+  /**
+   * Execute report using pre-calculated monthly summaries (Fast Path)
+   * Much faster than calculating on-the-fly
+   */
+  private async executeWithPreCalculatedSummaries(
+    query: EmployeesAttendanceReportQueryDto,
+    start_date: string,
+    end_date: string,
+  ): Promise<EmployeesAttendanceReportResponseDto> {
+    const offset = (query.page! - 1) * query.limit!;
+
+    // Build filters
+    const filters: string[] = [];
+    const params: any[] = [];
+
+    filters.push(
+      `MAKE_DATE(year, month, 1) BETWEEN '${start_date}'::date AND '${end_date}'::date`,
+    );
+
+    if (query.department_id) {
+      filters.push(`department_id = $${params.length + 1}`);
+      params.push(query.department_id);
+    }
+
+    if (query.search) {
+      const searchPattern = `%${query.search}%`;
+      filters.push(
+        `(employee_name ILIKE $${params.length + 1} OR employee_code ILIKE $${params.length + 2})`,
+      );
+      params.push(searchPattern, searchPattern);
+    }
+
+    const whereClause =
+      filters.length > 0 ? 'WHERE ' + filters.join(' AND ') : '';
+
+    // Calculate pagination parameter indices
+    const limitIndex = params.length + 1;
+    const offsetIndex = params.length + 2;
+
+    // Query from pre-calculated monthly_summaries
+    const summaryQuery = `
+      SELECT
+        employee_id,
+        employee_code,
+        employee_name as full_name,
+        department_id,
+        department_name,
+        COALESCE(SUM(actual_work_days), 0)::integer as working_days,
+        COALESCE(SUM(total_work_hours), 0)::numeric(10,2) as total_working_hours,
+        COALESCE(SUM(total_overtime_hours), 0)::numeric(10,2) as total_overtime_hours,
+        COALESCE(SUM(late_count), 0)::integer as total_late_count,
+        COALESCE(SUM(early_leave_count), 0)::integer as total_early_leave_count,
+        COALESCE(SUM(absent_days), 0)::integer as total_absent_days,
+        COALESCE(SUM(leave_days), 0)::numeric(5,2) as total_leave_days,
+        CASE 
+          WHEN SUM(actual_work_days) > 0 
+          THEN ROUND(AVG(attendance_rate), 2)
+          ELSE 0
+        END as attendance_rate
+      FROM monthly_summaries
+      ${whereClause}
+      GROUP BY employee_id, employee_code, employee_name, department_id, department_name
+      ORDER BY employee_code
+      LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `;
+
+    params.push(query.limit!, offset);
+
+    const results = await this.dataSource.query(summaryQuery, params);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(DISTINCT employee_id) as total
+      FROM monthly_summaries
+      ${whereClause}
+    `;
+
+    const countParams = params.slice(0, params.length - 2); // Remove LIMIT/OFFSET params
+    const [{ total }] = await this.dataSource.query(countQuery, countParams);
+
+    // Map to response DTO
+    const data: EmployeeAttendanceSummaryDto[] = results.map((row: any) => ({
+      employee_id: row.employee_id,
+      employee_code: row.employee_code,
+      full_name: row.full_name,
+      department_id: row.department_id,
+      department_name: row.department_name,
+      working_days: row.working_days,
+      total_working_hours: parseFloat(row.total_working_hours),
+      total_overtime_hours: parseFloat(row.total_overtime_hours),
+      total_late_count: row.total_late_count,
+      total_early_leave_count: row.total_early_leave_count,
+      total_absent_days: row.total_absent_days,
+      total_leave_days: parseFloat(row.total_leave_days),
+      manday: row.working_days + row.total_absent_days,
+      attendance_rate: parseFloat(row.attendance_rate) || 0,
+    }));
+
+    return {
+      data,
+      total,
+      page: query.page!,
+      limit: query.limit!,
+      total_pages: Math.ceil(total / query.limit!),
+      period: query.period || 'MONTH',
+      start_date,
+      end_date,
     };
   }
 }
