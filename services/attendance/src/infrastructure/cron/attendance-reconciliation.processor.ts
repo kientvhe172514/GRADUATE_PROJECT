@@ -125,16 +125,15 @@ export class AttendanceReconciliationProcessor {
     // Update violation status if exists
     await this.dataSource.query(
       `
-      UPDATE attendance_violations
+      UPDATE violations
       SET 
-        status = 'RESOLVED_LATE_CHECKIN',
         resolution_notes = 'Employee checked in late at ' || $1 || '. System auto-reconciled from ABSENT.',
         resolved_at = NOW(),
-        updated_at = NOW()
+        resolved = true
       WHERE 
         shift_id = $2
         AND violation_type = 'ABSENT'
-        AND status = 'UNRESOLVED'
+        AND resolved = false
     `,
       [shift.check_in_time, shift.shift_id],
     );

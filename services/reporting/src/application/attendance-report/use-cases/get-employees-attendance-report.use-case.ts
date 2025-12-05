@@ -58,10 +58,11 @@ export class GetEmployeesAttendanceReportUseCase {
     }
     
     if (query.search) {
+      const searchPattern = `%${query.search}%`;
       employeeFilters.push(
-        `(e.full_name ILIKE $${employeeParams.length + 1} OR e.employee_code ILIKE $${employeeParams.length + 1})`
+        `(e.full_name ILIKE $${employeeParams.length + 1} OR e.employee_code ILIKE $${employeeParams.length + 2})`
       );
-      employeeParams.push(`%${query.search}%`);
+      employeeParams.push(searchPattern, searchPattern);
     }
     
     // Combine employee filters with status filter

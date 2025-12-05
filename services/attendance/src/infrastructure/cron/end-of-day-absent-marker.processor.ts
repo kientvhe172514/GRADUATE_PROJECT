@@ -193,16 +193,14 @@ export class EndOfDayAbsentMarkerProcessor {
     const values = shifts
       .map(
         (s) =>
-          `(${s.employee_id}, '${s.employee_code}', ${s.department_id}, ` +
-          `${s.shift_id}, '${this.formatShiftDate(s.shift_date)}', ` +
-          `'ABSENT', 'Không điểm danh trong ngày làm việc', 'UNRESOLVED', NOW())`,
+          `(${s.employee_id}, ${s.shift_id}, 'ABSENT', 'HIGH', ` +
+          `'Không điểm danh trong ngày làm việc', NOW(), false)`,
       )
       .join(',\n');
 
     const query = `
-      INSERT INTO attendance_violations (
-        employee_id, employee_code, department_id, shift_id, violation_date,
-        violation_type, description, status, created_at
+      INSERT INTO violations (
+        employee_id, shift_id, violation_type, severity, description, detected_at, resolved
       )
       VALUES ${values}
       ON CONFLICT (shift_id, violation_type) DO NOTHING

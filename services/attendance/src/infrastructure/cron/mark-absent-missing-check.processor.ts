@@ -168,22 +168,20 @@ export class MarkAbsentMissingCheckProcessor {
     // Create violation record
     await this.dataSource.query(
       `
-      INSERT INTO attendance_violations (
+      INSERT INTO violations (
         shift_id,
         employee_id,
         violation_type,
         severity,
         description,
         detected_at,
-        status,
-        created_at
+        resolved
       ) VALUES (
         $1, $2, $3, 
         CASE WHEN $3 = 'MISSING_CHECK_IN' THEN 'CRITICAL' ELSE 'HIGH' END,
         $4,
         NOW(),
-        'UNRESOLVED',
-        NOW()
+        false
       )
       ON CONFLICT (shift_id, violation_type) DO NOTHING
     `,
