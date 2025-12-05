@@ -64,6 +64,8 @@ export class GetEmployeesAttendanceReportUseCase {
       employeeParams.push(`%${query.search}%`);
     }
     
+    // Combine employee filters with status filter
+    employeeFilters.push(`e.status = 'ACTIVE'`);
     const employeeWhereClause = employeeFilters.length > 0 
       ? 'WHERE ' + employeeFilters.join(' AND ')
       : '';
@@ -79,7 +81,6 @@ export class GetEmployeesAttendanceReportUseCase {
           e.position_name
         FROM employees_cache e
         ${employeeWhereClause}
-        WHERE e.status = 'ACTIVE'
       ),
       employee_attendance AS (
         SELECT 
