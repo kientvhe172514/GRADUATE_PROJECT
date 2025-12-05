@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
@@ -14,10 +15,12 @@ import { AttendanceReportModule } from './application/attendance-report/attendan
 import { AttendanceEventListener } from './presentation/event-listeners/attendance-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
+import { MonthlySummaryProcessor } from './infrastructure/cron/monthly-summary.processor';
 import { HealthController } from './health.controller';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     PrometheusModule.register({
       path: '/metrics',
@@ -94,6 +97,7 @@ import { HealthController } from './health.controller';
   ],
   controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
   providers: [
+    MonthlySummaryProcessor,
     {
       provide: APP_GUARD,
       useFactory: (reflector, jwtService) => {
