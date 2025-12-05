@@ -32,8 +32,8 @@ export class ListOvertimeRequestsUseCase {
 
     // Extract unique employee IDs from overtime requests
     const employeeIds = [
-      ...new Set(requests.map((request) => request.employee_id)),
-    ];
+      ...new Set(requests.map((request) => Number(request.employee_id))),
+    ] as number[];
 
     // Fetch employee information in batch (one call to employee service)
     let employeeMap = new Map<number, EmployeeInfo>();

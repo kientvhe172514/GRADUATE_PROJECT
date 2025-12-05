@@ -23,8 +23,8 @@ export class GetPendingOvertimeRequestsUseCase {
 
     // Extract unique employee IDs from overtime requests
     const employeeIds = [
-      ...new Set(requests.map((request) => request.employee_id)),
-    ];
+      ...new Set(requests.map((request) => Number(request.employee_id))),
+    ] as number[];
 
     // Fetch employee information in batch
     let employeeMap = new Map<number, EmployeeInfo>();

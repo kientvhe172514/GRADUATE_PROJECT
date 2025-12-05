@@ -40,9 +40,13 @@ export class GetEmployeeShiftCalendarUseCase {
 
       // Step 1: Determine target employee IDs
       if (query.employee_ids && query.employee_ids.length > 0) {
+        // Ensure all IDs are numbers
+        const numericEmployeeIds = query.employee_ids.map(
+          (id) => Number(id),
+        );
         // Fetch employee info first
         employeeMap = await this.employeeServiceClient.getEmployeesByIds(
-          query.employee_ids,
+          numericEmployeeIds,
         );
 
         // If employee_name search is provided, filter by name
@@ -61,8 +65,8 @@ export class GetEmployeeShiftCalendarUseCase {
             );
           }
         } else {
-          // Use all provided employee IDs
-          targetEmployeeIds = query.employee_ids;
+          // Use all provided employee IDs (as numbers)
+          targetEmployeeIds = numericEmployeeIds;
         }
       } else if (query.employee_name) {
         // If only employee_name provided without IDs, we can't search
