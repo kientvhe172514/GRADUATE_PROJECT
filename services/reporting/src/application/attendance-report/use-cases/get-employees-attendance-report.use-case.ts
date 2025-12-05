@@ -215,7 +215,6 @@ export class GetEmployeesAttendanceReportUseCase {
       SELECT COUNT(DISTINCT e.employee_id) as total
       FROM employees_cache e
       ${employeeWhereClause}
-      WHERE e.status = 'ACTIVE'
     `;
     const [countResult] = await this.dataSource.query(countQuery, employeeParams.slice(0, -2));
     const total = Number(countResult?.total || 0);
