@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ILeaveRecordRepository } from '../../ports/leave-record.repository.interface';
 import { LEAVE_RECORD_REPOSITORY } from '../../tokens';
 import { GetLeaveRecordsQueryDto, LeaveRecordResponseDto } from '../dto/leave-record.dto';
+import { ApiResponseDto } from '@graduate-project/shared-common';
 
 @Injectable()
 export class GetLeaveRecordsUseCase {
@@ -10,7 +11,13 @@ export class GetLeaveRecordsUseCase {
     private readonly leaveRecordRepository: ILeaveRecordRepository,
   ) {}
 
-  async execute(filters: GetLeaveRecordsQueryDto): Promise<LeaveRecordResponseDto[]> {
+  async execute(
+    filters: GetLeaveRecordsQueryDto,
+  ): Promise<ApiResponseDto<{ data: LeaveRecordResponseDto[]; total: number; page: number; limit: number; totalPages: number }>> {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
     // If date range is provided, use date range query
     if (filters.start_date && filters.end_date) {
       const startDate = new Date(filters.start_date);
@@ -19,19 +26,32 @@ export class GetLeaveRecordsUseCase {
 
       // Apply additional filters
       if (filters.employee_id !== undefined && filters.employee_id !== null) {
-        results = results.filter(r => r.employee_id === filters.employee_id);
+        results = results.filter((r) => r.employee_id === filters.employee_id);
       }
       if (filters.status !== undefined && filters.status !== null && (filters.status as string) !== '') {
-        results = results.filter(r => r.status === filters.status);
+        results = results.filter((r) => r.status === filters.status);
       }
       if (filters.leave_type_id !== undefined && filters.leave_type_id !== null) {
-        results = results.filter(r => r.leave_type_id === filters.leave_type_id);
+        results = results.filter((r) => r.leave_type_id === filters.leave_type_id);
       }
       if (filters.department_id !== undefined && filters.department_id !== null) {
-        results = results.filter(r => r.department_id === filters.department_id);
+        results = results.filter((r) => r.department_id === filters.department_id);
       }
 
-      return results as LeaveRecordResponseDto[];
+      const total = results.length;
+      const paginatedResults = results.slice(skip, skip + limit);
+      const totalPages = Math.ceil(total / limit);
+
+      return ApiResponseDto.success(
+        {
+          data: paginatedResults as LeaveRecordResponseDto[],
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+        'Leave records retrieved successfully',
+      );
     }
 
     // Otherwise use findAll with filters
@@ -49,8 +69,24 @@ export class GetLeaveRecordsUseCase {
       queryFilters.department_id = filters.department_id;
     }
 
-    const results = await this.leaveRecordRepository.findAll(Object.keys(queryFilters).length > 0 ? queryFilters : undefined);
-    return results as LeaveRecordResponseDto[];
+    const results = await this.leaveRecordRepository.findAll(
+      Object.keys(queryFilters).length > 0 ? queryFilters : undefined,
+    );
+    const total = results.length;
+    const paginatedResults = results.slice(skip, skip + limit);
+    const totalPages = Math.ceil(total / limit);
+
+    return ApiResponseDto.success(
+      {
+        data: paginatedResults as LeaveRecordResponseDto[],
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+      'Leave records retrieved successfully',
+    );
   }
 }
+
 

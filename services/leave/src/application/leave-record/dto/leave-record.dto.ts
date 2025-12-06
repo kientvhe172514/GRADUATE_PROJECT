@@ -243,6 +243,18 @@ export class GetLeaveRecordsQueryDto {
   @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
   @IsInt()
   department_id?: number;
+
+  @ApiProperty({ required: false, description: 'Page number (default: 1)' })
+  @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : 1)
+  @IsInt()
+  page?: number;
+
+  @ApiProperty({ required: false, description: 'Records per page (default: 10)' })
+  @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : 10)
+  @IsInt()
+  limit?: number;
 }
 
 export class LeaveRecordStatsDto {

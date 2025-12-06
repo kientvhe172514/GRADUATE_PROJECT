@@ -136,9 +136,9 @@ export class LeaveRecordController {
   @Permissions('leave.request.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get all leave records with filters',
+    summary: 'Get all leave records with filters and pagination',
     description:
-      'Retrieve leave records filtered by employee, status, leave type, date range, or department',
+      'Retrieve leave records filtered by employee, status, leave type, date range, or department with pagination support',
   })
   @ApiQuery({ name: 'employee_id', required: false, type: Number })
   @ApiQuery({
@@ -160,13 +160,14 @@ export class LeaveRecordController {
     example: '2025-12-31',
   })
   @ApiQuery({ name: 'department_id', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiResponse({ status: 200, type: ApiResponseDto })
   async getAll(
     @Query() filters: GetLeaveRecordsQueryDto,
-  ): Promise<ApiResponseDto<LeaveRecordResponseDto[]>> {
+  ): Promise<ApiResponseDto<{ data: LeaveRecordResponseDto[]; total: number; page: number; limit: number; totalPages: number }>> {
     const result = await this.getLeaveRecordsUseCase.execute(filters);
-    const data = plainToInstance(LeaveRecordResponseDto, result);
-    return ApiResponseDto.success(data, 'Leave records retrieved successfully');
+    return result;
   }
 
   @Get(':id')
