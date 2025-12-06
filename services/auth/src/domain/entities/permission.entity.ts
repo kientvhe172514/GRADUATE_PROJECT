@@ -9,7 +9,7 @@ export class Permission {
   description?: string;
   is_system_permission: boolean = false; // System permissions cannot be deleted
   status: PermissionStatus = PermissionStatus.ACTIVE;
-  
+
   // Audit
   created_at?: Date;
   updated_at?: Date;

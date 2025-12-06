@@ -5,11 +5,11 @@ import { ApiResponseDto } from '@graduate-project/shared-common';
 import { RefreshTokensRepositoryPort } from '../ports/refresh-tokens.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { JwtServicePort } from '../ports/jwt.service.port';
-import { 
-  HASHING_SERVICE, 
-  REFRESH_TOKENS_REPOSITORY, 
+import {
+  HASHING_SERVICE,
+  REFRESH_TOKENS_REPOSITORY,
   JWT_SERVICE,
-  AUDIT_LOGS_REPOSITORY
+  AUDIT_LOGS_REPOSITORY,
 } from '../tokens';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
 import { AuditLogs } from '../../domain/entities/audit-logs.entity';
@@ -33,34 +33,65 @@ export class LogoutUseCase {
     private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
-  async execute(logoutDto: LogoutRequestDto, accountId?: number, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LogoutResponseDto>> {
+  async execute(
+    logoutDto: LogoutRequestDto,
+    accountId?: number,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<ApiResponseDto<LogoutResponseDto>> {
     if (logoutDto.refresh_token) {
       // Revoke specific refresh token
-      await this.revokeRefreshToken(logoutDto.refresh_token, accountId, ipAddress, userAgent);
+      await this.revokeRefreshToken(
+        logoutDto.refresh_token,
+        accountId,
+        ipAddress,
+        userAgent,
+      );
     } else if (accountId) {
       // Revoke all refresh tokens for the account
       await this.refreshTokensRepo.revokeAllTokensForAccount(accountId);
-      await this.logSuccessfulLogout(accountId, ipAddress, userAgent, 'All tokens revoked');
+      await this.logSuccessfulLogout(
+        accountId,
+        ipAddress,
+        userAgent,
+        'All tokens revoked',
+      );
     } else {
-      await this.logFailedLogout(null, ipAddress, userAgent, 'No refresh token or account ID provided');
-      throw new UnauthorizedException('No refresh token or account ID provided');
+      await this.logFailedLogout(
+        null,
+        ipAddress,
+        userAgent,
+        'No refresh token or account ID provided',
+      );
+      throw new UnauthorizedException(
+        'No refresh token or account ID provided',
+      );
     }
 
-    return ApiResponseDto.success({ message: 'Logged out successfully' }, 'Logout successful');
+    return ApiResponseDto.success(
+      { message: 'Logged out successfully' },
+      'Logout successful',
+    );
   }
 
-  private async revokeRefreshToken(refreshToken: string, accountId?: number, ipAddress?: string, userAgent?: string): Promise<void> {
+  private async revokeRefreshToken(
+    refreshToken: string,
+    accountId?: number,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
     try {
       // Verify the token first
       const payload = this.jwtService.verifyToken(refreshToken);
-      
+
       // Find the token in database
       const tokenHash = await this.hashing.hash(refreshToken);
-      const refreshTokenRecord = await this.refreshTokensRepo.findByTokenHash(tokenHash);
-      
+      const refreshTokenRecord =
+        await this.refreshTokensRepo.findByTokenHash(tokenHash);
+
       if (refreshTokenRecord) {
         await this.refreshTokensRepo.revokeToken(refreshTokenRecord.id!);
-        
+
         // Log device activity
         if (refreshTokenRecord.device_session_id) {
           try {
@@ -79,15 +110,30 @@ export class LogoutUseCase {
             console.error('Device activity logging error:', error);
           }
         }
-        
-        await this.logSuccessfulLogout(payload.sub, ipAddress, userAgent, 'Token revoked');
+
+        await this.logSuccessfulLogout(
+          payload.sub,
+          ipAddress,
+          userAgent,
+          'Token revoked',
+        );
       } else {
-        await this.logFailedLogout(payload.sub, ipAddress, userAgent, 'Token not found');
+        await this.logFailedLogout(
+          payload.sub,
+          ipAddress,
+          userAgent,
+          'Token not found',
+        );
       }
     } catch (error) {
       // Token is invalid, but we still return success for security
       // This prevents token enumeration attacks
-      await this.logFailedLogout(accountId || null, ipAddress, userAgent, 'Invalid token');
+      await this.logFailedLogout(
+        accountId || null,
+        ipAddress,
+        userAgent,
+        'Invalid token',
+      );
     }
   }
 
@@ -95,7 +141,7 @@ export class LogoutUseCase {
     accountId: number | null,
     ipAddress?: string,
     userAgent?: string,
-    message?: string
+    message?: string,
   ): Promise<void> {
     const auditLog = new AuditLogs();
     auditLog.account_id = accountId;
@@ -105,7 +151,7 @@ export class LogoutUseCase {
     auditLog.success = true;
     auditLog.metadata = { message };
     auditLog.created_at = new Date();
-    
+
     await this.auditLogsRepo.create(auditLog);
   }
 
@@ -113,7 +159,7 @@ export class LogoutUseCase {
     accountId: number | null,
     ipAddress?: string,
     userAgent?: string,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<void> {
     const auditLog = new AuditLogs();
     auditLog.account_id = accountId;
@@ -123,7 +169,7 @@ export class LogoutUseCase {
     auditLog.success = false;
     auditLog.error_message = errorMessage;
     auditLog.created_at = new Date();
-    
+
     await this.auditLogsRepo.create(auditLog);
   }
 }

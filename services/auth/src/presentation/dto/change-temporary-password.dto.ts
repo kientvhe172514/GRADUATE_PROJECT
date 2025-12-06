@@ -2,13 +2,17 @@ import { IsString, MinLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ChangeTemporaryPasswordDto {
-  @ApiProperty({ example: 'temp_password_123', description: 'Current temporary password from email' })
+  @ApiProperty({
+    example: 'temp_password_123',
+    description: 'Current temporary password from email',
+  })
   @IsString()
   current_password: string;
 
   @ApiProperty({
     example: 'NewPass@123',
-    description: 'New password (min 8 chars, must contain uppercase, lowercase, number)',
+    description:
+      'New password (min 8 chars, must contain uppercase, lowercase, number)',
   })
   @IsString()
   @MinLength(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })

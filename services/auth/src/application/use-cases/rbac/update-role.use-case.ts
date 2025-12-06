@@ -1,7 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { UpdateRoleResponseDto } from '../../dto/role/update-role-response.dto';
 
 export interface UpdateRoleInput {
@@ -19,7 +23,10 @@ export class UpdateRoleUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(roleId: number, input: UpdateRoleInput): Promise<ApiResponseDto<UpdateRoleResponseDto>> {
+  async execute(
+    roleId: number,
+    input: UpdateRoleInput,
+  ): Promise<ApiResponseDto<UpdateRoleResponseDto>> {
     // Get existing role
     const existingRole = await this.roleRepo.findById(roleId);
     if (!existingRole) {
@@ -55,13 +62,13 @@ export class UpdateRoleUseCase {
       name: role.name || input.name || existingRole.name,
       description: role.description || input.description,
       level: role.level || input.level || existingRole.level,
-      status: (role.status as string) || input.status || existingRole.status as string,
+      status:
+        (role.status as string) ||
+        input.status ||
+        (existingRole.status as string),
       updated_at: role.updated_at!,
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Role updated successfully',
-    );
+    return ApiResponseDto.success(response, 'Role updated successfully');
   }
 }

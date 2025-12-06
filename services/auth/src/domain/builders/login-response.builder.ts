@@ -13,7 +13,7 @@ export class LoginResponseBuilder {
         email: '',
         full_name: '',
         role: '',
-      }
+      },
     };
   }
 
@@ -23,12 +23,17 @@ export class LoginResponseBuilder {
     return this;
   }
 
-  withUser(id: number, email: string, fullName: string, role: string): LoginResponseBuilder {
-    const userInfo: UserInfoDto = { 
-      id, 
-      email, 
-      full_name: fullName, 
-      role 
+  withUser(
+    id: number,
+    email: string,
+    fullName: string,
+    role: string,
+  ): LoginResponseBuilder {
+    const userInfo: UserInfoDto = {
+      id,
+      email,
+      full_name: fullName,
+      role,
     };
     this.response.user = userInfo;
     return this;

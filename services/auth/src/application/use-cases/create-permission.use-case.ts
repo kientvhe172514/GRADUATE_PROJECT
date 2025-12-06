@@ -31,7 +31,9 @@ export class CreatePermissionUseCase {
     // Check if code already exists (business rule: unique permission code)
     const existing = await this.permissionRepository.findByCode?.(command.code);
     if (existing) {
-      throw new ConflictException(`Permission with code "${command.code}" already exists`);
+      throw new ConflictException(
+        `Permission with code "${command.code}" already exists`,
+      );
     }
 
     // Create permission

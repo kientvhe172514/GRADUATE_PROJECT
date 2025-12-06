@@ -31,7 +31,11 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
     return await this.repository.findOne({ where: { code } as any });
   }
 
-  async findAll(filters?: { status?: string; page?: number; limit?: number }): Promise<{ roles: any[]; total: number }> {
+  async findAll(filters?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ roles: any[]; total: number }> {
     const page = filters?.page || 1;
     const limit = filters?.limit || 20;
     const offset = (page - 1) * limit;
@@ -39,7 +43,11 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
     const queryBuilder = this.repository.createQueryBuilder('role');
 
     // Filter by status - check for truthy value and non-empty string
-    if (filters?.status !== undefined && filters?.status !== null && filters?.status !== '') {
+    if (
+      filters?.status !== undefined &&
+      filters?.status !== null &&
+      filters?.status !== ''
+    ) {
       queryBuilder.where('role.status = :status', { status: filters.status });
     }
 
@@ -99,27 +107,32 @@ export class PostgresRoleRepository implements RoleRepositoryPort {
     await this.repository.delete(id);
   }
 
-  async assignPermissions(roleId: number, permissionIds: number[]): Promise<void> {
+  async assignPermissions(
+    roleId: number,
+    permissionIds: number[],
+  ): Promise<void> {
     // ✅ APPEND MODE: Only insert new permissions (do not delete existing ones)
     // The use-case layer already filters out duplicate permissions
-    
+
     if (permissionIds.length > 0) {
-      const values = permissionIds.map((permId) => `(${roleId}, ${permId})`).join(',');
-      
+      const values = permissionIds
+        .map((permId) => `(${roleId}, ${permId})`)
+        .join(',');
+
       // Use INSERT ... ON CONFLICT DO NOTHING to avoid errors if permission already exists
       await this.repository.query(
         `INSERT INTO role_permissions (role_id, permission_id) 
          VALUES ${values}
-         ON CONFLICT (role_id, permission_id) DO NOTHING`
+         ON CONFLICT (role_id, permission_id) DO NOTHING`,
       );
     }
   }
 
   async removePermission(roleId: number, permissionId: number): Promise<void> {
-    await this.repository.query('DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2', [
-      roleId,
-      permissionId,
-    ]);
+    await this.repository.query(
+      'DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2',
+      [roleId, permissionId],
+    );
   }
 
   async getRolePermissions(roleId: number): Promise<any[]> {

@@ -14,7 +14,9 @@ export class TemporaryPasswordsMapper {
     return tempPassword;
   }
 
-  static toPersistence(tempPassword: TemporaryPasswords): TemporaryPasswordsEntity {
+  static toPersistence(
+    tempPassword: TemporaryPasswords,
+  ): TemporaryPasswordsEntity {
     const entity = new TemporaryPasswordsEntity();
     entity.id = tempPassword.id;
     entity.account_id = tempPassword.account_id;

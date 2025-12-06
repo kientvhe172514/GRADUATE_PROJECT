@@ -1,4 +1,9 @@
-import { Injectable, Inject, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { ChangeTemporaryPasswordResponseDto } from '../dto/change-temporary-password-response.dto';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -43,9 +48,12 @@ export class ChangeTemporaryPasswordUseCase {
     }
 
     // 2. Find active temporary password
-    const activeTempPassword = await this.tempPasswordsRepo.findActiveByAccountId(accountId);
+    const activeTempPassword =
+      await this.tempPasswordsRepo.findActiveByAccountId(accountId);
     if (!activeTempPassword) {
-      throw new BadRequestException('Không có mật khẩu tạm hoặc mật khẩu tạm đã hết hạn');
+      throw new BadRequestException(
+        'Không có mật khẩu tạm hoặc mật khẩu tạm đã hết hạn',
+      );
     }
 
     // 3. Verify temporary password
@@ -54,7 +62,11 @@ export class ChangeTemporaryPasswordUseCase {
       activeTempPassword.temp_password_hash,
     );
     if (!isTempPasswordValid) {
-      await this.logFailedAttempt(accountId, account.email, 'Invalid temporary password');
+      await this.logFailedAttempt(
+        accountId,
+        account.email,
+        'Invalid temporary password',
+      );
       throw new UnauthorizedException('Mật khẩu tạm không đúng');
     }
 
@@ -64,9 +76,14 @@ export class ChangeTemporaryPasswordUseCase {
     }
 
     // Prevent reusing the same temporary password
-    const isSameAsTemporary = await this.hashing.compare(dto.new_password, activeTempPassword.temp_password_hash);
+    const isSameAsTemporary = await this.hashing.compare(
+      dto.new_password,
+      activeTempPassword.temp_password_hash,
+    );
     if (isSameAsTemporary) {
-      throw new BadRequestException('Mật khẩu mới không được trùng với mật khẩu tạm');
+      throw new BadRequestException(
+        'Mật khẩu mới không được trùng với mật khẩu tạm',
+      );
     }
 
     // 5. Hash new password and update
@@ -95,10 +112,7 @@ export class ChangeTemporaryPasswordUseCase {
       message: 'Mật khẩu đã được thay đổi thành công',
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Đổi mật khẩu thành công',
-    );
+    return ApiResponseDto.success(response, 'Đổi mật khẩu thành công');
   }
 
   private async logFailedAttempt(

@@ -3,9 +3,17 @@ import { Account } from '../../domain/entities/account.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { RoleRepositoryPort } from '../ports/role.repository.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, ROLE_REPOSITORY, EVENT_PUBLISHER } from '../tokens';
+import {
+  ACCOUNT_REPOSITORY,
+  ROLE_REPOSITORY,
+  EVENT_PUBLISHER,
+} from '../tokens';
 import { AccountUpdatedEventDto } from '../dto/account-updated.event.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { UpdateAccountResponseDto } from '../dto/update-account-response.dto';
 
 export interface UpdateAccountDto {
@@ -34,25 +42,41 @@ export class UpdateAccountUseCase {
     private eventPublisher: EventPublisherPort,
   ) {}
 
-  async execute(id: number, dto: UpdateAccountDto): Promise<ApiResponseDto<UpdateAccountResponseDto>> {
+  async execute(
+    id: number,
+    dto: UpdateAccountDto,
+  ): Promise<ApiResponseDto<UpdateAccountResponseDto>> {
     const existingAccount = await this.accountRepository.findById(id);
     if (!existingAccount) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found', 404);
+      throw new BusinessException(
+        ErrorCodes.ACCOUNT_NOT_FOUND,
+        'Account not found',
+        404,
+      );
     }
 
     // Check for duplicate email if email is being updated
     if (dto.email && dto.email !== existingAccount.email) {
       const emailExists = await this.accountRepository.findByEmail(dto.email);
       if (emailExists) {
-        throw new BusinessException(ErrorCodes.ACCOUNT_ALREADY_EXISTS, 'Account email already exists', 409);
+        throw new BusinessException(
+          ErrorCodes.ACCOUNT_ALREADY_EXISTS,
+          'Account email already exists',
+          409,
+        );
       }
     }
 
     // If role is provided, lookup role_id from roles table
     if (dto.role) {
       const roleCode = dto.role.toUpperCase();
-      const validRoles = ['ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'];
-      
+      const validRoles = [
+        'ADMIN',
+        'HR_MANAGER',
+        'DEPARTMENT_MANAGER',
+        'EMPLOYEE',
+      ];
+
       if (!validRoles.includes(roleCode)) {
         throw new BusinessException(
           ErrorCodes.BAD_REQUEST,

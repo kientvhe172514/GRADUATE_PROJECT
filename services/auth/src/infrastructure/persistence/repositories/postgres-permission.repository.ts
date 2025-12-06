@@ -25,11 +25,15 @@ export class PostgresPermissionRepository implements PermissionRepositoryPort {
     const queryBuilder = this.repository.createQueryBuilder('permission');
 
     if (filters?.resource) {
-      queryBuilder.where('permission.resource = :resource', { resource: filters.resource });
+      queryBuilder.where('permission.resource = :resource', {
+        resource: filters.resource,
+      });
     }
 
     if (filters?.status) {
-      queryBuilder.andWhere('permission.status = :status', { status: filters.status });
+      queryBuilder.andWhere('permission.status = :status', {
+        status: filters.status,
+      });
     }
 
     const [permissions, total] = await queryBuilder

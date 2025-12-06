@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsNumber, IsEnum, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsEnum,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -10,7 +17,13 @@ export class ListAccountsRequestDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiProperty({ required: false, default: 10, minimum: 1, maximum: 100, type: Number })
+  @ApiProperty({
+    required: false,
+    default: 10,
+    minimum: 1,
+    maximum: 100,
+    type: Number,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -23,17 +36,29 @@ export class ListAccountsRequestDto {
   @IsString()
   search?: string;
 
-  @ApiProperty({ required: false, type: String, description: 'Filter by status (e.g., ACTIVE, INACTIVE)' })
+  @ApiProperty({
+    required: false,
+    type: String,
+    description: 'Filter by status (e.g., ACTIVE, INACTIVE)',
+  })
   @IsOptional()
   @IsString()
   status?: string;
 
-  @ApiProperty({ required: false, type: String, description: 'Filter by role (e.g., ADMIN, EMPLOYEE)' })
+  @ApiProperty({
+    required: false,
+    type: String,
+    description: 'Filter by role (e.g., ADMIN, EMPLOYEE)',
+  })
   @IsOptional()
   @IsString()
   role?: string;
 
-  @ApiProperty({ required: false, type: Number, description: 'Filter by department ID' })
+  @ApiProperty({
+    required: false,
+    type: Number,
+    description: 'Filter by department ID',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()

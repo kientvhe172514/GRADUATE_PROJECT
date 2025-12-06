@@ -1,5 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { Account } from '../../../domain/entities/account.entity';
 import { AccountRepositoryPort } from '../../ports/account.repository.port';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
@@ -11,15 +15,18 @@ import {
   AUDIT_LOGS_REPOSITORY,
   EVENT_PUBLISHER,
 } from '../../tokens';
-import { AdminUpdateAccountDto, AdminUpdateAccountResponseDto } from '../../dto/admin/update-account.dto';
+import {
+  AdminUpdateAccountDto,
+  AdminUpdateAccountResponseDto,
+} from '../../dto/admin/update-account.dto';
 import { AuditLogs } from '../../../domain/entities/audit-logs.entity';
 import { AccountUpdatedEventDto } from '../../dto/account-updated.event.dto';
 
 /**
  * Use Case: Admin Update Account
- * 
+ *
  * Purpose: Allow admin to update account information including role assignment
- * 
+ *
  * Features:
  * - Update account email (with duplicate check)
  * - Assign role to account (converts role code to role_id)
@@ -28,7 +35,7 @@ import { AccountUpdatedEventDto } from '../../dto/account-updated.event.dto';
  * - Update department and position
  * - Audit logging for all changes
  * - Event publishing for integration
- * 
+ *
  * Permissions required: admin.accounts.update
  */
 @Injectable()
@@ -109,7 +116,10 @@ export class AdminUpdateAccountUseCase {
 
       // Track role change
       if (existingAccount.role !== roleCode) {
-        changes['role'] = { old: existingAccount.role || 'None', new: roleCode };
+        changes['role'] = {
+          old: existingAccount.role || 'None',
+          new: roleCode,
+        };
       }
 
       // Update role_id in account

@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PERMISSION_REPOSITORY } from '../tokens';
 import { PermissionRepositoryPort } from '../ports/permission.repository.port';
 

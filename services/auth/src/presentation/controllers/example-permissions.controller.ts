@@ -146,10 +146,7 @@ export class ExamplePermissionsController {
   @AuthPermissions('employee:read')
   @ApiOperation({ summary: 'Read resource - specific permission' })
   @HttpCode(HttpStatus.OK)
-  async readResource(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async readResource(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return {
       message: 'Resource retrieved',
       resource_id: id,
@@ -219,10 +216,7 @@ export class ExamplePermissionsController {
   @AuthPermissions('role:assign-permissions')
   @ApiOperation({ summary: 'Composite operation requiring special permission' })
   @HttpCode(HttpStatus.OK)
-  async compositeOperation(
-    @CurrentUser() user: JwtPayload,
-    @Body() data: any,
-  ) {
+  async compositeOperation(@CurrentUser() user: JwtPayload, @Body() data: any) {
     return {
       message: 'Composite operation performed',
       performed_by: user.sub,

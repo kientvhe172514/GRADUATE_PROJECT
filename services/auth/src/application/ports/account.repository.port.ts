@@ -28,5 +28,7 @@ export interface AccountRepositoryPort {
   update(account: Account): Promise<Account>;
   findByEmployeeId(employeeId: number): Promise<Account | null>;
   updateStatus(id: number, status: string): Promise<Account>;
-  findWithPagination(criteria: any & PaginationOptions): Promise<{ accounts: Account[]; total: number }>;
+  findWithPagination(
+    criteria: any & PaginationOptions,
+  ): Promise<{ accounts: Account[]; total: number }>;
 }

@@ -1,7 +1,7 @@
 export enum AccountType {
   EMPLOYEE = 'EMPLOYEE',
-  ADMIN = 'ADMIN', 
-  MANAGER = 'MANAGER'
+  ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
 }
 
 /**

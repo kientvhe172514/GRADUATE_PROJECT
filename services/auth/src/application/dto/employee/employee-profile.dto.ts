@@ -25,4 +25,3 @@ export class EmployeeProfileDto {
   })
   dateOfBirth?: string | Date | null;
 }
-

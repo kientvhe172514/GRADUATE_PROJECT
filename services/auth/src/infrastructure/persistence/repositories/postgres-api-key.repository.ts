@@ -24,7 +24,9 @@ export class PostgresApiKeyRepository implements ApiKeyRepositoryPort {
     const queryBuilder = this.repository.createQueryBuilder('api_key');
 
     if (filters?.status) {
-      queryBuilder.where('api_key.status = :status', { status: filters.status });
+      queryBuilder.where('api_key.status = :status', {
+        status: filters.status,
+      });
     }
 
     const [apiKeys, total] = await queryBuilder
@@ -96,6 +98,9 @@ export class PostgresApiKeyRepository implements ApiKeyRepositoryPort {
   }
 
   async incrementUsage(apiKeyId: number): Promise<void> {
-    await this.repository.query('UPDATE api_keys SET usage_count = usage_count + 1 WHERE id = $1', [apiKeyId]);
+    await this.repository.query(
+      'UPDATE api_keys SET usage_count = usage_count + 1 WHERE id = $1',
+      [apiKeyId],
+    );
   }
 }

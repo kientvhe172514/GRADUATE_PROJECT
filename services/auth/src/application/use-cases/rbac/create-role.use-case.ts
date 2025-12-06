@@ -1,7 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { CreateRoleResponseDto } from '../../dto/role/create-role-response.dto';
 
 export interface CreateRoleInput {
@@ -20,7 +24,9 @@ export class CreateRoleUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(input: CreateRoleInput): Promise<ApiResponseDto<CreateRoleResponseDto>> {
+  async execute(
+    input: CreateRoleInput,
+  ): Promise<ApiResponseDto<CreateRoleResponseDto>> {
     // Validate: code must be unique
     const existingRole = await this.roleRepo.findByCode(input.code);
     if (existingRole) {
@@ -57,10 +63,6 @@ export class CreateRoleUseCase {
       created_at: role.created_at!,
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Role created successfully',
-      201,
-    );
+    return ApiResponseDto.success(response, 'Role created successfully', 201);
   }
 }

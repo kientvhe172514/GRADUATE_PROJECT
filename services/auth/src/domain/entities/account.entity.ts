@@ -15,11 +15,11 @@ export class Account {
   department_name?: string;
   position_id?: number;
   position_name?: string;
-  
+
   // External IDs mapping
   external_ids?: Record<string, any>;
   metadata?: Record<string, any>;
-  
+
   // Sync tracking
   data_synced_at?: Date;
   sync_version: number = 1;
@@ -28,10 +28,10 @@ export class Account {
   locked_until?: Date;
   last_login_at?: Date;
   last_login_ip?: string;
-  
+
   // Temporary password flag (for first-time login flow)
   is_temporary_password?: boolean;
-  
+
   // Audit
   created_at?: Date;
   updated_at?: Date;

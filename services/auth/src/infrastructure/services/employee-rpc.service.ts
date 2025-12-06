@@ -30,7 +30,11 @@ export class EmployeeRpcService implements EmployeeProfileServicePort {
           .pipe(timeout(5000)),
       );
 
-      if (!response || response.status !== ResponseStatus.SUCCESS || !response.data) {
+      if (
+        !response ||
+        response.status !== ResponseStatus.SUCCESS ||
+        !response.data
+      ) {
         this.logger.warn(
           `Employee profile not available for account employee_id=${id}: ${response?.message}`,
         );
@@ -62,11 +66,17 @@ export class EmployeeRpcService implements EmployeeProfileServicePort {
     try {
       const response = await lastValueFrom(
         this.employeeClient
-          .send<EmployeeRpcResponse>('employee.getManagedDepartments', { employee_id: employeeId })
+          .send<EmployeeRpcResponse>('employee.getManagedDepartments', {
+            employee_id: employeeId,
+          })
           .pipe(timeout(5000)),
       );
 
-      if (!response || response.status !== ResponseStatus.SUCCESS || !response.data) {
+      if (
+        !response ||
+        response.status !== ResponseStatus.SUCCESS ||
+        !response.data
+      ) {
         this.logger.warn(
           `Managed departments not available for employee_id=${employeeId}: ${response?.message}`,
         );
@@ -77,7 +87,9 @@ export class EmployeeRpcService implements EmployeeProfileServicePort {
       return data.department_ids ?? [];
     } catch (error) {
       if (error instanceof TimeoutError) {
-        this.logger.error(`Timeout while fetching managed departments for employee ${employeeId}`);
+        this.logger.error(
+          `Timeout while fetching managed departments for employee ${employeeId}`,
+        );
       } else {
         const err = error as Error;
         this.logger.error(
@@ -89,4 +101,3 @@ export class EmployeeRpcService implements EmployeeProfileServicePort {
     }
   }
 }
-

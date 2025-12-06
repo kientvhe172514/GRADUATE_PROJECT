@@ -11,5 +11,3 @@ export class UpdateAccountResponseDto {
   sync_version: number;
   updated_at: Date;
 }
-
-

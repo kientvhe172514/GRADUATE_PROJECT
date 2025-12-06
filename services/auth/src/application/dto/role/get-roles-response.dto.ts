@@ -22,4 +22,3 @@ export class GetRolesResponseDto {
   @ApiProperty({ type: PaginationMetaDto, description: 'Pagination metadata' })
   pagination: PaginationMetaDto;
 }
-

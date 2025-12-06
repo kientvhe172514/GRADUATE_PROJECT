@@ -1,5 +1,5 @@
 export class InvalidCredentialsException extends Error {
-    constructor() {
-      super('Invalid username or password');
-    }
+  constructor() {
+    super('Invalid username or password');
   }
+}

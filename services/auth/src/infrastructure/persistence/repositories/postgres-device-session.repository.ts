@@ -54,8 +54,6 @@ export class PostgresDeviceSessionRepository
     });
   }
 
-
-
   async delete(id: number): Promise<void> {
     await this.repository.delete(id);
   }
@@ -131,6 +129,18 @@ export class PostgresDeviceSessionRepository
       fcm_token_status: 'ACTIVE',
       updated_at: new Date(),
     });
+  }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: DeviceSession[]; total: number }> {
+    const [data, total] = await this.repository.findAndCount({
+      order: { last_login_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total };
   }
 
   async findExpiredSessions(): Promise<DeviceSession[]> {

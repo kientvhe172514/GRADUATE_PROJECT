@@ -768,7 +768,13 @@ export async function seedRBAC(dataSource: DataSource) {
            level = EXCLUDED.level,
            updated_at = NOW()
          RETURNING id`,
-        [role.code, role.name, role.description, role.level, role.is_system_role],
+        [
+          role.code,
+          role.name,
+          role.description,
+          role.level,
+          role.is_system_role,
+        ],
       );
       roleIds[role.code] = result[0].id;
     }
@@ -782,9 +788,10 @@ export async function seedRBAC(dataSource: DataSource) {
       const roleId = roleIds[role.code];
 
       // Delete existing permissions for this role
-      await queryRunner.query(`DELETE FROM role_permissions WHERE role_id = $1`, [
-        roleId,
-      ]);
+      await queryRunner.query(
+        `DELETE FROM role_permissions WHERE role_id = $1`,
+        [roleId],
+      );
 
       // Insert new permissions
       for (const permCode of role.permissions) {

@@ -14,6 +14,10 @@ export const RolePermissionSchema = new EntitySchema<RolePermissionEntity>({
   indices: [
     { name: 'idx_role_permissions_role_id', columns: ['role_id'] },
     { name: 'idx_role_permissions_permission_id', columns: ['permission_id'] },
-    { name: 'idx_role_permissions_unique', columns: ['role_id', 'permission_id'], unique: true },
+    {
+      name: 'idx_role_permissions_unique',
+      columns: ['role_id', 'permission_id'],
+      unique: true,
+    },
   ],
 });

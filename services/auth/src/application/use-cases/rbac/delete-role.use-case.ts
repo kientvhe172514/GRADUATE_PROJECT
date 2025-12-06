@@ -2,7 +2,11 @@ import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { AccountRepositoryPort } from '../../ports/account.repository.port';
 import { ROLE_REPOSITORY, ACCOUNT_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 
 @Injectable()
 export class DeleteRoleUseCase {
@@ -48,10 +52,6 @@ export class DeleteRoleUseCase {
 
     await this.roleRepo.delete(roleId);
 
-    return ApiResponseDto.success(
-      null,
-      'Role deleted successfully',
-      200,
-    );
+    return ApiResponseDto.success(null, 'Role deleted successfully', 200);
   }
 }

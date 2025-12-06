@@ -19,7 +19,9 @@ export class PermissionDto {
 }
 
 export class GetRoleWithPermissionsResponseDto extends GetRoleResponseDto {
-  @ApiProperty({ type: [PermissionDto], description: 'List of permissions assigned to role' })
+  @ApiProperty({
+    type: [PermissionDto],
+    description: 'List of permissions assigned to role',
+  })
   permissions: PermissionDto[];
 }
-

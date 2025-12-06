@@ -14,9 +14,13 @@ export class JwtServiceImpl implements JwtServicePort {
     private roleRepository: RoleRepositoryPort,
   ) {}
 
-  async generateAccessToken(account: Account, managedDepartmentIds?: number[]): Promise<string> {
-    const permissions =
-      await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+  async generateAccessToken(
+    account: Account,
+    managedDepartmentIds?: number[],
+  ): Promise<string> {
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(
+      account.role || '',
+    );
     // ✅ 6 FIELDS: sub, email, employee_id, role, permissions, managed_department_ids
     const payload: any = {
       sub: account.id,
@@ -58,8 +62,9 @@ export class JwtServiceImpl implements JwtServicePort {
 
   // Legacy method for backward compatibility
   async generateTokens(account: Account): Promise<LoginResponseDto> {
-    const permissions =
-      await this.roleRepository.getPermissionsByRoleCode(account.role || '');
+    const permissions = await this.roleRepository.getPermissionsByRoleCode(
+      account.role || '',
+    );
     // ✅ ONLY 5 FIELDS: sub, email, employee_id, role, permissions
     const payload = {
       sub: account.id,

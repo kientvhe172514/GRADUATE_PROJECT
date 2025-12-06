@@ -7,8 +7,8 @@ export class RabbitMQEventSubscriber {
 
   getQueueConfig() {
     return {
-      urls: [this.configService.getOrThrow('RABBITMQ_URL') as string],
-      queue: this.configService.getOrThrow('RABBITMQ_IAM_QUEUE') as string,
+      urls: [this.configService.getOrThrow('RABBITMQ_URL')],
+      queue: this.configService.getOrThrow('RABBITMQ_IAM_QUEUE'),
     };
   }
 }

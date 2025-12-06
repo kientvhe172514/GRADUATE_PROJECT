@@ -42,13 +42,15 @@ export class AuthJwtPermissionGuard
 
     // Get request once for all checks
     const request = context.switchToHttp().getRequest<Request>();
-    
+
     // Skip guard for Swagger and static assets
     const path = request.url;
-    if (path.startsWith('/api/v1/auth-json') || 
-        path.startsWith('/api/v1/auth-yaml') ||
-        path.includes('swagger') ||
-        path.includes('api-docs')) {
+    if (
+      path.startsWith('/api/v1/auth-json') ||
+      path.startsWith('/api/v1/auth-yaml') ||
+      path.includes('swagger') ||
+      path.includes('api-docs')
+    ) {
       return true;
     }
 

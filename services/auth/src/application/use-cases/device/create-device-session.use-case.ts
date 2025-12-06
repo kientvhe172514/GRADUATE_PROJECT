@@ -61,14 +61,15 @@ export class CreateDeviceSessionUseCase {
       existingDevice.last_ip_address = dto.ip_address;
       existingDevice.last_location = dto.location;
       existingDevice.last_user_agent = dto.user_agent;
-      existingDevice.device_name = dto.device_name || existingDevice.device_name;
+      existingDevice.device_name =
+        dto.device_name || existingDevice.device_name;
       existingDevice.device_os = dto.device_os || existingDevice.device_os;
       existingDevice.device_model =
         dto.device_model || existingDevice.device_model;
       existingDevice.app_version = dto.app_version;
       existingDevice.login_count += 1;
       existingDevice.failed_login_attempts = 0;
-      
+
       // ✅ FIX: Update employee_id if provided (in case it was missing before)
       if (dto.employee_id && !existingDevice.employee_id) {
         console.log('🔧 [FIX] Updating missing employee_id:', {
@@ -93,7 +94,9 @@ export class CreateDeviceSessionUseCase {
       // This ensures notification service always has the latest FCM token
       if (updatedDevice.fcm_token && updatedDevice.employee_id) {
         try {
-          console.log('🚀 [EVENT] Publishing device_session_created event (update with FCM token)...');
+          console.log(
+            '🚀 [EVENT] Publishing device_session_created event (update with FCM token)...',
+          );
           const eventData = new DeviceSessionCreatedEvent(
             updatedDevice.id!,
             updatedDevice.account_id,
@@ -102,19 +105,28 @@ export class CreateDeviceSessionUseCase {
             updatedDevice.fcm_token,
             updatedDevice.platform,
           );
-          console.log('📤 [EVENT] Event payload:', JSON.stringify(eventData, null, 2));
-          
+          console.log(
+            '📤 [EVENT] Event payload:',
+            JSON.stringify(eventData, null, 2),
+          );
+
           this.eventPublisher.publish('device_session_created', eventData);
-          
+
           console.log('✅ [EVENT] Event published successfully!');
         } catch (error) {
-          console.error('❌ [EVENT] Failed to publish device session created event:', error);
+          console.error(
+            '❌ [EVENT] Failed to publish device session created event:',
+            error,
+          );
         }
       } else {
-        console.log('⏭️ [EVENT] Skipping event publish - missing fcm_token or employee_id:', {
-          has_fcm_token: !!updatedDevice.fcm_token,
-          has_employee_id: !!updatedDevice.employee_id,
-        });
+        console.log(
+          '⏭️ [EVENT] Skipping event publish - missing fcm_token or employee_id:',
+          {
+            has_fcm_token: !!updatedDevice.fcm_token,
+            has_employee_id: !!updatedDevice.employee_id,
+          },
+        );
       }
 
       return updatedDevice;
@@ -149,7 +161,9 @@ export class CreateDeviceSessionUseCase {
       updated_at: new Date(),
     };
 
-    const savedDevice = await this.deviceSessionRepo.create(newDevice as DeviceSession);
+    const savedDevice = await this.deviceSessionRepo.create(
+      newDevice as DeviceSession,
+    );
 
     // Publish event for notification service to sync FCM token
     console.log('📱 [DEVICE_SESSION] Device session created:', {
@@ -171,22 +185,31 @@ export class CreateDeviceSessionUseCase {
           savedDevice.fcm_token,
           savedDevice.platform,
         );
-        console.log('📤 [EVENT] Event payload:', JSON.stringify(eventData, null, 2));
-        
+        console.log(
+          '📤 [EVENT] Event payload:',
+          JSON.stringify(eventData, null, 2),
+        );
+
         this.eventPublisher.publish('device_session_created', eventData);
-        
+
         console.log('✅ [EVENT] Event published successfully!');
       } catch (error) {
-        console.error('❌ [EVENT] Failed to publish device session created event:', error);
+        console.error(
+          '❌ [EVENT] Failed to publish device session created event:',
+          error,
+        );
         // Don't fail the request if event publishing fails
       }
     } else {
-      console.warn('⚠️ [EVENT] Skipping event publish - missing fcm_token or employee_id:', {
-        has_fcm_token: !!savedDevice.fcm_token,
-        has_employee_id: !!savedDevice.employee_id,
-        fcm_token_value: savedDevice.fcm_token || 'null',
-        employee_id_value: savedDevice.employee_id || 'null',
-      });
+      console.warn(
+        '⚠️ [EVENT] Skipping event publish - missing fcm_token or employee_id:',
+        {
+          has_fcm_token: !!savedDevice.fcm_token,
+          has_employee_id: !!savedDevice.employee_id,
+          fcm_token_value: savedDevice.fcm_token || 'null',
+          employee_id_value: savedDevice.employee_id || 'null',
+        },
+      );
     }
 
     return savedDevice;

@@ -1,4 +1,10 @@
-import { IsNumber, IsArray, IsBoolean, IsOptional, IsObject } from 'class-validator';
+import {
+  IsNumber,
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsObject,
+} from 'class-validator';
 
 export class GrantPermissionsToAccountDto {
   @IsNumber()

@@ -8,14 +8,19 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Public } from '../decorators/public.decorator';
 import { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 
 /**
  * VerifyController - Auth verification endpoint for API Gateway
- * 
+ *
  * Purpose: This controller is ONLY for Ingress/API Gateway to verify JWT tokens
  * Flow:
  *   1. Client → Ingress → /api/v1/auth/verify (this endpoint)
@@ -31,19 +36,19 @@ export class VerifyController {
 
   /**
    * POST /api/v1/auth/verify
-   * 
+   *
    * Verify JWT token and return user info in response headers
    * This endpoint is called by Traefik ForwardAuth middleware
-   * 
+   *
    * Request Headers:
    *   - Authorization: Bearer <jwt-token>
-   * 
+   *
    * Response Headers (on success 200):
    *   - X-User-Id: User's ID
    *   - X-User-Email: User's email
    *   - X-User-Permissions: JSON array of permissions
    *   - X-User-Roles: User's role code
-   * 
+   *
    * Response (on failure):
    *   - 401 Unauthorized
    */
@@ -87,7 +92,9 @@ export class VerifyController {
     // Verify endpoint MUST have token
     // Public routes (login, register) should NOT go through auth-forward middleware
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+      throw new UnauthorizedException(
+        'Missing or invalid Authorization header',
+      );
     }
 
     const token = authorization.substring(7);
@@ -121,7 +128,7 @@ export class VerifyController {
 
   /**
    * GET /api/v1/auth/verify
-   * 
+   *
    * Alternative GET endpoint for Traefik ForwardAuth
    * Some Traefik configurations prefer GET over POST
    */
@@ -139,9 +146,18 @@ export class VerifyController {
     headers: {
       'X-User-Id': { description: 'User ID', schema: { type: 'string' } },
       'X-User-Email': { description: 'User email', schema: { type: 'string' } },
-      'X-User-Permissions': { description: 'User permissions (JSON array)', schema: { type: 'string' } },
-      'X-User-Roles': { description: 'User role code', schema: { type: 'string' } },
-      'X-Employee-Id': { description: 'Employee ID (if user has employee record)', schema: { type: 'string' } },
+      'X-User-Permissions': {
+        description: 'User permissions (JSON array)',
+        schema: { type: 'string' },
+      },
+      'X-User-Roles': {
+        description: 'User role code',
+        schema: { type: 'string' },
+      },
+      'X-Employee-Id': {
+        description: 'Employee ID (if user has employee record)',
+        schema: { type: 'string' },
+      },
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired token' })
@@ -152,7 +168,9 @@ export class VerifyController {
     // Verify endpoint MUST have token
     // Public routes (login, register) should NOT go through auth-forward middleware
     if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+      throw new UnauthorizedException(
+        'Missing or invalid Authorization header',
+      );
     }
 
     const token = authorization.substring(7);

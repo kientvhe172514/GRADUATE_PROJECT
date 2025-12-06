@@ -1,6 +1,6 @@
 export enum AccountStatus {
   ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE', 
+  INACTIVE = 'INACTIVE',
   LOCKED = 'LOCKED',
-  SUSPENDED = 'SUSPENDED'
+  SUSPENDED = 'SUSPENDED',
 }

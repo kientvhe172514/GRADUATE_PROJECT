@@ -1,5 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { AccountRepositoryPort } from '../../ports/account.repository.port';
 import { ACCOUNT_REPOSITORY } from '../../tokens';
 import { GetAccountDetailResponseDto } from '../../dto/admin/get-account-detail.dto';
@@ -11,17 +15,25 @@ export class GetAccountDetailUseCase {
     private accountRepo: AccountRepositoryPort,
   ) {}
 
-  async execute(accountId: number): Promise<ApiResponseDto<GetAccountDetailResponseDto>> {
+  async execute(
+    accountId: number,
+  ): Promise<ApiResponseDto<GetAccountDetailResponseDto>> {
     try {
       // Validate account ID
       if (!accountId || accountId <= 0) {
-        throw new BusinessException(ErrorCodes.BAD_REQUEST, 'Invalid account ID');
+        throw new BusinessException(
+          ErrorCodes.BAD_REQUEST,
+          'Invalid account ID',
+        );
       }
 
       // Get account details
       const account = await this.accountRepo.findById(accountId);
       if (!account) {
-        throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, "Account not found");
+        throw new BusinessException(
+          ErrorCodes.ACCOUNT_NOT_FOUND,
+          'Account not found',
+        );
       }
 
       // Map to response DTO
@@ -45,12 +57,21 @@ export class GetAccountDetailUseCase {
         updated_at: account.updated_at!,
       };
 
-      return ApiResponseDto.success(response, 'Account details retrieved successfully', 200, undefined, 'ACCOUNT_DETAIL_RETRIEVED');
+      return ApiResponseDto.success(
+        response,
+        'Account details retrieved successfully',
+        200,
+        undefined,
+        'ACCOUNT_DETAIL_RETRIEVED',
+      );
     } catch (error) {
       if (error instanceof BusinessException) {
         throw error;
       }
-      throw new BusinessException(ErrorCodes.INTERNAL_SERVER_ERROR, 'Failed to retrieve account details');
+      throw new BusinessException(
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        'Failed to retrieve account details',
+      );
     }
   }
 }

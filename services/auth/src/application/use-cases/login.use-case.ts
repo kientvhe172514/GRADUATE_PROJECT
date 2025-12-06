@@ -2,7 +2,11 @@ import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { LoginRequestDto } from '../../presentation/dto/login-request.dto';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { UserInfoDto } from '../dto/user-info.dto';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { Account } from '../../domain/entities/account.entity';
 import { RefreshTokens } from '../../domain/entities/refresh-tokens.entity';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
@@ -63,11 +67,21 @@ export class LoginUseCase {
     private logDeviceActivityUseCase: LogDeviceActivityUseCase,
   ) {}
 
-  async execute(loginDto: LoginRequestDto, ipAddress?: string, userAgent?: string): Promise<ApiResponseDto<LoginResponseDto>> {
+  async execute(
+    loginDto: LoginRequestDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<ApiResponseDto<LoginResponseDto>> {
     const account = await this.accountRepo.findByEmail(loginDto.email);
-    
+
     if (!account) {
-      await this.logFailedAttempt(null, loginDto.email, ipAddress, userAgent, 'Account not found');
+      await this.logFailedAttempt(
+        null,
+        loginDto.email,
+        ipAddress,
+        userAgent,
+        'Account not found',
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -96,12 +110,21 @@ export class LoginUseCase {
 
     // Check if account is locked (temporary lock due to failed login attempts)
     if (account.locked_until && account.locked_until > new Date()) {
-      await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Account locked');
-      throw new UnauthorizedException('Account is temporarily locked due to too many failed login attempts');
+      await this.logFailedAttempt(
+        account.id!,
+        loginDto.email,
+        ipAddress,
+        userAgent,
+        'Account locked',
+      );
+      throw new UnauthorizedException(
+        'Account is temporarily locked due to too many failed login attempts',
+      );
     }
 
     // Check if account has active temporary password
-    const activeTempPassword = await this.tempPasswordsRepo.findActiveByAccountId(account.id!);
+    const activeTempPassword =
+      await this.tempPasswordsRepo.findActiveByAccountId(account.id!);
 
     let isUsingTemporaryPassword = false;
     let mustChangePassword = false;
@@ -122,11 +145,20 @@ export class LoginUseCase {
 
     // If not using temporary password, verify with regular password
     if (!isUsingTemporaryPassword) {
-      const isPasswordValid = await this.hashing.compare(loginDto.password, account.password_hash);
+      const isPasswordValid = await this.hashing.compare(
+        loginDto.password,
+        account.password_hash,
+      );
 
       if (!isPasswordValid) {
         await this.handleFailedLogin(account);
-        await this.logFailedAttempt(account.id!, loginDto.email, ipAddress, userAgent, 'Invalid password');
+        await this.logFailedAttempt(
+          account.id!,
+          loginDto.email,
+          ipAddress,
+          userAgent,
+          'Invalid password',
+        );
         throw new UnauthorizedException('Invalid credentials');
       }
     }
@@ -150,7 +182,7 @@ export class LoginUseCase {
         employee_id_type: typeof account.employee_id,
         has_fcm_token: !!loginDto.fcm_token,
       });
-      
+
       deviceSession = await this.createDeviceSessionUseCase.execute({
         account_id: account.id!,
         employee_id: account.employee_id ?? undefined,
@@ -174,7 +206,7 @@ export class LoginUseCase {
         activity_type: ActivityType.LOGIN,
         status: ActivityStatus.SUCCESS,
         ip_address: ipAddress,
-        location: loginDto.location as any,
+        location: loginDto.location,
         user_agent: userAgent,
         metadata: {
           email: loginDto.email,
@@ -188,38 +220,62 @@ export class LoginUseCase {
 
     // ✅ ENRICH TOKEN: Get managed department IDs for DEPARTMENT_MANAGER role (role_id=3)
     let managedDepartmentIds: number[] = [];
-    if (account.employee_id && (account.role === 'DEPARTMENT_MANAGER' || account.role_id === 3)) {
+    if (
+      account.employee_id &&
+      (account.role === 'DEPARTMENT_MANAGER' || account.role_id === 3)
+    ) {
       try {
-        managedDepartmentIds = await this.employeeProfileService.getManagedDepartmentIds(account.employee_id);
-        console.log(`🔍 [JWT ENRICHMENT] Employee ${account.employee_id} manages ${managedDepartmentIds.length} departments: [${managedDepartmentIds.join(', ')}]`);
+        managedDepartmentIds =
+          await this.employeeProfileService.getManagedDepartmentIds(
+            account.employee_id,
+          );
+        console.log(
+          `🔍 [JWT ENRICHMENT] Employee ${account.employee_id} manages ${managedDepartmentIds.length} departments: [${managedDepartmentIds.join(', ')}]`,
+        );
       } catch (error) {
-        console.error('Failed to fetch managed departments, continuing without enrichment:', error);
+        console.error(
+          'Failed to fetch managed departments, continuing without enrichment:',
+          error,
+        );
         // Continue login even if department fetch fails
       }
     }
 
     // Generate tokens with managed department IDs
-    const accessToken = await this.jwtService.generateAccessToken(account, managedDepartmentIds);
+    const accessToken = await this.jwtService.generateAccessToken(
+      account,
+      managedDepartmentIds,
+    );
     const refreshToken = this.jwtService.generateRefreshToken(account);
 
     // Create refresh token record
     const crypto = require('crypto');
-    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
     const refreshTokenEntity = new RefreshTokens();
     refreshTokenEntity.account_id = account.id!;
     refreshTokenEntity.token_hash = tokenHash;
-    refreshTokenEntity.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    refreshTokenEntity.expires_at = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    ); // 7 days
     refreshTokenEntity.device_session_id = deviceSession?.id;
     refreshTokenEntity.device_fingerprint = userAgent;
     refreshTokenEntity.ip_address = ipAddress;
     refreshTokenEntity.location = loginDto.location;
     refreshTokenEntity.user_agent = userAgent;
-    
+
     await this.refreshTokensRepo.create(refreshTokenEntity);
 
     // Log successful login to audit logs
-    await this.logSuccessfulAttempt(account.id!, loginDto.email, ipAddress, userAgent);
+    await this.logSuccessfulAttempt(
+      account.id!,
+      loginDto.email,
+      ipAddress,
+      userAgent,
+    );
 
     // Publish event
     this.publisher.publish('user_logged_in', new UserLoggedInEvent(account));
@@ -233,11 +289,19 @@ export class LoginUseCase {
       auditLog.ip_address = ipAddress;
       auditLog.user_agent = userAgent;
       auditLog.success = true;
-      auditLog.metadata = { email: loginDto.email, using_temporary_password: true };
+      auditLog.metadata = {
+        email: loginDto.email,
+        using_temporary_password: true,
+      };
       auditLog.created_at = new Date();
       await this.auditLogsRepo.create(auditLog);
     } else {
-      await this.logSuccessfulAttempt(account.id!, loginDto.email, ipAddress, userAgent);
+      await this.logSuccessfulAttempt(
+        account.id!,
+        loginDto.email,
+        ipAddress,
+        userAgent,
+      );
     }
 
     // Build UserInfoDto
@@ -247,7 +311,8 @@ export class LoginUseCase {
       full_name: account.full_name || '',
       role: account.role || '',
       employee_id: account.employee_id ?? undefined,
-      managed_department_ids: managedDepartmentIds.length > 0 ? managedDepartmentIds : undefined,
+      managed_department_ids:
+        managedDepartmentIds.length > 0 ? managedDepartmentIds : undefined,
     };
 
     // Build LoginResponseDto
@@ -268,9 +333,11 @@ export class LoginUseCase {
 
   private async handleFailedLogin(account: Account): Promise<void> {
     const newFailedAttempts = account.failed_login_attempts + 1;
-    
+
     if (newFailedAttempts >= this.MAX_FAILED_ATTEMPTS) {
-      const lockoutUntil = new Date(Date.now() + this.LOCKOUT_DURATION_MINUTES * 60 * 1000);
+      const lockoutUntil = new Date(
+        Date.now() + this.LOCKOUT_DURATION_MINUTES * 60 * 1000,
+      );
       await this.accountRepo.lockAccount(account.id!, lockoutUntil);
     } else {
       await this.accountRepo.incrementFailedLoginAttempts(account.id!);
@@ -278,11 +345,11 @@ export class LoginUseCase {
   }
 
   private async logFailedAttempt(
-    accountId: number | null, 
-    email: string, 
-    ipAddress?: string, 
-    userAgent?: string, 
-    errorMessage?: string
+    accountId: number | null,
+    email: string,
+    ipAddress?: string,
+    userAgent?: string,
+    errorMessage?: string,
   ): Promise<void> {
     const auditLog = new AuditLogs();
     auditLog.account_id = accountId;
@@ -293,15 +360,15 @@ export class LoginUseCase {
     auditLog.error_message = errorMessage;
     auditLog.metadata = { email };
     auditLog.created_at = new Date();
-    
+
     await this.auditLogsRepo.create(auditLog);
   }
 
   private async logSuccessfulAttempt(
-    accountId: number, 
-    email: string, 
-    ipAddress?: string, 
-    userAgent?: string
+    accountId: number,
+    email: string,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<void> {
     const auditLog = new AuditLogs();
     auditLog.account_id = accountId;
@@ -311,7 +378,7 @@ export class LoginUseCase {
     auditLog.success = true;
     auditLog.metadata = { email };
     auditLog.created_at = new Date();
-    
+
     await this.auditLogsRepo.create(auditLog);
   }
 }

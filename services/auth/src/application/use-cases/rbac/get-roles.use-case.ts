@@ -1,7 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { GetRolesResponseDto } from '../../dto/role/get-roles-response.dto';
 import { GetRoleResponseDto } from '../../dto/role/get-role-response.dto';
 import { ListRolesDto } from '../../dto/role/list-roles.dto';
@@ -13,7 +17,9 @@ export class GetRolesUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(filters?: ListRolesDto): Promise<ApiResponseDto<GetRolesResponseDto>> {
+  async execute(
+    filters?: ListRolesDto,
+  ): Promise<ApiResponseDto<GetRolesResponseDto>> {
     const page = filters?.page || 1;
     const limit = filters?.limit || 20;
 
@@ -22,8 +28,12 @@ export class GetRolesUseCase {
       page,
       limit,
     };
-    
-    if (filters?.status !== undefined && filters?.status !== null && filters?.status !== '') {
+
+    if (
+      filters?.status !== undefined &&
+      filters?.status !== null &&
+      filters?.status !== ''
+    ) {
       filterCriteria.status = filters.status;
     }
 
@@ -57,10 +67,6 @@ export class GetRolesUseCase {
       },
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Roles retrieved successfully',
-    );
+    return ApiResponseDto.success(response, 'Roles retrieved successfully');
   }
 }
-

@@ -34,7 +34,7 @@ export class AccountFactory {
     account.sync_version = 1;
     account.failed_login_attempts = 0;
     account.created_at = new Date();
-    
+
     return account;
   }
 
@@ -42,7 +42,7 @@ export class AccountFactory {
     const account = this.createEmployeeAccount(props);
     account.account_type = AccountType.ADMIN;
     account.role = AccountRole.ADMIN;
-    
+
     return account;
   }
 
@@ -50,7 +50,7 @@ export class AccountFactory {
     const account = this.createEmployeeAccount(props);
     account.account_type = AccountType.MANAGER;
     account.role = AccountRole.DEPARTMENT_MANAGER;
-    
+
     return account;
   }
 }

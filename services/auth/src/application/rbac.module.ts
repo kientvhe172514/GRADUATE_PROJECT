@@ -15,7 +15,11 @@ import { ApiKeySchema } from '../infrastructure/persistence/typeorm/api-key.sche
 import { PostgresRoleRepository } from '../infrastructure/persistence/repositories/postgres-role.repository';
 import { PostgresPermissionRepository } from '../infrastructure/persistence/repositories/postgres-permission.repository';
 import { PostgresApiKeyRepository } from '../infrastructure/persistence/repositories/postgres-api-key.repository';
-import { ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY } from './tokens';
+import {
+  ROLE_REPOSITORY,
+  PERMISSION_REPOSITORY,
+  API_KEY_REPOSITORY,
+} from './tokens';
 import { AccountModule } from './account.module';
 import { CreateRoleUseCase } from './use-cases/rbac/create-role.use-case';
 import { UpdateRoleUseCase } from './use-cases/rbac/update-role.use-case';
@@ -70,6 +74,12 @@ import { DeletePermissionUseCase } from './use-cases/delete-permission.use-case'
     UpdatePermissionUseCase,
     DeletePermissionUseCase,
   ],
-  exports: [JwtStrategy, PassportModule, ROLE_REPOSITORY, PERMISSION_REPOSITORY, API_KEY_REPOSITORY],
+  exports: [
+    JwtStrategy,
+    PassportModule,
+    ROLE_REPOSITORY,
+    PERMISSION_REPOSITORY,
+    API_KEY_REPOSITORY,
+  ],
 })
 export class RbacModule {}

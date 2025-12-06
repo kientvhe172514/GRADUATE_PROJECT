@@ -11,7 +11,12 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import {
@@ -69,13 +74,12 @@ export class PermissionController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
   ) {
-    const { permissions, total } =
-      await this.permissionRepository.findAll({
-        resource,
-        status,
-        page,
-        limit,
-      });
+    const { permissions, total } = await this.permissionRepository.findAll({
+      resource,
+      status,
+      page,
+      limit,
+    });
     return {
       message: 'Get all permissions',
       data: permissions,
@@ -86,7 +90,8 @@ export class PermissionController {
   @Get('by-resource/:resource')
   @AuthPermissions('auth.permission.read')
   async getPermissionsByResource(@Param('resource') resource: string) {
-    const permissions = await this.permissionRepository.findByResource(resource);
+    const permissions =
+      await this.permissionRepository.findByResource(resource);
     return {
       message: 'Get permissions by resource',
       data: permissions,

@@ -90,7 +90,10 @@ export class PostgresDeviceActivityLogRepository
       .getMany();
   }
 
-  async countFailedLogins(account_id: number, minutes: number): Promise<number> {
+  async countFailedLogins(
+    account_id: number,
+    minutes: number,
+  ): Promise<number> {
     const cutoffTime = new Date();
     cutoffTime.setMinutes(cutoffTime.getMinutes() - minutes);
 

@@ -2,18 +2,18 @@ export class AuditLogs {
   id?: number;
   account_id?: number | null;
   action: string;
-  
+
   // Context
   ip_address?: string;
   user_agent?: string;
-  
+
   // Result
   success: boolean;
   error_message?: string;
-  
+
   // Additional data
   metadata?: Record<string, any>;
-  
+
   created_at?: Date;
 
   constructor(data?: Partial<AuditLogs>) {
@@ -26,7 +26,7 @@ export class AuditLogs {
     action: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): AuditLogs {
     return new AuditLogs({
       account_id: accountId ?? null,
@@ -44,7 +44,7 @@ export class AuditLogs {
     errorMessage: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): AuditLogs {
     return new AuditLogs({
       account_id: accountId ?? null,

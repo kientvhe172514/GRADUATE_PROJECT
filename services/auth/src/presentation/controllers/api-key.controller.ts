@@ -1,5 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { CreateApiKeyDto, UpdateApiKeyDto } from '../dto/api-key.dto';
@@ -19,17 +36,41 @@ export class ApiKeyController {
   @Get()
   @AuthPermissions('api_key.read')
   @ApiOperation({ summary: 'Get all API keys' })
-  @ApiQuery({ name: 'status', required: false, example: 'active', description: 'Filter by status' })
-  @ApiQuery({ name: 'service_name', required: false, example: 'face-recognition', description: 'Filter by service name' })
-  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, example: 20, description: 'Items per page' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    example: 'active',
+    description: 'Filter by status',
+  })
+  @ApiQuery({
+    name: 'service_name',
+    required: false,
+    example: 'face-recognition',
+    description: 'Filter by service name',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 20,
+    description: 'Items per page',
+  })
   async getAllApiKeys(
     @Query('status') status?: string,
     @Query('service_name') serviceName?: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    const { apiKeys, total } = await this.apiKeyRepository.findAll({ status, page, limit });
+    const { apiKeys, total } = await this.apiKeyRepository.findAll({
+      status,
+      page,
+      limit,
+    });
     return {
       message: 'Get all API keys',
       data: apiKeys,
@@ -61,15 +102,18 @@ export class ApiKeyController {
   @Post()
   @AuthPermissions('api_key.create')
   @HttpCode(HttpStatus.CREATED)
-  async createApiKey(@Body() dto: CreateApiKeyDto, @CurrentUser() user: JwtPayload) {
+  async createApiKey(
+    @Body() dto: CreateApiKeyDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     // TODO: Implement create API key
     // Generate random API key: `zentry_${crypto.randomBytes(32).toString('hex')}`
     // Hash the key with bcrypt before saving to DB
     // Return plain key ONLY ONCE (on creation)
     // Validate: permissions must exist in permissions table
-    
+
     const plainKey = `zentry_${crypto.randomBytes(32).toString('hex')}`;
-    
+
     return {
       message: 'API key created successfully',
       data: {
@@ -110,13 +154,16 @@ export class ApiKeyController {
 
   @Post(':id/regenerate')
   @AuthPermissions('api_key.create')
-  async regenerateApiKey(@Param('id') id: number, @CurrentUser() user: JwtPayload) {
+  async regenerateApiKey(
+    @Param('id') id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
     // TODO: Implement regenerate API key
     // Generate new random key, hash it, update key_hash
     // Return plain key ONLY ONCE
-    
+
     const plainKey = `zentry_${crypto.randomBytes(32).toString('hex')}`;
-    
+
     return {
       message: 'API key regenerated successfully',
       data: {
@@ -134,9 +181,9 @@ export class ApiKeyController {
     // Create a new API key with same permissions
     // Mark old one as 'rotating' status with 7-day grace period
     // After 7 days, automatically revoke old key
-    
+
     const plainKey = `zentry_${crypto.randomBytes(32).toString('hex')}`;
-    
+
     return {
       message: 'API key rotated successfully',
       data: {
@@ -148,10 +195,13 @@ export class ApiKeyController {
         old_key: {
           id,
           status: 'rotating',
-          revokes_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          revokes_at: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       },
-      warning: 'Old key will be revoked in 7 days. Update your services to use the new key.',
+      warning:
+        'Old key will be revoked in 7 days. Update your services to use the new key.',
     };
   }
 }

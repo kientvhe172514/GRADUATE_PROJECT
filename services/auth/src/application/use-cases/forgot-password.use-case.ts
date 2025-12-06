@@ -4,8 +4,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
 import { HashingServicePort } from '../ports/hashing.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, HASHING_SERVICE, EVENT_PUBLISHER } from '../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ACCOUNT_REPOSITORY,
+  HASHING_SERVICE,
+  EVENT_PUBLISHER,
+} from '../tokens';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 
 /**
  * DTO for Forgot Password Request
@@ -23,7 +31,7 @@ export class ForgotPasswordRequestDto {
 
 /**
  * Simple Forgot Password Use Case
- * 
+ *
  * Flow:
  * 1. User nhập email
  * 2. Hệ thống tạo mật khẩu mới ngẫu nhiên (8 ký tự)
@@ -93,7 +101,7 @@ export class ForgotPasswordUseCase {
     const allChars = uppercase + lowercase + numbers;
 
     let password = '';
-    
+
     // Ensure at least 1 uppercase, 1 lowercase, 1 number
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
@@ -111,5 +119,3 @@ export class ForgotPasswordUseCase {
       .join('');
   }
 }
-
-

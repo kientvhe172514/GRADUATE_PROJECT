@@ -18,15 +18,22 @@ async function bootstrap() {
   // Enable CORS with credentials support for cookies
   app.enableCors({
     origin: configService.get('CORS_ORIGINS', '*').split(','),
-    credentials: true, 
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Email', 'X-User-Role', 'X-User-Permissions'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-User-Id',
+      'X-User-Email',
+      'X-User-Role',
+      'X-User-Permissions',
+    ],
   });
 
   app.setGlobalPrefix('api/v1/auth');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
-  
+
   // 🔍 Enable structured logging cho tất cả HTTP requests
   app.useGlobalInterceptors(new LoggingInterceptor());
 
@@ -42,7 +49,7 @@ async function bootstrap() {
     },
   });
 
-  await app.startAllMicroservices();  // Start the listener
+  await app.startAllMicroservices(); // Start the listener
 
   const config = new DocumentBuilder()
     .setTitle('IAM API')

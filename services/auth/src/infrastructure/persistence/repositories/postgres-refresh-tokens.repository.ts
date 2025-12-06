@@ -8,7 +8,9 @@ import { RefreshTokensEntity } from '../entities/refresh-tokens.entity';
 import { RefreshTokensMapper } from '../mappers/refresh-tokens.mapper';
 
 @Injectable()
-export class PostgresRefreshTokensRepository implements RefreshTokensRepositoryPort {
+export class PostgresRefreshTokensRepository
+  implements RefreshTokensRepositoryPort
+{
   constructor(
     @InjectRepository(RefreshTokensSchema)
     private repository: Repository<RefreshTokensEntity>,
@@ -21,14 +23,16 @@ export class PostgresRefreshTokensRepository implements RefreshTokensRepositoryP
   }
 
   async findByTokenHash(tokenHash: string): Promise<RefreshTokens | null> {
-    const entity = await this.repository.findOne({ where: { token_hash: tokenHash } });
+    const entity = await this.repository.findOne({
+      where: { token_hash: tokenHash },
+    });
     return entity ? RefreshTokensMapper.toDomain(entity) : null;
   }
 
   async findByAccountId(accountId: number): Promise<RefreshTokens[]> {
-    const entities = await this.repository.find({ 
+    const entities = await this.repository.find({
       where: { account_id: accountId },
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
     return entities.map(RefreshTokensMapper.toDomain);
   }

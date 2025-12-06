@@ -11,8 +11,18 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { CurrentUser, JwtPayload, ApiResponseDto } from '@graduate-project/shared-common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
+import {
+  CurrentUser,
+  JwtPayload,
+  ApiResponseDto,
+} from '@graduate-project/shared-common';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import {
   CreateRoleDto,
@@ -54,7 +64,11 @@ export class RoleController {
   @AuthPermissions('auth.role.read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all roles with pagination' })
-  @ApiResponse({ status: 200, type: GetRolesResponseDto, description: 'Roles retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    type: GetRolesResponseDto,
+    description: 'Roles retrieved successfully',
+  })
   @ApiResponse({ status: 403, description: 'Permission denied' })
   async getAllRoles(
     @Query() filters?: ListRolesDto,
@@ -67,7 +81,11 @@ export class RoleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get role by ID with permissions' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
-  @ApiResponse({ status: 200, type: GetRoleWithPermissionsResponseDto, description: 'Role retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    type: GetRoleWithPermissionsResponseDto,
+    description: 'Role retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 403, description: 'Permission denied' })
   async getRoleById(
@@ -80,8 +98,15 @@ export class RoleController {
   @AuthPermissions('auth.role.create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
-  @ApiResponse({ status: 201, type: CreateRoleResponseDto, description: 'Role created successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error or role code already exists' })
+  @ApiResponse({
+    status: 201,
+    type: CreateRoleResponseDto,
+    description: 'Role created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or role code already exists',
+  })
   @ApiResponse({ status: 403, description: 'Permission denied' })
   async createRole(
     @Body() dto: CreateRoleDto,
@@ -102,9 +127,16 @@ export class RoleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update role information' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
-  @ApiResponse({ status: 200, type: UpdateRoleResponseDto, description: 'Role updated successfully' })
+  @ApiResponse({
+    status: 200,
+    type: UpdateRoleResponseDto,
+    description: 'Role updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Role not found' })
-  @ApiResponse({ status: 403, description: 'Permission denied or cannot update system role' })
+  @ApiResponse({
+    status: 403,
+    description: 'Permission denied or cannot update system role',
+  })
   async updateRole(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRoleDto,
@@ -126,7 +158,10 @@ export class RoleController {
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
   @ApiResponse({ status: 200, description: 'Role deleted successfully' })
   @ApiResponse({ status: 404, description: 'Role not found' })
-  @ApiResponse({ status: 403, description: 'Permission denied or cannot delete system role' })
+  @ApiResponse({
+    status: 403,
+    description: 'Permission denied or cannot delete system role',
+  })
   async deleteRole(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponseDto<null>> {
@@ -138,7 +173,11 @@ export class RoleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Assign permissions to role' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
-  @ApiResponse({ status: 200, type: AssignPermissionsResponseDto, description: 'Permissions assigned successfully' })
+  @ApiResponse({
+    status: 200,
+    type: AssignPermissionsResponseDto,
+    description: 'Permissions assigned successfully',
+  })
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 403, description: 'Permission denied' })
@@ -157,7 +196,11 @@ export class RoleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove permission from role' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
-  @ApiParam({ name: 'permissionId', type: 'number', description: 'Permission ID' })
+  @ApiParam({
+    name: 'permissionId',
+    type: 'number',
+    description: 'Permission ID',
+  })
   @ApiResponse({ status: 200, description: 'Permission removed successfully' })
   @ApiResponse({ status: 404, description: 'Role or permission not found' })
   @ApiResponse({ status: 403, description: 'Permission denied' })
@@ -173,7 +216,11 @@ export class RoleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get role permissions' })
   @ApiParam({ name: 'id', type: 'number', description: 'Role ID' })
-  @ApiResponse({ status: 200, type: GetRolePermissionsResponseDto, description: 'Role permissions retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    type: GetRolePermissionsResponseDto,
+    description: 'Role permissions retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 403, description: 'Permission denied' })
   async getRolePermissions(

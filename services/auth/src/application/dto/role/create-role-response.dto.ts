@@ -25,4 +25,3 @@ export class CreateRoleResponseDto {
   @ApiProperty({ example: '2024-01-01T08:00:00.000Z' })
   created_at: Date;
 }
-

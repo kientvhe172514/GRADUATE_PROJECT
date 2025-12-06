@@ -1,5 +1,9 @@
 export interface ApiKeyRepositoryPort {
-  findAll(filters?: { status?: string; page?: number; limit?: number }): Promise<{ apiKeys: any[]; total: number }>;
+  findAll(filters?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ apiKeys: any[]; total: number }>;
   findById(id: number): Promise<any | null>;
   findByKey(key: string): Promise<any | null>;
   create(apiKeyData: any): Promise<any>;

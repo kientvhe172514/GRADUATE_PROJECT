@@ -13,7 +13,10 @@ export class GetRoleResponseDto {
   @ApiProperty({ example: 'Department manager role', required: false })
   description?: string;
 
-  @ApiProperty({ example: 2, description: 'Role level (higher = more privileges)' })
+  @ApiProperty({
+    example: 2,
+    description: 'Role level (higher = more privileges)',
+  })
   level: number;
 
   @ApiProperty({ example: false, description: 'System role cannot be deleted' })
@@ -34,4 +37,3 @@ export class GetRoleResponseDto {
   @ApiProperty({ example: 1, required: false })
   updated_by?: number;
 }
-

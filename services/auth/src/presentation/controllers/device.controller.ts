@@ -5,18 +5,21 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { AuthPermissions } from '../decorators/auth-permissions.decorator';
 import { GetMyDevicesUseCase } from '../../application/use-cases/device/get-my-devices.use-case';
 import { RevokeDeviceUseCase } from '../../application/use-cases/device/revoke-device.use-case';
 import { GetDeviceActivitiesUseCase } from '../../application/use-cases/device/get-device-activities.use-case';
+import { GetAllDevicesUseCase } from '../../application/use-cases/device/get-all-devices.use-case';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -26,6 +29,7 @@ export class DeviceController {
     private getMyDevicesUseCase: GetMyDevicesUseCase,
     private revokeDeviceUseCase: RevokeDeviceUseCase,
     private getDeviceActivitiesUseCase: GetDeviceActivitiesUseCase,
+    private getAllDevicesUseCase: GetAllDevicesUseCase,
   ) {}
 
   @Get('my-devices')
@@ -70,5 +74,22 @@ export class DeviceController {
     @Query('limit', ParseIntPipe) limit?: number,
   ) {
     return await this.getDeviceActivitiesUseCase.execute(user.sub, limit);
+  }
+
+  @Get()
+  @AuthPermissions('auth.device.read')
+  @ApiOperation({ summary: 'Get all devices (Admin)' })
+  @ApiResponse({
+    status: 200,
+    description: 'All devices retrieved successfully',
+  })
+  async getAllDevices(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return await this.getAllDevicesUseCase.execute(
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10,
+    );
   }
 }

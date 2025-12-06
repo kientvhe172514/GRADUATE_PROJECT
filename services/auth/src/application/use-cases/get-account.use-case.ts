@@ -1,7 +1,15 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { AccountRepositoryPort } from '../ports/account.repository.port';
-import { ACCOUNT_REPOSITORY, EMPLOYEE_PROFILE_SERVICE, EVENT_PUBLISHER } from '../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
+import {
+  ACCOUNT_REPOSITORY,
+  EMPLOYEE_PROFILE_SERVICE,
+  EVENT_PUBLISHER,
+} from '../tokens';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
 import { GetAccountResponseDto } from '../dto/get-account-response.dto';
 import { EmployeeProfileServicePort } from '../ports/employee-profile.service.port';
 import { EventPublisherPort } from '../ports/event.publisher.port';
@@ -23,7 +31,10 @@ export class GetAccountUseCase {
   async execute(id: number): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findById(id);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
+      throw new BusinessException(
+        ErrorCodes.ACCOUNT_NOT_FOUND,
+        'Account not found',
+      );
     }
 
     const dto = await this.buildResponse(account);
@@ -31,27 +42,39 @@ export class GetAccountUseCase {
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 
-  async executeByEmail(email: string): Promise<ApiResponseDto<GetAccountResponseDto>> {
+  async executeByEmail(
+    email: string,
+  ): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findByEmail(email);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
+      throw new BusinessException(
+        ErrorCodes.ACCOUNT_NOT_FOUND,
+        'Account not found',
+      );
     }
 
     const dto = await this.buildResponse(account);
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 
-  async executeByEmployeeId(employeeId: number): Promise<ApiResponseDto<GetAccountResponseDto>> {
+  async executeByEmployeeId(
+    employeeId: number,
+  ): Promise<ApiResponseDto<GetAccountResponseDto>> {
     const account = await this.accountRepository.findByEmployeeId(employeeId);
     if (!account) {
-      throw new BusinessException(ErrorCodes.ACCOUNT_NOT_FOUND, 'Account not found');
+      throw new BusinessException(
+        ErrorCodes.ACCOUNT_NOT_FOUND,
+        'Account not found',
+      );
     }
 
     const dto = await this.buildResponse(account);
     return ApiResponseDto.success(dto, 'Account retrieved');
   }
 
-  private async buildResponse(account: Account): Promise<GetAccountResponseDto> {
+  private async buildResponse(
+    account: Account,
+  ): Promise<GetAccountResponseDto> {
     const dto: GetAccountResponseDto = {
       id: account.id!,
       email: account.email,
@@ -95,14 +118,18 @@ export class GetAccountUseCase {
     return dto;
   }
 
-  private publishProfileViewedEvent(account: Account, dto: GetAccountResponseDto): void {
+  private publishProfileViewedEvent(
+    account: Account,
+    dto: GetAccountResponseDto,
+  ): void {
     try {
       this.eventPublisher.publish('auth.account.profile_viewed', {
         account_id: account.id,
         employee_id: account.employee_id,
         timestamp: new Date().toISOString(),
         metadata: {
-          has_employee_profile: !!dto.phone || !!dto.address || !!dto.dateOfBirth,
+          has_employee_profile:
+            !!dto.phone || !!dto.address || !!dto.dateOfBirth,
         },
       });
     } catch (error) {

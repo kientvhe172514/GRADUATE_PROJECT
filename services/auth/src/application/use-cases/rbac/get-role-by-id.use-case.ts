@@ -1,8 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
-import { GetRoleWithPermissionsResponseDto, PermissionDto } from '../../dto/role/get-role-with-permissions-response.dto';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
+import {
+  GetRoleWithPermissionsResponseDto,
+  PermissionDto,
+} from '../../dto/role/get-role-with-permissions-response.dto';
 
 @Injectable()
 export class GetRoleByIdUseCase {
@@ -11,7 +18,9 @@ export class GetRoleByIdUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(roleId: number): Promise<ApiResponseDto<GetRoleWithPermissionsResponseDto>> {
+  async execute(
+    roleId: number,
+  ): Promise<ApiResponseDto<GetRoleWithPermissionsResponseDto>> {
     const role = await this.roleRepo.findByIdWithPermissions(roleId);
 
     if (!role) {
@@ -23,13 +32,15 @@ export class GetRoleByIdUseCase {
     }
 
     // Map permissions to DTOs
-    const permissionDtos: PermissionDto[] = (role.permissions || []).map((permission: any) => ({
-      id: permission.id,
-      code: permission.code,
-      resource: permission.resource,
-      action: permission.action,
-      description: permission.description,
-    }));
+    const permissionDtos: PermissionDto[] = (role.permissions || []).map(
+      (permission: any) => ({
+        id: permission.id,
+        code: permission.code,
+        resource: permission.resource,
+        action: permission.action,
+        description: permission.description,
+      }),
+    );
 
     // Map entity to DTO
     const response: GetRoleWithPermissionsResponseDto = {
@@ -47,10 +58,6 @@ export class GetRoleByIdUseCase {
       permissions: permissionDtos,
     };
 
-    return ApiResponseDto.success(
-      response,
-      'Role retrieved successfully',
-    );
+    return ApiResponseDto.success(response, 'Role retrieved successfully');
   }
 }
-

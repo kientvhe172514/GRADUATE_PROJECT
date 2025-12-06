@@ -8,7 +8,9 @@ import { TemporaryPasswordsEntity } from '../entities/temporary-passwords.entity
 import { TemporaryPasswordsMapper } from '../mappers/temporary-passwords.mapper';
 
 @Injectable()
-export class PostgresTemporaryPasswordsRepository implements TemporaryPasswordsRepositoryPort {
+export class PostgresTemporaryPasswordsRepository
+  implements TemporaryPasswordsRepositoryPort
+{
   constructor(
     @InjectRepository(TemporaryPasswordsSchema)
     private repository: Repository<TemporaryPasswordsEntity>,
@@ -23,12 +25,14 @@ export class PostgresTemporaryPasswordsRepository implements TemporaryPasswordsR
   async findByAccountId(accountId: number): Promise<TemporaryPasswords[]> {
     const entities = await this.repository.find({
       where: { account_id: accountId },
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
     return entities.map(TemporaryPasswordsMapper.toDomain);
   }
 
-  async findActiveByAccountId(accountId: number): Promise<TemporaryPasswords | null> {
+  async findActiveByAccountId(
+    accountId: number,
+  ): Promise<TemporaryPasswords | null> {
     const entity = await this.repository
       .createQueryBuilder('temp_passwords')
       .where('temp_passwords.account_id = :accountId', { accountId })
@@ -36,7 +40,7 @@ export class PostgresTemporaryPasswordsRepository implements TemporaryPasswordsR
       .andWhere('temp_passwords.used_at IS NULL')
       .orderBy('temp_passwords.created_at', 'DESC')
       .getOne();
-    
+
     return entity ? TemporaryPasswordsMapper.toDomain(entity) : null;
   }
 
@@ -50,7 +54,7 @@ export class PostgresTemporaryPasswordsRepository implements TemporaryPasswordsR
       .delete()
       .where('expires_at < :now', { now: new Date() })
       .execute();
-    
+
     return result.affected || 0;
   }
 

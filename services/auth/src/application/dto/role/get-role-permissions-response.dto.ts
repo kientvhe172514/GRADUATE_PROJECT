@@ -24,10 +24,12 @@ export class GetRolePermissionsResponseDto {
   @ApiProperty({ example: 1, description: 'Role ID' })
   role_id: number;
 
-  @ApiProperty({ type: [RolePermissionDto], description: 'List of permissions' })
+  @ApiProperty({
+    type: [RolePermissionDto],
+    description: 'List of permissions',
+  })
   permissions: RolePermissionDto[];
 
   @ApiProperty({ example: 4, description: 'Total number of permissions' })
   total: number;
 }
-

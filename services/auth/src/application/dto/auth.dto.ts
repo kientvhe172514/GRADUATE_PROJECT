@@ -17,7 +17,10 @@ export class RefreshTokenResponseDto {
 }
 
 export class LogoutRequestDto {
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', required: false })
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   refresh_token?: string;

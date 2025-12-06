@@ -34,6 +34,7 @@ import { LogDeviceActivityUseCase } from './use-cases/device/log-device-activity
 import { GetMyDevicesUseCase } from './use-cases/device/get-my-devices.use-case';
 import { RevokeDeviceUseCase } from './use-cases/device/revoke-device.use-case';
 import { GetDeviceActivitiesUseCase } from './use-cases/device/get-device-activities.use-case';
+import { GetAllDevicesUseCase } from './use-cases/device/get-all-devices.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
@@ -100,12 +101,10 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         name: 'EMPLOYEE_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>(
-            'RABBITMQ_URL',
-          ) as string;
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
           const employeeQueue = configService.getOrThrow<string>(
             'RABBITMQ_EMPLOYEE_QUEUE',
-          ) as string;
+          );
           return {
             transport: Transport.RMQ,
             options: {
@@ -123,12 +122,10 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         name: 'NOTIFICATION_SERVICE',
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          const rabbitmqUrl = configService.getOrThrow<string>(
-            'RABBITMQ_URL',
-          ) as string;
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
           const notificationQueue = configService.getOrThrow<string>(
             'RABBITMQ_NOTIFICATION_QUEUE',
-          ) as string;
+          );
           return {
             transport: Transport.RMQ,
             options: {
@@ -178,6 +175,7 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     GetMyDevicesUseCase,
     RevokeDeviceUseCase,
     GetDeviceActivitiesUseCase,
+    GetAllDevicesUseCase,
     EmployeeCreatedHandler,
     EmployeePositionAssignedHandler,
     EmployeePositionRemovedHandler,

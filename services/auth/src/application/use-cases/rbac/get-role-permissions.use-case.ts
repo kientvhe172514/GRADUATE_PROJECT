@@ -1,8 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RoleRepositoryPort } from '../../ports/role.repository.port';
 import { ROLE_REPOSITORY } from '../../tokens';
-import { ApiResponseDto, BusinessException, ErrorCodes } from '@graduate-project/shared-common';
-import { GetRolePermissionsResponseDto, RolePermissionDto } from '../../dto/role/get-role-permissions-response.dto';
+import {
+  ApiResponseDto,
+  BusinessException,
+  ErrorCodes,
+} from '@graduate-project/shared-common';
+import {
+  GetRolePermissionsResponseDto,
+  RolePermissionDto,
+} from '../../dto/role/get-role-permissions-response.dto';
 
 @Injectable()
 export class GetRolePermissionsUseCase {
@@ -11,7 +18,9 @@ export class GetRolePermissionsUseCase {
     private roleRepo: RoleRepositoryPort,
   ) {}
 
-  async execute(roleId: number): Promise<ApiResponseDto<GetRolePermissionsResponseDto>> {
+  async execute(
+    roleId: number,
+  ): Promise<ApiResponseDto<GetRolePermissionsResponseDto>> {
     // Check if role exists
     const role = await this.roleRepo.findById(roleId);
     if (!role) {
@@ -26,14 +35,16 @@ export class GetRolePermissionsUseCase {
     const permissions = await this.roleRepo.getRolePermissions(roleId);
 
     // Map entities to DTOs
-    const permissionDtos: RolePermissionDto[] = permissions.map((permission: any) => ({
-      id: permission.id,
-      code: permission.code,
-      resource: permission.resource,
-      action: permission.action,
-      description: permission.description,
-      assigned_at: permission.assigned_at || permission.created_at,
-    }));
+    const permissionDtos: RolePermissionDto[] = permissions.map(
+      (permission: any) => ({
+        id: permission.id,
+        code: permission.code,
+        resource: permission.resource,
+        action: permission.action,
+        description: permission.description,
+        assigned_at: permission.assigned_at || permission.created_at,
+      }),
+    );
 
     const response: GetRolePermissionsResponseDto = {
       role_id: roleId,
@@ -47,4 +58,3 @@ export class GetRolePermissionsUseCase {
     );
   }
 }
-
