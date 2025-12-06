@@ -21,12 +21,12 @@ export class MonthlySummaryProcessor {
   constructor(private readonly dataSource: DataSource) {}
 
   /**
-   * Run at 01:00 AM every day to generate summaries for previous complete months
+   * Run at 01:00 AM Vietnam time (GMT+7) every day to generate summaries for previous complete months
    * and update current month's partial data
    */
   @Cron('0 1 * * *', {
     name: 'monthly-summary-generation',
-    timeZone: 'UTC',
+    timeZone: 'Asia/Ho_Chi_Minh',
   })
   async generateMonthlySummaries() {
     this.logger.log('🔄 Starting monthly summary generation...');
@@ -59,6 +59,8 @@ export class MonthlySummaryProcessor {
 
   /**
    * Determine which months need summary generation
+   * Returns current month + last month by default
+   * For backfill, call generateMonthlySummaryForMonth directly with specific year/month
    */
   private getMonthsToGenerate(
     now: Date,
@@ -83,6 +85,42 @@ export class MonthlySummaryProcessor {
     }
 
     return months;
+  }
+
+  /**
+   * Backfill all historical months that have data in employee_shifts_cache
+   * This should be called once after initial deployment or when adding historical data
+   */
+  async backfillAllHistoricalMonths(): Promise<void> {
+    this.logger.log('🔄 Starting backfill of all historical months...');
+
+    try {
+      // Get all distinct year-month combinations from cache
+      const monthsQuery = `
+        SELECT DISTINCT 
+          EXTRACT(YEAR FROM shift_date)::int as year,
+          EXTRACT(MONTH FROM shift_date)::int as month
+        FROM employee_shifts_cache
+        ORDER BY year DESC, month DESC
+      `;
+
+      const monthsWithData = await this.dataSource.query(monthsQuery);
+
+      this.logger.log(
+        `📅 Found ${monthsWithData.length} months with data in cache`,
+      );
+
+      for (const { year, month } of monthsWithData) {
+        await this.generateMonthlySummaryForMonth(year, month);
+      }
+
+      this.logger.log(
+        `✅ Backfill completed for ${monthsWithData.length} months`,
+      );
+    } catch (error) {
+      this.logger.error('❌ Failed to backfill historical months:', error);
+      throw error;
+    }
   }
 
   /**
