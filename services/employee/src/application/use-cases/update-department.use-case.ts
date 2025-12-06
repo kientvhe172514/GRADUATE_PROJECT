@@ -7,6 +7,7 @@ import { DepartmentNotFoundException } from '../../domain/exceptions/department-
 import { BusinessException } from '@graduate-project/shared-common';
 import { ErrorCodes } from '@graduate-project/shared-common';
 import { DepartmentDetailDto } from '../dto/department/department-detail.dto';
+import { DepartmentUpdatedEventDto } from '../dto/department-updated.event.dto';
 
 @Injectable()
 export class UpdateDepartmentUseCase {
@@ -38,10 +39,12 @@ export class UpdateDepartmentUseCase {
     const updatedDepartment = await this.departmentRepository.update(id, {
       ...existingDepartment,
       ...dto,
-      updated_at: new Date()
+      updated_at: new Date(),
     });
 
-    this.eventPublisher.publish('department_updated', updatedDepartment);
+    // Transform to DTO before publishing (department_id instead of id)
+    const eventDto = new DepartmentUpdatedEventDto(updatedDepartment);
+    this.eventPublisher.publish('department_updated', eventDto);
 
     return new DepartmentDetailDto(updatedDepartment);
   }

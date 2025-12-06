@@ -9,6 +9,7 @@ import { BusinessException } from '@graduate-project/shared-common';
 import { ErrorCodes } from  '@graduate-project/shared-common';
 import { ApiResponseDto } from '@graduate-project/shared-common';
 import { DepartmentDetailDto } from '../dto/department/department-detail.dto';
+import { DepartmentCreatedEventDto } from '../dto/department-created.event.dto';
 
 @Injectable()
 export class CreateDepartmentUseCase {
@@ -32,7 +33,9 @@ export class CreateDepartmentUseCase {
     const department = new Department(dto);
     const savedDepartment = await this.departmentRepository.create(department);
     
-    this.eventPublisher.publish('department_created', savedDepartment);
+    // Transform to DTO before publishing (uses 'id' field consistently)
+    const eventDto = new DepartmentCreatedEventDto(savedDepartment);
+    this.eventPublisher.publish('department_created', eventDto);
 
     return ApiResponseDto.success(
       new DepartmentDetailDto(savedDepartment),

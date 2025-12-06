@@ -160,10 +160,10 @@ export class MonthlySummaryProcessor {
         -- Calculate statistics per employee for the month
         SELECT
           ms.employee_id,
-          ms.employee_code,
-          ms.full_name,
-          ms.department_id,
-          ms.department_name,
+          COALESCE(ms.employee_code, 'UNKNOWN') as employee_code,
+          COALESCE(ms.full_name, 'Unknown Employee') as full_name,
+          COALESCE(ms.department_id, 0) as department_id,
+          COALESCE(ms.department_name, 'Unknown Department') as department_name,
           $1::int as year,
           $2::int as month,
           20::int as total_work_days, -- Standard working days per month

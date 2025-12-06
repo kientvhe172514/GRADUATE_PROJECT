@@ -15,6 +15,7 @@ import { AttendanceReportModule } from './application/attendance-report/attendan
 import { AttendanceEventListener } from './presentation/event-listeners/attendance-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
+import { DepartmentEventListener } from './presentation/event-listeners/department-event.listener';
 import { MonthlySummaryProcessor } from './infrastructure/cron/monthly-summary.processor';
 import { HealthController } from './health.controller';
 
@@ -95,7 +96,7 @@ import { HealthController } from './health.controller';
     ExportBatchModule,
     AttendanceReportModule,
   ],
-  controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener],
+  controllers: [HealthController, AttendanceEventListener, LeaveEventListener, EmployeeEventListener, DepartmentEventListener],
   providers: [
     MonthlySummaryProcessor,
     {
