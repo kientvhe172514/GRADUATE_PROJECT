@@ -128,21 +128,27 @@ export class MonthlySummaryProcessor {
           ms.department_name,
           $1::int as year,
           $2::int as month,
+          20::int as total_work_days, -- Standard working days per month
           -- Working days (REGULAR shifts with COMPLETED status)
           COUNT(DISTINCT CASE 
             WHEN ms.shift_type = 'REGULAR' AND ms.status = 'COMPLETED' 
             THEN ms.shift_date 
           END)::int as actual_work_days,
+          -- Absent days (no shift recorded)
+          COUNT(CASE WHEN ms.status = 'ABSENT' THEN 1 END)::int as absent_days,
+          -- Absent count (number of absent instances)
+          COUNT(CASE WHEN ms.status = 'ABSENT' THEN 1 END)::int as absent_count,
+          0::int as holiday_days, -- Will be updated based on holiday calendar
           -- Total working hours
           COALESCE(SUM(CASE WHEN ms.shift_type = 'REGULAR' THEN ms.work_hours ELSE 0 END), 0)::numeric(8,2) as total_work_hours,
           -- Overtime hours
           COALESCE(SUM(ms.overtime_hours), 0)::numeric(8,2) as total_overtime_hours,
+          -- Total leave hours (calculated from leave events later)
+          0::numeric(8,2) as total_leave_hours,
           -- Late arrivals
           COUNT(CASE WHEN ms.late_minutes > 0 THEN 1 END)::int as late_count,
           -- Early leaves
           COUNT(CASE WHEN ms.early_leave_minutes > 0 THEN 1 END)::int as early_leave_count,
-          -- Absent days
-          COUNT(CASE WHEN ms.status = 'ABSENT' THEN 1 END)::int as absent_count,
           -- Total late minutes
           COALESCE(SUM(CASE WHEN ms.late_minutes > 0 THEN ms.late_minutes ELSE 0 END), 0)::int as total_late_minutes
         FROM month_shifts ms
@@ -150,57 +156,64 @@ export class MonthlySummaryProcessor {
       )
       INSERT INTO monthly_summaries (
         employee_id, employee_code, employee_name, department_id, department_name,
-        year, month, total_work_days, actual_work_days, absent_days, 
-        leave_days, holiday_days, total_work_hours, total_overtime_hours, total_leave_hours,
-        late_count, early_leave_count, absent_count, total_late_minutes,
+        year, month, total_work_days, actual_work_days, absent_days, leave_days, 
+        holiday_days, total_work_hours, total_overtime_hours, total_leave_hours,
+        late_count, early_leave_count, absent_count, total_late_minutes, 
         attendance_rate, punctuality_rate, generated_at
       )
       SELECT
         es.employee_id,
         es.employee_code,
-        es.full_name,
+        es.full_name as employee_name,
         es.department_id,
         es.department_name,
         es.year,
         es.month,
-        20 as total_work_days, -- Assumes ~20 working days per month (can be calculated from calendar)
+        es.total_work_days,
         es.actual_work_days,
-        es.absent_count,
-        0 as leave_days, -- Will be populated by leave service
-        0 as holiday_days,
+        es.absent_days,
+        0 as leave_days, -- Will be updated from leave service
+        es.holiday_days,
         es.total_work_hours,
         es.total_overtime_hours,
-        0 as total_leave_hours,
+        es.total_leave_hours,
         es.late_count,
         es.early_leave_count,
         es.absent_count,
         es.total_late_minutes,
         -- Attendance rate = actual_work_days / total_work_days * 100
         CASE 
-          WHEN es.actual_work_days > 0 
-          THEN ROUND((es.actual_work_days::numeric / 20) * 100, 2)
+          WHEN es.total_work_days > 0 
+          THEN ROUND((es.actual_work_days::numeric / es.total_work_days) * 100, 2)
           ELSE 0
         END as attendance_rate,
-        -- Punctuality rate = (shifts - late_count) / actual_work_days * 100
+        -- Punctuality rate = (actual_work_days - late_count) / actual_work_days * 100
         CASE 
-          WHEN es.actual_work_days > 0 
+          WHEN es.actual_work_days > 0
           THEN ROUND(((es.actual_work_days - es.late_count)::numeric / es.actual_work_days) * 100, 2)
-          ELSE 0
+          ELSE 100
         END as punctuality_rate,
-        NOW()
+        NOW() as generated_at
       FROM employee_stats es
       ON CONFLICT (employee_id, year, month) DO UPDATE SET
+        employee_code = EXCLUDED.employee_code,
+        employee_name = EXCLUDED.employee_name,
+        department_id = EXCLUDED.department_id,
+        department_name = EXCLUDED.department_name,
+        total_work_days = EXCLUDED.total_work_days,
         actual_work_days = EXCLUDED.actual_work_days,
         absent_days = EXCLUDED.absent_days,
+        holiday_days = EXCLUDED.holiday_days,
         total_work_hours = EXCLUDED.total_work_hours,
         total_overtime_hours = EXCLUDED.total_overtime_hours,
+        total_leave_hours = EXCLUDED.total_leave_hours,
         late_count = EXCLUDED.late_count,
         early_leave_count = EXCLUDED.early_leave_count,
         absent_count = EXCLUDED.absent_count,
         total_late_minutes = EXCLUDED.total_late_minutes,
         attendance_rate = EXCLUDED.attendance_rate,
         punctuality_rate = EXCLUDED.punctuality_rate,
-        generated_at = NOW()
+        generated_at = EXCLUDED.generated_at
     `;
 
     const result = await this.dataSource.query(query, [year, month]);

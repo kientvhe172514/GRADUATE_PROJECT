@@ -171,6 +171,26 @@ export class ProcessFaceVerificationResultUseCase {
               scheduledEndTime: shift.scheduled_end_time,
               confidence: event.face_confidence,
             });
+
+            // 📤 Publish SHIFT-COMPLETED event for Reporting Service
+            this.notificationClient.emit('attendance.shift-completed', {
+              shiftId: attendanceCheck.shift_id,
+              employeeId: event.employee_id,
+              employeeCode: event.employee_code,
+              departmentId: shift.department_id,
+              shiftDate: shift.shift_date.toISOString(),
+              shiftType: shift.shift_type,
+              scheduledStartTime: shift.scheduled_start_time,
+              scheduledEndTime: shift.scheduled_end_time,
+              checkInTime: shift.check_in_time?.toISOString(),
+              checkOutTime: event.verification_time.toISOString(),
+              workHours: actualWorkHours,
+              overtimeHours: overtimeHours,
+              lateMinutes: shift.late_minutes || 0,
+              earlyLeaveMinutes: earlyLeaveMinutes,
+              breakHours: shift.break_hours || 1,
+              status: 'COMPLETED',
+            });
           }
         }
 
