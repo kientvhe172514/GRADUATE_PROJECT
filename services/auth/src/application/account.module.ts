@@ -35,6 +35,7 @@ import { GetMyDevicesUseCase } from './use-cases/device/get-my-devices.use-case'
 import { RevokeDeviceUseCase } from './use-cases/device/revoke-device.use-case';
 import { GetDeviceActivitiesUseCase } from './use-cases/device/get-device-activities.use-case';
 import { GetAllDevicesUseCase } from './use-cases/device/get-all-devices.use-case';
+import { CheckActiveShiftForDeviceChangeUseCase } from './use-cases/device/check-active-shift-for-device-change.use-case';
 import { PostgresTemporaryPasswordsRepository } from '../infrastructure/persistence/repositories/postgres-temporary-passwords.repository';
 import { TemporaryPasswordsSchema } from '../infrastructure/persistence/typeorm/temporary-passwords.schema';
 import { PostgresRefreshTokensRepository } from '../infrastructure/persistence/repositories/postgres-refresh-tokens.repository';
@@ -139,6 +140,27 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         },
         inject: [ConfigService],
       },
+      {
+        name: 'ATTENDANCE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const attendanceQueue = configService.getOrThrow<string>(
+            'RABBITMQ_ATTENDANCE_QUEUE',
+          );
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl] as string[],
+              queue: attendanceQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [
@@ -176,6 +198,7 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     RevokeDeviceUseCase,
     GetDeviceActivitiesUseCase,
     GetAllDevicesUseCase,
+    CheckActiveShiftForDeviceChangeUseCase,
     EmployeeCreatedHandler,
     EmployeePositionAssignedHandler,
     EmployeePositionRemovedHandler,
