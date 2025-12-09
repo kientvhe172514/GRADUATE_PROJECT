@@ -186,24 +186,43 @@ export class EmployeeShiftRepository {
       const [startHour, startMinute] = shift.scheduled_start_time
         .split(':')
         .map(Number);
-      const startMinutes = startHour * 60 + startMinute;
+      let startMinutes = startHour * 60 + startMinute;
 
       const [endHour, endMinute] = shift.scheduled_end_time
         .split(':')
         .map(Number);
-      const endMinutes = endHour * 60 + endMinute;
+      let endMinutes = endHour * 60 + endMinute;
+
+      // Handle overnight shift (e.g., 22:00 → 02:00)
+      // If end time is earlier than start time, it means shift crosses midnight
+      const isOvernightShift = endMinutes < startMinutes;
+      if (isOvernightShift) {
+        // Add 24 hours (1440 minutes) to end time
+        endMinutes += 1440;
+        // If current time is early morning (0-6am), also add 24 hours to match
+        if (currentHour < 6) {
+          // currentMinutes is already in 0-360 range, add 1440 to match overnight shift
+          // This will be handled below
+        }
+      }
 
       // Allow check-in 2 hours early, check-out 2 hours late
       const allowedStartMinutes = startMinutes - 120; // 2 hours before
       const allowedEndMinutes = endMinutes + 120; // 2 hours after
 
+      // For overnight shift, adjust currentMinutes if in early morning
+      let adjustedCurrentMinutes = currentMinutes;
+      if (isOvernightShift && currentHour < 6) {
+        adjustedCurrentMinutes += 1440; // Add 24 hours
+      }
+
       // Check if current time is within allowed range
       if (
-        currentMinutes >= allowedStartMinutes &&
-        currentMinutes <= allowedEndMinutes
+        adjustedCurrentMinutes >= allowedStartMinutes &&
+        adjustedCurrentMinutes <= allowedEndMinutes
       ) {
         // Calculate distance to shift start time
-        const diff = Math.abs(currentMinutes - startMinutes);
+        const diff = Math.abs(adjustedCurrentMinutes - startMinutes);
 
         // Prefer OVERTIME shift if same distance
         if (
