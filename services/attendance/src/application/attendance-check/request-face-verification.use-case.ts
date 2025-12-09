@@ -155,13 +155,56 @@ export class RequestFaceVerificationUseCase {
         `${shift.scheduled_start_time}-${shift.scheduled_end_time} (shift_id=${shift.id}, current_time=${currentTime})`,
     );
 
+    // ALWAYS auto-detect check_type based on shift status (ignore client's check_type)
+    // - If shift has no check_in_time yet → check_in
+    // - If shift has check_in_time → check_out (overwrite if exists)
+    // - Only reject if shift ended (current time > scheduled_end_time + grace period)
+    let checkType: 'check_in' | 'check_out';
+    if (!shift.check_in_time) {
+      checkType = 'check_in';
+      this.logger.log('✅ Auto-detected: CHECK-IN (shift has no check-in yet)');
+    } else {
+      // Already has check-in → always CHECK-OUT (overwrite if needed)
+      checkType = 'check_out';
+      
+      // Check if shift has ended (current time > scheduled_end_time + 2 hours grace)
+      const scheduledEnd = this.parseTimeString(
+        shift.scheduled_end_time,
+        new Date(),
+      );
+      const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
+      const shiftEndWithGrace = new Date(scheduledEnd.getTime() + gracePeriodMs);
+      const now = getVietnamTime();
+
+      if (now > shiftEndWithGrace) {
+        // Shift has ended more than 2 hours ago
+        this.logger.warn(
+          `❌ Shift ${shift.id} has ended (scheduled_end: ${shift.scheduled_end_time}, current: ${currentTime})`,
+        );
+        return {
+          success: false,
+          message: `Your shift has ended (${shift.scheduled_start_time} - ${shift.scheduled_end_time}). Cannot check-out after grace period.`,
+        };
+      }
+
+      if (shift.check_out_time) {
+        this.logger.log(
+          `⚠️ Auto-detected: CHECK-OUT (OVERWRITE existing check-out time)`,
+        );
+      } else {
+        this.logger.log(
+          '✅ Auto-detected: CHECK-OUT (shift already has check-in)',
+        );
+      }
+    }
+
     // Step 4: Create attendance check record (link to shift)
     const attendanceCheck = await this.attendanceCheckRepository.create({
       employee_id: command.employee_id,
       employee_code: command.employee_code,
       department_id: command.department_id,
       shift_id: shift.id, // Link to shift (REGULAR or OVERTIME)
-      check_type: command.check_type,
+      check_type: checkType,
       beacon_validated: true,
       beacon_id: sessionValidation.beaconId!,
       gps_validated: gpsValidated,
@@ -174,7 +217,7 @@ export class RequestFaceVerificationUseCase {
     });
 
     this.logger.log(
-      `✅ Attendance check record created: ID=${attendanceCheck.id}, beacon_validated=true, gps_validated=${gpsValidated}`,
+      `✅ Attendance check record created: ID=${attendanceCheck.id}, check_type=${checkType}, beacon_validated=true, gps_validated=${gpsValidated}`,
     );
 
     // Step 5: SYNC RPC face verification (immediate response)
@@ -183,7 +226,7 @@ export class RequestFaceVerificationUseCase {
       employee_code: command.employee_code,
       attendance_check_id: attendanceCheck.id,
       shift_id: shift.id,
-      check_type: command.check_type,
+      check_type: checkType,
       request_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
       face_embedding_base64: command.face_embedding_base64,
     };
@@ -350,5 +393,15 @@ export class RequestFaceVerificationUseCase {
     }
 
     return { office_latitude, office_longitude, max_distance_meters };
+  }
+
+  /**
+   * Parse time string (HH:MM) and combine with date
+   */
+  private parseTimeString(timeStr: string, referenceDate: Date): Date {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const result = new Date(referenceDate);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
   }
 }

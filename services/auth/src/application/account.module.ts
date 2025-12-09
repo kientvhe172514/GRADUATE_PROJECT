@@ -145,9 +145,8 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
           const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
-          const attendanceQueue = configService.getOrThrow<string>(
-            'RABBITMQ_ATTENDANCE_QUEUE',
-          );
+          // Queue name is hardcoded - not sensitive information
+          const attendanceQueue = 'attendance_rpc_queue';
           return {
             transport: Transport.RMQ,
             options: {
