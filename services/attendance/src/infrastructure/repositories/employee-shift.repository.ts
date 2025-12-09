@@ -174,19 +174,27 @@ export class EmployeeShiftRepository {
       return allShifts[0];
     }
 
-    // Multiple shifts - find the one closest to current time
-    // Allow check-in up to 2 hours before shift start and check-out up to 2 hours after shift end
+    // Multiple shifts - apply SMART matching logic
+    // Priority:
+    // 1. If previous shift is NOT completed (no check-out or within grace) → Continue that shift
+    // 2. If previous shift is completed → Move to next shift
+    // 3. OVERTIME shift has higher priority than REGULAR
+    // 4. Allow check-in 2 hours early, check-out 1 hour late
+
     const [currentHour, currentMinute] = currentTime.split(':').map(Number);
     const currentMinutes = currentHour * 60 + currentMinute;
 
-    let bestShift: EmployeeShiftSchema | null = null;
-    let smallestDiff = Infinity;
+    let candidateShifts: Array<{
+      shift: EmployeeShiftSchema;
+      priority: number;
+      diff: number;
+    }> = [];
 
     for (const shift of allShifts) {
       const [startHour, startMinute] = shift.scheduled_start_time
         .split(':')
         .map(Number);
-      let startMinutes = startHour * 60 + startMinute;
+      const startMinutes = startHour * 60 + startMinute;
 
       const [endHour, endMinute] = shift.scheduled_end_time
         .split(':')
@@ -194,48 +202,83 @@ export class EmployeeShiftRepository {
       let endMinutes = endHour * 60 + endMinute;
 
       // Handle overnight shift (e.g., 22:00 → 02:00)
-      // If end time is earlier than start time, it means shift crosses midnight
       const isOvernightShift = endMinutes < startMinutes;
       if (isOvernightShift) {
-        // Add 24 hours (1440 minutes) to end time
-        endMinutes += 1440;
-        // If current time is early morning (0-6am), also add 24 hours to match
-        if (currentHour < 6) {
-          // currentMinutes is already in 0-360 range, add 1440 to match overnight shift
-          // This will be handled below
-        }
+        endMinutes += 1440; // Add 24 hours
       }
 
-      // Allow check-in 2 hours early, check-out 2 hours late
-      const allowedStartMinutes = startMinutes - 120; // 2 hours before
-      const allowedEndMinutes = endMinutes + 120; // 2 hours after
-
-      // For overnight shift, adjust currentMinutes if in early morning
+      // Adjust current time for overnight shift comparison
       let adjustedCurrentMinutes = currentMinutes;
       if (isOvernightShift && currentHour < 6) {
-        adjustedCurrentMinutes += 1440; // Add 24 hours
+        adjustedCurrentMinutes += 1440;
       }
 
-      // Check if current time is within allowed range
-      if (
-        adjustedCurrentMinutes >= allowedStartMinutes &&
-        adjustedCurrentMinutes <= allowedEndMinutes
-      ) {
-        // Calculate distance to shift start time
-        const diff = Math.abs(adjustedCurrentMinutes - startMinutes);
+      // Check if shift is completed (has check-out AND past grace period)
+      const hasCheckOut = !!shift.check_out_time;
+      const gracePeriodMinutes = 60; // 1 hour grace after shift end
+      const shiftEndWithGrace = endMinutes + gracePeriodMinutes;
+      const isCompleted =
+        hasCheckOut && adjustedCurrentMinutes > shiftEndWithGrace;
 
-        // Prefer OVERTIME shift if same distance
+      // If shift is completed, skip it (move to next shift)
+      if (isCompleted) {
+        continue;
+      }
+
+      // ✅ BUSINESS RULES:
+      // Check-in: 2h before to 1h after shift start (e.g., 8h shift → 6h-9h)
+      // Check-out: 30min before to 1h after shift end (e.g., 12h end → 11:30-13h)
+
+      const checkInStart = startMinutes - 120; // 2h before start
+      const checkInEnd = startMinutes + 60; // 1h after start
+      const checkOutStart = endMinutes - 30; // 30min before end
+      const checkOutEnd = endMinutes + 60; // 1h after end
+
+      // Case 1: Shift has check-in but no check-out → Priority for check-out
+      if (shift.check_in_time && !shift.check_out_time) {
         if (
-          diff < smallestDiff ||
-          (diff === smallestDiff && shift.shift_type === 'OVERTIME')
+          adjustedCurrentMinutes >= checkOutStart &&
+          adjustedCurrentMinutes <= checkOutEnd
         ) {
-          smallestDiff = diff;
-          bestShift = shift;
+          candidateShifts.push({
+            shift,
+            priority: 100, // Highest priority - continue existing shift for check-out
+            diff: Math.abs(adjustedCurrentMinutes - endMinutes),
+          });
         }
+        continue; // Don't consider for check-in
+      }
+
+      // Case 2: Shift has NO check-in → Available for check-in
+      if (!shift.check_in_time) {
+        if (
+          adjustedCurrentMinutes >= checkInStart &&
+          adjustedCurrentMinutes <= checkInEnd
+        ) {
+          let priority = 50; // Base priority for check-in
+          if (shift.shift_type === 'OVERTIME') {
+            priority += 10; // OVERTIME bonus
+          }
+          const diff = Math.abs(adjustedCurrentMinutes - startMinutes);
+          candidateShifts.push({ shift, priority, diff });
+        }
+        // else: Outside check-in window → Shift is MISSED → Skip
       }
     }
 
-    return bestShift;
+    if (candidateShifts.length === 0) {
+      return null;
+    }
+
+    // Sort by priority (desc), then by diff (asc)
+    candidateShifts.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return a.diff - b.diff; // Closer to start time first
+    });
+
+    return candidateShifts[0].shift;
   }
 
   async findByDateRange(

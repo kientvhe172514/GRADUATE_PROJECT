@@ -124,11 +124,11 @@ export class RequestFaceVerificationUseCase {
     }
 
     // Step 3: Find employee shift using SMART TIME-BASED MATCHING
-    // This handles:
-    // - Early check-in (6am for 8am shift)
-    // - Multiple shifts per day (8am-12pm, 1pm-5pm)
-    // - Late check-in (within grace period)
-    // Priority: OVERTIME > REGULAR (if both match)
+    // Logic:
+    // - Check-in window: 2h BEFORE to 2h AFTER shift start (e.g., 8h shift → 6h-10h)
+    // - If past (shift start + 2h) without check-in → Shift is MISSED → Move to next shift
+    // - Multiple shifts per day: Auto-detect next available shift
+    // - Priority: Ongoing shift (has check-in) > New shift (no check-in) > OVERTIME > REGULAR
 
     const currentTime = new Date().toTimeString().substring(0, 5); // "HH:MM"
 
@@ -139,13 +139,19 @@ export class RequestFaceVerificationUseCase {
     );
 
     if (!shift) {
-      // ❌ No shift found → Return error (do NOT auto-create)
+      // ❌ No shift found → Could be:
+      // 1. No shift scheduled today
+      // 2. All shifts today are MISSED (past check-in window without check-in)
+      // 3. Current time is outside any shift's valid time range
       this.logger.warn(
-        `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()} at ${currentTime}`,
+        `No active shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()} at ${currentTime}. ` +
+        `Possible reasons: No shift scheduled, all shifts missed (past check-in deadline: shift_start + 2h), or outside valid time range.`,
       );
       return {
         success: false,
-        message: `You have no scheduled shift for today (${command.shift_date.toISOString().split('T')[0]}). Please contact HR.`,
+        message: `No active shift available for check-in/check-out at this time. ` +
+          `Check-in window: 2 hours before to 2 hours after shift start time. ` +
+          `If you missed this window, the shift is considered absent. Please contact your manager.`,
       };
     }
 
@@ -155,47 +161,70 @@ export class RequestFaceVerificationUseCase {
         `${shift.scheduled_start_time}-${shift.scheduled_end_time} (shift_id=${shift.id}, current_time=${currentTime})`,
     );
 
-    // ALWAYS auto-detect check_type based on shift status (ignore client's check_type)
-    // - If shift has no check_in_time yet → check_in
-    // - If shift has check_in_time → check_out (overwrite if exists)
-    // - Only reject if shift ended (current time > scheduled_end_time + grace period)
+    // ✅ BUSINESS LOGIC:
+    // 1. No check-in → CHECK-IN (window: 2h early to 1h late)
+    // 2. Has check-in, within check-out window → CHECK-OUT (window: 30min early to 1h late)
+    // 3. Has check-in, BEFORE check-out window → LOG ONLY (2nd scan, don't update)
+    // 4. Has both check-in & check-out → LOG ONLY (already completed)
+    
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+    const currentMinutes = currentHour * 60 + currentMinute;
+    
+    // Parse shift end time
+    const [endHour, endMinute] = shift.scheduled_end_time.split(':').map(Number);
+    let endMinutes = endHour * 60 + endMinute;
+    
+    // Handle overnight shift
+    const [startHour] = shift.scheduled_start_time.split(':').map(Number);
+    const startMinutes = startHour * 60 + (shift.scheduled_start_time.split(':')[1] ? parseInt(shift.scheduled_start_time.split(':')[1]) : 0);
+    const isOvernightShift = endMinutes < startMinutes;
+    
+    if (isOvernightShift) {
+      endMinutes += 1440; // Add 24 hours
+    }
+    
+    let adjustedCurrentMinutes = currentMinutes;
+    if (isOvernightShift && currentHour < 6) {
+      adjustedCurrentMinutes += 1440;
+    }
+    
+    // Check-out window: 30 minutes before to 1 hour after shift end
+    const checkOutStartMinutes = endMinutes - 30; // 30min early
+    const checkOutEndMinutes = endMinutes + 60; // 1h late
+    
     let checkType: 'check_in' | 'check_out';
+    let isLogOnly = false; // Flag for 2nd scan (no update)
+    
     if (!shift.check_in_time) {
+      // Case 1: No check-in yet → CHECK-IN
       checkType = 'check_in';
       this.logger.log('✅ Auto-detected: CHECK-IN (shift has no check-in yet)');
-    } else {
-      // Already has check-in → always CHECK-OUT (overwrite if needed)
-      checkType = 'check_out';
-      
-      // Check if shift has ended (current time > scheduled_end_time + 2 hours grace)
-      const scheduledEnd = this.parseTimeString(
-        shift.scheduled_end_time,
-        new Date(),
-      );
-      const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
-      const shiftEndWithGrace = new Date(scheduledEnd.getTime() + gracePeriodMs);
-      const now = getVietnamTime();
-
-      if (now > shiftEndWithGrace) {
-        // Shift has ended more than 2 hours ago
-        this.logger.warn(
-          `❌ Shift ${shift.id} has ended (scheduled_end: ${shift.scheduled_end_time}, current: ${currentTime})`,
-        );
-        return {
-          success: false,
-          message: `Your shift has ended (${shift.scheduled_start_time} - ${shift.scheduled_end_time}). Cannot check-out after grace period.`,
-        };
-      }
-
-      if (shift.check_out_time) {
+    } else if (!shift.check_out_time) {
+      // Case 2: Has check-in, no check-out yet
+      // Check if current time is within check-out window
+      if (adjustedCurrentMinutes >= checkOutStartMinutes && adjustedCurrentMinutes <= checkOutEndMinutes) {
+        // Within check-out window → CHECK-OUT
+        checkType = 'check_out';
         this.logger.log(
-          `⚠️ Auto-detected: CHECK-OUT (OVERWRITE existing check-out time)`,
+          `✅ Auto-detected: CHECK-OUT (within window: ${shift.scheduled_end_time} ±30min/+1h, current: ${currentTime})`,
         );
       } else {
+        // BEFORE check-out window → 2nd scan, LOG ONLY
+        checkType = 'check_in'; // Dummy value
+        isLogOnly = true;
         this.logger.log(
-          '✅ Auto-detected: CHECK-OUT (shift already has check-in)',
+          `⚠️ 2nd scan detected: Already checked-in but NOT in check-out window yet. ` +
+          `Current: ${currentTime}, Check-out window starts: ${Math.floor(checkOutStartMinutes / 60)}:${String(checkOutStartMinutes % 60).padStart(2, '0')}. ` +
+          `LOG ONLY - No update.`,
         );
       }
+    } else {
+      // Case 3: Both check-in & check-out exist → LOG ONLY
+      checkType = 'check_in'; // Dummy value
+      isLogOnly = true;
+      this.logger.log(
+        `⚠️ Shift ${shift.id} already completed (both check-in & check-out exist). This is a 2nd scan - LOG ONLY (no update).`,
+      );
     }
 
     // Step 4: Create attendance check record (link to shift)
@@ -283,19 +312,32 @@ export class RequestFaceVerificationUseCase {
         },
       );
 
+      // ✅ Use auto-detected checkType (not command.check_type from client)
       if (faceResult.face_verified) {
-        if (command.check_type === 'check_in') {
+        if (isLogOnly) {
+          // 2nd scan after both check-in & check-out done → LOG ONLY, don't update shift
+          this.logger.log(
+            `⚠️ 2nd scan detected for shift ${shift.id}. Attendance record logged but shift NOT updated.`,
+          );
+        } else if (checkType === 'check_in') {
           await this.updateEmployeeShiftUseCase.executeCheckIn({
             shift_id: shift.id,
             check_in_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
             check_record_id: attendanceCheck.id,
           });
+          this.logger.log(
+            `✅ Updated shift ${shift.id}: check_in_time recorded`,
+          );
         } else {
+          // CHECK-OUT: Update check_out_time
           await this.updateEmployeeShiftUseCase.executeCheckOut({
             shift_id: shift.id,
             check_out_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
             check_record_id: attendanceCheck.id,
           });
+          this.logger.log(
+            `✅ Updated shift ${shift.id}: check_out_time recorded`,
+          );
         }
       }
 
@@ -303,13 +345,25 @@ export class RequestFaceVerificationUseCase {
         ? `Face: ✅ (${(faceResult.face_confidence * 100).toFixed(1)}%)`
         : `Face: ❌`;
 
+      // Build message based on action taken
+      let actionMessage: string;
+      if (isLogOnly) {
+        actionMessage = '2nd scan recorded (no update)';
+      } else if (checkType === 'check_in') {
+        actionMessage = faceResult.face_verified
+          ? 'Check-in successful'
+          : 'Check-in failed';
+      } else {
+        actionMessage = faceResult.face_verified
+          ? 'Check-out successful'
+          : 'Check-out failed';
+      }
+
       return {
         success: faceResult.face_verified,
         attendance_check_id: attendanceCheck.id,
         shift_id: shift.id,
-        message:
-          `${command.check_type === 'check_in' ? 'Check-in' : 'Check-out'} ${faceResult.face_verified ? 'successful' : 'failed'}. ` +
-          `Beacon: ✅ | GPS: ${gpsValidated ? '✅' : '⏭️'} | ${statusMsg}`,
+        message: `${actionMessage}. Beacon: ✅ | GPS: ${gpsValidated ? '✅' : '⏭️'} | ${statusMsg}`,
       };
     } catch (error) {
       this.logger.error(`❌ Error: ${(error as Error).message}`);
