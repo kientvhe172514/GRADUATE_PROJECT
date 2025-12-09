@@ -67,6 +67,9 @@ import { RedisModule } from './infrastructure/redis/redis.module';
         ],
         synchronize: true,
         logging: configService.get('NODE_ENV') === 'development',
+        // ✅ Set PostgreSQL session timezone to Vietnam (UTC+7)
+        // This ensures all TIMESTAMP/TIMESTAMPTZ columns are read/written in VN time
+        timezone: 'Asia/Ho_Chi_Minh',
       }),
       inject: [ConfigService],
     }),

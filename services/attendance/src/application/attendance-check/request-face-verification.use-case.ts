@@ -17,6 +17,7 @@ import {
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
   WORK_SCHEDULE_REPOSITORY,
 } from '../tokens';
+import { getVietnamTime } from '../../common/utils/vietnam-time.util';
 
 export interface RequestFaceVerificationCommand {
   employee_id: number;
@@ -245,7 +246,7 @@ export class RequestFaceVerificationUseCase {
       attendance_check_id: attendanceCheck.id,
       shift_id: shift.id,
       check_type: command.check_type,
-      request_time: new Date(),
+      request_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
       face_embedding_base64: command.face_embedding_base64,
     };
 
@@ -305,13 +306,13 @@ export class RequestFaceVerificationUseCase {
         if (command.check_type === 'check_in') {
           await this.updateEmployeeShiftUseCase.executeCheckIn({
             shift_id: shift.id,
-            check_in_time: new Date(),
+            check_in_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
             check_record_id: attendanceCheck.id,
           });
         } else {
           await this.updateEmployeeShiftUseCase.executeCheckOut({
             shift_id: shift.id,
-            check_out_time: new Date(),
+            check_out_time: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
             check_record_id: attendanceCheck.id,
           });
         }

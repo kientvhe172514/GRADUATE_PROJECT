@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { AttendanceCheckRecordSchema } from '../persistence/typeorm/attendance-check-record.schema';
+import { getVietnamTime } from '../../common/utils/vietnam-time.util';
 
 export interface CreateCheckRecordDto {
   employee_id: number;
@@ -51,12 +52,12 @@ export class AttendanceCheckRepository {
   ): Promise<AttendanceCheckRecordSchema> {
     const record = this.repository.create({
       ...dto,
-      check_timestamp: new Date(),
+      check_timestamp: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
       gps_validated: dto.gps_validated ?? false,
       face_verified: false,
       is_valid: false,
       is_manually_corrected: false,
-      created_at: new Date(),
+      created_at: getVietnamTime(), // ✅ Vietnam timezone (UTC+7)
     });
 
     return this.repository.save(record);

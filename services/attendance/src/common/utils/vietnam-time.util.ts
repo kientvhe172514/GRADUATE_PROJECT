@@ -1,0 +1,94 @@
+/**
+ * Vietnam Time (UTC+7) utility functions
+ *
+ * IMPORTANT: Always use these functions instead of `new Date()` to ensure
+ * all timestamps are in Vietnam timezone (Asia/Ho_Chi_Minh)
+ *
+ * ✅ TypeORM Configuration: timezone is set to 'Asia/Ho_Chi_Minh' in app.module.ts
+ * This means PostgreSQL automatically handles timezone conversion:
+ * - When saving: Converts VN time → UTC in DB
+ * - When reading: Converts UTC → VN time
+ *
+ * So we just need to provide current local time, PostgreSQL handles the rest.
+ */
+
+/**
+ * Get current date and time in Vietnam timezone (UTC+7)
+ *
+ * Since TypeORM timezone is set to 'Asia/Ho_Chi_Minh', we can use `new Date()`
+ * directly and PostgreSQL will handle the conversion automatically.
+ *
+ * @returns Date object representing current time (PostgreSQL will interpret as VN time)
+ */
+export function getVietnamTime(): Date {
+  return new Date();
+}
+
+/**
+ * Convert any Date to Vietnam timezone
+ * @param date - Date to convert
+ * @returns Date object in Vietnam timezone
+ */
+export function toVietnamTime(date: Date): Date {
+  const utcTime = date.getTime() + date.getTimezoneOffset() * 60000;
+  const vietnamTime = new Date(utcTime + 7 * 3600000);
+  return vietnamTime;
+}
+
+/**
+ * Get current date in Vietnam timezone as ISO string (YYYY-MM-DD)
+ * @returns ISO date string (YYYY-MM-DD)
+ */
+export function getVietnamDate(): string {
+  return getVietnamTime().toISOString().split('T')[0];
+}
+
+/**
+ * Get current Vietnam time as ISO string with timezone
+ * @returns ISO timestamp string
+ */
+export function getVietnamISOString(): string {
+  return getVietnamTime().toISOString();
+}
+
+/**
+ * Parse string date to Vietnam timezone Date object
+ * @param dateString - Date string (YYYY-MM-DD or ISO format)
+ * @returns Date object in Vietnam timezone
+ */
+export function parseToVietnamTime(dateString: string): Date {
+  const parsedDate = new Date(dateString);
+  return toVietnamTime(parsedDate);
+}
+
+/**
+ * Get start of day in Vietnam timezone (00:00:00)
+ * @param date - Optional date (defaults to today)
+ * @returns Date object at start of day in Vietnam timezone
+ */
+export function getVietnamStartOfDay(date?: Date): Date {
+  const targetDate = date ? toVietnamTime(date) : getVietnamTime();
+  targetDate.setHours(0, 0, 0, 0);
+  return targetDate;
+}
+
+/**
+ * Get end of day in Vietnam timezone (23:59:59.999)
+ * @param date - Optional date (defaults to today)
+ * @returns Date object at end of day in Vietnam timezone
+ */
+export function getVietnamEndOfDay(date?: Date): Date {
+  const targetDate = date ? toVietnamTime(date) : getVietnamTime();
+  targetDate.setHours(23, 59, 59, 999);
+  return targetDate;
+}
+
+/**
+ * Format Vietnam time to readable string
+ * @param date - Date to format
+ * @returns Formatted string (e.g., "2025-12-09 14:30:45")
+ */
+export function formatVietnamTime(date: Date): string {
+  const vietnamDate = toVietnamTime(date);
+  return vietnamDate.toISOString().replace('T', ' ').substring(0, 19);
+}
