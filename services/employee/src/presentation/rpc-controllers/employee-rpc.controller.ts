@@ -73,11 +73,9 @@ export class EmployeeRpcController {
 
     try {
       // Get employees one by one since ListEmployeeDto doesn't support filtering by IDs
-      const employeePromises = payload.employee_ids.map(id => 
-        this.getEmployeeDetailUseCase.execute(id).catch(() => null)
-      );
-      
-      const employees = (await Promise.all(employeePromises)).filter(emp => emp !== null);
+      const employeePromises = payload.employee_ids.map((id) => this.getEmployeeDetailUseCase.execute(id).catch(() => null));
+
+      const employees = (await Promise.all(employeePromises)).filter((emp) => emp !== null);
 
       this.logger.log(`✅ [RPC] Found ${employees.length} employees`);
       return {
@@ -163,6 +161,79 @@ export class EmployeeRpcController {
         message: `Failed to fetch managed departments: ${errorMessage}`,
         data: { department_ids: [] },
       };
+    }
+  }
+
+  /**
+   * RPC: Get employee by ID (alternative pattern for Leave Service)
+   * Pattern: { cmd: 'get_employee_by_id' }
+   * Payload: { id: number }
+   * Response: Employee object with full details
+   */
+  @MessagePattern({ cmd: 'get_employee_by_id' })
+  async getEmployeeByIdCmd(@Payload() payload: { id: number }): Promise<any> {
+    this.logger.log(`🔍 [RPC] get_employee_by_id - ID: ${payload.id}`);
+
+    try {
+      const employee = await this.getEmployeeDetailUseCase.execute(payload.id);
+
+      if (!employee) {
+        this.logger.warn(`⚠️ [RPC] Employee not found: ${payload.id}`);
+        throw new Error('Employee not found');
+      }
+
+      this.logger.log(`✅ [RPC] Employee found: ${employee.employee_code}`);
+      return employee;
+    } catch (error) {
+      this.logger.error(`❌ [RPC] Error fetching employee ${payload.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * RPC: Get all active employees
+   * Pattern: { cmd: 'get_all_active_employees' }
+   * Payload: {}
+   * Response: Array of employee objects with basic info
+   *
+   * Used by Leave Service to create leave balances for all employees
+   */
+  @MessagePattern({ cmd: 'get_all_active_employees' })
+  async getAllActiveEmployees(): Promise<any[]> {
+    this.logger.log(`🔍 [RPC] get_all_active_employees - Fetching all active employees`);
+
+    try {
+      // Get all active employees with status = ACTIVE
+      const result = await this.getEmployeesUseCase.execute({
+        status: 'ACTIVE',
+        page: 1,
+        limit: 1000, // Get large batch to ensure all active employees
+      });
+
+      if (result.data && result.data.employees) {
+        const employees = result.data.employees.map((emp) => ({
+          id: emp.id,
+          employee_id: emp.id, // For backward compatibility
+          employee_code: emp.employee_code,
+          full_name: emp.full_name,
+          email: emp.email,
+          department_id: emp.department_id,
+          position_id: emp.position_id,
+          status: emp.status,
+        }));
+
+        this.logger.log(`✅ [RPC] Found ${employees.length} active employees`);
+        return employees;
+      }
+
+      this.logger.warn(`⚠️ [RPC] No active employees found`);
+      return [];
+    } catch (error) {
+      this.logger.error(`❌ [RPC] Error fetching all active employees:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error message: ${errorMessage}`);
+      // Return empty array instead of throwing to prevent Leave Service from failing
+      return [];
     }
   }
 }

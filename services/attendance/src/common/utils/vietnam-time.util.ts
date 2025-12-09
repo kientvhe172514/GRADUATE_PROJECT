@@ -15,13 +15,16 @@
 /**
  * Get current date and time in Vietnam timezone (UTC+7)
  *
- * Since TypeORM timezone is set to 'Asia/Ho_Chi_Minh', we can use `new Date()`
- * directly and PostgreSQL will handle the conversion automatically.
+ * IMPORTANT: Cannot rely on server's local timezone in Docker containers.
+ * Must manually calculate Vietnam time by adding 7 hours to UTC.
  *
- * @returns Date object representing current time (PostgreSQL will interpret as VN time)
+ * @returns Date object representing current time in Vietnam timezone
  */
 export function getVietnamTime(): Date {
-  return new Date();
+  const now = new Date();
+  // Get UTC time in milliseconds and add 7 hours (25200000 ms = 7 * 60 * 60 * 1000)
+  const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  return vietnamTime;
 }
 
 /**

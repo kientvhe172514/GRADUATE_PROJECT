@@ -58,37 +58,31 @@ export class RejectLeaveUseCase {
       );
     }
 
-    // 4. Restore balance: remove from pending_days and restore to remaining_days
+    // 4. No balance update needed - balance was not deducted when request was created
+    // Just record the rejection transaction for audit trail
     const year = new Date(leaveRecord.start_date).getFullYear();
     const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
       leaveRecord.employee_id,
       leaveRecord.leave_type_id,
-      year
+      year,
     );
 
     if (balance) {
       const leaveDays = Number(leaveRecord.total_leave_days);
       const balanceBefore = Number(balance.remaining_days);
-      const newPendingDays = Number(balance.pending_days) - leaveDays;
-      const newRemainingDays = Number(balance.remaining_days) + leaveDays;
-      
-      await this.leaveBalanceRepository.update(balance.id, {
-        pending_days: newPendingDays,
-        remaining_days: newRemainingDays,
-      });
 
-      // 4.1. Record transaction for audit trail
+      // 4.1. Record transaction for audit trail (no balance change)
       await this.transactionRepository.create({
         employee_id: leaveRecord.employee_id,
         leave_type_id: leaveRecord.leave_type_id,
         year: year,
         transaction_type: 'LEAVE_REJECTED',
-        amount: leaveDays, // positive = restored
+        amount: 0, // No balance change on rejection
         balance_before: balanceBefore,
-        balance_after: balanceBefore + leaveDays,
+        balance_after: balanceBefore, // Balance unchanged
         reference_type: 'LEAVE_RECORD',
         reference_id: leaveRecordId,
-        description: `Leave rejected: ${dto.rejection_reason || 'No reason provided'}`,
+        description: `Leave rejected (${leaveDays} days): ${dto.rejection_reason || 'No reason provided'}`,
         created_by: dto.rejected_by,
       });
     }

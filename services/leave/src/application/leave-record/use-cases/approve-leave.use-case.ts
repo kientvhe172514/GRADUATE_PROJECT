@@ -58,39 +58,44 @@ export class ApproveLeaveUseCase {
       );
     }
 
-    // 4. Update balance: pending_days -> used_days
-    const year = new Date(leaveRecord.start_date).getFullYear();
-    const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
-      leaveRecord.employee_id,
-      leaveRecord.leave_type_id,
-      year
-    );
+    // 4. Get leave type to check if it deducts from balance
+    const leaveTypeInfo = await this.leaveTypeRepository.findById(leaveRecord.leave_type_id);
 
-    if (balance) {
-      const leaveDays = Number(leaveRecord.total_leave_days);
-      const balanceBefore = Number(balance.remaining_days);
-      const newPendingDays = Number(balance.pending_days) - leaveDays;
-      const newUsedDays = Number(balance.used_days) + leaveDays;
-      
-      await this.leaveBalanceRepository.update(balance.id, {
-        pending_days: newPendingDays,
-        used_days: newUsedDays,
-      });
+    // 5. Update balance: deduct from remaining_days and add to used_days (only on approval)
+    if (leaveTypeInfo && leaveTypeInfo.deducts_from_balance) {
+      const year = new Date(leaveRecord.start_date).getFullYear();
+      const balance = await this.leaveBalanceRepository.findByEmployeeLeaveTypeAndYear(
+        leaveRecord.employee_id,
+        leaveRecord.leave_type_id,
+        year,
+      );
 
-      // 4.1. Record transaction for audit trail
-      await this.transactionRepository.create({
-        employee_id: leaveRecord.employee_id,
-        leave_type_id: leaveRecord.leave_type_id,
-        year: year,
-        transaction_type: 'LEAVE_APPROVED',
-        amount: -leaveDays, // negative = deduction
-        balance_before: balanceBefore,
-        balance_after: balanceBefore - leaveDays,
-        reference_type: 'LEAVE_RECORD',
-        reference_id: leaveRecordId,
-        description: `Leave approved: ${leaveRecord.reason || 'No reason provided'}`,
-        created_by: dto.approved_by,
-      });
+      if (balance) {
+        const leaveDays = Number(leaveRecord.total_leave_days);
+        const balanceBefore = Number(balance.remaining_days);
+        const newRemainingDays = balanceBefore - leaveDays;
+        const newUsedDays = Number(balance.used_days) + leaveDays;
+
+        await this.leaveBalanceRepository.update(balance.id, {
+          remaining_days: newRemainingDays,
+          used_days: newUsedDays,
+        });
+
+        // 5.1. Record transaction for audit trail
+        await this.transactionRepository.create({
+          employee_id: leaveRecord.employee_id,
+          leave_type_id: leaveRecord.leave_type_id,
+          year: year,
+          transaction_type: 'LEAVE_APPROVED',
+          amount: -leaveDays, // negative = deduction
+          balance_before: balanceBefore,
+          balance_after: newRemainingDays,
+          reference_type: 'LEAVE_RECORD',
+          reference_id: leaveRecordId,
+          description: `Leave approved: ${leaveRecord.reason || 'No reason provided'}`,
+          created_by: dto.approved_by,
+        });
+      }
     }
 
     // 5. Update leave record status
