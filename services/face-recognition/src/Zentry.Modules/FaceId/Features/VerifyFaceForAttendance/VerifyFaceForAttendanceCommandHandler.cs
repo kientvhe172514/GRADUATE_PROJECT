@@ -1,6 +1,7 @@
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using TimeZoneConverter;
 using Zentry.Modules.FaceId.Interfaces;
 
 namespace Zentry.Modules.FaceId.Features.VerifyFaceForAttendance;
@@ -164,8 +165,8 @@ public class VerifyFaceForAttendanceCommandHandler
         double confidence,
         bool verified)
     {
-        // ✅ Convert to Vietnam timezone (UTC+7)
-        var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        // ✅ Convert to Vietnam timezone (UTC+7) - Using IANA timezone for cross-platform compatibility
+        var vnTimeZone = TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
         var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
         
         var evt = new FaceVerificationCompletedEvent
@@ -191,8 +192,8 @@ public class VerifyFaceForAttendanceCommandHandler
         double confidence,
         string errorMessage)
     {
-        // ✅ Convert to Vietnam timezone (UTC+7)
-        var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        // ✅ Convert to Vietnam timezone (UTC+7) - Using IANA timezone for cross-platform compatibility
+        var vnTimeZone = TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
         var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
         
         var evt = new FaceVerificationCompletedEvent

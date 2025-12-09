@@ -12,6 +12,7 @@ import {
 @Index(['shift_id'])
 @Index(['violation_type'])
 @Index(['detected_at'])
+@Index(['shift_id', 'violation_type'], { unique: true })
 export class ViolationSchema {
   @PrimaryGeneratedColumn()
   id: number;
