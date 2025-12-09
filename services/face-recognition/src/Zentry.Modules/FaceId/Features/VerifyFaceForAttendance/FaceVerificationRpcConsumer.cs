@@ -103,6 +103,11 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
 
             var result = await _mediator.Send(command);
             
+            // 🔧 Convert to Vietnam time (UTC+7) and set as Unspecified to prevent JSON serializer from converting back to UTC
+            var vnTimeZone = TimeZoneConverter.TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
+            var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var verificationTimeUnspecified = DateTime.SpecifyKind(verificationTimeVn, DateTimeKind.Unspecified);
+            
             response = new FaceVerificationRpcResponse
             {
                 Success = result.Success,
@@ -110,7 +115,7 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
                 EmployeeId = request.EmployeeId,
                 FaceVerified = result.FaceVerified,
                 FaceConfidence = result.FaceConfidence,
-                VerificationTime = DateTime.UtcNow,
+                VerificationTime = verificationTimeUnspecified,
                 ErrorMessage = result.Success ? null : result.Message,
                 Message = result.Message
             };
@@ -119,6 +124,11 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
         {
             _logger.LogError(ex, "❌ [RPC] Failed to process face verification");
             
+            // 🔧 Convert to Vietnam time (UTC+7) even for error responses
+            var vnTimeZone = TimeZoneConverter.TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
+            var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var verificationTimeUnspecified = DateTime.SpecifyKind(verificationTimeVn, DateTimeKind.Unspecified);
+            
             response = new FaceVerificationRpcResponse
             {
                 Success = false,
@@ -126,7 +136,7 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
                 EmployeeId = request.EmployeeId,
                 FaceVerified = false,
                 FaceConfidence = 0,
-                VerificationTime = DateTime.Now,
+                VerificationTime = verificationTimeUnspecified,
                 ErrorMessage = $"Face verification error: {ex.Message}",
                 Message = "Internal error during face verification"
             };
