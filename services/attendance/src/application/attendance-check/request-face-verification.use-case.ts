@@ -13,10 +13,6 @@ import { ValidateBeaconUseCase } from './validate-beacon.use-case';
 import { ValidateGpsUseCase } from './validate-gps.use-case';
 import { UpdateEmployeeShiftUseCase } from '../employee-shift/update-employee-shift.use-case';
 import { GpsCheckCalculatorService } from '../services/gps-check-calculator.service';
-import {
-  EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
-  WORK_SCHEDULE_REPOSITORY,
-} from '../tokens';
 import { getVietnamTime } from '../../common/utils/vietnam-time.util';
 
 export interface RequestFaceVerificationCommand {
@@ -63,10 +59,6 @@ export class RequestFaceVerificationUseCase {
     private readonly faceRecognitionClient: ClientProxy,
     @Inject('EMPLOYEE_SERVICE')
     private readonly employeeClient: ClientProxy,
-    @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
-    private readonly employeeWorkScheduleRepository: any,
-    @Inject(WORK_SCHEDULE_REPOSITORY)
-    private readonly workScheduleRepository: any,
   ) {}
 
   async execute(command: RequestFaceVerificationCommand): Promise<{
@@ -140,82 +132,28 @@ export class RequestFaceVerificationUseCase {
 
     const currentTime = new Date().toTimeString().substring(0, 5); // "HH:MM"
 
-    let shift = await this.employeeShiftRepository.findActiveShiftByTime(
+    const shift = await this.employeeShiftRepository.findActiveShiftByTime(
       command.employee_id,
       command.shift_date,
       currentTime,
     );
 
-    if (shift) {
-      this.logger.log(
-        `Found ${shift.shift_type} shift for employee ${command.employee_code}: ` +
-          `${shift.scheduled_start_time}-${shift.scheduled_end_time} (shift_id=${shift.id}, current_time=${currentTime})`,
+    if (!shift) {
+      // ❌ No shift found → Return error (do NOT auto-create)
+      this.logger.warn(
+        `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()} at ${currentTime}`,
       );
-    } else {
-      // FALLBACK: Try to auto-create shift from assigned work_schedule
-      // This handles edge cases where cron didn't run or schedule was just assigned
-      this.logger.log(
-        `No shift found for employee ${command.employee_code} on ${command.shift_date.toISOString()}. Checking for assigned work schedule...`,
-      );
-
-      const assignedSchedule =
-        await this.employeeWorkScheduleRepository.findByEmployeeIdAndDate(
-          command.employee_id,
-          command.shift_date,
-        );
-
-      if (!assignedSchedule) {
-        // Truly no schedule assigned
-        this.logger.warn(
-          `Employee ${command.employee_code} has no work schedule assigned for ${command.shift_date.toISOString()}`,
-        );
-        return {
-          success: false,
-          message: `You have no work schedule assigned for ${command.shift_date.toISOString().split('T')[0]}. Please contact HR.`,
-        };
-      }
-
-      // Found assignment → create shift from work_schedule template
-      this.logger.log(
-        `Found work schedule assignment (ID: ${assignedSchedule.work_schedule_id}). Creating shift...`,
-      );
-
-      const workSchedule = await this.workScheduleRepository.findById(
-        assignedSchedule.work_schedule_id,
-      );
-
-      if (!workSchedule) {
-        throw new BadRequestException(
-          `Work schedule ${assignedSchedule.work_schedule_id} not found`,
-        );
-      }
-
-      // Calculate GPS checks
-      const gpsChecksRequired =
-        await this.gpsCheckCalculator.calculateRequiredChecks(
-          'REGULAR',
-          workSchedule.start_time || '08:00:00',
-          workSchedule.end_time || '17:00:00',
-        );
-
-      // Create shift from template
-      shift = await this.employeeShiftRepository.create({
-        employee_id: command.employee_id,
-        employee_code: command.employee_code,
-        department_id: command.department_id,
-        shift_date: command.shift_date,
-        work_schedule_id: workSchedule.id,
-        scheduled_start_time: workSchedule.start_time || '08:00',
-        scheduled_end_time: workSchedule.end_time || '17:00',
-        shift_type: 'REGULAR',
-        presence_verification_required: true,
-        presence_verification_rounds_required: gpsChecksRequired,
-      });
-
-      this.logger.log(
-        `✅ Auto-created shift from work schedule template (shift_id=${shift.id})`,
-      );
+      return {
+        success: false,
+        message: `You have no scheduled shift for today (${command.shift_date.toISOString().split('T')[0]}). Please contact HR.`,
+      };
     }
+
+    // ✅ Found shift
+    this.logger.log(
+      `Found ${shift.shift_type} shift for employee ${command.employee_code}: ` +
+        `${shift.scheduled_start_time}-${shift.scheduled_end_time} (shift_id=${shift.id}, current_time=${currentTime})`,
+    );
 
     // Step 4: Create attendance check record (link to shift)
     const attendanceCheck = await this.attendanceCheckRepository.create({

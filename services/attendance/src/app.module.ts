@@ -27,6 +27,8 @@ import { GpsCheckConfigModule } from './application/gps-check-config/gps-check-c
 import { EmployeeEventListener } from './presentation/event-listeners/employee-event.listener';
 import { LeaveEventListener } from './presentation/event-listeners/leave-event.listener';
 import { FaceVerificationResultConsumer } from './presentation/consumers/face-verification-result.consumer';
+import { AttendanceRpcController } from './presentation/controllers/attendance-rpc.controller';
+import { GetActiveShiftForEmployeeUseCase } from './application/use-cases/employee-shift/get-active-shift-for-employee.use-case';
 import { HealthController } from './health.controller';
 import { GpsController } from './presentation/controllers/gps.controller';
 import { CronTestController } from './presentation/controllers/cron-test.controller';
@@ -155,6 +157,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     CronTestController,
     GpsCheckConfigController,
     AttendanceCheckRecordController,
+    AttendanceRpcController,
     EmployeeEventListener,
     LeaveEventListener,
     FaceVerificationResultConsumer,
@@ -174,6 +177,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     AttendanceReconciliationProcessor,
     MarkAbsentInsufficientGpsProcessor,
     MarkAbsentMissingCheckProcessor,
+    GetActiveShiftForEmployeeUseCase,
   ],
 })
 export class AppModule {}

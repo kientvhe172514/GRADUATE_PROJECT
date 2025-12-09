@@ -259,7 +259,7 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received shift.changed:', event);
     
     try {
-      const changeDetails = [];
+      const changeDetails: string[] = [];
       
       if (event.newEffectiveFrom !== event.oldEffectiveFrom) {
         changeDetails.push(`Start date changed to ${event.newEffectiveFrom}`);
