@@ -47,11 +47,26 @@ export function getVietnamDate(): string {
 }
 
 /**
- * Get current Vietnam time as ISO string with timezone
- * @returns ISO timestamp string
+ * Get current Vietnam time as ISO string (Vietnam time, NOT UTC)
+ *
+ * IMPORTANT: This returns a Vietnam time ISO string, NOT a UTC ISO string.
+ * The Date object's .toISOString() always returns UTC, so we manually format it.
+ *
+ * @returns ISO timestamp string in Vietnam timezone
  */
 export function getVietnamISOString(): string {
-  return getVietnamTime().toISOString();
+  const vietnamDate = getVietnamTime();
+  // Format as ISO string but preserve Vietnam time
+  // Instead of using toISOString() which converts to UTC,
+  // we manually format it to show the adjusted time
+  const year = vietnamDate.getUTCFullYear();
+  const month = String(vietnamDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(vietnamDate.getUTCDate()).padStart(2, '0');
+  const hours = String(vietnamDate.getUTCHours()).padStart(2, '0');
+  const minutes = String(vietnamDate.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(vietnamDate.getUTCSeconds()).padStart(2, '0');
+  const milliseconds = String(vietnamDate.getUTCMilliseconds()).padStart(3, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
 }
 
 /**

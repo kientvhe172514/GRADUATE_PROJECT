@@ -26,8 +26,20 @@ export class UpdateEmployeeShiftUseCase {
   ) {}
 
   async executeCheckIn(command: UpdateShiftOnCheckInCommand): Promise<void> {
+    // Format time for logging without converting to UTC
+    const checkInTimeVN = new Date(command.check_in_time.getTime());
+    const timeStr = checkInTimeVN.toLocaleString('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
     this.logger.log(
-      `Updating shift ${command.shift_id} with check-in at ${command.check_in_time.toISOString()}`,
+      `Updating shift ${command.shift_id} with check-in at ${timeStr} (VN Time)`,
     );
 
     const shift = await this.employeeShiftRepository.findById(command.shift_id);
@@ -66,8 +78,20 @@ export class UpdateEmployeeShiftUseCase {
   }
 
   async executeCheckOut(command: UpdateShiftOnCheckOutCommand): Promise<void> {
+    // Format time for logging without converting to UTC
+    const checkOutTimeVN = new Date(command.check_out_time.getTime());
+    const timeStr = checkOutTimeVN.toLocaleString('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
     this.logger.log(
-      `Updating shift ${command.shift_id} with check-out at ${command.check_out_time.toISOString()}`,
+      `Updating shift ${command.shift_id} with check-out at ${timeStr} (VN Time)`,
     );
 
     const shift = await this.employeeShiftRepository.findById(command.shift_id);
