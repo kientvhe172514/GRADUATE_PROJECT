@@ -6,6 +6,7 @@ import {
   ApiResponseDto,
 } from '@graduate-project/shared-common';
 import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
+import { IEventPublisher } from '../../ports/event-publisher.port';
 
 export interface UpdateAssignmentDatesDto {
   effective_from?: string;
@@ -20,6 +21,8 @@ export class UpdateScheduleAssignmentUseCase {
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
     private readonly employeeShiftRepository: EmployeeShiftRepository,
+    @Inject('IEventPublisher')
+    private readonly eventPublisher: IEventPublisher,
   ) {}
 
   async execute(
@@ -94,6 +97,26 @@ export class UpdateScheduleAssignmentUseCase {
     }
 
     this.logger.log(`✅ Successfully updated assignment ID ${assignmentId}`);
+
+    // Publish shift changed event
+    try {
+      await this.eventPublisher.publish({
+        pattern: 'shift.changed',
+        data: {
+          employeeId: props.employee_id,
+          workScheduleId: props.work_schedule_id,
+          assignmentId: assignmentId,
+          oldEffectiveFrom: props.effective_from,
+          newEffectiveFrom: dto.effective_from,
+          oldEffectiveTo: oldEffectiveTo,
+          newEffectiveTo: dto.effective_to,
+          deletedShiftsCount: deletedShifts,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to publish shift.changed event:`, error);
+    }
 
     return ApiResponseDto.success(
       undefined,

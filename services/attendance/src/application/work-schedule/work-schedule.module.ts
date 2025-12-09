@@ -35,6 +35,8 @@ import { HolidayEventListener } from '../listeners/holiday-event.listener';
 import { LeaveApprovedEventListener } from '../listeners/leave-approved-event.listener';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RabbitMqEventPublisher } from '../../infrastructure/messaging/rabbit-mq-event-publisher';
+import { IEventPublisher } from '../ports/event-publisher.port';
 
 @Module({
   imports: [
@@ -71,6 +73,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         }),
         inject: [ConfigService],
       },
+      {
+        name: 'NOTIFICATION_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL')!],
+            queue: configService.get<string>('RABBITMQ_NOTIFICATION_QUEUE')!,
+            queueOptions: { durable: true },
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [WorkScheduleController],
@@ -85,9 +100,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     RemoveScheduleAssignmentUseCase,
     UpdateScheduleAssignmentUseCase,
     DeleteEmployeeShiftUseCase,
-  AddScheduleOverrideUseCase,
-  ListScheduleOverridesUseCase,
-  RemoveScheduleOverrideUseCase,
+    AddScheduleOverrideUseCase,
+    ListScheduleOverridesUseCase,
+    RemoveScheduleOverrideUseCase,
     ProcessScheduleOverridesUseCase,
 
     // Services
@@ -100,6 +115,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     // Listeners
     HolidayEventListener,
     LeaveApprovedEventListener,
+
+    // Event Publisher
+    {
+      provide: 'IEventPublisher',
+      useClass: RabbitMqEventPublisher,
+    },
 
     // Repositories
     {

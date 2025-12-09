@@ -164,13 +164,17 @@ public class VerifyFaceForAttendanceCommandHandler
         double confidence,
         bool verified)
     {
+        // ✅ Convert to Vietnam timezone (UTC+7)
+        var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+        
         var evt = new FaceVerificationCompletedEvent
         {
             AttendanceCheckId = int.Parse(command.AttendanceCheckId),
             EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = verified,
             FaceConfidence = confidence,
-            VerificationTime = DateTime.UtcNow,
+            VerificationTime = verificationTimeVn,
             ErrorMessage = null
         };
 
@@ -187,13 +191,17 @@ public class VerifyFaceForAttendanceCommandHandler
         double confidence,
         string errorMessage)
     {
+        // ✅ Convert to Vietnam timezone (UTC+7)
+        var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+        
         var evt = new FaceVerificationCompletedEvent
         {
             AttendanceCheckId = int.Parse(command.AttendanceCheckId),
             EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = false,
             FaceConfidence = confidence,
-            VerificationTime = DateTime.UtcNow,
+            VerificationTime = verificationTimeVn,
             ErrorMessage = errorMessage
         };
 

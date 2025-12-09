@@ -119,19 +119,17 @@ export class CreateLeaveRequestUseCase {
       }
 
       const remainingDays = Number(balance.remaining_days);
-      
-      if (remainingDays < totalLeaveDays) {
-        throw new BusinessException(
-          ErrorCodes.INSUFFICIENT_LEAVE_BALANCE,
-          `Insufficient leave balance. Required: ${totalLeaveDays.toFixed(2)} days, Available: ${remainingDays.toFixed(2)} days`,
-          400,
-        );
-      }
-
-      // Update pending_days in balance
       const balanceBefore = remainingDays;
-      const newPendingDays = Number(balance.pending_days) + totalLeaveDays;
-      const newRemainingDays = remainingDays - totalLeaveDays;
+      
+      // 🎯 PARTIAL DEDUCTION LOGIC:
+      // - If balance >= requested days: deduct all requested days
+      // - If balance < requested days: deduct available balance, rest goes to pending
+      const daysToDeduct = Math.min(remainingDays, totalLeaveDays);
+      const undeductedDays = totalLeaveDays - daysToDeduct;
+      
+      // Update pending_days and remaining_days in balance
+      const newPendingDays = Number(balance.pending_days) + undeductedDays;
+      const newRemainingDays = remainingDays - daysToDeduct;
       
       await this.leaveBalanceRepository.update(balance.id, {
         pending_days: newPendingDays,
@@ -145,6 +143,8 @@ export class CreateLeaveRequestUseCase {
         year: year,
         balanceBefore: balanceBefore,
         totalLeaveDays: totalLeaveDays,
+        daysDeducted: daysToDeduct,
+        daysUndeducted: undeductedDays,
         reason: dto.reason,
       };
     }
@@ -176,12 +176,14 @@ export class CreateLeaveRequestUseCase {
         leave_type_id: txData.leave_type_id,
         year: txData.year,
         transaction_type: 'LEAVE_PENDING',
-        amount: -txData.totalLeaveDays,
+        amount: -txData.daysDeducted,
         balance_before: txData.balanceBefore,
-        balance_after: txData.balanceBefore - txData.totalLeaveDays,
+        balance_after: txData.balanceBefore - txData.daysDeducted,
         reference_type: 'LEAVE_RECORD',
         reference_id: created.id,
-        description: `Leave request created (pending approval): ${txData.reason || 'No reason provided'}`,
+        description: `Leave request created (pending approval, partial deduction): ` +
+                    `Requested ${txData.totalLeaveDays} days, deducted ${txData.daysDeducted} days, ` +
+                    `${txData.daysUndeducted} days pending approval: ${txData.reason || 'No reason provided'}`,
         created_by: txData.employee_id,
       });
       delete this['_transactionData'];

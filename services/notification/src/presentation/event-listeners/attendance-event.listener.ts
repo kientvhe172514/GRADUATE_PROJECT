@@ -195,6 +195,106 @@ export class AttendanceEventListener {
     }
   }
 
+  // ========== SHIFT ASSIGNMENT EVENTS ==========
+
+  @EventPattern('shift.assigned')
+  async handleShiftAssigned(@Payload() event: any): Promise<void> {
+    console.log('📬 [AttendanceEventListener] Received shift.assigned:', event);
+    
+    try {
+      const dto: SendNotificationDto = {
+        recipientId: event.employeeId,
+        notificationType: NotificationType.SCHEDULE_CHANGE,
+        priority: Priority.HIGH,
+        title: '📅 New Shift Assigned',
+        message: `You have been assigned to shift "${event.scheduleName}" starting from ${event.effectiveFrom}. Working hours: ${event.startTime} - ${event.endTime}`,
+        channels: [ChannelType.IN_APP, ChannelType.PUSH, ChannelType.EMAIL],
+        metadata: {
+          eventType: 'shift.assigned',
+          scheduleId: event.scheduleId,
+          scheduleName: event.scheduleName,
+          effectiveFrom: event.effectiveFrom,
+          effectiveTo: event.effectiveTo,
+          startTime: event.startTime,
+          endTime: event.endTime,
+        },
+      };
+
+      await this.sendNotificationUseCase.execute(dto);
+      console.log(`✅ [AttendanceEventListener] Shift assigned notification sent to employee ${event.employeeId}`);
+    } catch (error) {
+      console.error('❌ [AttendanceEventListener] Error handling shift.assigned:', error);
+    }
+  }
+
+  @EventPattern('shift.unassigned')
+  async handleShiftUnassigned(@Payload() event: any): Promise<void> {
+    console.log('📬 [AttendanceEventListener] Received shift.unassigned:', event);
+    
+    try {
+      const dto: SendNotificationDto = {
+        recipientId: event.employeeId,
+        notificationType: NotificationType.SCHEDULE_CHANGE,
+        priority: Priority.HIGH,
+        title: '❌ Shift Assignment Removed',
+        message: `Your shift assignment has been removed. ${event.deletedShiftsCount} future shifts have been deleted.`,
+        channels: [ChannelType.IN_APP, ChannelType.PUSH, ChannelType.EMAIL],
+        metadata: {
+          eventType: 'shift.unassigned',
+          workScheduleId: event.workScheduleId,
+          assignmentId: event.assignmentId,
+          deletedShiftsCount: event.deletedShiftsCount,
+        },
+      };
+
+      await this.sendNotificationUseCase.execute(dto);
+      console.log(`✅ [AttendanceEventListener] Shift unassigned notification sent to employee ${event.employeeId}`);
+    } catch (error) {
+      console.error('❌ [AttendanceEventListener] Error handling shift.unassigned:', error);
+    }
+  }
+
+  @EventPattern('shift.changed')
+  async handleShiftChanged(@Payload() event: any): Promise<void> {
+    console.log('📬 [AttendanceEventListener] Received shift.changed:', event);
+    
+    try {
+      const changeDetails = [];
+      
+      if (event.newEffectiveFrom !== event.oldEffectiveFrom) {
+        changeDetails.push(`Start date changed to ${event.newEffectiveFrom}`);
+      }
+      
+      if (event.newEffectiveTo !== event.oldEffectiveTo) {
+        changeDetails.push(`End date changed to ${event.newEffectiveTo || 'indefinite'}`);
+      }
+
+      const dto: SendNotificationDto = {
+        recipientId: event.employeeId,
+        notificationType: NotificationType.SCHEDULE_CHANGE,
+        priority: Priority.MEDIUM,
+        title: '⚠️ Shift Assignment Updated',
+        message: `Your shift assignment has been updated. ${changeDetails.join(', ')}. ${event.deletedShiftsCount > 0 ? `${event.deletedShiftsCount} future shifts have been deleted.` : ''}`,
+        channels: [ChannelType.IN_APP, ChannelType.PUSH, ChannelType.EMAIL],
+        metadata: {
+          eventType: 'shift.changed',
+          workScheduleId: event.workScheduleId,
+          assignmentId: event.assignmentId,
+          oldEffectiveFrom: event.oldEffectiveFrom,
+          newEffectiveFrom: event.newEffectiveFrom,
+          oldEffectiveTo: event.oldEffectiveTo,
+          newEffectiveTo: event.newEffectiveTo,
+          deletedShiftsCount: event.deletedShiftsCount,
+        },
+      };
+
+      await this.sendNotificationUseCase.execute(dto);
+      console.log(`✅ [AttendanceEventListener] Shift changed notification sent to employee ${event.employeeId}`);
+    } catch (error) {
+      console.error('❌ [AttendanceEventListener] Error handling shift.changed:', error);
+    }
+  }
+
   /**
    * Lắng nghe event khi GPS invalid (ngoài phạm vi)
    * Gửi ALERT notification để nhân viên biết

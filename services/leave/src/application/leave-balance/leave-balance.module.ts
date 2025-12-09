@@ -16,6 +16,7 @@ import { CarryOverUseCase } from './use-cases/carry-over.use-case';
 import { ListExpiringCarryOverUseCase } from './use-cases/list-expiring-carry-over.use-case';
 import { GetMyTransactionsUseCase } from './use-cases/get-my-transactions.use-case';
 import { GetMyStatisticsUseCase } from './use-cases/get-my-statistics.use-case';
+import { CreateAllEmployeeBalancesUseCase } from './use-cases/create-all-employee-balances.use-case';
 import { LeaveAccrualScheduler } from '../../infrastructure/scheduling/leave-accrual.scheduler';
 
 @Module({
@@ -33,6 +34,7 @@ import { LeaveAccrualScheduler } from '../../infrastructure/scheduling/leave-acc
     ListExpiringCarryOverUseCase,
     GetMyTransactionsUseCase,
     GetMyStatisticsUseCase,
+    CreateAllEmployeeBalancesUseCase,
     LeaveAccrualScheduler,
   ],
   exports: [LEAVE_BALANCE_REPOSITORY, LEAVE_BALANCE_TRANSACTION_REPOSITORY, LEAVE_TYPE_REPOSITORY],

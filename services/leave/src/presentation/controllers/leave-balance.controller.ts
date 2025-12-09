@@ -13,6 +13,7 @@ import {
   GetMyTransactionsQueryDto,
   LeaveBalanceTransactionResponseDto,
   LeaveBalanceStatisticsResponseDto,
+  CreateBalancesForAllEmployeesDto,
 } from '../../application/leave-balance/dto/leave-balance.dto';
 import { GetEmployeeBalancesUseCase } from '../../application/leave-balance/use-cases/get-employee-balances.use-case';
 import { GetEmployeeBalanceSummaryUseCase } from '../../application/leave-balance/use-cases/get-employee-balance-summary.use-case';
@@ -22,6 +23,7 @@ import { CarryOverUseCase } from '../../application/leave-balance/use-cases/carr
 import { ListExpiringCarryOverUseCase } from '../../application/leave-balance/use-cases/list-expiring-carry-over.use-case';
 import { GetMyTransactionsUseCase } from '../../application/leave-balance/use-cases/get-my-transactions.use-case';
 import { GetMyStatisticsUseCase } from '../../application/leave-balance/use-cases/get-my-statistics.use-case';
+import { CreateAllEmployeeBalancesUseCase } from '../../application/leave-balance/use-cases/create-all-employee-balances.use-case';
 
 @ApiTags('leave-balances')
 @ApiBearerAuth('bearer')
@@ -36,6 +38,7 @@ export class LeaveBalanceController {
     private readonly listExpiringCarryOver: ListExpiringCarryOverUseCase,
     private readonly getMyTransactions: GetMyTransactionsUseCase,
     private readonly getMyStatistics: GetMyStatisticsUseCase,
+    private readonly createAllEmployeeBalances: CreateAllEmployeeBalancesUseCase,
   ) {}
 
   @Get('employee/:employeeId')
@@ -186,7 +189,45 @@ export class LeaveBalanceController {
     const data = plainToInstance(LeaveBalanceTransactionResponseDto, result);
     return ApiResponseDto.success(data, 'Your transaction history retrieved successfully');
   }
-}
 
+  // ========== CRONJOB ENDPOINTS FOR LEAVE BALANCE CREATION ==========
+
+  @Post('create-for-all')
+  @Permissions('leave.balance.update')
+  @ApiOperation({
+    summary: 'Create leave balances for all employees (Cronjob API)',
+    description:
+      'Creates leave balances for all active employees for a specific year. ' +
+      'This endpoint is designed to be called by a cronjob when a new year starts or when new employees are added. ' +
+      'If employee_id is provided, only creates balances for that specific employee.',
+  })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      example: {
+        success: true,
+        message: 'Leave balances created successfully',
+        data: {
+          processed: 500,
+          created: 2500,
+          skipped: 100,
+          failed: 0,
+          message: 'Processed 500 combinations, created 2500, skipped 100, failed 0',
+        },
+      },
+    },
+  })
+  async createBalancesForAll(
+    @Body() dto: CreateBalancesForAllEmployeesDto,
+  ): Promise<ApiResponseDto<any>> {
+    const year = dto.year ?? new Date().getFullYear();
+    const result = await this.createAllEmployeeBalances.execute(year, dto.employee_id);
+    return ApiResponseDto.success(
+      result,
+      'Leave balances created successfully',
+      HttpStatus.OK,
+    );
+  }
+}
 
 

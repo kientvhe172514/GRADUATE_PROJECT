@@ -242,4 +242,18 @@ export class LeaveBalanceByTypeDto {
   adjusted: number;
 }
 
+export class CreateBalancesForAllEmployeesDto {
+  @IsOptional()
+  @IsInt()
+  year?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  employee_id?: number; // If specified, only create for this employee; otherwise create for all active employees
+}
+
+
+
+
 

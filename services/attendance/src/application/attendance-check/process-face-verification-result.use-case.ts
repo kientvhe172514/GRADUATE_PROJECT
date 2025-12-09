@@ -1,5 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { DataSource } from 'typeorm';
 import { AttendanceCheckRepository } from '../../infrastructure/repositories/attendance-check.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
 
@@ -23,6 +24,7 @@ export class ProcessFaceVerificationResultUseCase {
   constructor(
     private readonly attendanceCheckRepository: AttendanceCheckRepository,
     private readonly employeeShiftRepository: EmployeeShiftRepository,
+    private readonly dataSource: DataSource,
     @Inject('NOTIFICATION_SERVICE')
     private readonly notificationClient: ClientProxy,
   ) {}
@@ -125,6 +127,129 @@ export class ProcessFaceVerificationResultUseCase {
             confidence: event.face_confidence,
           });
         } else if (checkType === 'check_out') {
+          // ✅ VALIDATE GPS ROUNDS BEFORE ALLOWING CHECK-OUT
+          if (shift.presence_verification_required) {
+            // Query presence_verification_rounds to calculate VALID percentage
+            const gpsRounds = await this.dataSource.query(
+              `
+              SELECT 
+                COUNT(*) as total_rounds,
+                COUNT(*) FILTER (WHERE is_valid = true AND validation_status = 'VALID') as valid_rounds
+              FROM presence_verification_rounds
+              WHERE shift_id = $1
+            `,
+              [attendanceCheck.shift_id],
+            );
+
+            const totalRounds = parseInt(gpsRounds[0]?.total_rounds || '0');
+            const validRounds = parseInt(gpsRounds[0]?.valid_rounds || '0');
+            const roundsRequired =
+              shift.presence_verification_rounds_required || 0;
+
+            // Calculate % GPS VALID (số lần GPS hợp lệ / tổng số lần check)
+            const gpsValidPercentage =
+              totalRounds > 0 ? (validRounds / totalRounds) * 100 : 0;
+
+            // ✅ Query min_gps_verification_percentage from config table
+            const configResult = await this.dataSource.query(
+              `
+              SELECT min_gps_verification_percentage
+              FROM gps_check_configurations
+              WHERE is_active = true
+                AND is_default = true
+                AND (shift_type = $1 OR shift_type = 'ALL')
+              ORDER BY 
+                CASE WHEN shift_type = $1 THEN 1 ELSE 2 END,
+                priority DESC
+              LIMIT 1
+            `,
+              [shift.shift_type],
+            );
+
+            const minValidPercentage =
+              parseFloat(
+                configResult[0]?.min_gps_verification_percentage || '60',
+              ) || 60;
+
+            this.logger.log(
+              `🔍 GPS Validation for checkout (shift_id=${attendanceCheck.shift_id}):
+               - Rounds required: ${roundsRequired}
+               - Total checks done: ${totalRounds}
+               - Valid checks: ${validRounds}
+               - Valid percentage: ${gpsValidPercentage.toFixed(1)}%
+               - Required minimum valid %: ${minValidPercentage}%`,
+            );
+
+            // ✅ CHECK 1: Phải check ĐỦ SỐ LẦN
+            if (totalRounds < roundsRequired) {
+              await this.attendanceCheckRepository.updateFaceVerification(
+                event.attendance_check_id,
+                {
+                  face_verified: finalVerified,
+                  face_confidence: event.face_confidence,
+                  is_valid: false,
+                  notes: `Cannot check-out: Insufficient GPS checks (${totalRounds}/${roundsRequired}). Please wait for more GPS checks.`,
+                },
+              );
+
+              this.logger.warn(
+                `❌ CHECK-OUT REJECTED for shift ${attendanceCheck.shift_id}: Insufficient GPS checks (${totalRounds}/${roundsRequired})`,
+              );
+
+              this.notificationClient.emit('attendance.check_out.rejected', {
+                employeeId: event.employee_id,
+                attendanceCheckId: event.attendance_check_id,
+                shiftId: attendanceCheck.shift_id,
+                reason: 'GPS_CHECKS_INCOMPLETE',
+                totalRounds,
+                validRounds,
+                roundsRequired,
+                gpsValidPercentage: gpsValidPercentage.toFixed(1),
+                minValidPercentageRequired: minValidPercentage,
+                message: `Không thể checkout: Chưa đủ số lần GPS check. Đã check: ${totalRounds}/${roundsRequired} lần. Vui lòng đợi hệ thống check GPS thêm.`,
+              });
+
+              return; // ❌ STOP
+            }
+
+            // ✅ CHECK 2: TRONG SỐ LẦN ĐÃ CHECK phải có ít nhất X% hợp lệ
+            if (gpsValidPercentage < minValidPercentage) {
+              await this.attendanceCheckRepository.updateFaceVerification(
+                event.attendance_check_id,
+                {
+                  face_verified: finalVerified,
+                  face_confidence: event.face_confidence,
+                  is_valid: false,
+                  notes: `Cannot check-out: GPS valid percentage too low (${validRounds}/${totalRounds} = ${gpsValidPercentage.toFixed(1)}%). Required: ${minValidPercentage}%`,
+                },
+              );
+
+              this.logger.warn(
+                `❌ CHECK-OUT REJECTED for shift ${attendanceCheck.shift_id}: GPS valid percentage insufficient (${gpsValidPercentage.toFixed(1)}% < ${minValidPercentage}%)`,
+              );
+
+              this.notificationClient.emit('attendance.check_out.rejected', {
+                employeeId: event.employee_id,
+                attendanceCheckId: event.attendance_check_id,
+                shiftId: attendanceCheck.shift_id,
+                reason: 'GPS_VALID_PERCENTAGE_TOO_LOW',
+                totalRounds,
+                validRounds,
+                roundsRequired,
+                gpsValidPercentage: gpsValidPercentage.toFixed(1),
+                minValidPercentageRequired: minValidPercentage,
+                message: `Không thể checkout: Tỷ lệ GPS hợp lệ không đủ. Đã check: ${totalRounds} lần, hợp lệ: ${validRounds} lần (${gpsValidPercentage.toFixed(1)}%). Yêu cầu: ${minValidPercentage}%`,
+              });
+
+              return; // ❌ STOP
+            }
+
+            // ✅ PASSED ALL CHECKS
+            this.logger.log(
+              `✅ GPS Validation PASSED: ${totalRounds}/${roundsRequired} checks, ${gpsValidPercentage.toFixed(1)}% valid (>= ${minValidPercentage}%)`,
+            );
+          }
+          
           if (shift.check_in_time) {
             // Calculate work hours and overtime based on scheduled shift duration
             const { actualWorkHours, overtimeHours } =

@@ -158,10 +158,10 @@ WHERE
     presence_verification_required = true
     -- ✅ Chỉ lấy shifts ĐANG TRONG KHOẢNG THỜI GIAN hiện tại
     AND current_vn_time BETWEEN shift_start_ts AND shift_end_ts
-    -- 🔧 TEST: Tạm BỎ điều kiện check-in để test GPS cho SCHEDULED shifts
-    -- AND check_in_time IS NOT NULL
-    -- AND check_out_time IS NULL
-    -- AND status = 'IN_PROGRESS'
+    -- ✅ Chỉ track GPS khi đã CHECK-IN và chưa CHECK-OUT (CA ĐANG DIỄN RA)
+    AND check_in_time IS NOT NULL
+    AND check_out_time IS NULL
+    AND status = 'IN_PROGRESS'
     -- ✅ Chưa đủ số lần GPS check theo config
     AND COALESCE(presence_verification_rounds_completed, 0) < presence_verification_rounds_required
 ORDER BY employee_id;

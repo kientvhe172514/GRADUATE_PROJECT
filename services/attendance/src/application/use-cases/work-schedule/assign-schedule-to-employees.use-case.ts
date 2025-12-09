@@ -17,6 +17,7 @@ import { JwtPayload } from '@graduate-project/shared-common';
 import { EmployeeWorkSchedule } from '../../../domain/entities/employee-work-schedule.entity';
 import { ShiftGeneratorService } from '../../services/shift-generator.service';
 import { EmployeeServiceClient } from '../../../infrastructure/external-services/employee-service.client';
+import { IEventPublisher } from '../../ports/event-publisher.port';
 
 @Injectable()
 export class AssignScheduleToEmployeesUseCase {
@@ -29,6 +30,8 @@ export class AssignScheduleToEmployeesUseCase {
     private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
     private readonly shiftGeneratorService: ShiftGeneratorService,
     private readonly employeeServiceClient: EmployeeServiceClient,
+    @Inject('IEventPublisher')
+    private readonly eventPublisher: IEventPublisher,
   ) {}
 
   async execute(
@@ -159,6 +162,27 @@ export class AssignScheduleToEmployeesUseCase {
     this.logger.log(
       `✅ Successfully saved ${savedAssignments.length} schedule assignments`,
     );
+
+    // Publish shift assigned event for each employee
+    for (const employeeId of dto.employee_ids) {
+      try {
+        await this.eventPublisher.publish({
+          pattern: 'shift.assigned',
+          data: {
+            employeeId,
+            scheduleId: workSchedule.id,
+            scheduleName: workSchedule.schedule_name,
+            effectiveFrom: dto.effective_from,
+            effectiveTo: dto.effective_to,
+            startTime: workSchedule.start_time,
+            endTime: workSchedule.end_time,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        this.logger.error(`Failed to publish shift.assigned event for employee ${employeeId}:`, error);
+      }
+    }
 
     // Async: Generate shifts for first 7 days after assignment
     // This runs in background so assignment response is fast

@@ -6,6 +6,7 @@ import {
   ApiResponseDto,
 } from '@graduate-project/shared-common';
 import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
+import { IEventPublisher } from '../../ports/event-publisher.port';
 
 @Injectable()
 export class RemoveScheduleAssignmentUseCase {
@@ -15,6 +16,8 @@ export class RemoveScheduleAssignmentUseCase {
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepository: IEmployeeWorkScheduleRepository,
     private readonly employeeShiftRepository: EmployeeShiftRepository,
+    @Inject('IEventPublisher')
+    private readonly eventPublisher: IEventPublisher,
   ) {}
 
   async execute(assignmentId: number): Promise<ApiResponseDto<void>> {
@@ -59,6 +62,22 @@ export class RemoveScheduleAssignmentUseCase {
     this.logger.log(
       `✅ Successfully removed assignment ID ${assignmentId} and ${deletedShifts} future shifts`,
     );
+
+    // Publish shift unassigned event
+    try {
+      await this.eventPublisher.publish({
+        pattern: 'shift.unassigned',
+        data: {
+          employeeId: props.employee_id,
+          workScheduleId: props.work_schedule_id,
+          assignmentId: assignmentId,
+          deletedShiftsCount: deletedShifts,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to publish shift.unassigned event:`, error);
+    }
 
     return ApiResponseDto.success(
       undefined,
