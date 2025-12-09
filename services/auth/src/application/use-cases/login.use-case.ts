@@ -31,6 +31,7 @@ import { AuditLogs } from '../../domain/entities/audit-logs.entity';
 import { AuditLogsRepositoryPort } from '../ports/audit-logs.repository.port';
 import { CreateDeviceSessionUseCase } from './device/create-device-session.use-case';
 import { LogDeviceActivityUseCase } from './device/log-device-activity.use-case';
+import { CheckActiveShiftForDeviceChangeUseCase } from './device/check-active-shift-for-device-change.use-case';
 import {
   DevicePlatform,
   DeviceLocation,
@@ -40,6 +41,8 @@ import {
   ActivityStatus,
 } from '../../domain/entities/device-activity-log.entity';
 import { AccountStatus } from '../../domain/value-objects/account-status.vo';
+import { DEVICE_SESSION_REPOSITORY } from '../tokens';
+import { DeviceSessionRepositoryPort } from '../ports/device-session.repository.port';
 
 @Injectable()
 export class LoginUseCase {
@@ -63,8 +66,11 @@ export class LoginUseCase {
     private auditLogsRepo: AuditLogsRepositoryPort,
     @Inject(EMPLOYEE_PROFILE_SERVICE)
     private readonly employeeProfileService: EmployeeProfileServicePort,
+    @Inject(DEVICE_SESSION_REPOSITORY)
+    private deviceSessionRepo: DeviceSessionRepositoryPort,
     private createDeviceSessionUseCase: CreateDeviceSessionUseCase,
     private logDeviceActivityUseCase: LogDeviceActivityUseCase,
+    private checkActiveShiftForDeviceChangeUseCase: CheckActiveShiftForDeviceChangeUseCase,
   ) {}
 
   async execute(
@@ -171,6 +177,87 @@ export class LoginUseCase {
     // Update last login
     if (ipAddress) {
       await this.accountRepo.updateLastLogin(account.id!, ipAddress);
+    }
+
+    // ✅ CHECK DEVICE CHANGE: Chặn đăng nhập thiết bị khác trong giờ làm
+    // Chỉ check nếu:
+    // 1. User có employee_id (là nhân viên)
+    // 2. Đang login từ thiết bị KHÁC (different device_id)
+    if (account.employee_id && loginDto.device_id) {
+      try {
+        // Lấy danh sách thiết bị đang active của user
+        const activeSessions =
+          await this.deviceSessionRepo.findActiveByAccountId(account.id!);
+        const lastDeviceId = activeSessions[0]?.device_id;
+
+        // Nếu có thiết bị cũ và device_id KHÁC với thiết bị hiện tại
+        const isDifferentDevice =
+          lastDeviceId && lastDeviceId !== loginDto.device_id;
+
+        if (isDifferentDevice) {
+          console.log(
+            `🔍 [DEVICE-CHANGE-CHECK] Employee ${account.employee_id} attempting to login from different device`,
+            {
+              lastDeviceId,
+              newDeviceId: loginDto.device_id,
+            },
+          );
+
+          // Check xem employee có đang trong ca làm không
+          const shiftCheck =
+            await this.checkActiveShiftForDeviceChangeUseCase.execute(
+              account.employee_id,
+            );
+
+          if (!shiftCheck.can_change_device) {
+            // ❌ CHẶN LOGIN thiết bị mới
+            await this.logFailedAttempt(
+              account.id!,
+              loginDto.email,
+              ipAddress,
+              userAgent,
+              `Device change blocked: ${shiftCheck.message}`,
+            );
+
+            const errorDetails = JSON.stringify({
+              current_device: lastDeviceId,
+              new_device: loginDto.device_id,
+              shift_id: shiftCheck.shift_id,
+              has_active_shift: shiftCheck.has_active_shift,
+              scheduled_start_time: shiftCheck.scheduled_start_time,
+              scheduled_end_time: shiftCheck.scheduled_end_time,
+            });
+
+            throw new BusinessException(
+              ErrorCodes.FORBIDDEN,
+              shiftCheck.message ||
+                'Không thể đăng nhập thiết bị mới trong giờ làm việc',
+              403,
+              errorDetails,
+            );
+          }
+
+          console.log(
+            `✅ [DEVICE-CHANGE-CHECK] Employee ${account.employee_id} can change device`,
+            shiftCheck,
+          );
+        } else {
+          console.log(
+            `✅ [DEVICE-CHANGE-CHECK] Same device login, no check needed`,
+            {
+              deviceId: loginDto.device_id,
+              isSameDevice: !isDifferentDevice,
+            },
+          );
+        }
+      } catch (error) {
+        // Nếu là BusinessException từ device check, throw lại
+        if (error instanceof BusinessException) {
+          throw error;
+        }
+        // Các lỗi khác: log nhưng cho phép login (fail-open)
+        console.error('Device change check error, allowing login:', error);
+      }
     }
 
     // Create or update device session
