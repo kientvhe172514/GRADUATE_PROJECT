@@ -169,13 +169,17 @@ public class VerifyFaceForAttendanceCommandHandler
         var vnTimeZone = TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
         var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
         
+        // 🔧 CRITICAL FIX: Specify DateTimeKind.Unspecified to prevent JSON serializer from converting back to UTC
+        // MassTransit/System.Text.Json will serialize this as-is without timezone conversion
+        var verificationTimeUnspecified = DateTime.SpecifyKind(verificationTimeVn, DateTimeKind.Unspecified);
+        
         var evt = new FaceVerificationCompletedEvent
         {
             AttendanceCheckId = int.Parse(command.AttendanceCheckId),
             EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = verified,
             FaceConfidence = confidence,
-            VerificationTime = verificationTimeVn,
+            VerificationTime = verificationTimeUnspecified,
             ErrorMessage = null
         };
 
@@ -196,13 +200,16 @@ public class VerifyFaceForAttendanceCommandHandler
         var vnTimeZone = TZConvert.GetTimeZoneInfo("Asia/Ho_Chi_Minh");
         var verificationTimeVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
         
+        // 🔧 CRITICAL FIX: Specify DateTimeKind.Unspecified to prevent JSON serializer from converting back to UTC
+        var verificationTimeUnspecified = DateTime.SpecifyKind(verificationTimeVn, DateTimeKind.Unspecified);
+        
         var evt = new FaceVerificationCompletedEvent
         {
             AttendanceCheckId = int.Parse(command.AttendanceCheckId),
             EmployeeId = int.Parse(command.EmployeeId),
             FaceVerified = false,
             FaceConfidence = confidence,
-            VerificationTime = verificationTimeVn,
+            VerificationTime = verificationTimeUnspecified,
             ErrorMessage = errorMessage
         };
 

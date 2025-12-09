@@ -35,16 +35,6 @@ export class ProcessFaceVerificationResultUseCase {
         `employee_id=${event.employee_id}, face_verified=${event.face_verified}, confidence=${event.face_confidence}`,
     );
 
-    // 🔧 FIX: Convert UTC time from Face service to Vietnam time (UTC+7)
-    const utcTime = new Date(event.verification_time);
-    const vnTime = new Date(utcTime.getTime() + 7 * 60 * 60 * 1000);
-    this.logger.log(
-      `🕐 Time conversion: UTC=${utcTime.toISOString()} → VN=${vnTime.toISOString()}`,
-    );
-    
-    // Use Vietnam time for all subsequent operations
-    event.verification_time = vnTime;
-
     // Validate confidence threshold
     const isValidConfidence = event.face_confidence >= this.MINIMUM_CONFIDENCE;
     const finalVerified = event.face_verified && isValidConfidence;
