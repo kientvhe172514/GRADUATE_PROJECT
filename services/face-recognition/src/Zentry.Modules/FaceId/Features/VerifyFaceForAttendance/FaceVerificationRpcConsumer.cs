@@ -126,7 +126,7 @@ public class FaceVerificationRpcConsumer : IConsumer<NestJsRpcEnvelope>
                 EmployeeId = request.EmployeeId,
                 FaceVerified = false,
                 FaceConfidence = 0,
-                VerificationTime = DateTime.UtcNow,
+                VerificationTime = DateTime.Now,
                 ErrorMessage = $"Face verification error: {ex.Message}",
                 Message = "Internal error during face verification"
             };
