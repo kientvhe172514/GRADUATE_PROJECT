@@ -180,14 +180,38 @@ export class LoginUseCase {
     }
 
     // ✅ CHECK DEVICE CHANGE: Chặn đăng nhập thiết bị khác trong giờ làm
+    // 🚧 TEMPORARILY DISABLED - Debugging attendance service connection issue
+    // TODO: Re-enable after fixing attendance service RPC connection
     // Chỉ check nếu:
     // 1. User có employee_id (là nhân viên)
     // 2. Đang login từ thiết bị KHÁC (different device_id)
-    if (account.employee_id && loginDto.device_id) {
+    const ENABLE_DEVICE_CHANGE_CHECK = false; // 🔴 DISABLED
+    if (ENABLE_DEVICE_CHANGE_CHECK && account.employee_id && loginDto.device_id) {
       try {
+        console.log(
+          `🔍 [DEVICE-CHANGE-CHECK] Starting device change validation for employee ${account.employee_id}`,
+          {
+            account_id: account.id,
+            employee_id: account.employee_id,
+            device_id: loginDto.device_id,
+            email: loginDto.email,
+          },
+        );
+
         // Lấy danh sách thiết bị đang active của user
         const activeSessions =
           await this.deviceSessionRepo.findActiveByAccountId(account.id!);
+        console.log(
+          `🔍 [DEVICE-CHANGE-CHECK] Found ${activeSessions.length} active sessions`,
+          {
+            sessions: activeSessions.map((s) => ({
+              id: s.id,
+              device_id: s.device_id,
+              created_at: s.created_at,
+            })),
+          },
+        );
+
         const lastDeviceId = activeSessions[0]?.device_id;
 
         // Nếu có thiết bị cũ và device_id KHÁC với thiết bị hiện tại
@@ -196,7 +220,7 @@ export class LoginUseCase {
 
         if (isDifferentDevice) {
           console.log(
-            `🔍 [DEVICE-CHANGE-CHECK] Employee ${account.employee_id} attempting to login from different device`,
+            `🔍 [DEVICE-CHANGE-CHECK] Different device detected, checking shift status`,
             {
               lastDeviceId,
               newDeviceId: loginDto.device_id,
@@ -204,13 +228,32 @@ export class LoginUseCase {
           );
 
           // Check xem employee có đang trong ca làm không
+          console.log(
+            `📡 [DEVICE-CHANGE-CHECK] Calling attendance service for shift check...`,
+          );
+          const shiftCheckStart = Date.now();
+
           const shiftCheck =
             await this.checkActiveShiftForDeviceChangeUseCase.execute(
               account.employee_id,
             );
 
+          const shiftCheckDuration = Date.now() - shiftCheckStart;
+          console.log(
+            `📡 [DEVICE-CHANGE-CHECK] Attendance service responded in ${shiftCheckDuration}ms`,
+            { shiftCheck },
+          );
+
           if (!shiftCheck.can_change_device) {
             // ❌ CHẶN LOGIN thiết bị mới
+            console.warn(
+              `❌ [DEVICE-CHANGE-CHECK] Device change BLOCKED for employee ${account.employee_id}`,
+              {
+                reason: shiftCheck.message,
+                shift_id: shiftCheck.shift_id,
+              },
+            );
+
             await this.logFailedAttempt(
               account.id!,
               loginDto.email,
@@ -243,7 +286,7 @@ export class LoginUseCase {
           );
         } else {
           console.log(
-            `✅ [DEVICE-CHANGE-CHECK] Same device login, no check needed`,
+            `✅ [DEVICE-CHANGE-CHECK] Same device login, no shift check needed`,
             {
               deviceId: loginDto.device_id,
               isSameDevice: !isDifferentDevice,
@@ -251,13 +294,34 @@ export class LoginUseCase {
           );
         }
       } catch (error) {
+        console.error(
+          `❌ [DEVICE-CHANGE-CHECK] Error occurred during device change validation:`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            employee_id: account.employee_id,
+          },
+        );
+
         // Nếu là BusinessException từ device check, throw lại
         if (error instanceof BusinessException) {
           throw error;
         }
         // Các lỗi khác: log nhưng cho phép login (fail-open)
-        console.error('Device change check error, allowing login:', error);
+        console.error(
+          '⚠️ [DEVICE-CHANGE-CHECK] Device change check failed, allowing login (fail-open policy)',
+        );
       }
+    } else {
+      console.log(`⏭️ [DEVICE-CHANGE-CHECK] Skipped`, {
+        reason: !account.employee_id
+          ? 'No employee_id'
+          : !loginDto.device_id
+            ? 'No device_id'
+            : 'Feature disabled',
+        employee_id: account.employee_id,
+        device_id: loginDto.device_id,
+      });
     }
 
     // Create or update device session
