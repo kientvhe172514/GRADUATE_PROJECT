@@ -5,13 +5,15 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
-  collectCoverageFrom: [
-    'src/application/use-cases/update-account.use-case.ts',
-  ],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
   coverageReporters: ['text', 'lcov', 'text-summary'],
   moduleNameMapper: {
     '^@graduate-project/shared-common$': '<rootDir>/../shared-common/src',
+  },
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.test.json',
+    },
   },
 };

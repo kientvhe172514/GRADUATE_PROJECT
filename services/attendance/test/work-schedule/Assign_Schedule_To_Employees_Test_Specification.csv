@@ -1,0 +1,70 @@
+﻿sep=,
+,,,,,UASTC01,UASTC02,UASTC03,UASTC04,UASTC05,UASTC06,UASTC07,UASTC08,UASTC09,UASTC10,UASTC11,UASTC12,UASTC13,UASTC14,UASTC15,UASTC16,UASTC17
+Condition,Precondition,,,,,,,,,,,,,,,,,,,,
+Can connect to database,,,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+Work schedule with ID 1 EXISTS,,,,,O,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O
+Work schedule with ID 999 does NOT exist,,,,,,,,O,,,,,,,,,,,,,
+Employee with ID 100 EXISTS,,,,,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+Employee with IDs [100, 101, 102] EXIST,,,,,,O,,,,,,,,,,,,,,,
+Employee 100 has NO existing schedule assignments,,,,,O,O,O,,O,,,O,O,,,,,O,O,O,O
+Employee 100 has existing assignment,,,,,,,,,,O,O,,,O,O,O,O,,,,
+Existing assignment overlaps with new date range,,,,,,,,,,O,O,,,,,O,O,,,,
+Existing assignment DOES NOT overlap with new date range,,,,,,,,,,,,,,O,,,,,,,
+Existing assignment has time conflict,,,,,,,,,,O,,,,,,,,,,,
+Existing assignment has NO time conflict,,,,,,,,,,,O,,,O,O,O,O,,,,
+Current user is authenticated,,,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+Orphaned existing schedule (ID 99),,,,,,,,,,,,,,,,O,,,,,
+Shift Generation fails,,,,,,,,,,,,,,,,,,,O,,
+Shift Generation partial error,,,,,,,,,,,,,,,,,,,,O,
+Shift Generation critical failure,,,,,,,,,,,,,,,,,,,,,O
+,scheduleId,,,,,,,,,,,,,,,,,,,,
+,,1,,,O,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,999,,,,,,O,,,,,,,,,,,,,
+,employee_ids,,,,,,,,,,,,,,,,,,,,
+,,[100],,,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,[100, 101, 102],,,,O,,,,,,,,,,,,,,,
+,effective_from,,,,,,,,,,,,,,,,,,,,
+,,"2026-01-15",,,O,O,O,O,,O,O,,O,,,O,O,,O,O,O
+,,"2026-06-01",,,,,,,,,,,,O,,,,,,,
+,,"2020-01-01",,,,,,,O,,,,,,,,,,,,
+,,today,,,,,,,,,,O,,,,,,,,,
+,,"2026-01-01",,,,,,,,,,,,,O,,,O,,,
+,effective_to,,,,,,,,,,,,,,,,,,,,
+,,undefined,,,O,O,,,,,,,,,,,,,,,
+,,"2026-12-31",,,,,O,,,O,O,,,O,,,,,,,
+,,"2026-05-31",,,,,,,,,,,,O,,,,,,,
+,,"2026-01-10",,,,,,,,,,,,,O,,,,,,
+,,"2026-01-03",,,,,,,,,,,,,,,,O,,,
+,schedule_type,,,,,,,,,,,,,,,,,,,,
+,,FIXED,,,O,O,O,,O,O,O,O,O,O,,,O,,,,
+,,FLEXIBLE,,,,,,,,,,,,,,,O,,,,
+,start_time,,,,,,,,,,,,,,,,,,,,
+,,"08:00:00",,,O,O,O,,O,O,O,O,O,O,,,O,,,,
+,end_time,,,,,,,,,,,,,,,,,,,,
+,,"17:00:00",,,O,O,O,,O,O,O,O,O,O,,,O,,,,
+,,"12:00:00",,,,,,,,,O,,,,,,,,,,
+,existing_schedule_start_time,,,,,,,,,,,,,,,,,,,,
+,,N/A,,,O,O,O,O,O,,,O,O,O,O,O,,O,O,O,O
+,,"09:00:00",,,,,,,,O,,,,,,,,,,,
+,,"13:00:00",,,,,,,,,O,,,,,,,,,,
+,existing_schedule_end_time,,,,,,,,,,,,,,,,,,,,
+,,N/A,,,O,O,O,O,O,,,O,O,O,O,O,,O,O,O,O
+,,"18:00:00",,,,,,,,O,,,,,,,,,,,
+,,"17:00:00",,,,,,,,O,O,,,,,,O,,,,
+,existing_assignment_effective_from,,,,,,,,,,,,,,,,,,,,
+,,N/A,,,O,O,O,O,O,,,O,O,,,,,O,O,O,O
+,,"2026-01-15",,,,,,,,O,O,,,,,O,O,,,,
+,,"2026-01-01",,,,,,,,,,,,O,,,,,,,
+,,"2026-02-01",,,,,,,,,,,,,O,,,,,,
+,existing_assignment_effective_to,,,,,,,,,,,,,,,,,,,,
+,,N/A,,,O,O,O,O,O,,,O,O,,,,,O,O,O,O
+,,"2026-12-31",,,,,,,,O,O,,,,,,,,,,
+,,"2026-05-31",,,,,,,,,,,,O,,,,,,,
+,,"2026-02-28",,,,,,,,,,,,,O,,,,,,
+Confirm,Return,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Work schedule assigned to employees successfully. Shifts are being generated.""}",,,,O,O,O,,,,O,O,O,O,O,O,O,O,O,O,O
+Exception,,,,,,,,,,,,,,,,,,,,,
+,"""Work schedule not found.""",,,,,,,O,,,,,,,,,,,,,
+,"""effective_from cannot be in the past. Please use today or a future date.""",,,,,,,,O,,,,,,,,,,,,
+,"""Employee already has a schedule that conflicts with the new schedule. Please adjust the time ranges or remove the existing schedule.""",,,,,,,,,O,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,N,N,N,A,A,A,B,B,N,B,N,A,N,B,A,B,A

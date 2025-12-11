@@ -130,10 +130,10 @@ describe('CreateLeaveRequestUseCase', () => {
 
     describe('execute', () => {
         /**
-         * CLRTC01: Create leave request with all fields and supporting document
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto with all fields (3 days, Mon-Wed)
-         * Output: Success response with leave record created, balance updated, transaction created, event published
+         * @id CLRTC01
+         * @description Create leave request with all fields and supporting document
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, leave_type_id:1, total_working_days:3, total_leave_days:3, supporting_document_url:"https://example.com/doc.pdf"}}
          */
         it('CLRTC01: Create leave request with all fields and supporting document', async () => {
             // Arrange
@@ -173,10 +173,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC02: Create leave request for 5 days (Mon-Fri)
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto for 5 working days
-         * Output: Success response with correct working days calculation
+         * @id CLRTC02
+         * @description Create leave request for 5 days (Mon-Fri)
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, leave_type_id:1, total_working_days:5, total_leave_days:5}}
          */
         it('CLRTC02: Create leave request for 5 days (Mon-Fri)', async () => {
             // Arrange
@@ -214,10 +214,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC03: Create leave request with half day start
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto with is_half_day_start = true
-         * Output: Success response with working days reduced by 0.5
+         * @id CLRTC03
+         * @description Create leave request with half day start
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, total_working_days:4.5, is_half_day_start:true}}
          */
         it('CLRTC03: Create leave request with half day start', async () => {
             // Arrange
@@ -257,10 +257,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC04: Create leave request with half day end
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto with is_half_day_end = true
-         * Output: Success response with working days reduced by 0.5
+         * @id CLRTC04
+         * @description Create leave request with half day end
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, total_working_days:4.5, is_half_day_end:true}}
          */
         it('CLRTC04: Create leave request with half day end', async () => {
             // Arrange
@@ -300,10 +300,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC05: Create leave request excluding weekends
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto spanning weekend (Mon-Sun, 7 calendar days, 5 working days)
-         * Output: Success response with correct working days (weekends excluded)
+         * @id CLRTC05
+         * @description Create leave request excluding weekends
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, total_calendar_days:7, total_working_days:5}}
          */
         it('CLRTC05: Create leave request excluding weekends', async () => {
             // Arrange
@@ -338,12 +338,12 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC06: Create leave request with leave type that doesn't deduct from balance
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + Leave type has deducts_from_balance = false
-         * Input: CreateLeaveRequestDto with leave type that doesn't deduct
-         * Output: Success response without balance update or transaction creation
+         * @id CLRTC06
+         * @description Create leave request with leave type that does not deduct from balance
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, leave_type_id:1, total_working_days:5}}
          */
-        it('CLRTC06: Create leave request with leave type that doesn\'t deduct from balance', async () => {
+        it("CLRTC06: Create leave request with leave type that does not deduct from balance", async () => {
             // Arrange
             const dto: CreateLeaveRequestDto = {
                 leave_type_id: MOCK_LEAVE_TYPE_ID,
@@ -382,10 +382,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC07: Create leave request successfully with sufficient balance
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto requiring 5 days with 10 days available
-         * Output: Success response with balance updated
+         * @id CLRTC07
+         * @description Create leave request successfully with sufficient balance
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Leave request created successfully", data:{id:1, employee_id:100, leave_type_id:1, total_working_days:5}}
          */
         it('CLRTC07: Create leave request successfully with sufficient balance', async () => {
             // Arrange
@@ -420,10 +420,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC08: Throw error when overlapping with PENDING leave request
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + Overlapping PENDING leave request exists
-         * Input: CreateLeaveRequestDto with overlapping dates
-         * Output: BusinessException LEAVE_REQUEST_OVERLAPS
+         * @id CLRTC08
+         * @description Throw error when overlapping with PENDING leave request
+         * @type A
+         * @output "You already have a pending or approved leave request during this period"
          */
         it('CLRTC08: Throw error when overlapping with PENDING leave request', async () => {
             // Arrange
@@ -464,10 +464,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC09: Throw error when overlapping with APPROVED leave request
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + Overlapping APPROVED leave request exists
-         * Input: CreateLeaveRequestDto with overlapping dates
-         * Output: BusinessException LEAVE_REQUEST_OVERLAPS
+         * @id CLRTC09
+         * @description Throw error when overlapping with APPROVED leave request
+         * @type A
+         * @output "You already have a pending or approved leave request during this period"
          */
         it('CLRTC09: Throw error when overlapping with APPROVED leave request', async () => {
             // Arrange
@@ -504,10 +504,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC10: Throw error when insufficient leave balance
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + Leave balance has only 2 days remaining
-         * Input: CreateLeaveRequestDto requiring 5 days
-         * Output: BusinessException INSUFFICIENT_LEAVE_BALANCE
+         * @id CLRTC10
+         * @description Throw error when insufficient leave balance
+         * @type A
+         * @output "Insufficient leave balance. Required: 5.00 days, Available: 2.00 days"
          */
         it('CLRTC10: Throw error when insufficient leave balance', async () => {
             // Arrange
@@ -546,10 +546,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC11: Throw error when leave balance not found
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + Leave balance does NOT exist
-         * Input: CreateLeaveRequestDto
-         * Output: BusinessException LEAVE_BALANCE_NOT_FOUND
+         * @id CLRTC11
+         * @description Throw error when leave balance not found
+         * @type A
+         * @output "Leave balance not found. Please contact HR to initialize your leave balance."
          */
         it('CLRTC11: Throw error when leave balance not found', async () => {
             // Arrange
@@ -584,10 +584,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC12: Throw error when leave type not found
-         * Preconditions: Database connected + Leave type with ID 999 does NOT exist
-         * Input: CreateLeaveRequestDto with non-existent leave type
-         * Output: BusinessException LEAVE_TYPE_NOT_FOUND
+         * @id CLRTC12
+         * @description Throw error when leave type not found
+         * @type A
+         * @output "Leave type not found"
          */
         it('CLRTC12: Throw error when leave type not found', async () => {
             // Arrange
@@ -620,10 +620,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC13: Throw error when start date is after end date
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateLeaveRequestDto with start_date > end_date
-         * Output: BusinessException INVALID_LEAVE_DATE_RANGE
+         * @id CLRTC13
+         * @description Throw error when start date is after end date
+         * @type A
+         * @output "Start date must be before or equal to end date"
          */
         it('CLRTC13: Throw error when start date is after end date', async () => {
             // Arrange
@@ -654,10 +654,10 @@ describe('CreateLeaveRequestUseCase', () => {
         });
 
         /**
-         * CLRTC14: Throw error when employee not found
-         * Preconditions: Database connected + Employee with ID 999 does NOT exist
-         * Input: CreateLeaveRequestDto with non-existent employee ID
-         * Output: BusinessException EMPLOYEE_NOT_FOUND
+         * @id CLRTC14
+         * @description Throw error when employee not found
+         * @type A
+         * @output "Employee information not found. Please ensure your employee profile exists."
          */
         it('CLRTC14: Throw error when employee not found', async () => {
             // Arrange

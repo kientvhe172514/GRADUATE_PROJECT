@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UpdateAccountUseCase, UpdateAccountDto } from '../../src/application/use-cases/update-account.use-case';
 import { AccountRepositoryPort } from '../../src/application/ports/account.repository.port';
+import { RoleRepositoryPort } from '../../src/application/ports/role.repository.port';
 import { EventPublisherPort } from '../../src/application/ports/event.publisher.port';
-import { ACCOUNT_REPOSITORY, EVENT_PUBLISHER } from '../../src/application/tokens';
+import { ACCOUNT_REPOSITORY, ROLE_REPOSITORY, EVENT_PUBLISHER } from '../../src/application/tokens';
 import { BusinessException, ErrorCodes } from '@graduate-project/shared-common';
 import { Account } from '../../src/domain/entities/account.entity';
 import { AccountRole } from '../../src/domain/value-objects/account-type.vo';
 import { AccountStatus } from '../../src/domain/value-objects/account-status.vo';
 import {
-  COMMON_EXISTING_ACCOUNT,
   EXPECTED_SUCCESS_RESPONSE,
   createUpdatedAccount,
   setupMocks,
@@ -21,6 +21,7 @@ import {
 describe('UpdateAccountUseCase', () => {
   let useCase: UpdateAccountUseCase;
   let mockAccountRepository: jest.Mocked<AccountRepositoryPort>;
+  let mockRoleRepository: jest.Mocked<RoleRepositoryPort>;
   let mockEventPublisher: jest.Mocked<EventPublisherPort>;
 
   beforeEach(async () => {
@@ -42,6 +43,28 @@ describe('UpdateAccountUseCase', () => {
       findWithPagination: jest.fn(),
     };
 
+    mockRoleRepository = {
+      getPermissionsByRoleCode: jest.fn(),
+      findByCode: jest.fn(),
+      findAll: jest.fn(),
+      findById: jest.fn(),
+      findByIdWithPermissions: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      assignPermissions: jest.fn(),
+      removePermission: jest.fn(),
+      getRolePermissions: jest.fn(),
+    };
+
+    // Default mock behavior for role lookup
+    mockRoleRepository.findByCode.mockImplementation(async (code: string) => ({
+      id: code === 'ADMIN' ? 1 : code === 'HR_MANAGER' ? 2 : code === 'DEPARTMENT_MANAGER' ? 3 : 4,
+      code: code,
+      name: code.replace('_', ' '),
+      status: 'ACTIVE',
+    }));
+
     mockEventPublisher = {
       publish: jest.fn(),
     };
@@ -52,6 +75,10 @@ describe('UpdateAccountUseCase', () => {
         {
           provide: ACCOUNT_REPOSITORY,
           useValue: mockAccountRepository,
+        },
+        {
+          provide: ROLE_REPOSITORY,
+          useValue: mockRoleRepository,
         },
         {
           provide: EVENT_PUBLISHER,
@@ -86,11 +113,12 @@ describe('UpdateAccountUseCase', () => {
 
   describe('execute', () => {
     /**
-     * TC_001: Update account with all fields
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with all fields | Output: EXPECTED_SUCCESS_RESPONSE + event published
+     * @id UTCID01
+     * @description Update account with all fields
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.new@company.com", full_name:"John Updated Doe", role:"HR_MANAGER", status:"ACTIVE", department_id:20, department_name:"Sales", position_id:10, position_name:"Senior Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_001: Update account with all fields', async () => {
+    it('UTCID01: Update account with all fields', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         email: 'john.new@company.com',
@@ -122,7 +150,7 @@ describe('UpdateAccountUseCase', () => {
         metadata: updateDto.metadata,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount, null);
+      setupTestMocks(createUpdatedAccount(), updatedAccount, null);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -139,8 +167,8 @@ describe('UpdateAccountUseCase', () => {
         department_name: updatedAccount.department_name,
         position_id: updatedAccount.position_id,
         position_name: updatedAccount.position_name,
-        sync_version: updatedAccount.sync_version,
-        updated_at: updatedAccount.updated_at,
+        sync_version: 2,
+        updated_at: expect.any(Date),
       });
       expect(mockAccountRepository.findById).toHaveBeenCalledWith(1);
       expect(mockAccountRepository.findByEmail).toHaveBeenCalledWith('john.new@company.com');
@@ -149,11 +177,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_002: Update account with partial fields
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with only full_name and department_id | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID02
+     * @description Update account with partial fields
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Updated Only Name", role:"EMPLOYEE", status:"ACTIVE", department_id:30, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_002: Update account with partial fields', async () => {
+    it('UTCID02: Update account with partial fields', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         full_name: 'John Updated Only Name',
@@ -165,7 +194,7 @@ describe('UpdateAccountUseCase', () => {
         department_id: updateDto.department_id,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -179,11 +208,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_003: Update account with different email
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with new email | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID03
+     * @description Update account with different email
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.different@company.com", full_name:"John Different Email", role:"EMPLOYEE", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_003: Update account with different email', async () => {
+    it('UTCID03: Update account with different email', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         email: 'john.different@company.com',
@@ -195,7 +225,7 @@ describe('UpdateAccountUseCase', () => {
         full_name: updateDto.full_name,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount, null);
+      setupTestMocks(createUpdatedAccount(), updatedAccount, null);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -207,11 +237,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_004: Update only status field
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with only status | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID04
+     * @description Update only status field
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"EMPLOYEE", status:"INACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_004: Update only status field', async () => {
+    it('UTCID04: Update only status field', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         status: AccountStatus.INACTIVE,
@@ -221,7 +252,7 @@ describe('UpdateAccountUseCase', () => {
         status: AccountStatus.INACTIVE,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -232,11 +263,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_005: Update only role field
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with only role | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID05
+     * @description Update only role field
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"ADMIN", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_005: Update only role field', async () => {
+    it('UTCID05: Update only role field', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         role: AccountRole.ADMIN,
@@ -246,7 +278,7 @@ describe('UpdateAccountUseCase', () => {
         role: AccountRole.ADMIN,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -257,11 +289,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_006: Update external_ids and metadata
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with external_ids and metadata | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID06
+     * @description Update external_ids and metadata
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"EMPLOYEE", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z'), external_ids:{ldap_id:'99999', ad_id:'AD123'}, metadata:{notes:'Important user', tags:['vip','manager']}}}
      */
-    it('TC_006: Update external_ids and metadata', async () => {
+    it('UTCID06: Update external_ids and metadata', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         external_ids: { ldap_id: '99999', ad_id: 'AD123' },
@@ -273,7 +306,7 @@ describe('UpdateAccountUseCase', () => {
         metadata: updateDto.metadata,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -286,11 +319,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_007: Throw error when account not found
-     * Preconditions: ${PRECONDITIONS_ACCOUNT_NOT_FOUND}
-     * Input: updateDto for non-existent account | Output: BusinessException 'ACCOUNT_NOT_FOUND'
+     * @id UTCID07
+     * @description Throw error when account not found
+     * @type A
+     * @output "Account not found"
      */
-    it('TC_007: Throw error when account not found', async () => {
+    it('UTCID07: Throw error when account not found', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -317,11 +351,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_008: Throw error when email already exists
-     * Preconditions: ${PRECONDITIONS_EMAIL_CONFLICT}
-     * Input: updateDto with existing email | Output: BusinessException 'ACCOUNT_ALREADY_EXISTS'
+     * @id UTCID08
+     * @description Throw error when email already exists
+     * @type A
+     * @output "Account email already exists"
      */
-    it('TC_008: Throw error when email already exists', async () => {
+    it('UTCID08: Throw error when email already exists', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -331,12 +366,12 @@ describe('UpdateAccountUseCase', () => {
       };
 
       const anotherAccount: Account = {
-        ...COMMON_EXISTING_ACCOUNT,
+        ...createUpdatedAccount(),
         id: 2,
         email: 'existing@company.com',
       };
 
-      mockAccountRepository.findById.mockResolvedValue(COMMON_EXISTING_ACCOUNT);
+      mockAccountRepository.findById.mockResolvedValue(createUpdatedAccount());
       mockAccountRepository.findByEmail.mockResolvedValue(anotherAccount);
 
       // Act & Assert
@@ -357,11 +392,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_009: Update employee_code and employee_id
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with employee fields | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID09
+     * @description Update employee_code and employee_id
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"EMPLOYEE", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", employee_id:999, employee_code:"EMP999", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_009: Update employee_code and employee_id', async () => {
+    it('UTCID09: Update employee_code and employee_id', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         employee_id: 999,
@@ -373,7 +409,7 @@ describe('UpdateAccountUseCase', () => {
         employee_code: updateDto.employee_code,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -386,11 +422,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_010: Verify sync_version incremented
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto | Output: sync_version incremented from 1 to 2
+     * @id UTCID10
+     * @description Verify sync_version incremented
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"Test Sync Version", role:"EMPLOYEE", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_010: Verify sync_version incremented', async () => {
+    it('UTCID10: Verify sync_version incremented', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         full_name: 'Test Sync Version',
@@ -400,7 +437,7 @@ describe('UpdateAccountUseCase', () => {
         full_name: updateDto.full_name,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -413,17 +450,18 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_011: Handle empty update dto
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: empty updateDto {} | Output: EXPECTED_SUCCESS_RESPONSE with sync_version incremented
+     * @id UTCID11
+     * @description Handle empty update dto
+     * @type B
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"EMPLOYEE", status:"ACTIVE", department_id:10, department_name:"Engineering", position_id:5, position_name:"Software Engineer", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_011: Handle empty update dto', async () => {
+    it('UTCID11: Handle empty update dto', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {};
 
       const updatedAccount = createUpdatedAccount();
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -435,11 +473,12 @@ describe('UpdateAccountUseCase', () => {
     });
 
     /**
-     * TC_012: Update position and department names
-     * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-     * Input: updateDto with position/department data | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id UTCID12
+     * @description Update position and department names
+     * @type N
+     * @output {status:"SUCCESS", statusCode:200, message:"Account updated", data:{id:1, email:"john.doe@company.com", full_name:"John Doe", role:"EMPLOYEE", status:"ACTIVE", department_id:50, department_name:"Human Resources", position_id:20, position_name:"HR Manager", sync_version:2, updated_at:Date('2025-11-09T10:00:00Z')}}
      */
-    it('TC_012: Update position and department names', async () => {
+    it('UTCID12: Update position and department names', async () => {
       // Arrange
       const updateDto: UpdateAccountDto = {
         department_id: 50,
@@ -455,7 +494,7 @@ describe('UpdateAccountUseCase', () => {
         position_name: updateDto.position_name,
       });
 
-      setupTestMocks(COMMON_EXISTING_ACCOUNT, updatedAccount);
+      setupTestMocks(createUpdatedAccount(), updatedAccount);
 
       // Act
       const result = await useCase.execute(1, updateDto);
@@ -466,6 +505,78 @@ describe('UpdateAccountUseCase', () => {
       expect(result.data?.department_name).toBe('Human Resources');
       expect(result.data?.position_id).toBe(20);
       expect(result.data?.position_name).toBe('HR Manager');
+    });
+
+    /**
+     * @id UTCID13
+     * @description Throw error when invalid role code is provided
+     * @type A
+     * @output "Invalid role \"INVALID_ROLE\". Valid roles are: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE"
+     */
+    it('UTCID13: Throw error when invalid role code is provided', async () => {
+      // Arrange
+      jest.clearAllMocks();
+
+      const updateDto: UpdateAccountDto = {
+        role: 'INVALID_ROLE',
+        full_name: 'Updated Name',
+      };
+
+      mockAccountRepository.findById.mockResolvedValue(createUpdatedAccount());
+
+      // Act & Assert
+      await expect(useCase.execute(1, updateDto)).rejects.toThrow(BusinessException);
+
+      try {
+        await useCase.execute(1, updateDto);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).errorCode).toBe(ErrorCodes.BAD_REQUEST);
+        expect((error as BusinessException).message).toBe(
+          'Invalid role "INVALID_ROLE". Valid roles are: ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE'
+        );
+      }
+
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(1);
+      expect(mockRoleRepository.findByCode).not.toHaveBeenCalled();
+      expect(mockAccountRepository.update).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    /**
+     * @id UTCID14
+     * @description Throw error when role not found in database
+     * @type A
+     * @output "Role \"ADMIN\" not found in database"
+     */
+    it('UTCID14: Throw error when role not found in database', async () => {
+      // Arrange
+      jest.clearAllMocks();
+
+      const updateDto: UpdateAccountDto = {
+        role: 'ADMIN',
+        full_name: 'Updated Name',
+      };
+
+      mockAccountRepository.findById.mockResolvedValue(createUpdatedAccount());
+      mockRoleRepository.findByCode.mockResolvedValue(null); // Role not found in database
+
+      // Act & Assert
+      await expect(useCase.execute(1, updateDto)).rejects.toThrow(BusinessException);
+
+      try {
+        await useCase.execute(1, updateDto);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).errorCode).toBe(ErrorCodes.ROLE_NOT_FOUND);
+        expect((error as BusinessException).message).toBe('Role "ADMIN" not found in database');
+        expect((error as BusinessException).statusCode).toBe(404);
+      }
+
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(1);
+      expect(mockRoleRepository.findByCode).toHaveBeenCalledWith('ADMIN');
+      expect(mockAccountRepository.update).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
     });
   });
 });

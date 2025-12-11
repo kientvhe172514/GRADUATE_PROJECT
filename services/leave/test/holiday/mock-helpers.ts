@@ -81,7 +81,7 @@ export const setupCreateHolidayMocks = (
         mocks.mockHolidayRepository.create.mockResolvedValue(createdHoliday);
     } else {
         // Default behavior: return the input as created
-        mocks.mockHolidayRepository.create.mockImplementation(async (holiday) => holiday);
+        mocks.mockHolidayRepository.create.mockImplementation(async (holiday) => createMockHoliday(holiday));
     }
 };
 

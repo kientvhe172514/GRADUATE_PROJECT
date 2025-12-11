@@ -17,6 +17,7 @@ import {
     JWT_SERVICE,
     EVENT_PUBLISHER,
     AUDIT_LOGS_REPOSITORY,
+    EMPLOYEE_PROFILE_SERVICE,
 } from '../../src/application/tokens';
 import { CreateDeviceSessionUseCase } from '../../src/application/use-cases/device/create-device-session.use-case';
 import { LogDeviceActivityUseCase } from '../../src/application/use-cases/device/log-device-activity.use-case';
@@ -114,6 +115,10 @@ describe('LoginUseCase', () => {
             execute: jest.fn(),
         };
 
+        const mockEmployeeProfileService = {
+            getManagedDepartmentIds: jest.fn(),
+        };
+
         mocks = {
             mockAccountRepository: mockAccountRepository as any,
             mockRefreshTokensRepository: mockRefreshTokensRepository as any,
@@ -165,6 +170,10 @@ describe('LoginUseCase', () => {
                     provide: LogDeviceActivityUseCase,
                     useValue: mockLogDeviceActivityUseCase,
                 },
+                {
+                    provide: EMPLOYEE_PROFILE_SERVICE,
+                    useValue: mockEmployeeProfileService,
+                },
             ],
         }).compile();
 
@@ -192,10 +201,10 @@ describe('LoginUseCase', () => {
 
     describe('execute', () => {
         /**
-         * LTCID01: Successful login with all device info (EMPLOYEE role)
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN}
-         * Input: Valid credentials with full device info
-         * Output: Success response with tokens and user info
+         * @id LTCID01
+         * @description Successful login with all device info (EMPLOYEE role)
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID01: Successful login with all device info (EMPLOYEE role)', async () => {
             // Arrange
@@ -221,10 +230,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID02: Successful login with ADMIN role
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN}
-         * Input: Valid credentials for ADMIN account
-         * Output: Success response with ADMIN role
+         * @id LTCID02
+         * @description Successful login with ADMIN role
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Admin", role:"ADMIN", employee_id:undefined}}}
          */
         it('LTCID02: Successful login with ADMIN role', async () => {
             // Arrange
@@ -247,10 +256,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID03: Successful login without optional device info
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN}
-         * Input: Valid credentials without device_name
-         * Output: Success response
+         * @id LTCID03
+         * @description Successful login without optional device info
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID03: Successful login without optional device info', async () => {
             // Arrange
@@ -267,10 +276,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID04: Successful login with HR_MANAGER role
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN}
-         * Input: Valid credentials for HR_MANAGER account
-         * Output: Success response with HR_MANAGER role
+         * @id LTCID04
+         * @description Successful login with HR_MANAGER role
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"Jane Manager", role:"HR_MANAGER", employee_id:200}}}
          */
         it('LTCID04: Successful login with HR_MANAGER role', async () => {
             // Arrange
@@ -295,10 +304,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID05: Successful login with failed_login_attempts reset
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has failed_login_attempts = 3
-         * Input: Valid credentials
-         * Output: Success response + failed_login_attempts reset to 0
+         * @id LTCID05
+         * @description Successful login with failed_login_attempts reset
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID05: Successful login with failed_login_attempts reset', async () => {
             // Arrange
@@ -318,10 +327,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID06: Successful login with failed_login_attempts = 4 reset
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has failed_login_attempts = 4
-         * Input: Valid credentials
-         * Output: Success response + failed_login_attempts reset to 0
+         * @id LTCID06
+         * @description Successful login with failed_login_attempts = 4 reset
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID06: Successful login with failed_login_attempts = 4 reset', async () => {
             // Arrange
@@ -341,10 +350,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID07: Failed login - Account not found
-         * Preconditions: ${PRECONDITIONS_LOGIN_NOT_FOUND}
-         * Input: Email that doesn't exist
-         * Output: UnauthorizedException 'Invalid credentials'
+         * @id LTCID07
+         * @description Failed login - Account not found
+         * @type A
+         * @output "Invalid credentials"
          */
         it('LTCID07: Failed login - Account not found', async () => {
             // Arrange
@@ -369,10 +378,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID08: Failed login - Wrong password
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN}
-         * Input: Valid email but wrong password
-         * Output: UnauthorizedException 'Invalid credentials' + failed attempts incremented
+         * @id LTCID08
+         * @description Failed login - Wrong password
+         * @type A
+         * @output "Invalid credentials"
          */
         it('LTCID08: Failed login - Wrong password', async () => {
             // Arrange
@@ -391,10 +400,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID09: Failed login - Wrong password with 4 failed attempts (increment to 5)
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has failed_login_attempts = 4
-         * Input: Valid email but wrong password
-         * Output: UnauthorizedException + failed attempts incremented to 5
+         * @id LTCID09
+         * @description Failed login - Wrong password with 4 failed attempts (increment to 5)
+         * @type A
+         * @output "Invalid credentials"
          */
         it('LTCID09: Failed login - Wrong password with 4 failed attempts (increment to 5)', async () => {
             // Arrange
@@ -415,10 +424,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID10: Failed login - Account already locked (5 failed attempts)
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has failed_login_attempts = 5
-         * Input: Valid email but wrong password
-         * Output: UnauthorizedException + account locked
+         * @id LTCID10
+         * @description Failed login - Account already locked (5 failed attempts)
+         * @type A
+         * @output "Invalid credentials"
          */
         it('LTCID10: Failed login - Account already locked (5 failed attempts)', async () => {
             // Arrange
@@ -435,10 +444,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID11: Successful login after previous failed attempts
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has failed_login_attempts = 2
-         * Input: Valid credentials
-         * Output: Success response + failed_login_attempts reset
+         * @id LTCID11
+         * @description Successful login after previous failed attempts
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID11: Successful login after previous failed attempts', async () => {
             // Arrange
@@ -458,10 +467,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID12: Failed login - Account temporarily locked
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has locked_until in future
-         * Input: Valid credentials but account is locked
-         * Output: UnauthorizedException 'Account is temporarily locked'
+         * @id LTCID12
+         * @description Failed login - Account temporarily locked
+         * @type B
+         * @output "Account is temporarily locked due to too many failed login attempts"
          */
         it('LTCID12: Failed login - Account temporarily locked', async () => {
             // Arrange
@@ -492,10 +501,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID13: Successful login - Account unlocked (locked_until in past)
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has locked_until in past
-         * Input: Valid credentials
-         * Output: Success response + account unlocked
+         * @id LTCID13
+         * @description Successful login - Account unlocked (locked_until in past)
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID13: Successful login - Account unlocked (locked_until in past)', async () => {
             // Arrange
@@ -516,10 +525,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID14: Successful login with temporary password (must_change_password = true)
-         * Preconditions: ${PRECONDITIONS_LOGIN_WITH_TEMP_PASSWORD}
-         * Input: Valid email with temporary password
-         * Output: Success response with must_change_password = true
+         * @id LTCID14
+         * @description Successful login with temporary password (must_change_password = true)
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful. Please change your temporary password.", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:true, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID14: Successful login with temporary password (must_change_password = true)', async () => {
             // Arrange
@@ -539,10 +548,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID15: Failed login with expired temporary password
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account has expired temporary password
-         * Input: Temporary password but it's expired
-         * Output: UnauthorizedException 'Invalid credentials'
+         * @id LTCID15
+         * @description Failed login with expired temporary password
+         * @type A
+         * @output "Invalid credentials"
          */
         it('LTCID15: Failed login with expired temporary password', async () => {
             // Arrange
@@ -560,10 +569,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID16: Successful login with temporary password (must_change_password = false)
-         * Preconditions: ${PRECONDITIONS_LOGIN_WITH_TEMP_PASSWORD}
-         * Input: Valid email with temporary password (must_change_password = false)
-         * Output: Success response with must_change_password = false
+         * @id LTCID16
+         * @description Successful login with temporary password (must_change_password = false)
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID16: Successful login with temporary password (must_change_password = false)', async () => {
             // Arrange
@@ -581,10 +590,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID17: Successful login with regular password when temp password exists
-         * Preconditions: ${PRECONDITIONS_LOGIN_WITH_TEMP_PASSWORD}
-         * Input: Regular password (not temp password)
-         * Output: Success response
+         * @id LTCID17
+         * @description Successful login with regular password when temp password exists
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
          */
         it('LTCID17: Successful login with regular password when temp password exists', async () => {
             // Arrange
@@ -608,10 +617,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID18: Failed login - Account status SUSPENDED
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account status = SUSPENDED
-         * Input: Valid credentials but account is suspended
-         * Output: UnauthorizedException 'Account has been suspended'
+         * @id LTCID18
+         * @description Failed login - Account status SUSPENDED
+         * @type A
+         * @output "Account has been suspended. Please contact administrator."
          */
         it('LTCID18: Failed login - Account status SUSPENDED', async () => {
             // Arrange
@@ -641,10 +650,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID19: Failed login - Account status LOCKED
-         * Preconditions: ${PRECONDITIONS_BASIC_LOGIN} + Account status = LOCKED
-         * Input: Valid credentials but account status is LOCKED
-         * Output: UnauthorizedException 'Account has been locked'
+         * @id LTCID19
+         * @description Failed login - Account status LOCKED
+         * @type A
+         * @output "Account has been locked. Please contact administrator."
          */
         it('LTCID19: Failed login - Account status LOCKED', async () => {
             // Arrange
@@ -673,10 +682,10 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * LTCID20: Failed login - Account status INACTIVE
-         * Preconditions: ${PRECONDITIONS_LOGIN_INACTIVE}
-         * Input: Valid credentials but account is inactive
-         * Output: UnauthorizedException 'Account is inactive'
+         * @id LTCID20
+         * @description Failed login - Account status INACTIVE
+         * @type A
+         * @output "Account is inactive. Please contact administrator."
          */
         it('LTCID20: Failed login - Account status INACTIVE', async () => {
             // Arrange
@@ -706,14 +715,81 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * Additional test: Device session creation failure should not prevent login
+         * @id LTCID21
+         * @description Successful login for DEPARTMENT_MANAGER with managed departments
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"DEPARTMENT_MANAGER", employee_id:200, managed_department_ids:[10]}}}
          */
-        it('Should continue login even if device session creation fails', async () => {
+        it('LTCID21: Successful login for DEPARTMENT_MANAGER with managed departments', async () => {
+            // Arrange
+            const account = createMockAccount({
+                role: AccountRole.DEPARTMENT_MANAGER,
+                role_id: 3,
+                employee_id: 200,
+            });
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Mock employeeProfileService to return department IDs
+            const mockEmployeeProfileService = (useCase as any).employeeProfileService;
+            mockEmployeeProfileService.getManagedDepartmentIds = jest.fn().mockResolvedValue([10, 20, 30]);
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(result.data!.user.role).toBe(AccountRole.DEPARTMENT_MANAGER);
+            expect(result.data!.user.employee_id).toBe(200);
+            expect(result.data!.user.managed_department_ids).toEqual([10, 20, 30]);
+            expect(mockEmployeeProfileService.getManagedDepartmentIds).toHaveBeenCalledWith(200);
+        });
+
+        /**
+         * @id LTCID22
+         * @description Successful login for DEPARTMENT_MANAGER when getManagedDepartmentIds fails
+         * @type A
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"DEPARTMENT_MANAGER", employee_id:200, managed_department_ids:undefined}}}
+         */
+        it('LTCID22: Successful login for DEPARTMENT_MANAGER when getManagedDepartmentIds fails', async () => {
+            // Arrange
+            const account = createMockAccount({
+                role: AccountRole.DEPARTMENT_MANAGER,
+                role_id: 3,
+                employee_id: 200,
+            });
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Mock employeeProfileService to throw error
+            const mockEmployeeProfileService = (useCase as any).employeeProfileService;
+            mockEmployeeProfileService.getManagedDepartmentIds = jest.fn().mockRejectedValue(
+                new Error('Failed to fetch managed departments')
+            );
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(result.data!.user.role).toBe(AccountRole.DEPARTMENT_MANAGER);
+            expect(result.data!.user.employee_id).toBe(200);
+            expect(result.data!.user.managed_department_ids).toBeUndefined();
+            expect(mockEmployeeProfileService.getManagedDepartmentIds).toHaveBeenCalledWith(200);
+        });
+
+        /**
+         * @id LTCID23
+         * @description Successful login continues when device tracking fails
+         * @type A
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID23: Successful login continues when device tracking fails', async () => {
             // Arrange
             const account = createMockAccount();
             const loginDto = createLoginRequest();
             setupLoginMocks(mocks, account, null, true);
-            mocks.mockCreateDeviceSessionUseCase.execute.mockRejectedValue(new Error('Device session error'));
+            mocks.mockLogDeviceActivityUseCase.execute.mockRejectedValue(new Error('Device tracking error'));
 
             // Act
             const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
@@ -724,24 +800,161 @@ describe('LoginUseCase', () => {
         });
 
         /**
-         * Additional test: Verify refresh token is created with correct data
+         * @id LTCID24
+         * @description Failed login - Account status unknown/invalid
+         * @type A
+         * @output "Account is not active. Please contact administrator."
          */
-        it('Should create refresh token with correct data', async () => {
+        it('LTCID23: Failed login - Account status unknown/invalid', async () => {
+            // Arrange
+            const account = createMockAccount({ status: 'UNKNOWN' as any });
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Act & Assert
+            await expect(useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT)).rejects.toThrow(
+                UnauthorizedException
+            );
+
+            try {
+                await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+            } catch (error) {
+                expect(error).toBeInstanceOf(UnauthorizedException);
+                expect((error as UnauthorizedException).message).toBe(
+                    'Account is not active. Please contact administrator.'
+                );
+            }
+
+            expectAuditLog(mocks.mockAuditLogsRepository, 'LOGIN_FAILED', false);
+        });
+
+        /**
+         * @id LTCID25
+         * @description Successful login without ipAddress parameter
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID25: Successful login without ipAddress parameter', async () => {
             // Arrange
             const account = createMockAccount();
             const loginDto = createLoginRequest();
             setupLoginMocks(mocks, account, null, true);
 
             // Act
-            await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+            const result = await useCase.execute(loginDto, undefined, MOCK_USER_AGENT);
 
             // Assert
-            expect(mocks.mockRefreshTokensRepository.create).toHaveBeenCalled();
-            const refreshTokenCall = mocks.mockRefreshTokensRepository.create.mock.calls[0][0];
-            expect(refreshTokenCall.account_id).toBe(account.id);
-            expect(refreshTokenCall.token_hash).toBeDefined();
-            expect(refreshTokenCall.ip_address).toBe(MOCK_IP_ADDRESS);
-            expect(refreshTokenCall.user_agent).toBe(MOCK_USER_AGENT);
+            expectSuccessResponse(result);
+            expect(mocks.mockAccountRepository.updateLastLogin).not.toHaveBeenCalled();
+        });
+
+        /**
+         * @id LTCID26
+         * @description Successful login without device_id (fallback to web_timestamp)
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID26: Successful login without device_id (fallback to web_timestamp)', async () => {
+            // Arrange
+            const account = createMockAccount();
+            const loginDto = createLoginRequest({ device_id: undefined });
+            setupLoginMocks(mocks, account, null, true);
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(mocks.mockCreateDeviceSessionUseCase.execute).toHaveBeenCalled();
+            const deviceCall = mocks.mockCreateDeviceSessionUseCase.execute.mock.calls[0][0];
+            expect(deviceCall.device_id).toMatch(/^web_\d+$/);
+        });
+
+        /**
+         * @id LTCID27
+         * @description Successful login without platform (fallback to WEB)
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID27: Successful login without platform (fallback to WEB)', async () => {
+            // Arrange
+            const account = createMockAccount();
+            const loginDto = createLoginRequest({ platform: undefined });
+            setupLoginMocks(mocks, account, null, true);
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(mocks.mockCreateDeviceSessionUseCase.execute).toHaveBeenCalled();
+            const deviceCall = mocks.mockCreateDeviceSessionUseCase.execute.mock.calls[0][0];
+            expect(deviceCall.platform).toBe('WEB');
+        });
+
+        /**
+         * @id LTCID28
+         * @description Successful login with null full_name (fallback to empty string)
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID28: Successful login with null full_name (fallback to empty string)', async () => {
+            // Arrange
+            const account = createMockAccount({ full_name: null as any });
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(result.data!.user.full_name).toBe('');
+        });
+
+        /**
+         * @id LTCID29
+         * @description Successful login with null role (fallback to empty string)
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"", employee_id:100}}}
+         */
+        it('LTCID29: Successful login with null role (fallback to empty string)', async () => {
+            // Arrange
+            const account = createMockAccount({ role: null as any });
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(result.data!.user.role).toBe('');
+        });
+
+        /**
+         * @id LTCID30
+         * @description Successful login continues when device session creation fails
+         * @type A
+         * @output {status:"SUCCESS", statusCode:200, message:"Login successful", data:{access_token:"jwt_access_token", refresh_token:"jwt_refresh_token", must_change_password:false, user:{id:1, email:"active@company.com", full_name:"John Doe", role:"EMPLOYEE", employee_id:100}}}
+         */
+        it('LTCID30: Successful login continues when device session creation fails', async () => {
+            // Arrange
+            const account = createMockAccount();
+            const loginDto = createLoginRequest();
+            setupLoginMocks(mocks, account, null, true);
+
+            // Mock device session creation failure
+            mocks.mockCreateDeviceSessionUseCase.execute.mockRejectedValue(new Error('Device session error'));
+
+            // Act
+            const result = await useCase.execute(loginDto, MOCK_IP_ADDRESS, MOCK_USER_AGENT);
+
+            // Assert
+            expectSuccessResponse(result);
+            expect(mocks.mockCreateDeviceSessionUseCase.execute).toHaveBeenCalled();
+            // Should still log audit
+            expectAuditLog(mocks.mockAuditLogsRepository, 'LOGIN_SUCCESS', true);
         });
 
     });

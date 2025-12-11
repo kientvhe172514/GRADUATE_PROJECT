@@ -1,6 +1,9 @@
-import { IWorkScheduleRepository } from '../../src/application/ports/work-schedule.repository.port';
+import { IWorkScheduleRepository, IEmployeeWorkScheduleRepository } from '../../src/application/ports/work-schedule.repository.port';
 import { WorkSchedule, ScheduleType, ScheduleStatus } from '../../src/domain/entities/work-schedule.entity';
+import { EmployeeWorkSchedule } from '../../src/domain/entities/employee-work-schedule.entity';
 import { JwtPayload } from '@graduate-project/shared-common';
+import { ShiftGeneratorService } from '../../src/application/services/shift-generator.service';
+import { EmployeeServiceClient } from '../../src/infrastructure/external-services/employee-service.client';
 
 // ============================================================================
 // COMMON TEST DATA - Reusable across test cases
@@ -168,3 +171,90 @@ export const expectDefaultValues = (scheduleData: any) => {
     expect(scheduleData.early_leave_tolerance_minutes).toBe(15);
     expect(scheduleData.status).toBe(ScheduleStatus.ACTIVE);
 };
+
+// ============================================================================
+// ASSIGN SCHEDULE TO EMPLOYEES - Mock Helpers
+// ============================================================================
+
+/**
+ * Create a mock employee work schedule assignment with optional overrides
+ * @param overrides - Fields to override in the assignment
+ * @returns EmployeeWorkSchedule object
+ */
+export const createMockEmployeeWorkSchedule = (overrides = {}): EmployeeWorkSchedule => {
+    const defaultProps = {
+        id: 1,
+        employee_id: 100,
+        work_schedule_id: 1,
+        effective_from: new Date('2025-01-15T00:00:00Z'),
+        effective_to: undefined,
+        created_by: MOCK_USER.sub,
+        created_at: new Date('2025-01-01T10:00:00Z'),
+        ...overrides,
+    };
+
+    return new EmployeeWorkSchedule(defaultProps);
+};
+
+export interface AssignScheduleMockRepositories {
+    mockWorkScheduleRepository: jest.Mocked<IWorkScheduleRepository>;
+    mockEmployeeWorkScheduleRepository: jest.Mocked<IEmployeeWorkScheduleRepository>;
+    mockShiftGeneratorService: jest.Mocked<ShiftGeneratorService>;
+    mockEmployeeServiceClient: jest.Mocked<EmployeeServiceClient>;
+}
+
+/**
+ * Setup mocks for assign schedule to employees operation
+ * @param mocks - All mocked dependencies
+ * @param workSchedule - Work schedule to be returned by findById
+ * @param existingAssignments - Existing assignments for conflict checking
+ */
+export const setupAssignScheduleMocks = (
+    mocks: AssignScheduleMockRepositories,
+    workSchedule: WorkSchedule | null = null,
+    existingAssignments: EmployeeWorkSchedule[] = []
+) => {
+    jest.clearAllMocks();
+
+    mocks.mockWorkScheduleRepository.findById.mockResolvedValue(workSchedule);
+    mocks.mockEmployeeWorkScheduleRepository.findAssignmentsByEmployeeId.mockResolvedValue(existingAssignments);
+    mocks.mockEmployeeWorkScheduleRepository.saveMany.mockImplementation(async (assignments) => assignments);
+    mocks.mockShiftGeneratorService.generateShiftsForEmployee.mockResolvedValue({
+        totalProcessed: 7,
+        shiftsCreated: 7,
+        shiftsSkipped: 0,
+        errors: [],
+    });
+};
+
+/**
+ * Expect success response for assign schedule
+ * @param result - The result object to validate
+ */
+export const expectAssignScheduleSuccess = (result: any) => {
+    expect(result.status).toBe('SUCCESS');
+    expect(result.statusCode).toBe(200);
+    expect(result.message).toContain('Work schedule assigned to employees successfully');
+};
+
+/**
+ * Expect assignments to be saved correctly
+ * @param mockRepository - Mocked employee work schedule repository
+ * @param employeeIds - Expected employee IDs
+ * @param scheduleId - Expected schedule ID
+ */
+export const expectAssignmentsSaved = (
+    mockRepository: jest.Mocked<IEmployeeWorkScheduleRepository>,
+    employeeIds: number[],
+    scheduleId: number
+) => {
+    expect(mockRepository.saveMany).toHaveBeenCalled();
+    const savedAssignments = mockRepository.saveMany.mock.calls[0][0];
+    expect(savedAssignments).toHaveLength(employeeIds.length);
+    savedAssignments.forEach((assignment, index) => {
+        const assignmentJson = assignment.toJSON();
+        expect(assignmentJson.employee_id).toBe(employeeIds[index]);
+        expect(assignmentJson.work_schedule_id).toBe(scheduleId);
+    });
+};
+

@@ -1,0 +1,53 @@
+﻿sep=,
+,,,,,TC_001,TC_002,TC_003,TC_004,TC_005,TC_006,TC_007,TC_008,TC_009,TC_010,TC_011,TC_012,TC_013,TC_014,TC_015,TC_016,TC_017,TC_018
+Condition,Precondition,,,,,,,,,,,,,,,,,,,,,
+Basic create setup (no existing code/email),,,,,O,,,,,,,,,,,,,,,,O,O
+Position exists with suggested role,,,,,O,,,,,,,,,,,,,,,,,
+Position exists WITHOUT suggested role,,,,,,O,,,,,,,,,,,,,,,,
+Employee code already exists,,,,,,,,O,,,,,,,,,,,,,,
+Email already exists,,,,,,,,,O,,,,,,,,,,,,,
+Employee not linked to account (no account_id),,,,,,,,,,,,,,,,,,,,,,
+No existing employees today (for auto-gen code),,,,,,,,,,,,,,,,,,,,,O,
+Existing employees today (for auto-gen code),,,,,,,,,,,,,,,,,,,,,,O
+,employee_code,,,,,,,,,,,,,,,,,,,,,
+,,"EMP001",,,O,O,O,O,O,O,O,O,O,,O,O,O,O,O,O,,
+,,undefined (auto-generate),,,,,,,,,,,,,,,,,,,O,O
+,email,,,,,,,,,,,,,,,,,,,,,
+,,"john.doe@company.com",,,O,O,O,O,O,O,O,O,O,,,O,O,O,,,O,O
+,,"invalid-email-format",,,,,,,,,,,,,O,,,,,,,
+,,"test.user+tag@company.co.uk",,,,,,,,,,,,,,,,,O,,,
+,phone_number,,,,,,,,,,,,,,,,,,,,,
+,,"   " (empty/whitespace),,,O,O,,O,O,O,O,O,O,,O,,,,O,O,O,O
+,,undefined,,,,,,,,,,,,O,,,,,,,,
+,,"123456789" (9 digits),,,,,,,,,,,,,,O,,,,,,
+,,"09123456ab" (non-digits),,,,,,,,,,,,,,,O,,,,,
+,,"0912345678" (valid),,,,,,,,,,,,,,,,O,,,,
+,personal_email,,,,,,,,,,,,,,,,,,,,,
+,,undefined,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,,O,O
+,,"invalid-personal-email",,,,,,,,,,,,,,,,,,O,,
+,employment_type,,,,,,,,,,,,,,,,,,,,,
+,,FULL_TIME,,,O,O,O,O,O,O,,O,O,,O,O,O,O,O,O,O,O
+,,CONTRACT,,,,,,,,,O,,,,,,,,,,,
+,gender,,,,,,,,,,,,,,,,,,,,,
+,,MALE,,,O,O,O,O,,O,O,,O,,O,O,O,O,O,O,O,O
+,,OTHER,,,,,,,,,,O,,,,,,,,,,
+,first_name,,,,,,,,,,,,,,,,,,,,,
+,,"John",,,O,O,O,,,,O,O,,,O,O,O,O,O,O,O,O
+,,"Nguyễn",,,,,,,,O,,,,,,,,,,,,
+,,"Alexander",,,,,,,,,,,O,,,,,,,,,
+,last_name,,,,,,,,,,,,,,,,,,,,,
+,,"Doe",,,O,O,O,,,,O,O,,,O,O,O,O,O,O,O,O
+,,"Văn Thành",,,,,,,,O,,,,,,,,,,,,
+,,"Montgomery-Williams",,,,,,,,,,,O,,,,,,,,,
+,department_id,,,,,,,,,,,,,,,,,,,,,
+,,1,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,,undefined,,,,,,,,,,,,O,,,,,,,,
+,position_id,,,,,,,,,,,,,,,,,,,,,
+,,1,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,,undefined,,,,,,,,,,,,O,,,,,,,,
+,manager_id,,,,,,,,,,,,,,,,,,,,,
+,,2,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,,undefined,,,,,,,,,,,,O,,,,,,,,
+Confirm,Return,,,,,,,,,,,,,,,,,,,,,
+Exception,,,,,,,,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,,,,,,,,,,,,,,,,,,

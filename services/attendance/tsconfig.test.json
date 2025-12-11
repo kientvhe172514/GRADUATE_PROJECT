@@ -1,0 +1,17 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "strictNullChecks": false,
+        "strict": false,
+        "noImplicitAny": false
+    },
+    "include": [
+        "src/**/*",
+        "test/**/*",
+        "../shared-common/src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

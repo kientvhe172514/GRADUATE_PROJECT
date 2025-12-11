@@ -100,6 +100,15 @@ export class EmployeeShiftDto {
   @ApiPropertyOptional()
   notes?: string;
 
+  @ApiPropertyOptional()
+  is_manually_edited?: boolean;
+
+  @ApiPropertyOptional()
+  updated_by?: number;
+
+  @ApiPropertyOptional()
+  updated_at?: Date;
+
   constructor(entity: EmployeeShift) {
     const props: EmployeeShiftProps = entity.toJSON();
     this.id = props.id!;
@@ -119,5 +128,8 @@ export class EmployeeShiftDto {
     this.early_leave_minutes = props.early_leave_minutes ?? 0;
     this.status = props.status ?? ShiftStatus.SCHEDULED;
     this.notes = props.notes;
+    this.is_manually_edited = props.is_manually_edited;
+    this.updated_by = props.updated_by;
+    this.updated_at = props.updated_at;
   }
 }

@@ -28,6 +28,7 @@ describe('CreateEmployeeUseCase', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       findAll: jest.fn(),
+      findWithPagination: jest.fn(),
       update: jest.fn(),
       updateAccountId: jest.fn(),
       updateOnboardingStatus: jest.fn(),
@@ -37,6 +38,7 @@ describe('CreateEmployeeUseCase', () => {
       findAll: jest.fn(),
       findById: jest.fn(),
       findByCode: jest.fn(),
+      findWithPagination: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -71,22 +73,22 @@ describe('CreateEmployeeUseCase', () => {
     jest.clearAllMocks();
   });
 
- // Helper function to setup mocks with repositories from the test context
-const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
-  // Clear previous mocks
-  jest.clearAllMocks();
+  // Helper function to setup mocks with repositories from the test context
+  const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
+    // Clear previous mocks
+    jest.clearAllMocks();
 
-  // Setup employee repository mocks
-  mockEmployeeRepository.findByCode.mockResolvedValue(null);
-  mockEmployeeRepository.findByEmail.mockResolvedValue(null);
-  mockEmployeeRepository.create.mockResolvedValue(savedEmployee);
+    // Setup employee repository mocks
+    mockEmployeeRepository.findByCode.mockResolvedValue(null);
+    mockEmployeeRepository.findByEmail.mockResolvedValue(null);
+    mockEmployeeRepository.create.mockResolvedValue(savedEmployee);
 
-  // Setup position repository mock
-  mockPositionRepository.findById.mockResolvedValue(position);
+    // Setup position repository mock
+    mockPositionRepository.findById.mockResolvedValue(position);
 
-  // Setup event publisher mock
-  mockEventPublisher.publish.mockImplementation(() => {});
-};
+    // Setup event publisher mock
+    mockEventPublisher.publish.mockImplementation(() => { });
+  };
 
 
   describe('execute', () => {
@@ -108,7 +110,9 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
     /**
      * TC_001: Create employee with all fields
      * Preconditions: ${PRECONDITIONS_CREATE_WITH_POSITION}
-     * Input: validCreateEmployeeDto | Output: EXPECTED_SUCCESS_RESPONSE + event published
+     * Input: validCreateEmployeeDto
+     * @output EXPECTED_SUCCESS_RESPONSE + event published
+     * @type N
      */
     it('TC_001: Create employee with all fields', async () => {
       // Arrange
@@ -136,7 +140,9 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
     /**
      * TC_002: Create employee with position but no suggested_role
      * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + ${PRECONDITION_POSITION_EXISTS_NO_ROLE}
-     * Input: validCreateEmployeeDto | Output: EXPECTED_SUCCESS_RESPONSE with default role 'EMPLOYEE'
+     * Input: validCreateEmployeeDto
+     * @output EXPECTED_SUCCESS_RESPONSE with default role 'EMPLOYEE'
+     * @type N
      */
     it('TC_002: Create employee with position but no suggested_role', async () => {
       // Arrange
@@ -170,7 +176,9 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
     /**
      * TC_003: Create employee without optional fields
      * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithoutOptionalFields (no phone, department, position, manager) | Output: EXPECTED_SUCCESS_RESPONSE
+     * Input: dtoWithoutOptionalFields (no phone, department, position, manager)
+     * @output EXPECTED_SUCCESS_RESPONSE
+     * @type N
      */
     it('TC_003: Create employee without optional fields', async () => {
       // Arrange
@@ -206,7 +214,9 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
     /**
      * TC_004: Throw error when employee_code already exists
      * Preconditions: ${PRECONDITIONS_DUPLICATE_CODE}
-     * Input: validCreateEmployeeDto | Output: BusinessException 'EMPLOYEE_CODE_ALREADY_EXISTS'
+     * Input: validCreateEmployeeDto
+     * @output BusinessException 'EMPLOYEE_CODE_ALREADY_EXISTS'
+     * @type A
      */
     it('TC_004: Throw error when employee_code already exists', async () => {
       // Arrange
@@ -214,7 +224,7 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
 
       const existingEmployee: Employee = {
         id: 10,
-        employee_code: validCreateEmployeeDto.employee_code,
+        employee_code: validCreateEmployeeDto.employee_code!,
         first_name: 'Existing',
         last_name: 'Employee',
         full_name: 'Existing Employee',
@@ -232,7 +242,7 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
 
       // Act & Assert
       await expect(useCase.execute(validCreateEmployeeDto)).rejects.toThrow(BusinessException);
-      
+
       try {
         await useCase.execute(validCreateEmployeeDto);
       } catch (error) {
@@ -245,7 +255,9 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
     /**
      * TC_005: Throw error when email already exists
      * Preconditions: ${PRECONDITIONS_DUPLICATE_EMAIL}
-     * Input: validCreateEmployeeDto | Output: BusinessException 'EMPLOYEE_EMAIL_ALREADY_EXISTS'
+     * Input: validCreateEmployeeDto
+     * @output BusinessException 'EMPLOYEE_EMAIL_ALREADY_EXISTS'
+     * @type A
      */
     it('TC_005: Throw error when email already exists', async () => {
       // Arrange
@@ -272,7 +284,7 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
 
       // Act & Assert
       await expect(useCase.execute(validCreateEmployeeDto)).rejects.toThrow(BusinessException);
-      
+
       try {
         await useCase.execute(validCreateEmployeeDto);
       } catch (error) {
@@ -540,6 +552,110 @@ const setupTestMocks = (savedEmployee: Employee, position: any = null) => {
       // Assert
       expectSuccessResponse(result);
       expect(result.data?.email).toBe('test.user+tag@company.co.uk');
+    });
+
+    /**
+     * TC_016: Throw error when personal_email format is invalid
+     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
+     * Input: dtoWithInvalidPersonalEmail | Output: BusinessException 'INVALID_EMAIL_FORMAT'
+     */
+    it('TC_016: Throw error when personal_email format is invalid', async () => {
+      // Arrange
+      jest.clearAllMocks();
+
+      const dtoWithInvalidPersonalEmail: CreateEmployeeDto = {
+        ...validCreateEmployeeDto,
+        personal_email: 'invalid-personal-email',
+      };
+
+      // Act & Assert
+      await expect(useCase.execute(dtoWithInvalidPersonalEmail)).rejects.toThrow(BusinessException);
+
+      try {
+        await useCase.execute(dtoWithInvalidPersonalEmail);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).errorCode).toBe('INVALID_EMAIL_FORMAT');
+        expect((error as BusinessException).message).toBe('Invalid personal email format');
+      }
+    });
+
+    /**
+     * TC_017: Auto-generate employee_code when not provided (First of the day)
+     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}, No existing employees today
+     * Input: dtoWithoutCode | Output: employee_code generated with sequence 001
+     */
+    it('TC_017: Auto-generate employee_code when not provided (First of the day)', async () => {
+      // Arrange
+      const dtoWithoutCode = { ...validCreateEmployeeDto };
+      delete (dtoWithoutCode as any).employee_code;
+
+      const savedEmployee = createCommonSavedEmployee();
+      setupTestMocks(savedEmployee);
+
+      // Mock findAll to return empty list (no existing codes)
+      mockEmployeeRepository.findAll.mockResolvedValue([]);
+
+      // Mock create to return employee with generated code
+      mockEmployeeRepository.create.mockImplementation(async (emp) => {
+        const saved = { ...emp, id: 1, created_at: new Date() };
+        return saved as Employee;
+      });
+
+      // Act
+      const result = await useCase.execute(dtoWithoutCode as CreateEmployeeDto);
+
+      // Assert
+      expectSuccessResponse(result);
+      const createdEmployee = mockEmployeeRepository.create.mock.calls[0][0];
+      expect(createdEmployee.employee_code).toMatch(/^EMP\d{8}001$/);
+      expect(result.data?.employee_code).toMatch(/^EMP\d{8}001$/);
+    });
+
+    /**
+     * TC_018: Auto-generate employee_code with incrementing sequence
+     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}, Existing employees today
+     * Input: dtoWithoutCode | Output: employee_code generated with next sequence
+     */
+    it('TC_018: Auto-generate employee_code with incrementing sequence', async () => {
+      // Arrange
+      const dtoWithoutCode = { ...validCreateEmployeeDto };
+      delete (dtoWithoutCode as any).employee_code;
+
+      const savedEmployee = createCommonSavedEmployee();
+      setupTestMocks(savedEmployee);
+
+      // Mock date to be fixed so we can construct matching existing codes
+      const mockDate = new Date('2025-12-04T10:00:00Z');
+      jest.useFakeTimers().setSystemTime(mockDate);
+
+      const datePrefix = '20251204'; // YYYYMMDD for the mock date
+
+      const existingEmployees = [
+        { employee_code: `EMP${datePrefix}001` },
+        { employee_code: `EMP${datePrefix}002` },
+        { employee_code: `EMP${datePrefix}005` }, // Gap in sequence
+        { employee_code: `EMP${datePrefix}INVALID` }, // Invalid format to cover branch
+      ] as Employee[];
+
+      mockEmployeeRepository.findAll.mockResolvedValue(existingEmployees);
+
+      mockEmployeeRepository.create.mockImplementation(async (emp) => {
+        const saved = { ...emp, id: 1, created_at: new Date() };
+        return saved as Employee;
+      });
+
+      // Act
+      const result = await useCase.execute(dtoWithoutCode as CreateEmployeeDto);
+
+      // Assert
+      expectSuccessResponse(result);
+      const createdEmployee = mockEmployeeRepository.create.mock.calls[0][0];
+      // Should be max(1, 2, 5) + 1 = 6 => 006
+      expect(createdEmployee.employee_code).toBe(`EMP${datePrefix}006`);
+
+      // Cleanup
+      jest.useRealTimers();
     });
   });
 });

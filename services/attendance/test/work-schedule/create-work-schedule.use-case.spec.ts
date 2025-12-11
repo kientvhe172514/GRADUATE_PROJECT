@@ -18,6 +18,88 @@ import {
     PRECONDITIONS_BASIC_CREATE,
     PRECONDITIONS_DUPLICATE_NAME,
 } from './mock-helpers';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Metadata for CSV export. Kept in sync with test cases below.
+const TEST_CASES: Array<{
+    id: string;
+    title: string;
+    preconditions: string;
+    inputSummary: string;
+    expectedOutcome: string;
+}> = [
+    {
+        id: 'CWSTC01',
+        title: 'Create FIXED work schedule with all fields',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FIXED with work_days,start_time,end_time,break/late/early values',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC02',
+        title: 'Create FLEXIBLE work schedule',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FLEXIBLE type (no work_days/start_time/end_time)',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC03',
+        title: 'Create SHIFT_BASED work schedule',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'SHIFT_BASED type',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC04',
+        title: 'Create FIXED schedule with all fields specified',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FIXED with all optional fields',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC05',
+        title: 'Create FIXED schedule with minimal required fields',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FIXED with only required fields',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC06',
+        title: 'Create FLEXIBLE schedule with minimal fields',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FLEXIBLE minimal',
+        expectedOutcome: 'Success (created schedule) - 201',
+    },
+    {
+        id: 'CWSTC07',
+        title: 'Throw error when FIXED schedule missing required fields',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FIXED missing work_days/start_time/end_time',
+        expectedOutcome: 'BusinessException INVALID_SCHEDULE_CONFIG (400)',
+    },
+    {
+        id: 'CWSTC08',
+        title: 'Throw error when schedule name already exists',
+        preconditions: PRECONDITIONS_DUPLICATE_NAME,
+        inputSummary: 'Existing schedule name provided',
+        expectedOutcome: 'BusinessException SCHEDULE_NAME_ALREADY_EXISTS (409)',
+    },
+    {
+        id: 'ADDITIONAL-1',
+        title: 'CWSTC09: set created_by and updated_by from currentUser',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'Custom user payload',
+        expectedOutcome: 'savedSchedule.created_by/updated_by match currentUser',
+    },
+    {
+        id: 'ADDITIONAL-2',
+        title: 'CWSTC09 set status to ACTIVE by default',
+        preconditions: PRECONDITIONS_BASIC_CREATE,
+        inputSummary: 'FLEXIBLE minimal',
+        expectedOutcome: 'status === ACTIVE',
+    },
+];
 
 describe('CreateWorkScheduleUseCase', () => {
     let useCase: CreateWorkScheduleUseCase;
@@ -375,7 +457,7 @@ describe('CreateWorkScheduleUseCase', () => {
         /**
          * Additional test: Verify created_by and updated_by are set from currentUser
          */
-        it('Should set created_by and updated_by from currentUser', async () => {
+    it('CWSTC08: Set created_by and updated_by from currentUser', async () => {
             // Arrange
             const dto: CreateWorkScheduleDto = {
                 schedule_name: 'Test Schedule',
@@ -400,7 +482,7 @@ describe('CreateWorkScheduleUseCase', () => {
         /**
          * Additional test: Verify status is set to ACTIVE by default
          */
-        it('Should set status to ACTIVE by default', async () => {
+    it('CWSTC09: Set status to ACTIVE by default', async () => {
             // Arrange
             const dto: CreateWorkScheduleDto = {
                 schedule_name: 'Test Schedule',
@@ -416,4 +498,32 @@ describe('CreateWorkScheduleUseCase', () => {
             expect(result.data!.status).toBe(ScheduleStatus.ACTIVE);
         });
     });
+});
+
+// After all tests finish, export the TEST_CASES metadata to CSV in the test folder.
+afterAll(() => {
+    try {
+        const csvHeader = ['id', 'title', 'preconditions', 'inputSummary', 'expectedOutcome'];
+        const escapeCell = (v: any) => {
+            if (v === undefined || v === null) return '';
+            const s = String(v).replace(/"/g, '""');
+            return `"${s}"`;
+        };
+
+        const lines = [csvHeader.join(',')];
+        for (const tc of TEST_CASES) {
+            const row = [tc.id, tc.title, tc.preconditions, tc.inputSummary, tc.expectedOutcome]
+                .map(escapeCell)
+                .join(',');
+            lines.push(row);
+        }
+
+        const outPath = path.join(__dirname, 'create-work-schedule.test-cases.csv');
+        fs.writeFileSync(outPath, lines.join('\n'), { encoding: 'utf8' });
+        // eslint-disable-next-line no-console
+        console.log(`Wrote test cases CSV: ${outPath}`);
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to write test cases CSV', err);
+    }
 });

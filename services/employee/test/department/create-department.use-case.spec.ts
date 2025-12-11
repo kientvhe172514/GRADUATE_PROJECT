@@ -27,6 +27,12 @@ describe('CreateDepartmentUseCase', () => {
       update: jest.fn(),
       findAll: jest.fn(),
       delete: jest.fn(),
+      findWithPagination: jest.fn(),
+      getEmployeeCountByDepartment: jest.fn(),
+      getEmployeeCountByStatus: jest.fn(),
+      getEmployeeCountByPosition: jest.fn(),
+      getSubDepartmentsCount: jest.fn(),
+      findByManagerId: jest.fn(),
     };
 
     mockEventPublisher = {

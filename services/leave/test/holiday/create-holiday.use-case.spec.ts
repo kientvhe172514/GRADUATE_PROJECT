@@ -55,10 +55,10 @@ describe('CreateHolidayUseCase', () => {
 
     describe('execute', () => {
         /**
-         * CHTC01: Create PUBLIC_HOLIDAY successfully
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateHolidayDto with PUBLIC_HOLIDAY type
-         * Output: Success response with created holiday
+         * @id CHTC01
+         * @description Create PUBLIC_HOLIDAY successfully
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_name:"Lunar New Year", holiday_type:"PUBLIC_HOLIDAY", year:2025}}
          */
         it('CHTC01: Create PUBLIC_HOLIDAY successfully', async () => {
             // Arrange
@@ -102,10 +102,10 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * CHTC02: Create COMPANY_HOLIDAY successfully
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateHolidayDto with COMPANY_HOLIDAY type
-         * Output: Success response with created holiday
+         * @id CHTC02
+         * @description Create COMPANY_HOLIDAY successfully
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_name:"Lunar New Year", holiday_type:"COMPANY_HOLIDAY", year:2025}}
          */
         it('CHTC02: Create COMPANY_HOLIDAY successfully', async () => {
             // Arrange
@@ -147,10 +147,10 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * CHTC03: Create REGIONAL_HOLIDAY successfully
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateHolidayDto with REGIONAL_HOLIDAY type
-         * Output: Success response with created holiday
+         * @id CHTC03
+         * @description Create REGIONAL_HOLIDAY successfully
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_name:"Lunar New Year", holiday_type:"REGIONAL_HOLIDAY", year:2025}}
          */
         it('CHTC03: Create REGIONAL_HOLIDAY successfully', async () => {
             // Arrange
@@ -192,10 +192,10 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * CHTC04: Create RELIGIOUS_HOLIDAY successfully
-         * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-         * Input: CreateHolidayDto with RELIGIOUS_HOLIDAY type
-         * Output: Success response with created holiday
+         * @id CHTC04
+         * @description Create RELIGIOUS_HOLIDAY successfully
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_name:"Lunar New Year", holiday_type:"RELIGIOUS_HOLIDAY", year:2025}}
          */
         it('CHTC04: Create RELIGIOUS_HOLIDAY successfully', async () => {
             // Arrange
@@ -237,10 +237,10 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * CHTC05: Throw error when PUBLIC_HOLIDAY already exists on same date
-         * Preconditions: ${PRECONDITIONS_DUPLICATE_EXISTS}
-         * Input: CreateHolidayDto with PUBLIC_HOLIDAY type on date that already has PUBLIC_HOLIDAY
-         * Output: BusinessException HOLIDAY_ALREADY_EXISTS
+         * @id CHTC05
+         * @description Throw error when PUBLIC_HOLIDAY already exists on same date
+         * @type A
+         * @output "A PUBLIC_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed."
          */
         it('CHTC05: Throw error when PUBLIC_HOLIDAY already exists on same date', async () => {
             // Arrange
@@ -281,10 +281,10 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * CHTC06: Throw error when COMPANY_HOLIDAY already exists on same date
-         * Preconditions: Database connected + Holiday exists on 2025-01-29 with type COMPANY_HOLIDAY
-         * Input: CreateHolidayDto with COMPANY_HOLIDAY type on date that already has COMPANY_HOLIDAY
-         * Output: BusinessException HOLIDAY_ALREADY_EXISTS
+         * @id CHTC06
+         * @description Throw error when COMPANY_HOLIDAY already exists on same date
+         * @type A
+         * @output "A COMPANY_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed."
          */
         it('CHTC06: Throw error when COMPANY_HOLIDAY already exists on same date', async () => {
             // Arrange
@@ -325,9 +325,12 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * Additional test: Allow multiple holidays on same date if different types
+         * @id CHTC07
+         * @description Allow creating different holiday type on same date
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_name:"Lunar New Year", holiday_type:"COMPANY_HOLIDAY", year:2025}}
          */
-        it('Should allow creating different holiday type on same date', async () => {
+        it('CHTC07: Allow creating different holiday type on same date', async () => {
             // Arrange
             const dto: CreateHolidayDto = {
                 holiday_name: 'Lunar New Year',
@@ -371,9 +374,12 @@ describe('CreateHolidayUseCase', () => {
         });
 
         /**
-         * Additional test: Verify date conversion to Date object
+         * @id CHTC08
+         * @description Convert holiday_date string to Date object
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Holiday created successfully", data:{id:1, holiday_date:Date}}
          */
-        it('Should convert holiday_date string to Date object', async () => {
+        it('CHTC08: Convert holiday_date string to Date object', async () => {
             // Arrange
             const dto: CreateHolidayDto = {
                 holiday_name: 'Lunar New Year',

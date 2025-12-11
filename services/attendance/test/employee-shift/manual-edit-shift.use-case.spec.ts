@@ -66,10 +66,10 @@ describe('ManualEditShiftUseCase', () => {
 
     describe('execute', () => {
         /**
-         * MESTC01: Edit shift with check_in_time only
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with check_in_time
-         * Output: Success response with updated check_in_time and edit log created
+         * @id MESTC01
+         * @description Edit shift with check_in_time only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, check_in_time:"2025-01-01T08:30:00.000Z", is_manually_edited:true}}
          */
         it('MESTC01: Edit shift with check_in_time only', async () => {
             // Arrange
@@ -104,10 +104,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC02: Edit shift with check_out_time only
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with check_out_time
-         * Output: Success response with updated check_out_time and edit log created
+         * @id MESTC02
+         * @description Edit shift with check_out_time only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, check_out_time:"2025-01-01T17:30:00.000Z", is_manually_edited:true}}
          */
         it('MESTC02: Edit shift with check_out_time only', async () => {
             // Arrange
@@ -142,15 +142,15 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC03: Edit shift with status to PRESENT
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with status PRESENT
-         * Output: Success response with updated status and edit log created
+         * @id MESTC03
+         * @description Edit shift with status to PRESENT
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, status:"IN_PROGRESS", is_manually_edited:true}}
          */
         it('MESTC03: Edit shift with status to PRESENT', async () => {
             // Arrange
             const dto: ManualEditShiftDto = {
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 edit_reason: 'Employee forgot to check-in, HR corrected based on evidence',
             };
 
@@ -158,7 +158,7 @@ describe('ManualEditShiftUseCase', () => {
                 status: ShiftStatus.ABSENT,
             });
             const updatedShift = createMockEmployeeShift({
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 is_manually_edited: true,
                 updated_by: MOCK_USER.sub,
                 updated_at: new Date(),
@@ -173,7 +173,7 @@ describe('ManualEditShiftUseCase', () => {
             expectSuccessResponse(result, true);
             expectShiftData(result.data, {
                 employee_id: MOCK_EMPLOYEE_ID,
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 is_manually_edited: true,
                 updated_by: MOCK_USER.sub,
             });
@@ -183,10 +183,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC04: Edit shift with status to ABSENT
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with status ABSENT
-         * Output: Success response with updated status and edit log created
+         * @id MESTC04
+         * @description Edit shift with status to ABSENT
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, status:"ABSENT", is_manually_edited:true}}
          */
         it('MESTC04: Edit shift with status to ABSENT', async () => {
             // Arrange
@@ -196,7 +196,7 @@ describe('ManualEditShiftUseCase', () => {
             };
 
             const existingShift = createMockEmployeeShift({
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
             });
             const updatedShift = createMockEmployeeShift({
                 status: ShiftStatus.ABSENT,
@@ -223,10 +223,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC05: Edit shift with notes only
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with notes
-         * Output: Success response with updated notes and edit log created
+         * @id MESTC05
+         * @description Edit shift with notes only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, notes:"Adjusted due to forgot check-in", is_manually_edited:true}}
          */
         it('MESTC05: Edit shift with notes only', async () => {
             // Arrange
@@ -264,17 +264,17 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC06: Edit shift with multiple fields
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with check_in_time, check_out_time, and status
-         * Output: Success response with all fields updated and multiple edit logs created
+         * @id MESTC06
+         * @description Edit shift with multiple fields
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, check_in_time:"2025-01-01T08:30:00.000Z", check_out_time:"2025-01-01T17:30:00.000Z", status:"IN_PROGRESS", is_manually_edited:true}}
          */
         it('MESTC06: Edit shift with multiple fields', async () => {
             // Arrange
             const dto: ManualEditShiftDto = {
                 check_in_time: '2025-01-01T08:30:00.000Z',
                 check_out_time: '2025-01-01T17:30:00.000Z',
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 edit_reason: 'Employee forgot to check-in, HR corrected based on evidence',
             };
 
@@ -286,7 +286,7 @@ describe('ManualEditShiftUseCase', () => {
             const updatedShift = createMockEmployeeShift({
                 check_in_time: new Date(dto.check_in_time!),
                 check_out_time: new Date(dto.check_out_time!),
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 is_manually_edited: true,
                 updated_by: MOCK_USER.sub,
                 updated_at: new Date(),
@@ -301,7 +301,7 @@ describe('ManualEditShiftUseCase', () => {
             expectSuccessResponse(result, true);
             expectShiftData(result.data, {
                 employee_id: MOCK_EMPLOYEE_ID,
-                status: ShiftStatus.PRESENT,
+                status: ShiftStatus.IN_PROGRESS,
                 is_manually_edited: true,
                 updated_by: MOCK_USER.sub,
             });
@@ -311,10 +311,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC07: Edit shift notes when notes already exist
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with new notes
-         * Output: Success response with updated notes and edit log created
+         * @id MESTC07
+         * @description Edit shift notes when notes already exist
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, notes:"Updated notes", is_manually_edited:true}}
          */
         it('MESTC07: Edit shift notes when notes already exist', async () => {
             // Arrange
@@ -351,10 +351,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC08: No changes applied when all values are same
-         * Preconditions: ${PRECONDITIONS_BASIC_EDIT}
-         * Input: ManualEditShiftDto with same values as existing shift
-         * Output: Success response with "No changes applied" message, no updates, no edit logs
+         * @id MESTC08
+         * @description No changes applied when all values are same
+         * @type B
+         * @output {status:"SUCCESS", statusCode:200, message:"No changes applied", data:{id:1, employee_id:100, is_manually_edited:false}}
          */
         it('MESTC08: No changes applied when all values are same', async () => {
             // Arrange
@@ -383,10 +383,10 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * MESTC09: Throw error when shift not found
-         * Preconditions: Database connected + Shift with ID 999 does NOT exist
-         * Input: ManualEditShiftDto with non-existent shift ID
-         * Output: BusinessException NOT_FOUND
+         * @id MESTC09
+         * @description Throw error when shift not found
+         * @type A
+         * @output "Shift not found."
          */
         it('MESTC09: Throw error when shift not found', async () => {
             // Arrange
@@ -415,9 +415,12 @@ describe('ManualEditShiftUseCase', () => {
         });
 
         /**
-         * Additional test: Verify date string conversion to Date objects
+         * @id MESTC10
+         * @description Convert date strings to Date objects in update data
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Shift edited successfully", data:{id:1, employee_id:100, check_in_time:Date, check_out_time:Date, is_manually_edited:true}}
          */
-        it('Should convert date strings to Date objects in update data', async () => {
+        it('MESTC10: Convert date strings to Date objects in update data', async () => {
             // Arrange
             const dto: ManualEditShiftDto = {
                 check_in_time: '2025-01-01T08:30:00.000Z',

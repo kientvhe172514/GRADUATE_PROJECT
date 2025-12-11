@@ -55,10 +55,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
 
     describe('execute', () => {
         /**
-         * UORTC01: Update overtime request with start_time only
-         * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-         * Input: UpdateOvertimeRequestDto with start_time
-         * Output: Success response with updated start_time
+         * @id UORTC01
+         * @description Update overtime request with start_time only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, start_time:"2025-01-15T18:30:00Z", status:"PENDING"}}
          */
         it('UORTC01: Update overtime request with start_time only', async () => {
             // Arrange
@@ -89,10 +89,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC02: Update overtime request with end_time only
-         * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-         * Input: UpdateOvertimeRequestDto with end_time
-         * Output: Success response with updated end_time
+         * @id UORTC02
+         * @description Update overtime request with end_time only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, end_time:"2025-01-15T21:30:00Z", status:"PENDING"}}
          */
         it('UORTC02: Update overtime request with end_time only', async () => {
             // Arrange
@@ -123,10 +123,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC03: Update overtime request with estimated_hours only
-         * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-         * Input: UpdateOvertimeRequestDto with estimated_hours
-         * Output: Success response with updated estimated_hours
+         * @id UORTC03
+         * @description Update overtime request with estimated_hours only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, estimated_hours:3.5, status:"PENDING"}}
          */
         it('UORTC03: Update overtime request with estimated_hours only', async () => {
             // Arrange
@@ -157,10 +157,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC04: Update overtime request with reason only
-         * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-         * Input: UpdateOvertimeRequestDto with reason
-         * Output: Success response with updated reason
+         * @id UORTC04
+         * @description Update overtime request with reason only
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, reason:"Extended due to additional tasks", status:"PENDING"}}
          */
         it('UORTC04: Update overtime request with reason only', async () => {
             // Arrange
@@ -191,10 +191,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC05: Update overtime request with multiple fields
-         * Preconditions: ${PRECONDITIONS_BASIC_UPDATE}
-         * Input: UpdateOvertimeRequestDto with start_time, end_time, and estimated_hours
-         * Output: Success response with all fields updated
+         * @id UORTC05
+         * @description Update overtime request with multiple fields
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, start_time:"2025-01-15T18:30:00Z", end_time:"2025-01-15T21:30:00Z", estimated_hours:3.5, status:"PENDING"}}
          */
         it('UORTC05: Update overtime request with multiple fields', async () => {
             // Arrange
@@ -230,10 +230,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC06: Throw error when overtime request status is APPROVED
-         * Preconditions: Database connected + Overtime request with ID 1 has status APPROVED
-         * Input: UpdateOvertimeRequestDto
-         * Output: BusinessException INVALID_STATE_TRANSITION
+         * @id UORTC06
+         * @description Throw error when overtime request status is APPROVED
+         * @type A
+         * @output "Cannot update request that is already approved/rejected."
          */
         it('UORTC06: Throw error when overtime request status is APPROVED', async () => {
             // Arrange
@@ -267,10 +267,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC07: Throw error when overtime request status is REJECTED
-         * Preconditions: Database connected + Overtime request with ID 1 has status REJECTED
-         * Input: UpdateOvertimeRequestDto
-         * Output: BusinessException INVALID_STATE_TRANSITION
+         * @id UORTC07
+         * @description Throw error when overtime request status is REJECTED
+         * @type A
+         * @output "Cannot update request that is already approved/rejected."
          */
         it('UORTC07: Throw error when overtime request status is REJECTED', async () => {
             // Arrange
@@ -305,12 +305,12 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC08: Throw error when user tries to update another user's request
-         * Preconditions: Database connected + Current user has employee_id = 200
-         * Input: UpdateOvertimeRequestDto for request belonging to employee_id = 100
-         * Output: BusinessException PERMISSION_DENIED
+         * @id UORTC08
+         * @description Throw error when user tries to update another user's request
+         * @type A
+         * @output "You can only update your own requests."
          */
-        it('UORTC08: Throw error when user tries to update another user\'s request', async () => {
+        it("UORTC08: Throw error when user tries to update another users request", async () => {
             // Arrange
             const dto: UpdateOvertimeRequestDto = {
                 reason: 'Updated reason',
@@ -338,10 +338,10 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * UORTC09: Throw error when overtime request not found
-         * Preconditions: Database connected + Overtime request with ID 999 does NOT exist
-         * Input: UpdateOvertimeRequestDto with non-existent ID
-         * Output: BusinessException NOT_FOUND
+         * @id UORTC09
+         * @description Throw error when overtime request not found
+         * @type A
+         * @output "Overtime request not found"
          */
         it('UORTC09: Throw error when overtime request not found', async () => {
             // Arrange
@@ -368,9 +368,12 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
 
         /**
-         * Additional test: Verify date string conversion to Date objects
+         * @id UORTC10
+         * @description Convert date strings to Date objects in update data
+         * @type N
+         * @output {status:"SUCCESS", statusCode:200, message:"Overtime request updated successfully", data:{id:1, employee_id:100, start_time:Date, end_time:Date, status:"PENDING"}}
          */
-        it('Should convert date strings to Date objects in update data', async () => {
+        it('UORTC10: Convert date strings to Date objects in update data', async () => {
             // Arrange
             const dto: UpdateOvertimeRequestDto = {
                 start_time: '2025-01-15T18:30:00Z',
@@ -395,3 +398,4 @@ describe('UpdateOvertimeRequestUseCase', () => {
         });
     });
 });
+

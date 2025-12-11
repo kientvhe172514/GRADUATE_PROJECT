@@ -1,62 +1,46 @@
-,,,,CHTC01,CHTC02,CHTC03,CHTC04,CHTC05,CHTC06
-Condition,Precondition,,,,,,,,
-,,,Can connect to database,O,O,O,O,O,O
-,,,No holiday exists on 2025-01-29 with type PUBLIC_HOLIDAY,O,O,O,O,,
-,,,Holiday exists on 2025-01-29 with type PUBLIC_HOLIDAY,,,,,O,
-,,,Holiday exists on 2025-01-29 with type COMPANY_HOLIDAY,,,,,,O
-,,,,,,,,,
-,holiday_name,,,,,,,,
-,,,"""Lunar New Year""",O,O,O,O,O,O
-,holiday_date,,,,,,,,
-,,,"""2025-01-29""",O,O,O,O,O,O
-,holiday_type,,,,,,,,
-,,,PUBLIC_HOLIDAY,O,,,,,O
-,,,COMPANY_HOLIDAY,,O,,,,
-,,,REGIONAL_HOLIDAY,,,O,,,
-,,,RELIGIOUS_HOLIDAY,,,,O,,
-,applies_to,,,,,,,,
-,,,ALL,O,O,O,O,O,O
-,,,DEPARTMENT,,,,,,
-,,,LOCATION,,,,,,
-,department_ids,,,,,,,,
-,,,undefined,O,O,O,O,O,O
-,location_ids,,,,,,,,
-,,,undefined,O,O,O,O,O,O
-,is_recurring,,,,,,,,
-,,,false,O,O,O,O,O,O
-,recurring_month,,,,,,,,
-,,,undefined,O,O,O,O,O,O
-,recurring_day,,,,,,,,
-,,,undefined,O,O,O,O,O,O
-,recurring_rule,,,,,,,,
-,,,undefined,O,O,O,O,O,O
-,is_mandatory,,,,,,,,
-,,,true,O,O,O,O,O,O
-,is_paid,,,,,,,,
-,,,true,O,O,O,O,O,O
-,can_work_for_ot,,,,,,,,
-,,,false,O,O,O,O,O,O
-,description,,,,,,,,
-,,,"""National holiday celebrating Lunar New Year""",O,O,O,O,O,O
-,year,,,,,,,,
-,,,2025,O,O,O,O,O,O
-,,,,,,,,,
-Confirm,Return,,,,,,,,
-,"{id:1, holiday_name:""Lunar New Year"", holiday_date:""2025-01-29"", holiday_type:""PUBLIC_HOLIDAY"", applies_to:""ALL"", is_recurring:false, is_mandatory:true, is_paid:true, can_work_for_ot:false, description:""National holiday celebrating Lunar New Year"", year:2025, status:""ACTIVE""}",,,O,,,,,,
-,"{id:1, holiday_name:""Lunar New Year"", holiday_date:""2025-01-29"", holiday_type:""COMPANY_HOLIDAY"", applies_to:""ALL"", is_recurring:false, is_mandatory:true, is_paid:true, can_work_for_ot:false, description:""National holiday celebrating Lunar New Year"", year:2025, status:""ACTIVE""}",,,,O,,,,,
-,"{id:1, holiday_name:""Lunar New Year"", holiday_date:""2025-01-29"", holiday_type:""REGIONAL_HOLIDAY"", applies_to:""ALL"", is_recurring:false, is_mandatory:true, is_paid:true, can_work_for_ot:false, description:""National holiday celebrating Lunar New Year"", year:2025, status:""ACTIVE""}",,,,,O,,,,
-,"{id:1, holiday_name:""Lunar New Year"", holiday_date:""2025-01-29"", holiday_type:""RELIGIOUS_HOLIDAY"", applies_to:""ALL"", is_recurring:false, is_mandatory:true, is_paid:true, can_work_for_ot:false, description:""National holiday celebrating Lunar New Year"", year:2025, status:""ACTIVE""}",,,,,,O,,,
-,,,,,,,,,
-,Exception,,,,,,,,
-,,,"""A PUBLIC_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed."" (BusinessException HOLIDAY_ALREADY_EXISTS, statusCode 400)",,,,,,,O,
-,,,"""A COMPANY_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed."" (BusinessException HOLIDAY_ALREADY_EXISTS, statusCode 400)",,,,,,,,O
-,,,,,,,,,
-,Log message,,,,,,,,
-,,,HolidayRepository.findByDateRange called with date range (start of day to end of day),O,O,O,O,O,O
-,,,Check for duplicate holiday with same holiday_type on same date,O,O,O,O,O,O
-,,,HolidayEntity created with status ACTIVE,O,O,O,O,,
-,,,HolidayEntity created with holiday_date as Date object,O,O,O,O,,
-,,,HolidayRepository.create called,O,O,O,O,,
-,,,Created holiday returned,O,O,O,O,,
-,,,,,,,,,
-Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,N,A,A
+﻿sep=,
+,,,,,CHTC01,CHTC02,CHTC03,CHTC04,CHTC05,CHTC06,CHTC07,CHTC08
+Condition,Precondition,,,,,,,,,,,
+Can connect to database,,,,,O,O,O,O,O,O,O,O
+No duplicate holiday exists on target date,,,,,,,,,,,,O
+PUBLIC_HOLIDAY exists on 2025-01-29,,,,,,,,,,,,
+COMPANY_HOLIDAY exists on 2025-01-29,,,,,,,,,,,,
+Different holiday type exists on same date,,,,,,,,,,,,
+,holiday_name,,,,,,,,,,,
+,,"Lunar New Year",,,O,O,O,O,O,O,O,O
+,holiday_date,,,,,,,,,,,
+,,"2025-01-29",,,O,O,O,O,O,O,O,O
+,holiday_type,,,,,,,,,,,
+,,PUBLIC_HOLIDAY,,,O,,,,O,,O,O
+,,COMPANY_HOLIDAY,,,,O,,,,O,O,
+,,REGIONAL_HOLIDAY,,,,,O,,,,,
+,,RELIGIOUS_HOLIDAY,,,,,,O,,,,
+,applies_to,,,,,,,,,,,
+,,ALL,,,O,O,O,O,O,O,O,O
+,is_recurring,,,,,,,,,,,
+,,false,,,O,O,O,O,O,O,O,O
+,is_mandatory,,,,,,,,,,,
+,,true,,,O,O,O,O,O,O,O,O
+,is_paid,,,,,,,,,,,
+,,true,,,O,O,O,O,O,O,O,O
+,can_work_for_ot,,,,,,,,,,,
+,,false,,,O,O,O,O,O,O,O,O
+,year,,,,,,,,,,,
+,,2025,,,O,O,O,O,O,O,O,O
+,description,,,,,,,,,,,
+,,"National holiday celebrating Lunar New Year",,,O,O,O,O,O,O,O,
+,,undefined,,,,,,,,,,O
+,existing_holiday_type,,,,,,,,,,,
+,,none,,,,,,,,,,O
+,,PUBLIC_HOLIDAY,,,,,,,,,,
+,,COMPANY_HOLIDAY,,,,,,,,,,
+Confirm,Return,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Holiday created successfully"", data:{id:1, holiday_name:""Lunar New Year"", holiday_type:""PUBLIC_HOLIDAY"", year:2025}}",,,,O,,,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Holiday created successfully"", data:{id:1, holiday_name:""Lunar New Year"", holiday_type:""COMPANY_HOLIDAY"", year:2025}}",,,,,O,,,,,O,
+,"{status:""SUCCESS"", statusCode:200, message:""Holiday created successfully"", data:{id:1, holiday_name:""Lunar New Year"", holiday_type:""REGIONAL_HOLIDAY"", year:2025}}",,,,,,O,,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Holiday created successfully"", data:{id:1, holiday_name:""Lunar New Year"", holiday_type:""RELIGIOUS_HOLIDAY"", year:2025}}",,,,,,,O,,,,
+,"{status:""SUCCESS"", statusCode:200, message:""Holiday created successfully"", data:{id:1, holiday_date:Date}}",,,,,,,,,,,O
+Exception,,,,,,,,,,,,
+,"""A PUBLIC_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed.""",,,,,,,,O,,,
+,"""A COMPANY_HOLIDAY holiday already exists on 2025-01-29. Only one holiday per type per date is allowed.""",,,,,,,,,O,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,N,N,N,N,A,A,B,N

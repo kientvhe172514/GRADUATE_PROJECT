@@ -72,7 +72,7 @@ export class HeaderBasedPermissionGuard implements CanActivate {
 
     // Get request
     const request = context.switchToHttp().getRequest<Request>();
-    
+
     // Get user from request (set by ExtractUserFromHeadersMiddleware)
     let user: JwtPayload = (request as any).user || request['user'];
 

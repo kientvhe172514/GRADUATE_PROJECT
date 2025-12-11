@@ -1,0 +1,26 @@
+﻿sep=,
+,,,,,TC_01,TC_02,TC_03,TC_04
+Condition,Precondition,,,,,,,
+Leave type code does NOT exist,,,,,O,,,
+Leave type code ALREADY exists,,,,,,,O,
+,leave_type_code,,,,,,,
+,,"""ANNUAL""",,,O,,O,
+,,"""SICK""",,,,O,,
+,,"""UNPAID""",,,,,,O
+,leave_type_name,,,,,,,
+,,"""Annual Leave""",,,O,,O,
+,,"""Sick Leave""",,,,O,,
+,,"""Unpaid Leave""",,,,,,O
+,description,,,,,,,
+,,"""Standard annual leave""",,,O,,O,O
+,,undefined,,,,O,,
+,is_paid,,,,,,,
+,,true,,,O,O,O,
+,,false,,,,,,O
+Confirm,Return,,,,,,,
+Exception,,,,,,,,
+,"{id:1, leave_type_code:""ANNUAL"", leave_type_name:""Annual Leave"", status:""ACTIVE""}",,,,O,,,
+,"{id:1, leave_type_code:""SICK"", leave_type_name:""Sick Leave"", status:""ACTIVE""}",,,,,O,,
+,""""Leave type code already exists"""",,,,,,O,
+,"{id:1, leave_type_code:""UNPAID"", leave_type_name:""Unpaid Leave"", status:""ACTIVE""}",,,,,,,O
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,N,N,A,N

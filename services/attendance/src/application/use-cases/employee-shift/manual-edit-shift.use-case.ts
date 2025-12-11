@@ -45,11 +45,16 @@ export class ManualEditShiftUseCase {
       newValue: (typeof shiftSchema)[K],
     ) => {
       const oldValue = shiftSchema[field];
-      if (
-        newValue !== undefined &&
-        newValue !== null &&
-        newValue !== oldValue
-      ) {
+
+      // Determine equality taking Date objects into account
+      const isEqual = (() => {
+        if (oldValue instanceof Date && newValue instanceof Date) {
+          return oldValue.getTime() === newValue.getTime();
+        }
+        return oldValue === newValue;
+      })();
+
+      if (newValue !== undefined && newValue !== null && !isEqual) {
         (updates[field] as any) = newValue;
         logs.push({
           field: String(field),

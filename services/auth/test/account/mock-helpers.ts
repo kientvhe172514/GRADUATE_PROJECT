@@ -25,6 +25,7 @@ export const createUpdatedAccount = (overrides = {}): Account => ({
   password_hash: 'hashed_password',
   account_type: AccountType.EMPLOYEE,
   role: AccountRole.EMPLOYEE,
+  role_id: 4, // EMPLOYEE role ID
   employee_id: 100,
   employee_code: 'EMP001',
   full_name: 'John Doe',
@@ -35,7 +36,7 @@ export const createUpdatedAccount = (overrides = {}): Account => ({
   status: AccountStatus.ACTIVE,
   failed_login_attempts: 0,
   created_at: new Date('2025-01-01T10:00:00Z'),
-  sync_version: 2,
+  sync_version: 1,
   updated_at: new Date('2025-11-09T10:00:00Z'),
   ...overrides,
 });
@@ -85,10 +86,27 @@ export const setupMocks = (
   // Setup account repository mocks
   mockAccountRepository.findById.mockResolvedValue(existingAccount);
   mockAccountRepository.findByEmail.mockResolvedValue(emailCheckResult);
-  mockAccountRepository.update.mockResolvedValue(updatedAccount);
+  // Return the account that was passed to update (which has the incremented sync_version)
+  // and simulate the database join that populates the role field based on role_id
+  mockAccountRepository.update.mockImplementation(async (account: Account) => {
+    // Map role_id to role code (simulating database join)
+    const roleMap: Record<number, string> = {
+      1: AccountRole.ADMIN,
+      2: AccountRole.HR_MANAGER,
+      3: AccountRole.DEPARTMENT_MANAGER,
+      4: AccountRole.EMPLOYEE,
+    };
+
+    // If role_id was updated, set the corresponding role code
+    if (account.role_id && roleMap[account.role_id]) {
+      account.role = roleMap[account.role_id];
+    }
+
+    return account;
+  });
 
   // Setup event publisher mock
-  mockEventPublisher.publish.mockImplementation(() => {});
+  mockEventPublisher.publish.mockImplementation(() => { });
 };
 
 /**

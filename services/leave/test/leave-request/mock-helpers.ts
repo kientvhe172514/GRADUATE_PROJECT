@@ -153,13 +153,48 @@ export const setupCreateLeaveRequestMocks = (
         mocks.mockLeaveRecordRepository.create.mockResolvedValue(options.createdLeaveRecord);
     } else {
         // Default behavior: return the input as created
-        mocks.mockLeaveRecordRepository.create.mockImplementation(async (record) => record);
+        mocks.mockLeaveRecordRepository.create.mockImplementation(async (record) => {
+            return {
+                id: 1, // Provide a default ID
+                employee_id: record.employee_id || MOCK_EMPLOYEE_ID,
+                employee_code: record.employee_code || MOCK_EMPLOYEE_CODE,
+                department_id: record.department_id || MOCK_DEPARTMENT_ID, // Ensure department_id is provided
+                leave_type_id: record.leave_type_id || MOCK_LEAVE_TYPE_ID,
+                start_date: record.start_date || new Date(),
+                end_date: record.end_date || new Date(),
+                total_calendar_days: record.total_calendar_days || 0,
+                total_working_days: record.total_working_days || 0,
+                total_leave_days: record.total_leave_days || 0,
+                status: record.status || 'PENDING',
+                approval_level: record.approval_level || 1,
+                is_half_day_start: record.is_half_day_start || false, // Ensure is_half_day_start is provided
+                is_half_day_end: record.is_half_day_end || false, // Ensure is_half_day_end is provided
+                reason: record.reason || 'Default reason', // Ensure reason is provided
+                requested_at: record.requested_at || new Date(), // Ensure requested_at is provided
+                created_at: record.created_at || new Date(),
+                updated_at: record.updated_at || new Date(),
+                ...record, // Include any additional properties from the input
+            };
+        });
     }
 
     // Setup leave balance repository mocks
     const leaveBalance = options.leaveBalance !== undefined ? options.leaveBalance : MOCK_LEAVE_BALANCE;
     mocks.mockLeaveBalanceRepository.findByEmployeeLeaveTypeAndYear.mockResolvedValue(leaveBalance);
-    mocks.mockLeaveBalanceRepository.update.mockResolvedValue(undefined);
+    mocks.mockLeaveBalanceRepository.update.mockResolvedValue({
+        id: 1,
+        employee_id: MOCK_EMPLOYEE_ID,
+        leave_type_id: MOCK_LEAVE_TYPE_ID,
+        year: 2025,
+        pending_days: 5,
+        remaining_days: 7,
+        total_days: 12, // Add required property
+        used_days: 5, // Add required property
+        carried_over_days: 2, // Add required property
+        adjusted_days: 0, // Add required property
+        created_at: new Date(),
+        updated_at: new Date(),
+    });
 
     // Setup transaction repository mock
     mocks.mockTransactionRepository.create.mockResolvedValue({

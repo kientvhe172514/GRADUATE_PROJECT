@@ -53,7 +53,7 @@ export const createMockEmployeeShift = (overrides = {}) => ({
     break_hours: 1.0,
     late_minutes: 0,
     early_leave_minutes: 0,
-    status: ShiftStatus.PRESENT,
+    status: ShiftStatus.IN_PROGRESS,
     notes: null,
     is_manually_edited: false,
     created_at: new Date('2025-01-01T00:00:00.000Z'),
@@ -100,24 +100,25 @@ export const setupManualEditShiftMocks = (
 
     // Setup repository mocks
     const shift = existingShift !== undefined ? existingShift : createMockEmployeeShift();
+    const updated = updatedShift !== undefined ? updatedShift : {
+        ...shift,
+        is_manually_edited: true,
+        updated_by: MOCK_USER.sub,
+        updated_at: new Date(),
+    };
 
     if (shift) {
         // First call returns existing shift
         mocks.mockEmployeeShiftRepo.findById.mockResolvedValueOnce(shift);
 
         // Second call (after update) returns updated shift
-        const updated = updatedShift !== undefined ? updatedShift : {
-            ...shift,
-            is_manually_edited: true,
-            updated_by: MOCK_USER.sub,
-            updated_at: new Date(),
-        };
         mocks.mockEmployeeShiftRepo.findById.mockResolvedValueOnce(updated);
     } else {
         mocks.mockEmployeeShiftRepo.findById.mockResolvedValue(null);
     }
 
-    mocks.mockEmployeeShiftRepo.update.mockResolvedValue(undefined);
+    // repository update resolves with the updated shift object
+    mocks.mockEmployeeShiftRepo.update.mockResolvedValue(updated as any);
     mocks.mockAttendanceEditLogRepo.createLog.mockResolvedValue({
         id: 1,
         shift_id: 1,
@@ -241,7 +242,7 @@ export const expectUpdateDataFormat = (
 ) => {
     expect(mockRepo.update).toHaveBeenCalled();
     const updateCall = mockRepo.update.mock.calls[0];
-    const updateData = updateCall[1];
+    const updateData: any = updateCall[1];
 
     // Always expect these fields in updates
     expect(updateData.is_manually_edited).toBe(true);

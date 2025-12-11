@@ -1,63 +1,56 @@
-,,,,MESTC01,MESTC02,MESTC03,MESTC04,MESTC05,MESTC06,MESTC07,MESTC08,MESTC09,MESTC10
-Condition,Precondition,,,,,,,,,,,,
-,,,Can connect to database,O,O,O,O,O,O,O,O,O,O
-,,,Employee shift with ID 1 EXISTS,O,O,O,O,O,O,O,O,O,
-,,,Employee shift with ID 999 does NOT exist,,,,,,,,,,,O
-,,,Current user is authenticated (HR role),O,O,O,O,O,O,O,O,O,O
-,,,,,,,,,,,,,
-,shiftId,,,,,,,,,,,,
-,,,1,O,O,O,O,O,O,O,O,O,
-,,,999,,,,,,,,,,,O
-,check_in_time,,,,,,,,,,,,
-,,,"""2025-01-01T08:30:00.000Z""",O,,,,,,,,,
-,,,undefined,,O,O,O,O,O,O,O,O,O
-,check_out_time,,,,,,,,,,,,
-,,,"""2025-01-01T17:30:00.000Z""",,O,,,,,,,,
-,,,undefined,O,,O,O,O,O,O,O,O,O
-,status,,,,,,,,,,,,
-,,,PRESENT,,,O,,,,,,,
-,,,ABSENT,,,,O,,,,,,
-,,,undefined,O,O,,,O,O,O,O,O,O
-,notes,,,,,,,,,,,,
-,,,"""Adjusted due to forgot check-in""",,,,,,O,,,,
-,,,"""Updated notes""",,,,,,,,O,,
-,,,undefined,O,O,O,O,O,,O,,,O
-,edit_reason,,,,,,,,,,,,
-,,,"""Employee forgot to check-in, HR corrected based on evidence""",O,O,O,O,O,O,O,O,O,O
-,currentUser.sub,,,,,,,,,,,,
-,,,1,O,O,O,O,O,O,O,O,O,O
-,ipAddress,,,,,,,,,,,,
-,,,"""192.168.1.100""",O,O,O,O,O,O,O,O,O,O
-,,,,,,,,,,,,,
-Confirm,Return,,,,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, check_in_time:""2025-01-01T08:30:00.000Z"", is_manually_edited:true, updated_by:1}} + Edit log created for check_in_time",,,O,,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, check_out_time:""2025-01-01T17:30:00.000Z"", is_manually_edited:true, updated_by:1}} + Edit log created for check_out_time",,,,O,,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, status:""PRESENT"", is_manually_edited:true, updated_by:1}} + Edit log created for status",,,,,O,,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, status:""ABSENT"", is_manually_edited:true, updated_by:1}} + Edit log created for status",,,,,,O,,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, notes:""Adjusted due to forgot check-in"", is_manually_edited:true, updated_by:1}} + Edit log created for notes",,,,,,,O,,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, check_in_time:""2025-01-01T08:30:00.000Z"", check_out_time:""2025-01-01T17:30:00.000Z"", status:""PRESENT"", is_manually_edited:true, updated_by:1}} + Edit logs created for check_in_time, check_out_time, status",,,,,,,,O,,,,
-,"{status:""SUCCESS"", statusCode:200, message:""Shift manually edited successfully."", data:{id:1, notes:""Updated notes"", is_manually_edited:true, updated_by:1}} + Edit log created for notes",,,,,,,,,O,,,
-,"{status:""SUCCESS"", statusCode:200, message:""No changes applied."", data:{id:1, is_manually_edited:false}} + NO edit logs created + NO updates applied",,,,,,,,,,O,,
-,,,,,,,,,,,,,
-,Exception,,,,,,,,,,,,
-,,,"""Shift not found."" (BusinessException NOT_FOUND, statusCode 404)",,,,,,,,,,,O
-,,,,,,,,,,,,,
-,Log message,,,,,,,,,,,,
-,,,EmployeeShiftRepository.findById called with shiftId,O,O,O,O,O,O,O,O,O,O
-,,,Change tracking: applyChange function tracks old and new values,O,O,O,O,O,O,O,O,O,
-,,,Date string converted to Date object for check_in_time,O,,,,,,,,,
-,,,Date string converted to Date object for check_out_time,,O,,,,,,,,
-,,,Updates object includes is_manually_edited = true,O,O,O,O,O,O,O,O,,
-,,,Updates object includes updated_by = currentUser.sub,O,O,O,O,O,O,O,O,,
-,,,Updates object includes updated_at as Date,O,O,O,O,O,O,O,O,,
-,,,EmployeeShiftRepository.update called with shiftId and updates,O,O,O,O,O,O,O,O,,
-,,,AttendanceEditLogRepository.createLog called for each changed field,O,O,O,O,O,O,O,O,,
-,,,Edit log includes edited_by_user_id = currentUser.sub,O,O,O,O,O,O,O,O,,
-,,,Edit log includes edited_by_user_name = currentUser.email,O,O,O,O,O,O,O,O,,
-,,,Edit log includes edited_by_role = currentUser.role,O,O,O,O,O,O,O,O,,
-,,,Edit log includes edit_reason from dto,O,O,O,O,O,O,O,O,,
-,,,Edit log includes ip_address,O,O,O,O,O,O,O,O,,
-,,,EmployeeShiftRepository.findById called again after update,O,O,O,O,O,O,O,O,,
-,,,No changes detected - returns original shift without updates,,,,,,,,,O,
-,,,,,,,,,,,,,
-Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,N,N,N,N,N,N,N,N,B,A
+﻿;;;;;MESTC01;MESTC02;MESTC03;MESTC04;MESTC05;MESTC06;MESTC07;MESTC08;MESTC09;MESTC10
+Condition;Precondition;;;;;;;;;;;;;
+Can connect to database;;;;;O;O;O;O;O;O;O;O;O;O
+Shift with ID 1 EXISTS with status IN_PROGRESS;;;;;O;O;;;;;;;;O
+Shift with ID 1 has status ABSENT;;;;;;;O;O;;O;;;;
+Shift has existing notes;;;;;;;;;;;O;;;
+Shift has null notes;;;;;;;;;O;;;;;
+Shift with ID 999 does NOT exist;;;;;;;;;;;;;O;
+User has permission to edit shifts;;;;;O;O;;;;;;;O;
+Edit reason is provided;;;;;O;O;O;O;O;O;O;;O;O
+;shift_id;;;;;;;;;;;;;
+;;1;;;O;O;O;O;O;O;O;O;;O
+;;999;;;;;;;;;;;O;
+;check_in_time;;;;;;;;;;;;;
+;;2025-01-01T08:30:00.000Z;;;O;;;;;O;;;;O
+;;2025-01-01T08:00:00.000Z;;;;;;;;;;;;
+;;undefined;;;;O;O;O;O;;O;;O;
+;check_out_time;;;;;;;;;;;;;
+;;2025-01-01T17:30:00.000Z;;;;O;;;;O;;;;O
+;;2025-01-01T17:00:00.000Z;;;;;;;;;;;;
+;;undefined;;;O;;O;O;O;;O;O;O;
+;status;;;;;;;;;;;;;
+;;IN_PROGRESS;;;;;O;O;;O;;;;
+;;ABSENT;;;;;O;O;;O;;;;
+;;undefined;;;O;O;;;O;;O;O;O;O
+;notes;;;;;;;;;;;;;
+;;Adjusted due to forgot check-in;;;;;;;O;;;;;
+;;Updated notes;;;;;;;;;O;;O;
+;;undefined;;;O;O;O;O;;O;;O;;O
+;edit_reason;;;;;;;;;;;;;
+;;Employee forgot to check-in, HR corrected based on evidence;;;O;O;O;O;O;O;O;;O;O
+;existing_check_in_time;;;;;;;;;;;;;
+;;2025-01-01T08:00:00.000Z;;;;;;;;O;;O;;
+;;null;;;;;;;;;;;;
+;existing_check_out_time;;;;;;;;;;;;;
+;;2025-01-01T17:00:00.000Z;;;;;;;;O;;;;
+;;null;;;;;;;;;;;;
+;existing_status;;;;;;;;;;;;;
+;;IN_PROGRESS;;;O;O;;;;;;;;O
+;;ABSENT;;;;;O;O;;O;;;;
+;existing_notes;;;;;;;;;;;;;
+;;null;;;;;;;O;;;;;
+;;Old notes;;;;;;;;;O;;;
+Confirm;Return;;;;;;;;;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, check_in_time:""2025-01-01T08:30:00.000Z"", is_manually_edited:true}}";;;;O;;;;;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, check_out_time:""2025-01-01T17:30:00.000Z"", is_manually_edited:true}}";;;;;O;;;;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, status:""IN_PROGRESS"", is_manually_edited:true}}";;;;;;O;;;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, status:""ABSENT"", is_manually_edited:true}}";;;;;;;O;;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, notes:""Adjusted due to forgot check-in"", is_manually_edited:true}}";;;;;;;;O;;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, check_in_time:""2025-01-01T08:30:00.000Z"", check_out_time:""2025-01-01T17:30:00.000Z"", status:""IN_PROGRESS"", is_manually_edited:true}}";;;;;;;;;O;;;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, notes:""Updated notes"", is_manually_edited:true}}";;;;;;;;;;O;;;
+;"{status:""SUCCESS"", statusCode:200, message:""No changes applied"", data:{id:1, employee_id:100, is_manually_edited:false}}";;;;;;;;;;;O;;
+;"{status:""SUCCESS"", statusCode:200, message:""Shift edited successfully"", data:{id:1, employee_id:100, check_in_time:Date, check_out_time:Date, is_manually_edited:true}}";;;;;;;;;;;;;O
+Exception;;;;;;;;;;;;;;
+;"""Shift not found.""";;;;;;;;;;;;O;
+Result;Type(N : Normal, A : Abnormal, B : Boundary);;;;N;N;N;N;N;N;N;B;A;N

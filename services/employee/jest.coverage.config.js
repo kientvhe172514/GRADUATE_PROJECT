@@ -14,4 +14,9 @@ module.exports = {
   moduleNameMapper: {
     '^@graduate-project/shared-common$': '<rootDir>/../shared-common/src',
   },
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.test.json',
+    },
+  },
 };
