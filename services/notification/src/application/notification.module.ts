@@ -121,6 +121,27 @@ import { EmployeeServiceClient } from '../infrastructure/external-services/emplo
         },
         inject: [ConfigService],
       },
+      {
+        name: 'EMPLOYEE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.get<string>('RABBITMQ_URL');
+          if (!rabbitmqUrl) {
+            throw new Error('RABBITMQ_URL is not defined in environment');
+          }
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl],
+              queue: 'employee_queue',
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [

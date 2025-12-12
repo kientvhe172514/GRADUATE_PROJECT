@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom, timeout, catchError } from 'rxjs';
+
+export const EMPLOYEE_SERVICE_CLIENT = 'EMPLOYEE_SERVICE';
 
 export interface EmployeeInfo {
   id: number;
@@ -13,21 +16,13 @@ export interface EmployeeInfo {
 @Injectable()
 export class EmployeeServiceClient {
   private readonly logger = new Logger(EmployeeServiceClient.name);
-  private readonly employeeServiceUrl: string;
-  private readonly authServiceUrl: string;
+  private readonly employeeServiceUrl: string = 'http://employee:3002'; // TODO: Move to env
+  private readonly authServiceUrl: string = 'http://auth:3001'; // TODO: Move to env
 
   constructor(
-    private readonly configService: ConfigService,
-  ) {
-    this.employeeServiceUrl = this.configService.get<string>(
-      'EMPLOYEE_SERVICE_URL',
-      'http://localhost:3002',
-    );
-    this.authServiceUrl = this.configService.get<string>(
-      'AUTH_SERVICE_URL',
-      'http://localhost:3001',
-    );
-  }
+    @Inject(EMPLOYEE_SERVICE_CLIENT)
+    private readonly employeeServiceClient: ClientProxy,
+  ) {}
 
   /**
    * Get managers (HR_MANAGER or DEPARTMENT_MANAGER) for a department
@@ -186,20 +181,37 @@ export class EmployeeServiceClient {
   }
 
   /**
-   * Get employee information by ID
+   * Get employee information by ID via RabbitMQ RPC
    * @param employeeId Employee ID
    * @returns Employee information
    */
   async getEmployeeById(employeeId: number): Promise<EmployeeInfo | null> {
     try {
-      const url = `${this.employeeServiceUrl}/employees/${employeeId}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      this.logger.log(`🔍 Fetching employee ${employeeId} via RPC`);
+      
+      const response = await firstValueFrom(
+        this.employeeServiceClient.send('employee.get', { id: employeeId }).pipe(
+          timeout(5000), // 5s timeout
+          catchError((error) => {
+            this.logger.error(`RPC error for employee ${employeeId}:`, error);
+            return [null];
+          })
+        )
+      );
 
-      if (data?.status === 'SUCCESS' && data?.data) {
-        return data.data;
+      if (response && response.status === 'SUCCESS' && response.data) {
+        this.logger.log(`✅ Employee ${employeeId} found: ${response.data.full_name}`);
+        return {
+          id: response.data.id,
+          employee_code: response.data.employee_code,
+          email: response.data.email,
+          full_name: response.data.full_name,
+          department_id: response.data.department_id,
+          role: response.data.role,
+        };
       }
 
+      this.logger.warn(`⚠️ Employee ${employeeId} not found in RPC response`);
       return null;
     } catch (error) {
       this.logger.error(`Error fetching employee ${employeeId}:`, error);
@@ -207,8 +219,9 @@ export class EmployeeServiceClient {
     }
   }
 
+  // TODO: Convert these methods to RabbitMQ RPC
   /**
-   * Get all employees in a department
+   * Get all employees in a department (HTTP fallback)
    * @param departmentId Department ID
    * @returns Array of employee IDs
    */
@@ -230,7 +243,7 @@ export class EmployeeServiceClient {
   }
 
   /**
-   * Get all employees in the system
+   * Get all employees in the system (HTTP fallback)
    * @returns Array of employee IDs
    */
   async getAllEmployees(): Promise<number[]> {
@@ -251,7 +264,7 @@ export class EmployeeServiceClient {
   }
 
   /**
-   * Get employees by role
+   * Get employees by role (HTTP fallback)
    * @param role Role name (e.g., 'HR_MANAGER', 'DEPARTMENT_MANAGER')
    * @returns Array of employee IDs
    */
