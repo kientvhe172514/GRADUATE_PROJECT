@@ -5,11 +5,13 @@ import { SendNotificationDto } from '../../application/dtos/send-notification.dt
 import { NotificationType } from '../../domain/enums/notification-type.enum';
 import { Priority } from '../../domain/enums/priority.enum';
 import { ChannelType } from '../../domain/value-objects/delivery-channel.vo';
+import { EmployeeServiceClient } from '../../infrastructure/external-services/employee-service.client';
 
 @Controller()
 export class AttendanceEventListener {
   constructor(
     private readonly sendNotificationUseCase: SendNotificationUseCase,
+    private readonly employeeServiceClient: EmployeeServiceClient,
   ) {}
 
   @EventPattern('attendance.checked-in')
@@ -202,8 +204,18 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received shift.assigned:', event);
     
     try {
+      // Fetch employee data to get email address
+      const employeeInfo = await this.employeeServiceClient.getEmployeeById(event.employeeId);
+      
+      if (!employeeInfo) {
+        console.warn(`⚠️  Employee ${event.employeeId} not found, skipping shift assigned notification`);
+        return;
+      }
+
       const dto: SendNotificationDto = {
         recipientId: event.employeeId,
+        recipientEmail: employeeInfo.email,
+        recipientName: employeeInfo.full_name,
         notificationType: NotificationType.SCHEDULE_CHANGE,
         priority: Priority.HIGH,
         title: '📅 New Shift Assigned',
@@ -221,7 +233,7 @@ export class AttendanceEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log(`✅ [AttendanceEventListener] Shift assigned notification sent to employee ${event.employeeId}`);
+      console.log(`✅ [AttendanceEventListener] Shift assigned notification sent to employee ${event.employeeId} (${employeeInfo.email})`);
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling shift.assigned:', error);
     }
