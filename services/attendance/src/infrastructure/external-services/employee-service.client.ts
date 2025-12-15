@@ -146,27 +146,27 @@ export class EmployeeServiceClient {
   }
 
   /**
-   * Get ALL employees (no filter)
+   * Get ALL employees (no filter, including INACTIVE/TERMINATED)
    * @returns Map of employee ID to employee info
    */
   async getAllEmployees(): Promise<Map<number, EmployeeInfo>> {
     try {
       this.logger.log(`🔍 Fetching ALL employees`);
 
-      const response = await firstValueFrom(
+      // Use new RPC pattern: { cmd: 'get_all_employees' }
+      const employees = await firstValueFrom(
         this.employeeClient
-          .send('employee.list', {}) // No filter = get all
+          .send({ cmd: 'get_all_employees' }, {})
           .pipe(timeout(10000)), // Longer timeout for all employees
       );
 
-      this.logger.debug(`📦 Raw RPC response:`, JSON.stringify(response));
+      this.logger.debug(`📦 Raw RPC response:`, JSON.stringify(employees));
 
-      if (!response || !response.data) {
-        this.logger.warn(`⚠️ No employees found - response structure invalid`);
+      if (!Array.isArray(employees)) {
+        this.logger.warn(`⚠️ Invalid response format - expected array`);
         return new Map();
       }
 
-      const employees = response.data;
       this.logger.log(`📊 Response contains ${employees.length} employees`);
 
       const employeeMap = new Map<number, EmployeeInfo>();

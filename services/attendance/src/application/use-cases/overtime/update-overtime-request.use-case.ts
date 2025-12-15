@@ -11,25 +11,22 @@ import { TypeOrmEmployeeWorkScheduleRepository } from '../../../infrastructure/r
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
- * Convert date string to Vietnam timezone (UTC+7)
- * If the string has no timezone info, assume it's Vietnam time
+ * Parse datetime string with timezone support
+ * FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
+ * If no timezone, assume Vietnam time (UTC+7)
  */
-function toVietnamTime(dateStr: string): Date {
+function parseDateTime(dateTimeStr: string): Date {
   // If already has timezone (+07:00, Z, etc.), parse normally
-  if (dateStr.includes('+') || dateStr.includes('Z')) {
-    return new Date(dateStr);
+  if (dateTimeStr.includes('+') || dateTimeStr.includes('Z')) {
+    return new Date(dateTimeStr);
   }
   // No timezone -> assume Vietnam time (UTC+7)
-  // If it's a date-only string (YYYY-MM-DD), parse as-is (no timezone append)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return new Date(dateStr + 'T00:00:00+07:00');
-  }
-  // If it has time but no timezone (YYYY-MM-DDTHH:mm:ss), add +07:00
-  if (dateStr.includes('T')) {
-    return new Date(dateStr + '+07:00');
+  // Add +07:00 to the string
+  if (dateTimeStr.includes('T')) {
+    return new Date(dateTimeStr + '+07:00');
   }
   // Fallback: parse as-is
-  return new Date(dateStr);
+  return new Date(dateTimeStr);
 }
 
 @Injectable()
@@ -95,10 +92,10 @@ export class UpdateOvertimeRequestUseCase {
     if (dto.start_time || dto.end_time) {
       // Use new times if provided, otherwise use existing times
       const newStartTime = dto.start_time
-        ? toVietnamTime(dto.start_time)
+        ? parseDateTime(dto.start_time)
         : request.start_time;
       const newEndTime = dto.end_time
-        ? toVietnamTime(dto.end_time)
+        ? parseDateTime(dto.end_time)
         : request.end_time;
       const overtimeDate = request.overtime_date;
 
@@ -150,7 +147,10 @@ export class UpdateOvertimeRequestUseCase {
           ? workSchedule.schedule_overrides
           : [];
 
-        const dateStr = new Date(overtimeDate).toISOString().split('T')[0];
+        // overtimeDate is already a Date object from DB
+        const dateStr = overtimeDate instanceof Date 
+          ? overtimeDate.toISOString().split('T')[0]
+          : new Date(overtimeDate).toISOString().split('T')[0];
         const conflictOverride = overrides.find((override: any) => {
           // Check if override is for this date
           if (override.from_date !== dateStr) return false;
@@ -188,15 +188,15 @@ export class UpdateOvertimeRequestUseCase {
       }
     }
 
-    // Convert date strings to Vietnam timezone
-    // If frontend sends string without timezone, we assume it's VN time (UTC+7)
+    // Parse datetime with timezone support
+    // FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
     const updateData: any = {};
 
     if (dto.start_time) {
-      updateData.start_time = toVietnamTime(dto.start_time);
+      updateData.start_time = parseDateTime(dto.start_time);
     }
     if (dto.end_time) {
-      updateData.end_time = toVietnamTime(dto.end_time);
+      updateData.end_time = parseDateTime(dto.end_time);
     }
     if (dto.estimated_hours !== undefined) {
       updateData.estimated_hours = dto.estimated_hours;

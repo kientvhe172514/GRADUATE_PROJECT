@@ -218,6 +218,7 @@ export class EmployeeRpcController {
           full_name: emp.full_name,
           email: emp.email,
           department_id: emp.department_id,
+          department_name: emp.department_name,
           position_id: emp.position_id,
           status: emp.status,
         }));
@@ -233,6 +234,53 @@ export class EmployeeRpcController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error message: ${errorMessage}`);
       // Return empty array instead of throwing to prevent Leave Service from failing
+      return [];
+    }
+  }
+
+  /**
+   * RPC: Get ALL employees (including INACTIVE/TERMINATED for calendar view)
+   * Pattern: { cmd: 'get_all_employees' }
+   * Payload: {}
+   * Response: Array of employee objects with basic info
+   *
+   * Used by Attendance Service calendar to show all employees
+   */
+  @MessagePattern({ cmd: 'get_all_employees' })
+  async getAllEmployees(): Promise<any[]> {
+    this.logger.log(`🔍 [RPC] get_all_employees - Fetching ALL employees (all statuses)`);
+
+    try {
+      // Get ALL employees without status filter
+      const result = await this.getEmployeesUseCase.execute({
+        page: 1,
+        limit: 1000, // Get large batch to ensure all employees
+      });
+
+      if (result.data && result.data.employees) {
+        const employees = result.data.employees.map((emp) => ({
+          id: emp.id,
+          employee_id: emp.id, // For backward compatibility
+          employee_code: emp.employee_code,
+          full_name: emp.full_name,
+          email: emp.email,
+          department_id: emp.department_id,
+          department_name: emp.department_name,
+          position_id: emp.position_id,
+          status: emp.status,
+        }));
+
+        this.logger.log(`✅ [RPC] Found ${employees.length} total employees`);
+        return employees;
+      }
+
+      this.logger.warn(`⚠️ [RPC] No employees found`);
+      return [];
+    } catch (error) {
+      this.logger.error(`❌ [RPC] Error fetching all employees:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error message: ${errorMessage}`);
+      // Return empty array instead of throwing to prevent Attendance Service from failing
       return [];
     }
   }

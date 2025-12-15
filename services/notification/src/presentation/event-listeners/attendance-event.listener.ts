@@ -180,8 +180,24 @@ export class AttendanceEventListener {
         return;
       }
 
+      // Fetch employee data to get email address (if not provided in event)
+      let recipientEmail = event.recipientEmail;
+      let recipientName = event.recipientName;
+      
+      if (!recipientEmail) {
+        const employeeInfo = await this.employeeServiceClient.getEmployeeById(event.recipientId);
+        if (employeeInfo) {
+          recipientEmail = employeeInfo.email;
+          recipientName = employeeInfo.full_name;
+        } else {
+          console.warn(`⚠️  Employee ${event.recipientId} not found, sending notification without email`);
+        }
+      }
+
       const dto: SendNotificationDto = {
         recipientId: event.recipientId,
+        recipientEmail: recipientEmail,
+        recipientName: recipientName,
         notificationType: event.notificationType || NotificationType.SYSTEM_ALERT,
         priority: event.priority || Priority.NORMAL,
         title: event.title,
@@ -191,7 +207,7 @@ export class AttendanceEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log(`✅ [AttendanceEventListener] Generic notification sent to employee ${event.recipientId}`);
+      console.log(`✅ [AttendanceEventListener] Generic notification sent to employee ${event.recipientId}${recipientEmail ? ` (${recipientEmail})` : ''}`);
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling notification.send:', error);
     }
