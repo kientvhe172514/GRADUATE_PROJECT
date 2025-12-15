@@ -4,8 +4,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OvertimeRequestSchema } from '../../infrastructure/persistence/typeorm/overtime-request.schema';
 import { EmployeeShiftSchema } from '../../infrastructure/persistence/typeorm/employee-shift.schema';
+import { EmployeeWorkScheduleSchema } from '../../infrastructure/persistence/typeorm/employee-work-schedule.schema';
 import { OvertimeRequestRepository } from '../../infrastructure/repositories/overtime-request.repository';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
+import { TypeOrmEmployeeWorkScheduleRepository } from '../../infrastructure/repositories/typeorm-work-schedule.repository';
 import { OvertimeRequestController } from '../../presentation/controllers/overtime-request.controller';
 import { CreateOvertimeRequestUseCase } from '../use-cases/overtime/create-overtime-request.use-case';
 import { GetMyOvertimeRequestsUseCase } from '../use-cases/overtime/get-my-overtime-requests.use-case';
@@ -21,7 +23,11 @@ import { EmployeeServiceClient } from '../../infrastructure/external-services/em
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OvertimeRequestSchema, EmployeeShiftSchema]),
+    TypeOrmModule.forFeature([
+      OvertimeRequestSchema,
+      EmployeeShiftSchema,
+      EmployeeWorkScheduleSchema,
+    ]),
     GpsCheckConfigModule,
     ClientsModule.registerAsync([
       {
@@ -72,6 +78,7 @@ import { EmployeeServiceClient } from '../../infrastructure/external-services/em
   providers: [
     OvertimeRequestRepository,
     EmployeeShiftRepository,
+    TypeOrmEmployeeWorkScheduleRepository,
     EmployeeServiceClient,
     CreateOvertimeRequestUseCase,
     GetMyOvertimeRequestsUseCase,

@@ -8,6 +8,7 @@ export interface EmployeeInfo {
   email: string;
   full_name: string;
   department_id?: number;
+  department_name?: string;
   position_id?: number;
   role?: string;
 }
@@ -50,6 +51,7 @@ export class EmployeeServiceClient {
         email: employee.email,
         full_name: employee.full_name,
         department_id: employee.department_id,
+        department_name: employee.department_name,
         position_id: employee.position_id,
         role: employee.role,
       };
@@ -89,7 +91,6 @@ export class EmployeeServiceClient {
       this.logger.log(`📊 Response contains ${employees.length} employees`);
 
       const employeeMap = new Map<number, EmployeeInfo>();
-
       employees.forEach((employee: any, index: number) => {
         // Ensure ID is a number (RPC might return string)
         const employeeId = Number(employee.id);
@@ -102,6 +103,7 @@ export class EmployeeServiceClient {
           email: employee.email,
           full_name: employee.full_name,
           department_id: employee.department_id,
+          department_name: employee.department_name,
           position_id: employee.position_id,
           role: employee.role,
         });
@@ -140,6 +142,56 @@ export class EmployeeServiceClient {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to fetch employees: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get ALL employees (no filter)
+   * @returns Map of employee ID to employee info
+   */
+  async getAllEmployees(): Promise<Map<number, EmployeeInfo>> {
+    try {
+      this.logger.log(`🔍 Fetching ALL employees`);
+
+      const response = await firstValueFrom(
+        this.employeeClient
+          .send('employee.list', {}) // No filter = get all
+          .pipe(timeout(10000)), // Longer timeout for all employees
+      );
+
+      this.logger.debug(`📦 Raw RPC response:`, JSON.stringify(response));
+
+      if (!response || !response.data) {
+        this.logger.warn(`⚠️ No employees found - response structure invalid`);
+        return new Map();
+      }
+
+      const employees = response.data;
+      this.logger.log(`📊 Response contains ${employees.length} employees`);
+
+      const employeeMap = new Map<number, EmployeeInfo>();
+
+      employees.forEach((employee: any) => {
+        const employeeId = Number(employee.id);
+        employeeMap.set(employeeId, {
+          id: employeeId,
+          employee_code: employee.employee_code,
+          email: employee.email,
+          full_name: employee.full_name,
+          department_id: employee.department_id,
+          department_name: employee.department_name,
+          position_id: employee.position_id,
+          role: employee.role,
+        });
+      });
+
+      this.logger.log(`✅ Fetched ${employeeMap.size} employees total`);
+      return employeeMap;
+    } catch (error) {
+      this.logger.error(`❌ Failed to fetch all employees:`, error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch all employees: ${errorMessage}`);
     }
   }
 }

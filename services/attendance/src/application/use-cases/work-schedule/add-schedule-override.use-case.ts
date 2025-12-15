@@ -19,6 +19,8 @@ export class AddScheduleOverrideUseCase {
     @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepo: IWorkScheduleRepository,
     private readonly processOnLeaveService: ProcessOnLeaveOverrideService,
+    @Inject('IEventPublisher')
+    private readonly eventPublisher: import('../../ports/event-publisher.port').IEventPublisher,
   ) {}
 
   async execute(
@@ -60,6 +62,74 @@ export class AddScheduleOverrideUseCase {
 
     // Save the assignment first to persist the override
     await this.employeeWorkScheduleRepo.save(assignment);
+
+    // Publish notification events so Notification service can send emails/pushes
+    try {
+      if (dto.type === ScheduleOverrideType.OVERTIME) {
+        // Notify employee about overtime added
+        await this.eventPublisher.publish({
+          pattern: 'notification.send',
+          data: {
+            recipientId: assignment.employee_id,
+            notificationType: 'SCHEDULE_CHANGE',
+            priority: 'HIGH',
+            title: '🕒 Overtime Scheduled',
+            message: `Overtime has been scheduled on ${dto.from_date} from ${dto.overtime_start_time} to ${dto.overtime_end_time}.`,
+            channels: ['IN_APP', 'PUSH', 'EMAIL'],
+            metadata: {
+              eventType: 'override.overtime.added',
+              assignmentId,
+              date: dto.from_date,
+              startTime: dto.overtime_start_time,
+              endTime: dto.overtime_end_time,
+            },
+          },
+        });
+      } else if (dto.type === ScheduleOverrideType.SCHEDULE_CHANGE) {
+        // Notify employee about schedule change override
+        await this.eventPublisher.publish({
+          pattern: 'notification.send',
+          data: {
+            recipientId: assignment.employee_id,
+            notificationType: 'SCHEDULE_CHANGE',
+            priority: 'HIGH',
+            title: '🔁 Schedule Override Applied',
+            message: `A schedule override has been applied starting ${dto.from_date} ${dto.to_date ? 'to ' + dto.to_date : ''}. Please check your updated working hours.`,
+            channels: ['IN_APP', 'PUSH', 'EMAIL'],
+            metadata: {
+              eventType: 'override.schedule_change',
+              assignmentId,
+              fromDate: dto.from_date,
+              toDate: dto.to_date,
+              overrideScheduleId: dto.override_work_schedule_id,
+            },
+          },
+        });
+      } else if (dto.type === ScheduleOverrideType.ON_LEAVE) {
+        // Notify employee about leave override creation
+        await this.eventPublisher.publish({
+          pattern: 'notification.send',
+          data: {
+            recipientId: assignment.employee_id,
+            notificationType: 'LEAVE',
+            priority: 'HIGH',
+            title: '🏖️ Leave Scheduled',
+            message: `Your leave has been scheduled from ${dto.from_date} to ${dto.to_date}.`,
+            channels: ['IN_APP', 'PUSH', 'EMAIL'],
+            metadata: {
+              eventType: 'override.on_leave',
+              assignmentId,
+              fromDate: dto.from_date,
+              toDate: dto.to_date,
+              leaveRequestId: (dto as any).leave_request_id,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      this.logger.error('Failed to publish override notification event:', error);
+      // Don't fail the main flow if notification fails
+    }
 
     // For ON_LEAVE overrides, process them immediately (synchronous)
     if (dto.type === ScheduleOverrideType.ON_LEAVE) {

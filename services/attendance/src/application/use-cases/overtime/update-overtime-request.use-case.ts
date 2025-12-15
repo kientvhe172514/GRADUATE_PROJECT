@@ -6,6 +6,8 @@ import {
   JwtPayload,
 } from '@graduate-project/shared-common';
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
+import { EmployeeShiftRepository } from '../../../infrastructure/repositories/employee-shift.repository';
+import { TypeOrmEmployeeWorkScheduleRepository } from '../../../infrastructure/repositories/typeorm-work-schedule.repository';
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
@@ -18,13 +20,25 @@ function toVietnamTime(dateStr: string): Date {
     return new Date(dateStr);
   }
   // No timezone -> assume Vietnam time (UTC+7)
-  // Add +07:00 to the string before parsing
-  return new Date(dateStr + '+07:00');
+  // If it's a date-only string (YYYY-MM-DD), parse as-is (no timezone append)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00+07:00');
+  }
+  // If it has time but no timezone (YYYY-MM-DDTHH:mm:ss), add +07:00
+  if (dateStr.includes('T')) {
+    return new Date(dateStr + '+07:00');
+  }
+  // Fallback: parse as-is
+  return new Date(dateStr);
 }
 
 @Injectable()
 export class UpdateOvertimeRequestUseCase {
-  constructor(private readonly overtimeRepo: OvertimeRequestRepository) {}
+  constructor(
+    private readonly overtimeRepo: OvertimeRequestRepository,
+    private readonly shiftRepo: EmployeeShiftRepository,
+    private readonly employeeWorkScheduleRepo: TypeOrmEmployeeWorkScheduleRepository,
+  ) {}
 
   async execute(
     id: number,
@@ -77,10 +91,107 @@ export class UpdateOvertimeRequestUseCase {
       );
     }
 
+    // If updating time, validate against shifts and overrides
+    if (dto.start_time || dto.end_time) {
+      // Use new times if provided, otherwise use existing times
+      const newStartTime = dto.start_time
+        ? toVietnamTime(dto.start_time)
+        : request.start_time;
+      const newEndTime = dto.end_time
+        ? toVietnamTime(dto.end_time)
+        : request.end_time;
+      const overtimeDate = request.overtime_date;
+
+      // Check if there's already a REGULAR shift on this date
+      const existingShift =
+        await this.shiftRepo.findRegularShiftByEmployeeAndDate(
+          currentUser.employee_id!,
+          overtimeDate,
+        );
+
+      if (existingShift) {
+        // Parse scheduled shift times
+        const [startHour, startMin] = existingShift.scheduled_start_time
+          .split(':')
+          .map(Number);
+        const [endHour, endMin] = existingShift.scheduled_end_time
+          .split(':')
+          .map(Number);
+
+        const shiftStart = new Date(overtimeDate);
+        shiftStart.setHours(startHour, startMin, 0, 0);
+        const shiftEnd = new Date(overtimeDate);
+        shiftEnd.setHours(endHour, endMin, 0, 0);
+
+        // Check if overtime time overlaps with regular shift
+        const hasOverlap =
+          (newStartTime >= shiftStart && newStartTime < shiftEnd) ||
+          (newEndTime > shiftStart && newEndTime <= shiftEnd) ||
+          (newStartTime <= shiftStart && newEndTime >= shiftEnd);
+
+        if (hasOverlap) {
+          throw new BusinessException(
+            ErrorCodes.INVALID_INPUT,
+            `Overtime time overlaps with your regular shift (${existingShift.scheduled_start_time} - ${existingShift.scheduled_end_time}). Please choose a different time.`,
+            400,
+          );
+        }
+      }
+
+      // Check schedule_overrides in employee_work_schedules
+      const workSchedule =
+        await this.employeeWorkScheduleRepo.findByEmployeeIdAndDate(
+          currentUser.employee_id!,
+          overtimeDate,
+        );
+
+      if (workSchedule && workSchedule.schedule_overrides) {
+        const overrides = Array.isArray(workSchedule.schedule_overrides)
+          ? workSchedule.schedule_overrides
+          : [];
+
+        const dateStr = new Date(overtimeDate).toISOString().split('T')[0];
+        const conflictOverride = overrides.find((override: any) => {
+          // Check if override is for this date
+          if (override.from_date !== dateStr) return false;
+
+          // Only check OVERTIME type overrides (ignore SCHEDULE_CHANGE, ON_LEAVE)
+          if (
+            override.type === 'OVERTIME' &&
+            override.overtime_start_time &&
+            override.overtime_end_time
+          ) {
+            const overrideStart = new Date(
+              `${override.from_date}T${override.overtime_start_time}`,
+            );
+            const overrideEnd = new Date(
+              `${override.from_date}T${override.overtime_end_time}`,
+            );
+
+            return (
+              (newStartTime >= overrideStart && newStartTime < overrideEnd) ||
+              (newEndTime > overrideStart && newEndTime <= overrideEnd) ||
+              (newStartTime <= overrideStart && newEndTime >= overrideEnd)
+            );
+          }
+
+          return false;
+        });
+
+        if (conflictOverride) {
+          throw new BusinessException(
+            ErrorCodes.INVALID_INPUT,
+            `Overtime time conflicts with another overtime request on ${conflictOverride.from_date}. Please check your work schedule.`,
+            400,
+          );
+        }
+      }
+    }
+
     // Convert date strings to Vietnam timezone
     // If frontend sends string without timezone, we assume it's VN time (UTC+7)
     const updateData: any = {};
-    
+
     if (dto.start_time) {
       updateData.start_time = toVietnamTime(dto.start_time);
     }

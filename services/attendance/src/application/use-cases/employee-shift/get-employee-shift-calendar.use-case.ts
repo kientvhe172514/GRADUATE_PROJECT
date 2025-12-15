@@ -35,45 +35,67 @@ export class GetEmployeeShiftCalendarUseCase {
 
       this.logger.log('Fetching work schedule assignments');
 
-      let employeeMap = new Map<number, EmployeeInfo>();
+      // Step 1: Get ALL employees first (including those without assignments)
+      this.logger.log('📋 Fetching ALL employees from employee service');
+      let employeeMap = await this.employeeServiceClient.getAllEmployees();
+      this.logger.log(`✅ Loaded ${employeeMap.size} total employees`);
+
       let targetEmployeeIds: number[] | undefined;
 
-      // Step 1: Determine target employee IDs
+      // Step 2: Apply filters on employees
       if (query.employee_ids && query.employee_ids.length > 0) {
-        // Ensure all IDs are numbers
-        const numericEmployeeIds = query.employee_ids.map(
-          (id) => Number(id),
-        );
-        // Fetch employee info first
-        employeeMap = await this.employeeServiceClient.getEmployeesByIds(
-          numericEmployeeIds,
-        );
+        // Filter by provided employee IDs
+        const numericEmployeeIds = query.employee_ids.map((id) => Number(id));
+        targetEmployeeIds = numericEmployeeIds;
+        
+        this.logger.log(`🔍 Filtering by employee_ids: [${targetEmployeeIds.join(', ')}]`);
+      }
 
-        // If employee_name search is provided, filter by name
-        if (query.employee_name) {
-          const searchLower = query.employee_name.toLowerCase();
-          const matchingEmployees = Array.from(employeeMap.values()).filter(
-            (emp) => emp.full_name.toLowerCase().includes(searchLower),
+      // Apply employee_name filter
+      if (query.employee_name) {
+        const searchLower = query.employee_name.toLowerCase();
+        const allEmployeeIds = targetEmployeeIds ?? Array.from(employeeMap.keys());
+        
+        const matchingEmployees = allEmployeeIds
+          .map(id => employeeMap.get(id))
+          .filter((emp): emp is EmployeeInfo => 
+            emp !== undefined && emp.full_name.toLowerCase().includes(searchLower)
           );
 
-          targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
+        targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
+        
+        this.logger.log(`🔍 After name filter "${query.employee_name}": ${targetEmployeeIds.length} employees`);
 
-          if (targetEmployeeIds.length === 0) {
-            return ApiResponseDto.success(
-              { data: [], total: 0 },
-              'No employees found matching search criteria',
-            );
-          }
-        } else {
-          // Use all provided employee IDs (as numbers)
-          targetEmployeeIds = numericEmployeeIds;
+        if (targetEmployeeIds.length === 0) {
+          return ApiResponseDto.success(
+            { data: [], total: 0 },
+            'No employees found matching search criteria',
+          );
         }
-      } else if (query.employee_name) {
-        // If only employee_name provided without IDs, we can't search
-        return ApiResponseDto.success(
-          { data: [], total: 0 },
-          'Please provide employee_ids when searching by name',
+      }
+
+      // Apply department filter
+      if (query.department_id) {
+        const allEmployeeIds = targetEmployeeIds ?? Array.from(employeeMap.keys());
+        
+        const matchingEmployees = allEmployeeIds
+          .map(id => employeeMap.get(id))
+          .filter((emp): emp is EmployeeInfo => 
+            emp !== undefined && emp.department_id === query.department_id
+          );
+
+        targetEmployeeIds = matchingEmployees.map((emp) => emp.id);
+        
+        this.logger.log(
+          `🔍 After department filter (${query.department_id}): ${targetEmployeeIds.length} employees`,
         );
+
+        if (targetEmployeeIds.length === 0) {
+          return ApiResponseDto.success(
+            { data: [], total: 0 },
+            'No employees found in this department',
+          );
+        }
       }
 
       type AssignmentWithSchedule = {
@@ -108,54 +130,24 @@ export class GetEmployeeShiftCalendarUseCase {
         );
       }
 
-      // Get unique employee IDs from all assignments (ensure NUMBER type)
-      const employeeIds = [
-        ...new Set(allAssignments.map((a) => Number(a.employee_id))),
-      ] as number[];
-      this.logger.log(`👥 Found ${employeeIds.length} unique employee IDs`);
-
-      // Fetch employee info if not already fetched
-      if (employeeMap.size === 0 && employeeIds.length > 0) {
-        employeeMap =
-          await this.employeeServiceClient.getEmployeesByIds(employeeIds);
-        this.logger.log(`✅ Fetched ${employeeMap.size} employees from service`);
-      }
-
-      // Apply department filter if provided
-      if (query.department_id) {
-        const filteredEmpIds = Array.from(employeeMap.values())
-          .filter((emp) => emp.department_id === query.department_id)
-          .map((emp) => emp.id);
-
-        this.logger.log(
-          `🔍 Department filter: ${query.department_id}, matching ${filteredEmpIds.length} employees: [${filteredEmpIds.join(', ')}]`,
-        );
-
-        allAssignments = allAssignments.filter((a) =>
-          filteredEmpIds.includes(Number(a.employee_id)), // Convert to number for comparison
-        );
-
-        this.logger.log(
-          `📊 After department filter: ${allAssignments.length} assignments remaining`,
-        );
-      }
-
-      // Group assignments by employee (ensure employee_id is NUMBER)
+      // Step 3: Get assignments for employees
+      // Group assignments by employee
       const assignmentsByEmployee = new Map<number, any[]>();
       allAssignments.forEach((assignment) => {
-        const empId = Number(assignment.employee_id); // Force convert to number
+        const empId = Number(assignment.employee_id);
         if (!assignmentsByEmployee.has(empId)) {
           assignmentsByEmployee.set(empId, []);
         }
         assignmentsByEmployee.get(empId)!.push(assignment);
       });
 
-      // Paginate at employee level (not assignment level)
-      const employeeIdsToShow = Array.from(assignmentsByEmployee.keys());
-      const total = employeeIdsToShow.length;
-      const paginatedEmployeeIds = employeeIdsToShow.slice(
-        offset,
-        offset + limit,
+      // Step 4: Determine which employees to show (all filtered employees, not just those with assignments)
+      const allEmployeeIdsToShow = targetEmployeeIds ?? Array.from(employeeMap.keys());
+      const total = allEmployeeIdsToShow.length;
+      const paginatedEmployeeIds = allEmployeeIdsToShow.slice(offset, offset + limit);
+
+      this.logger.log(
+        `📊 Total employees (after filters): ${total}, Showing: ${paginatedEmployeeIds.length}`,
       );
 
       this.logger.log(
@@ -281,7 +273,7 @@ export class GetEmployeeShiftCalendarUseCase {
           employee_code: employeeInfo.employee_code,
           full_name: employeeInfo.full_name,
           email: employeeInfo.email,
-          department_name: 'N/A',
+          department_name: employeeInfo.department_name ?? 'N/A',
           department_id: employeeInfo.department_id ?? 0,
           assignments: assignmentDtos,
           shifts: shiftDtos,

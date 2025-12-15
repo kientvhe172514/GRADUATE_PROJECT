@@ -244,8 +244,18 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received shift.unassigned:', event);
     
     try {
+      // Fetch employee data to get email address
+      const employeeInfo = await this.employeeServiceClient.getEmployeeById(event.employeeId);
+      
+      if (!employeeInfo) {
+        console.warn(`⚠️  Employee ${event.employeeId} not found, skipping shift unassigned notification`);
+        return;
+      }
+
       const dto: SendNotificationDto = {
         recipientId: event.employeeId,
+        recipientEmail: employeeInfo.email,
+        recipientName: employeeInfo.full_name,
         notificationType: NotificationType.SCHEDULE_CHANGE,
         priority: Priority.HIGH,
         title: '❌ Shift Assignment Removed',
@@ -260,7 +270,7 @@ export class AttendanceEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log(`✅ [AttendanceEventListener] Shift unassigned notification sent to employee ${event.employeeId}`);
+      console.log(`✅ [AttendanceEventListener] Shift unassigned notification sent to employee ${event.employeeId} (${employeeInfo.email})`);
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling shift.unassigned:', error);
     }
@@ -271,6 +281,14 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received shift.changed:', event);
     
     try {
+      // Fetch employee data to get email address
+      const employeeInfo = await this.employeeServiceClient.getEmployeeById(event.employeeId);
+      
+      if (!employeeInfo) {
+        console.warn(`⚠️  Employee ${event.employeeId} not found, skipping shift changed notification`);
+        return;
+      }
+
       const changeDetails: string[] = [];
       
       if (event.newEffectiveFrom !== event.oldEffectiveFrom) {
@@ -283,6 +301,8 @@ export class AttendanceEventListener {
 
       const dto: SendNotificationDto = {
         recipientId: event.employeeId,
+        recipientEmail: employeeInfo.email,
+        recipientName: employeeInfo.full_name,
         notificationType: NotificationType.SCHEDULE_CHANGE,
         priority: Priority.MEDIUM,
         title: '⚠️ Shift Assignment Updated',
@@ -301,7 +321,7 @@ export class AttendanceEventListener {
       };
 
       await this.sendNotificationUseCase.execute(dto);
-      console.log(`✅ [AttendanceEventListener] Shift changed notification sent to employee ${event.employeeId}`);
+      console.log(`✅ [AttendanceEventListener] Shift changed notification sent to employee ${event.employeeId} (${employeeInfo.email})`);
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling shift.changed:', error);
     }
