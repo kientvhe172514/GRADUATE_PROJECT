@@ -97,7 +97,11 @@ export class UpdateOvertimeRequestUseCase {
       const newEndTime = dto.end_time
         ? parseDateTime(dto.end_time)
         : request.end_time;
-      const overtimeDate = request.overtime_date;
+      // TypeORM returns DATE column as string "YYYY-MM-DD", convert to Date object
+      const overtimeDate =
+        typeof request.overtime_date === 'string'
+          ? new Date(request.overtime_date)
+          : request.overtime_date;
 
       // Check if there's already a REGULAR shift on this date
       const existingShift =
@@ -147,10 +151,8 @@ export class UpdateOvertimeRequestUseCase {
           ? workSchedule.schedule_overrides
           : [];
 
-        // overtimeDate is already a Date object from DB
-        const dateStr = overtimeDate instanceof Date 
-          ? overtimeDate.toISOString().split('T')[0]
-          : new Date(overtimeDate).toISOString().split('T')[0];
+        // Convert overtimeDate to YYYY-MM-DD string for comparison
+        const dateStr = overtimeDate.toISOString().split('T')[0];
         const conflictOverride = overrides.find((override: any) => {
           // Check if override is for this date
           if (override.from_date !== dateStr) return false;
