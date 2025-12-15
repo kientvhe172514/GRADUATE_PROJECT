@@ -8,6 +8,20 @@ import {
 import { OvertimeRequestRepository } from '../../../infrastructure/repositories/overtime-request.repository';
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
+/**
+ * Convert date string to Vietnam timezone (UTC+7)
+ * If the string has no timezone info, assume it's Vietnam time
+ */
+function toVietnamTime(dateStr: string): Date {
+  // If already has timezone (+07:00, Z, etc.), parse normally
+  if (dateStr.includes('+') || dateStr.includes('Z')) {
+    return new Date(dateStr);
+  }
+  // No timezone -> assume Vietnam time (UTC+7)
+  // Add +07:00 to the string before parsing
+  return new Date(dateStr + '+07:00');
+}
+
 @Injectable()
 export class UpdateOvertimeRequestUseCase {
   constructor(private readonly overtimeRepo: OvertimeRequestRepository) {}
@@ -63,16 +77,24 @@ export class UpdateOvertimeRequestUseCase {
       );
     }
 
-    const updateData = {
-      ...dto,
-      start_time: dto.start_time ? new Date(dto.start_time) : undefined,
-      end_time: dto.end_time ? new Date(dto.end_time) : undefined,
-    };
+    // Convert date strings to Vietnam timezone
+    // If frontend sends string without timezone, we assume it's VN time (UTC+7)
+    const updateData: any = {};
+    
+    if (dto.start_time) {
+      updateData.start_time = toVietnamTime(dto.start_time);
+    }
+    if (dto.end_time) {
+      updateData.end_time = toVietnamTime(dto.end_time);
+    }
+    if (dto.estimated_hours !== undefined) {
+      updateData.estimated_hours = dto.estimated_hours;
+    }
+    if (dto.reason) {
+      updateData.reason = dto.reason;
+    }
 
-    const updated = await this.overtimeRepo.updateRequest(
-      id,
-      updateData as any,
-    );
+    const updated = await this.overtimeRepo.updateRequest(id, updateData);
 
     if (!updated) {
       throw new BusinessException(
