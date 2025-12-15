@@ -108,13 +108,12 @@ describe('CreateEmployeeUseCase', () => {
     };
 
     /**
-     * TC_001: Create employee with all fields
-     * Preconditions: ${PRECONDITIONS_CREATE_WITH_POSITION}
-     * Input: validCreateEmployeeDto
-     * @output EXPECTED_SUCCESS_RESPONSE + event published
+     * @id CETCI01
+     * @description Create employee with all fields
      * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", first_name:"John", last_name:"Doe", full_name:"John Doe", date_of_birth:"1990-01-01", gender:"MALE", email:"john.doe@company.com", phone_number:"   ", department_id:1, position_id:1, manager_id:2, hire_date:"2025-10-07", employment_type:"FULL_TIME", status:"ACTIVE", onboarding_status:"PENDING", profile_completion_percentage:0, created_at:"2025-11-09T10:00:00Z", updated_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_001: Create employee with all fields', async () => {
+    it('CETCI01: Create employee with all fields', async () => {
       // Arrange
       const savedEmployee = createCommonSavedEmployee();
       setupTestMocks(savedEmployee, COMMON_POSITION);
@@ -138,13 +137,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_002: Create employee with position but no suggested_role
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + ${PRECONDITION_POSITION_EXISTS_NO_ROLE}
-     * Input: validCreateEmployeeDto
-     * @output EXPECTED_SUCCESS_RESPONSE with default role 'EMPLOYEE'
+     * @id CETCI02
+     * @description Create employee with position but no suggested_role
      * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}, event:{suggested_role:"EMPLOYEE"}}
      */
-    it('TC_002: Create employee with position but no suggested_role', async () => {
+    it('CETCI02: Create employee with position but no suggested_role', async () => {
       // Arrange
       const savedEmployee = createCommonSavedEmployee();
 
@@ -174,13 +172,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_003: Create employee without optional fields
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithoutOptionalFields (no phone, department, position, manager)
-     * @output EXPECTED_SUCCESS_RESPONSE
+     * @id CETCI03
+     * @description Create employee without optional fields
      * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z", phone_number:undefined, department_id:undefined, position_id:undefined, manager_id:undefined}}
      */
-    it('TC_003: Create employee without optional fields', async () => {
+    it('CETCI03: Create employee without optional fields', async () => {
       // Arrange
       const dtoWithoutOptionalFields: CreateEmployeeDto = {
         employee_code: 'EMP001',
@@ -191,6 +188,10 @@ describe('CreateEmployeeUseCase', () => {
         email: 'john.doe@company.com',
         hire_date: '2025-10-07',
         employment_type: 'FULL_TIME',
+        phone_number: undefined,
+        department_id: undefined,
+        position_id: undefined,
+        manager_id: undefined,
       };
 
       const savedEmployee = createCommonSavedEmployee({
@@ -212,13 +213,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_004: Throw error when employee_code already exists
-     * Preconditions: ${PRECONDITIONS_DUPLICATE_CODE}
-     * Input: validCreateEmployeeDto
-     * @output BusinessException 'EMPLOYEE_CODE_ALREADY_EXISTS'
+     * @id CETCI04
+     * @description Throw error when employee_code already exists
      * @type A
+     * @output "Employee code already exists"
      */
-    it('TC_004: Throw error when employee_code already exists', async () => {
+    it('CETCI04: Throw error when employee_code already exists', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -253,13 +253,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_005: Throw error when email already exists
-     * Preconditions: ${PRECONDITIONS_DUPLICATE_EMAIL}
-     * Input: validCreateEmployeeDto
-     * @output BusinessException 'EMPLOYEE_EMAIL_ALREADY_EXISTS'
+     * @id CETCI05
+     * @description Throw error when email already exists
      * @type A
+     * @output "Employee email already exists"
      */
-    it('TC_005: Throw error when email already exists', async () => {
+    it('CETCI05: Throw error when email already exists', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -295,11 +294,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_006: Handle special characters in name (Unicode support)
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithSpecialChars (first_name: 'Nguyễn', last_name: 'Văn Thành') | Output: full_name 'Nguyễn Văn Thành'
+     * @id CETCI06
+     * @description Handle special characters in name (Unicode support)
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"Nguyễn Văn Thành", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_006: Handle special characters in name', async () => {
+    it('CETCI06: Handle special characters in name', async () => {
       // Arrange
       const dtoWithSpecialChars: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -323,11 +323,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_007: Handle CONTRACT employment type
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithContractType (employment_type: 'CONTRACT') | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id CETCI07
+     * @description Handle CONTRACT employment type
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z", employment_type:"CONTRACT"}}
      */
-    it('TC_007: Handle CONTRACT employment type', async () => {
+    it('CETCI07: Handle CONTRACT employment type', async () => {
       // Arrange
       const dtoWithContractType: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -348,11 +349,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_008: Handle OTHER gender option
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithOtherGender (gender: 'OTHER') | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id CETCI08
+     * @description Handle OTHER gender
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z", gender:"OTHER"}}
      */
-    it('TC_008: Handle OTHER gender', async () => {
+    it('CETCI08: Handle OTHER gender', async () => {
       // Arrange
       const dtoWithOtherGender: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -373,11 +375,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_009: Verify full_name concatenation logic
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithLongNames (first: 'Alexander', last: 'Montgomery-Williams') | Output: 'Alexander Montgomery-Williams'
+     * @id CETCI09
+     * @description Verify full_name concatenation logic
+     * @type B
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"Alexander Montgomery-Williams", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_009: Verify full_name concatenation', async () => {
+    it('CETCI09: Verify full_name concatenation', async () => {
       // Arrange
       const dtoWithLongNames: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -403,11 +406,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_010: Handle employee without account_id (not yet linked to account)
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE} + ${PRECONDITION_EMPLOYEE_NOT_LINKED}
-     * Input: validCreateEmployeeDto | Output: account_id undefined
+     * @id CETCI10
+     * @description Handle employee without account_id (not yet linked to account)
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:undefined, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_010: Handle employee without account_id', async () => {
+    it('CETCI10: Handle employee without account_id', async () => {
       // Arrange
       const savedEmployeeWithoutAccountId = createCommonSavedEmployee({ account_id: undefined });
 
@@ -422,11 +426,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_011: Throw error when email format is invalid
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithInvalidEmail | Output: BusinessException 'INVALID_EMAIL_FORMAT'
+     * @id CETCI11
+     * @description Throw error when email format is invalid
+     * @type A
+     * @output "Invalid email format"
      */
-    it('TC_011: Throw error when email format is invalid', async () => {
+    it('CETCI11: Throw error when email format is invalid', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -453,11 +458,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_012: Throw error when phone number is not 10 digits
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithInvalidPhone (9 digits) | Output: BusinessException 'INVALID_PHONE_NUMBER'
+     * @id CETCI12
+     * @description Throw error when phone number is not 10 digits
+     * @type A
+     * @output "Phone number must be exactly 10 digits"
      */
-    it('TC_012: Throw error when phone number is not 10 digits', async () => {
+    it('CETCI12: Throw error when phone number is not 10 digits', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -482,11 +488,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_013: Throw error when phone number contains non-digits
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithInvalidPhone (contains letters) | Output: BusinessException 'INVALID_PHONE_NUMBER'
+     * @id CETCI13
+     * @description Throw error when phone number contains non-digits
+     * @type A
+     * @output "Phone number must be exactly 10 digits"
      */
-    it('TC_013: Throw error when phone number contains non-digits', async () => {
+    it('CETCI13: Throw error when phone number contains non-digits', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -508,11 +515,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_014: Accept valid 10-digit phone number
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithValidPhone (0912345678) | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id CETCI14
+     * @description Accept valid 10-digit phone number
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z", phone_number:"0912345678"}}
      */
-    it('TC_014: Accept valid 10-digit phone number', async () => {
+    it('CETCI14: Accept valid 10-digit phone number', async () => {
       // Arrange
       const dtoWithValidPhone: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -532,11 +540,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_015: Accept various valid email formats
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithValidEmail | Output: EXPECTED_SUCCESS_RESPONSE
+     * @id CETCI15
+     * @description Accept various valid email formats
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMP001", full_name:"John Doe", email:"test.user+tag@company.co.uk", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_015: Accept various valid email formats', async () => {
+    it('CETCI15: Accept various valid email formats', async () => {
       // Arrange
       const dtoWithValidEmail: CreateEmployeeDto = {
         ...validCreateEmployeeDto,
@@ -555,11 +564,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_016: Throw error when personal_email format is invalid
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}
-     * Input: dtoWithInvalidPersonalEmail | Output: BusinessException 'INVALID_EMAIL_FORMAT'
+     * @id CETCI16
+     * @description Throw error when personal_email format is invalid
+     * @type A
+     * @output "Invalid personal email format"
      */
-    it('TC_016: Throw error when personal_email format is invalid', async () => {
+    it('CETCI16: Throw error when personal_email format is invalid', async () => {
       // Arrange
       jest.clearAllMocks();
 
@@ -581,11 +591,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_017: Auto-generate employee_code when not provided (First of the day)
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}, No existing employees today
-     * Input: dtoWithoutCode | Output: employee_code generated with sequence 001
+     * @id CETCI17
+     * @description Auto-generate employee_code when not provided (First of the day)
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMPxxxxxxxx001", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_017: Auto-generate employee_code when not provided (First of the day)', async () => {
+    it('CETCI17: Auto-generate employee_code when not provided (First of the day)', async () => {
       // Arrange
       const dtoWithoutCode = { ...validCreateEmployeeDto };
       delete (dtoWithoutCode as any).employee_code;
@@ -613,11 +624,12 @@ describe('CreateEmployeeUseCase', () => {
     });
 
     /**
-     * TC_018: Auto-generate employee_code with incrementing sequence
-     * Preconditions: ${PRECONDITIONS_BASIC_CREATE}, Existing employees today
-     * Input: dtoWithoutCode | Output: employee_code generated with next sequence
+     * @id CETCI18
+     * @description Auto-generate employee_code with incrementing sequence
+     * @type N
+     * @output {status:"SUCCESS", statusCode:201, message:"Employee created", errorCode:"EMPLOYEE_CREATED", data:{id:1, account_id:100, employee_code:"EMPxxxxxxxx006", full_name:"John Doe", email:"john.doe@company.com", hire_date:"2025-10-07", onboarding_status:"PENDING", created_at:"2025-11-09T10:00:00Z"}}
      */
-    it('TC_018: Auto-generate employee_code with incrementing sequence', async () => {
+    it('CETCI18: Auto-generate employee_code with incrementing sequence', async () => {
       // Arrange
       const dtoWithoutCode = { ...validCreateEmployeeDto };
       delete (dtoWithoutCode as any).employee_code;

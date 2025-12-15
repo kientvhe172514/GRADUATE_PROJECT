@@ -44,7 +44,7 @@ function parseSpecFile(filePath) {
     const testCases = [];
 
     // Regex to capture JSDoc and the IT block start
-    const regex = /\/\*\*([\s\S]*?)\*\/\s*it\(['"]((?:LTCID|UTCID|UORTC|MESTC|CLRTC|CHTC|UASTC|TC_)\d+):\s*([^'"]+)['"]\,\s*async\s*\(\)\s*=>\s*\{/g;
+    const regex = /\/\*\*([\s\S]*?)\*\/\s*it\(['"]((?:LTCID|UTCID|UORTC|MESTC|CLRTC|CHTC|UASTC|CETCI|TC_)\d+):\s*([^'"]+)['"]\,\s*async\s*\(\)\s*=>\s*\{/g;
 
     let match;
     while ((match = regex.exec(content)) !== null) {

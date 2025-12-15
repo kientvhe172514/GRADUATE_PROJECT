@@ -1,24 +1,24 @@
 ﻿sep=,
-,,,,,TC_001,TC_002,TC_003,TC_004,TC_005,TC_006,TC_007,TC_008,TC_009,TC_010,TC_011,TC_012,TC_013,TC_014,TC_015,TC_016,TC_017,TC_018
+,,,,,CETCI01,CETCI02,CETCI03,CETCI04,CETCI05,CETCI06,CETCI07,CETCI08,CETCI09,CETCI10,CETCI11,CETCI12,CETCI13,CETCI14,CETCI15,CETCI16,CETCI17,CETCI18
 Condition,Precondition,,,,,,,,,,,,,,,,,,,,,
-Basic create setup (no existing code/email),,,,,O,,,,,,,,,,,,,,,,O,O
+Basic create setup (no existing code/email),,,,,O,,O,,,O,O,O,O,O,,,,O,O,,O,O
 Position exists with suggested role,,,,,O,,,,,,,,,,,,,,,,,
 Position exists WITHOUT suggested role,,,,,,O,,,,,,,,,,,,,,,,
 Employee code already exists,,,,,,,,O,,,,,,,,,,,,,,
 Email already exists,,,,,,,,,O,,,,,,,,,,,,,
-Employee not linked to account (no account_id),,,,,,,,,,,,,,,,,,,,,,
+Employee not linked to account (no account_id),,,,,,,,,,,,,,O,,,,,,,,
 No existing employees today (for auto-gen code),,,,,,,,,,,,,,,,,,,,,O,
 Existing employees today (for auto-gen code),,,,,,,,,,,,,,,,,,,,,,O
 ,employee_code,,,,,,,,,,,,,,,,,,,,,
-,,"EMP001",,,O,O,O,O,O,O,O,O,O,,O,O,O,O,O,O,,
+,,"EMP001",,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,,
 ,,undefined (auto-generate),,,,,,,,,,,,,,,,,,,O,O
 ,email,,,,,,,,,,,,,,,,,,,,,
-,,"john.doe@company.com",,,O,O,O,O,O,O,O,O,O,,,O,O,O,,,O,O
+,,"john.doe@company.com",,,O,O,O,O,O,O,O,O,O,O,,O,O,O,,,O,O
 ,,"invalid-email-format",,,,,,,,,,,,,O,,,,,,,
 ,,"test.user+tag@company.co.uk",,,,,,,,,,,,,,,,,O,,,
 ,phone_number,,,,,,,,,,,,,,,,,,,,,
-,,"   " (empty/whitespace),,,O,O,,O,O,O,O,O,O,,O,,,,O,O,O,O
-,,undefined,,,,,,,,,,,,O,,,,,,,,
+,,"   " (empty/whitespace),,,,,,,,,,,,,,,,,,,,
+,,undefined,,,,,O,,,,,,,,,,,,,,,
 ,,"123456789" (9 digits),,,,,,,,,,,,,,O,,,,,,
 ,,"09123456ab" (non-digits),,,,,,,,,,,,,,,O,,,,,
 ,,"0912345678" (valid),,,,,,,,,,,,,,,,O,,,,
@@ -26,28 +26,45 @@ Existing employees today (for auto-gen code),,,,,,,,,,,,,,,,,,,,,,O
 ,,undefined,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,,O,O
 ,,"invalid-personal-email",,,,,,,,,,,,,,,,,,O,,
 ,employment_type,,,,,,,,,,,,,,,,,,,,,
-,,FULL_TIME,,,O,O,O,O,O,O,,O,O,,O,O,O,O,O,O,O,O
+,,FULL_TIME,,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O,O,O,O
 ,,CONTRACT,,,,,,,,,O,,,,,,,,,,,
 ,gender,,,,,,,,,,,,,,,,,,,,,
-,,MALE,,,O,O,O,O,,O,O,,O,,O,O,O,O,O,O,O,O
+,,MALE,,,O,O,O,O,,O,O,,O,O,O,O,O,O,O,O,O,O
 ,,OTHER,,,,,,,,,,O,,,,,,,,,,
 ,first_name,,,,,,,,,,,,,,,,,,,,,
-,,"John",,,O,O,O,,,,O,O,,,O,O,O,O,O,O,O,O
+,,"John",,,O,O,O,,,,O,O,,O,O,O,O,O,O,O,O,O
 ,,"Nguyễn",,,,,,,,O,,,,,,,,,,,,
 ,,"Alexander",,,,,,,,,,,O,,,,,,,,,
 ,last_name,,,,,,,,,,,,,,,,,,,,,
-,,"Doe",,,O,O,O,,,,O,O,,,O,O,O,O,O,O,O,O
+,,"Doe",,,O,O,O,,,,O,O,,O,O,O,O,O,O,O,O,O
 ,,"Văn Thành",,,,,,,,O,,,,,,,,,,,,
 ,,"Montgomery-Williams",,,,,,,,,,,O,,,,,,,,,
 ,department_id,,,,,,,,,,,,,,,,,,,,,
-,,1,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
-,,undefined,,,,,,,,,,,,O,,,,,,,,
+,,1,,,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,undefined,,,,,O,,,,,,,,,,,,,,,
 ,position_id,,,,,,,,,,,,,,,,,,,,,
-,,1,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
-,,undefined,,,,,,,,,,,,O,,,,,,,,
+,,1,,,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,undefined,,,,,O,,,,,,,,,,,,,,,
 ,manager_id,,,,,,,,,,,,,,,,,,,,,
-,,2,,,O,O,,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
-,,undefined,,,,,,,,,,,,O,,,,,,,,
+,,2,,,O,O,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,undefined,,,,,O,,,,,,,,,,,,,,,
 Confirm,Return,,,,,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", first_name:""John"", last_name:""Doe"", full_name:""John Doe"", date_of_birth:""1990-01-01"", gender:""MALE"", email:""john.doe@company.com"", phone_number:""   "", department_id:1, position_id:1, manager_id:2, hire_date:""2025-10-07"", employment_type:""FULL_TIME"", status:""ACTIVE"", onboarding_status:""PENDING"", profile_completion_percentage:0, created_at:""2025-11-09T10:00:00Z"", updated_at:""2025-11-09T10:00:00Z""}}",,,,O,,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}, event:{suggested_role:""EMPLOYEE""}}",,,,,O,,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z"", phone_number:undefined, department_id:undefined, position_id:undefined, manager_id:undefined}}",,,,,,O,,,,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Nguyễn Văn Thành"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,O,,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z"", employment_type:""CONTRACT""}}",,,,,,,,,,O,,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z"", gender:""OTHER""}}",,,,,,,,,,,O,,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""Alexander Montgomery-Williams"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,,,,O,,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:undefined, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,,,,,O,,,,,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z"", phone_number:""0912345678""}}",,,,,,,,,,,,,,,,,O,,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMP001"", full_name:""John Doe"", email:""test.user+tag@company.co.uk"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,,,,,,,,,,O,,,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMPxxxxxxxx001"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,,,,,,,,,,,,O,
+,"{status:""SUCCESS"", statusCode:201, message:""Employee created"", errorCode:""EMPLOYEE_CREATED"", data:{id:1, account_id:100, employee_code:""EMPxxxxxxxx006"", full_name:""John Doe"", email:""john.doe@company.com"", hire_date:""2025-10-07"", onboarding_status:""PENDING"", created_at:""2025-11-09T10:00:00Z""}}",,,,,,,,,,,,,,,,,,,,,O
 Exception,,,,,,,,,,,,,,,,,,,,,,
-Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,,,,,,,,,,,,,,,,,,
+,"""Employee code already exists""",,,,,,,O,,,,,,,,,,,,,,
+,"""Employee email already exists""",,,,,,,,O,,,,,,,,,,,,,
+,"""Invalid email format""",,,,,,,,,,,,,,O,,,,,,,
+,"""Phone number must be exactly 10 digits""",,,,,,,,,,,,,,,O,O,,,,,
+,"""Invalid personal email format""",,,,,,,,,,,,,,,,,,,O,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,,,N,N,N,A,A,N,N,N,B,N,A,A,A,N,N,A,N,N

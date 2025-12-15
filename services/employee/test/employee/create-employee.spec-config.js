@@ -28,8 +28,8 @@ module.exports = {
         {
             header: 'phone_number',
             values: [
-                { label: '"   " (empty/whitespace)', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('phone_number:')) },
-                { label: 'undefined', check: (code) => !code.includes('phone_number:') && !code.includes('validCreateEmployeeDto') },
+                { label: '"   " (empty/whitespace)', check: (code) => code.includes("phone_number: '   '") },
+                { label: 'undefined', check: (code) => code.includes('phone_number: undefined') },
                 { label: '"123456789" (9 digits)', check: (code) => code.includes("phone_number: '123456789'") },
                 { label: '"09123456ab" (non-digits)', check: (code) => code.includes("phone_number: '09123456ab'") },
                 { label: '"0912345678" (valid)', check: (code) => code.includes("phone_number: '0912345678'") },
@@ -75,22 +75,22 @@ module.exports = {
         {
             header: 'department_id',
             values: [
-                { label: '1', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('department_id:')) || code.includes('department_id: 1') },
-                { label: 'undefined', check: (code) => !code.includes('department_id:') && !code.includes('validCreateEmployeeDto') },
+                { label: '1', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('department_id: undefined')) || (code.includes('department_id: 1') && !code.includes('department_id: undefined')) },
+                { label: 'undefined', check: (code) => code.includes('department_id: undefined') },
             ]
         },
         {
             header: 'position_id',
             values: [
-                { label: '1', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('position_id:')) || code.includes('position_id: 1') },
-                { label: 'undefined', check: (code) => !code.includes('position_id:') && !code.includes('validCreateEmployeeDto') },
+                { label: '1', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('position_id: undefined')) || (code.includes('position_id: 1') && !code.includes('position_id: undefined')) },
+                { label: 'undefined', check: (code) => code.includes('position_id: undefined') },
             ]
         },
         {
             header: 'manager_id',
             values: [
-                { label: '2', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('manager_id:')) || code.includes('manager_id: 2') },
-                { label: 'undefined', check: (code) => !code.includes('manager_id:') && !code.includes('validCreateEmployeeDto') },
+                { label: '2', check: (code) => (code.includes('validCreateEmployeeDto') && !code.includes('manager_id: undefined')) || (code.includes('manager_id: 2') && !code.includes('manager_id: undefined')) },
+                { label: 'undefined', check: (code) => code.includes('manager_id: undefined') },
             ]
         }
     ],
