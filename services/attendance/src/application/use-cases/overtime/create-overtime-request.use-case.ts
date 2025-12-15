@@ -139,11 +139,12 @@ export class CreateOvertimeRequestUseCase {
 
     // Convert date strings to Vietnam timezone
     // If frontend sends string without timezone, we assume it's VN time (UTC+7)
+    // NOTE: overtime_date is DATE type in DB (no time), so just parse as Date object
     const request = await this.overtimeRepo.createRequest({
       employee_id: currentUser.employee_id!,
-      overtime_date: toVietnamTime(dto.overtime_date),
-      start_time: toVietnamTime(dto.start_time),
-      end_time: toVietnamTime(dto.end_time),
+      overtime_date: new Date(dto.overtime_date), // DATE type - no timezone needed
+      start_time: toVietnamTime(dto.start_time),   // TIMESTAMPTZ type
+      end_time: toVietnamTime(dto.end_time),       // TIMESTAMPTZ type
       estimated_hours: dto.estimated_hours,
       reason: dto.reason,
       requested_by: currentUser.sub,
