@@ -23,6 +23,24 @@ export class ValidateGpsUseCase {
   private readonly MAX_ACCEPTABLE_ACCURACY_METERS = 50;
 
   execute(command: ValidateGpsCommand): ValidateGpsResult {
+    // ✅ VALIDATE: Check if GPS coordinates are valid numbers
+    if (
+      !command.latitude ||
+      !command.longitude ||
+      isNaN(command.latitude) ||
+      isNaN(command.longitude)
+    ) {
+      this.logger.error(
+        `❌ Invalid GPS coordinates: lat=${command.latitude}, lng=${command.longitude}`,
+      );
+      return {
+        is_valid: false,
+        distance_from_office_meters: 0,
+        location_accuracy: command.location_accuracy,
+        message: 'Invalid GPS coordinates. Please enable location permission and try again.',
+      };
+    }
+
     // Check GPS accuracy
     if (
       command.location_accuracy &&
@@ -46,6 +64,19 @@ export class ValidateGpsUseCase {
       command.office_latitude,
       command.office_longitude,
     );
+
+    // ✅ VALIDATE: Check if distance calculation resulted in NaN
+    if (isNaN(distance)) {
+      this.logger.error(
+        `❌ Distance calculation failed (NaN): lat1=${command.latitude}, lng1=${command.longitude}, lat2=${command.office_latitude}, lng2=${command.office_longitude}`,
+      );
+      return {
+        is_valid: false,
+        distance_from_office_meters: 0,
+        location_accuracy: command.location_accuracy,
+        message: 'GPS validation failed. Invalid coordinates detected.',
+      };
+    }
 
     const isValid = distance <= command.max_distance_meters;
 

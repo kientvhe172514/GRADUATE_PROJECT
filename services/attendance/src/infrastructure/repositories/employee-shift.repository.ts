@@ -458,6 +458,35 @@ export class EmployeeShiftRepository {
     console.log(`🔍 [findCurrentActiveShiftForGpsCheck] ===== START =====`);
     console.log(`🔍 [findCurrentActiveShiftForGpsCheck] Input employeeId: ${employeeId} (type: ${typeof employeeId})`);
     
+    // 🆕 DEBUG: Xem tất cả shifts của employee
+    const debugQuery = `
+      SELECT 
+        id, employee_id, shift_date, scheduled_start_time, scheduled_end_time,
+        check_in_time, check_out_time, status,
+        NOW() + INTERVAL '7 hours' as current_vn_time,
+        (NOW() + INTERVAL '7 hours')::date as current_date,
+        (NOW() + INTERVAL '7 hours')::date - INTERVAL '1 day' as yesterday_date
+      FROM employee_shifts
+      WHERE employee_id = $1
+      ORDER BY shift_date DESC, scheduled_start_time DESC
+      LIMIT 5
+    `;
+    
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] DEBUG: Fetching all recent shifts...`);
+    const debugResult: any[] = await this.repository.query(debugQuery, [employeeId]);
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] DEBUG: Found ${debugResult.length} shifts:`);
+    debugResult.forEach((shift, idx) => {
+      console.log(`   ${idx + 1}. Shift #${shift.id}:`);
+      console.log(`      - Date: ${shift.shift_date}`);
+      console.log(`      - Time: ${shift.scheduled_start_time} → ${shift.scheduled_end_time}`);
+      console.log(`      - Check-in: ${shift.check_in_time || 'NULL'}`);
+      console.log(`      - Check-out: ${shift.check_out_time || 'NULL'}`);
+      console.log(`      - Status: ${shift.status}`);
+      console.log(`      - Current VN time: ${shift.current_vn_time}`);
+      console.log(`      - Current date: ${shift.current_date}`);
+      console.log(`      - Yesterday date: ${shift.yesterday_date}`);
+    });
+    
     // Raw SQL query - ĐỒNG BỘ với cron job
     const query = `
       WITH calculated_shifts AS (

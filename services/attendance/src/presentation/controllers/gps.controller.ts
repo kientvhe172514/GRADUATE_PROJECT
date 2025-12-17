@@ -11,7 +11,10 @@ import {
   ApiResponse,
   ApiBody,
   ApiBearerAuth,
+  ApiProperty,
 } from '@nestjs/swagger';
+import { IsNumber, IsOptional, IsNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CurrentUser, JwtPayload } from '@graduate-project/shared-common';
 import { ValidateEmployeeLocationUseCase } from '../../application/attendance-check/validate-employee-location.use-case';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
@@ -24,8 +27,32 @@ import { EmployeeShiftRepository } from '../../infrastructure/repositories/emplo
  * - Validate GPS trong phạm vi geofence
  */
 class GpsCheckDto {
+  @ApiProperty({
+    example: 10.762622,
+    description: 'Latitude coordinate',
+  })
+  @IsNotEmpty({ message: 'Latitude is required' })
+  @IsNumber({}, { message: 'Latitude must be a number' })
+  @Type(() => Number)
   latitude: number;
+
+  @ApiProperty({
+    example: 106.660172,
+    description: 'Longitude coordinate',
+  })
+  @IsNotEmpty({ message: 'Longitude is required' })
+  @IsNumber({}, { message: 'Longitude must be a number' })
+  @Type(() => Number)
   longitude: number;
+
+  @ApiProperty({
+    example: 5.0,
+    description: 'GPS accuracy in meters',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber({}, { message: 'Location accuracy must be a number' })
+  @Type(() => Number)
   location_accuracy?: number;
 }
 

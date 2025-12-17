@@ -338,26 +338,44 @@ export class AttendanceCheckController {
       `   Location: [${dto.latitude}, ${dto.longitude}], accuracy: ${dto.location_accuracy}m`,
     );
 
-    // 1. Tìm shift đang active của employee
-    const currentTime = new Date().toTimeString().substring(0, 5);
-    const today = new Date();
+    // 🆕 DÙNG LOGIC GIỐNG CRON JOB - Tìm shift đang diễn ra (checked-in + not checked-out)
+    this.logger.debug(
+      `📍 [GPS-WEBHOOK] Looking for CURRENT active shift (checked-in + not checked-out) for employee ${employeeId}`,
+    );
 
     const activeShift =
-      await this.employeeShiftRepository.findActiveShiftByTime(
+      await this.employeeShiftRepository.findCurrentActiveShiftForGpsCheck(
         employeeId,
-        today,
-        currentTime,
       );
 
     if (!activeShift) {
       this.logger.warn(
         `⚠️ [GPS-WEBHOOK] No active shift found for employee ${employeeId}`,
       );
+      this.logger.warn(
+        `⚠️ [GPS-WEBHOOK] ℹ️ Possible reasons:`,
+      );
+      this.logger.warn(
+        `   - Employee has not checked in yet (check_in_time IS NULL)`,
+      );
+      this.logger.warn(
+        `   - Employee already checked out (check_out_time IS NOT NULL)`,
+      );
+      this.logger.warn(
+        `   - Current time is outside shift time range`,
+      );
       return {
         is_valid: false,
         message: 'No active shift found. GPS check skipped.',
       };
     }
+
+    this.logger.log(
+      `📍 [GPS-WEBHOOK] ✅ Found active shift ${activeShift.id} (${activeShift.shift_type})`,
+    );
+    this.logger.debug(
+      `📍 [GPS-WEBHOOK] Shift rounds: ${activeShift.presence_verification_rounds_completed || 0}/${activeShift.presence_verification_rounds_required}`,
+    );
 
     this.logger.log(
       `   Found active shift: ${activeShift.id} (${activeShift.shift_type})`,
