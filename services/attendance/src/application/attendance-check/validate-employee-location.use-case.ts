@@ -56,16 +56,30 @@ export class ValidateEmployeeLocationUseCase {
       command;
 
     this.logger.log(
-      `Validating location for employee ${employeeId}, shift ${shiftId}`,
+      `🔍 [VALIDATE-LOCATION] Starting validation for employee ${employeeId}, shift ${shiftId}`,
+    );
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Input: lat=${latitude}, lng=${longitude}, accuracy=${location_accuracy}m`,
     );
 
     // 1. Fetch office coordinates (try Employee Service first, fallback to config)
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Fetching office coordinates for employee ${employeeId}...`,
+    );
     const { office_latitude, office_longitude } =
       await this.getOfficeCoordinates(Number(employeeId));
+
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Office coords: lat=${office_latitude}, lng=${office_longitude}`,
+    );
 
     // 2. Validate GPS using domain logic
     const maxDistance = Number(
       this.configService.get<number>('MAX_GPS_DISTANCE_METERS') || 200,
+    );
+
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Max allowed distance: ${maxDistance}m`,
     );
 
     const validation = this.validateGpsUseCase.execute({
@@ -78,10 +92,13 @@ export class ValidateEmployeeLocationUseCase {
     });
 
     this.logger.log(
-      `GPS validation result for employee ${employeeId}: ${validation.is_valid ? 'VALID' : 'INVALID'} (distance: ${validation.distance_from_office_meters}m)`,
+      `🔍 [VALIDATE-LOCATION] GPS validation result: ${validation.is_valid ? '✅ VALID' : '❌ INVALID'} (distance: ${Math.round(validation.distance_from_office_meters)}m)`,
     );
 
     // 3. Persist presence verification round (captureUseCase will auto-calculate round number)
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Persisting verification round to DB...`,
+    );
     try {
       await this.captureUseCase.execute({
         employeeId: String(employeeId),
@@ -97,13 +114,14 @@ export class ValidateEmployeeLocationUseCase {
           validation_reason: validation.message,
         },
       });
-      this.logger.debug(
-        `Persisted presence verification round for employee ${employeeId}`,
+      this.logger.log(
+        `🔍 [VALIDATE-LOCATION] ✅ Persisted presence verification round for employee ${employeeId}`,
       );
     } catch (error) {
-      this.logger.warn(
-        `Failed to persist presence verification: ${error.message}`,
+      this.logger.error(
+        `🔍 [VALIDATE-LOCATION] ❌ Failed to persist presence verification: ${error.message}`,
       );
+      this.logger.error(error.stack);
     }
 
     // 4. Publish domain event
@@ -116,6 +134,10 @@ export class ValidateEmployeeLocationUseCase {
       timestamp: new Date().toISOString(),
     };
 
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Publishing domain event...`,
+    );
+
     let eventPublished = false;
     try {
       if (validation.is_valid) {
@@ -124,7 +146,7 @@ export class ValidateEmployeeLocationUseCase {
           eventPayload,
         );
         this.logger.log(
-          `✅ Published event: attendance.location_verified for employee ${employeeId}`,
+          `🔍 [VALIDATE-LOCATION] ✅ Published event: attendance.location_verified for employee ${employeeId}`,
         );
       } else {
         this.eventPublisher.publish(
@@ -132,13 +154,23 @@ export class ValidateEmployeeLocationUseCase {
           eventPayload,
         );
         this.logger.log(
-          `⚠️ Published event: attendance.location_out_of_range for employee ${employeeId}`,
+          `🔍 [VALIDATE-LOCATION] ⚠️ Published event: attendance.location_out_of_range for employee ${employeeId}`,
+        );
+        this.logger.debug(
+          `🔍 [VALIDATE-LOCATION] Event payload: ${JSON.stringify(eventPayload)}`,
         );
       }
       eventPublished = true;
     } catch (error) {
-      this.logger.error(`Failed to publish event: ${error.message}`);
+      this.logger.error(
+        `🔍 [VALIDATE-LOCATION] ❌ Failed to publish event: ${error.message}`,
+      );
+      this.logger.error(error.stack);
     }
+
+    this.logger.log(
+      `🔍 [VALIDATE-LOCATION] ✅ Completed validation for employee ${employeeId}`,
+    );
 
     return {
       ...validation,

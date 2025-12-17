@@ -122,12 +122,19 @@ export class GpsController {
   })
   async gpsCheck(@Body() dto: GpsCheckDto, @CurrentUser() user: JwtPayload) {
     this.logger.log(
-      `GPS check request from employee ${user.employee_id} (${user.email})`,
+      `📍 [GPS-CHECK] Request from employee ${user.employee_id} (${user.email})`,
+    );
+    this.logger.debug(
+      `📍 [GPS-CHECK] Payload: lat=${dto.latitude}, lng=${dto.longitude}, accuracy=${dto.location_accuracy}m`,
     );
 
     // Auto-find active shift from JWT token
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    this.logger.debug(
+      `📍 [GPS-CHECK] Looking for active shift at ${currentTime} for employee ${user.employee_id}`,
+    );
 
     const activeShift =
       await this.employeeShiftRepository.findActiveShiftByTime(
@@ -138,15 +145,22 @@ export class GpsController {
 
     if (!activeShift) {
       this.logger.warn(
-        `No active shift found for employee ${user.employee_id} at ${currentTime}`,
+        `📍 [GPS-CHECK] ❌ No active shift found for employee ${user.employee_id} at ${currentTime}`,
       );
       throw new BadRequestException(
         'No active shift found. Please check in first or verify your schedule.',
       );
     }
 
+    this.logger.log(
+      `📍 [GPS-CHECK] ✅ Found active shift ${activeShift.id} (${activeShift.shift_type})`,
+    );
     this.logger.debug(
-      `Found active shift ${activeShift.id} (${activeShift.shift_type}) for employee ${user.employee_id}`,
+      `📍 [GPS-CHECK] Shift rounds: ${activeShift.presence_verification_rounds_completed || 0}/${activeShift.presence_verification_rounds_required}`,
+    );
+
+    this.logger.log(
+      `📍 [GPS-CHECK] Calling ValidateEmployeeLocationUseCase...`,
     );
 
     const result = await this.validateEmployeeLocationUseCase.execute({
@@ -156,6 +170,10 @@ export class GpsController {
       longitude: dto.longitude,
       location_accuracy: dto.location_accuracy,
     });
+
+    this.logger.log(
+      `📍 [GPS-CHECK] Result: ${result.is_valid ? '✅ VALID' : '❌ INVALID'} (distance: ${Math.round(result.distance_from_office_meters)}m)`,
+    );
 
     return result;
   }

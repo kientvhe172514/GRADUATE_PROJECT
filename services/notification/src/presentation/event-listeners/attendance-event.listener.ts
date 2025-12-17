@@ -143,11 +143,40 @@ export class AttendanceEventListener {
 
   /**
    * Lắng nghe event khi GPS valid (trong phạm vi)
+   * Ghi log để tracking, KHÔNG gửi notification (vì đây là trường hợp bình thường)
    */
   @EventPattern('attendance.location_verified')
   async handleLocationVerified(@Payload() event: any): Promise<void> {
-    console.log('✅ [AttendanceEventListener] Location verified:', event);
-    // Có thể log hoặc gửi thông báo tích cực nếu cần
+    console.log('✅ [AttendanceEventListener] ===== GPS VERIFIED EVENT RECEIVED =====');
+    console.log('✅ [AttendanceEventListener] Event payload:', JSON.stringify(event, null, 2));
+    console.log(`✅ [AttendanceEventListener] Employee ${event.employeeId} GPS is valid`);
+    console.log(`✅ [AttendanceEventListener] Distance: ${Math.round(event.validation?.distance_from_office_meters || 0)}m from office`);
+    
+    // NOTE: Không gửi notification cho GPS valid vì đây là trường hợp bình thường
+    // Chỉ gửi notification khi GPS INVALID (xem handleLocationOutOfRange)
+    
+    // OPTIONAL: Nếu muốn gửi notification tích cực, uncomment code sau:
+    /*
+    try {
+      const dto: SendNotificationDto = {
+        recipientId: event.employeeId,
+        notificationType: NotificationType.SYSTEM_ALERT,
+        priority: Priority.LOW,
+        title: '✅ GPS xác thực thành công',
+        message: 'Vị trí của bạn đã được xác thực trong phạm vi văn phòng.',
+        channels: [ChannelType.IN_APP], // Chỉ in-app, không push
+        metadata: {
+          eventType: 'attendance.location_verified',
+          shiftId: event.shiftId,
+          distance: Math.round(event.validation?.distance_from_office_meters || 0),
+          timestamp: event.timestamp,
+        },
+      };
+      await this.sendNotificationUseCase.execute(dto);
+    } catch (error) {
+      console.error('❌ Error sending location verified notification:', error);
+    }
+    */
   }
 
   /**
@@ -349,10 +378,14 @@ export class AttendanceEventListener {
    */
   @EventPattern('attendance.location_out_of_range')
   async handleLocationOutOfRange(@Payload() event: any): Promise<void> {
-    console.log('⚠️ [AttendanceEventListener] Location out of range:', event);
+    console.log('⚠️ [AttendanceEventListener] ===== GPS OUT OF RANGE EVENT RECEIVED =====');
+    console.log('⚠️ [AttendanceEventListener] Event payload:', JSON.stringify(event, null, 2));
     
     try {
       const distance = Math.round(event.validation?.distance_from_office_meters || 0);
+      
+      console.log(`⚠️ [AttendanceEventListener] Preparing notification for employee ${event.employeeId}`);
+      console.log(`⚠️ [AttendanceEventListener] Distance from office: ${distance}m`);
       
       const dto: SendNotificationDto = {
         recipientId: event.employeeId,
@@ -371,10 +404,13 @@ export class AttendanceEventListener {
         },
       };
 
+      console.log(`⚠️ [AttendanceEventListener] Sending notification DTO:`, JSON.stringify(dto, null, 2));
+
       await this.sendNotificationUseCase.execute(dto);
       console.log(`✅ [AttendanceEventListener] Location violation alert sent to employee ${event.employeeId}`);
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling location out of range:', error);
+      console.error('❌ [AttendanceEventListener] Error stack:', error.stack);
     }
   }
 }
