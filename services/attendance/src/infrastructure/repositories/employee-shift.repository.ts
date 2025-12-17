@@ -455,6 +455,9 @@ export class EmployeeShiftRepository {
   async findCurrentActiveShiftForGpsCheck(
     employeeId: number,
   ): Promise<EmployeeShiftSchema | null> {
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] ===== START =====`);
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] Input employeeId: ${employeeId} (type: ${typeof employeeId})`);
+    
     // Raw SQL query - ĐỒNG BỘ với cron job
     const query = `
       WITH calculated_shifts AS (
@@ -501,11 +504,30 @@ export class EmployeeShiftRepository {
       LIMIT 1
     `;
 
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] Executing SQL query with employeeId = ${employeeId}...`);
+    
     const result: any[] = await this.repository.query(query, [employeeId]);
 
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] Query result count: ${result.length}`);
+    
     if (result.length === 0) {
+      console.log(`🔍 [findCurrentActiveShiftForGpsCheck] ❌ NO SHIFT FOUND`);
+      console.log(`🔍 [findCurrentActiveShiftForGpsCheck] Possible reasons:`);
+      console.log(`   1. Employee has not checked in yet (check_in_time IS NULL)`);
+      console.log(`   2. Employee already checked out (check_out_time IS NOT NULL)`);
+      console.log(`   3. Current VN time is outside shift time range`);
+      console.log(`   4. Shift date is not today or yesterday`);
       return null;
     }
+
+    console.log(`🔍 [findCurrentActiveShiftForGpsCheck] ✅ FOUND SHIFT:`, {
+      id: result[0].id,
+      shift_date: result[0].shift_date,
+      scheduled_start_time: result[0].scheduled_start_time,
+      scheduled_end_time: result[0].scheduled_end_time,
+      check_in_time: result[0].check_in_time,
+      check_out_time: result[0].check_out_time,
+    });
 
     // Convert raw result to EmployeeShiftSchema entity
     // Note: repository.create() returns the object itself (not array) when passed a single object
