@@ -391,8 +391,8 @@ export class AttendanceEventListener {
         recipientId: event.employeeId,
         notificationType: NotificationType.ATTENDANCE_VIOLATION,
         priority: Priority.HIGH,
-        title: '⚠️ Cảnh báo vị trí',
-        message: `Bạn đang ở ngoài phạm vi văn phòng (${distance}m). Vui lòng di chuyển về khu vực làm việc!`,
+        title: '⚠️ Location Alert',
+        message: `You are outside the office area (${distance}m away). Please return to the work zone!`,
         channels: [ChannelType.PUSH, ChannelType.IN_APP],
         metadata: {
           eventType: 'attendance.location_out_of_range',
