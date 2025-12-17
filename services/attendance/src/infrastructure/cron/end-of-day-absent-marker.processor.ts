@@ -135,8 +135,8 @@ export class EndOfDayAbsentMarkerProcessor {
         -- compute shift_end_timestamp respecting overnight shifts
         CASE
           WHEN es.scheduled_end_time <= es.scheduled_start_time
-            THEN (CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp)
-          ELSE (CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp)
+            THEN ((es.shift_date + INTERVAL '1 day')::date + es.scheduled_end_time)
+          ELSE (es.shift_date + es.scheduled_end_time)
         END as shift_end_timestamp
       FROM employee_shifts es
       INNER JOIN work_schedules ws ON es.work_schedule_id = ws.id
@@ -150,8 +150,8 @@ export class EndOfDayAbsentMarkerProcessor {
         AND (
           CASE
             WHEN es.scheduled_end_time <= es.scheduled_start_time
-              THEN (CONCAT((es.shift_date + INTERVAL '1 day')::text, ' ', es.scheduled_end_time::text)::timestamp)
-            ELSE (CONCAT(es.shift_date::text, ' ', es.scheduled_end_time::text)::timestamp)
+              THEN ((es.shift_date + INTERVAL '1 day')::date + es.scheduled_end_time)
+            ELSE (es.shift_date + es.scheduled_end_time)
           END
           + INTERVAL '${this.GRACE_PERIOD_HOURS} hours'
         ) < NOW()
