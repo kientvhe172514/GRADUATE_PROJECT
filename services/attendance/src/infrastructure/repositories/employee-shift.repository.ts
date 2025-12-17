@@ -433,4 +433,83 @@ export class EmployeeShiftRepository {
       .addOrderBy('shift.scheduled_start_time', 'ASC')
       .getMany();
   }
+
+  /**
+   * 🆕 Find CURRENT active shift for GPS check (SAME logic as cron job)
+   * 
+   * ĐÚNG THEO LOGIC CRON: scheduled-gps-check.processor.ts
+   * 
+   * Điều kiện BẮT BUỘC:
+   * 1. Đã check-in (check_in_time NOT NULL)
+   * 2. Chưa check-out (check_out_time IS NULL)
+   * 3. Shift date trong khoảng [hôm qua, hôm nay] (xử lý ca đêm)
+   * 4. Thời gian hiện tại TRONG khoảng [shift_start_ts, shift_end_ts]
+   * 
+   * XỬ LÝ CA ĐÊM:
+   * - Ca đêm: scheduled_end_time < scheduled_start_time (VD: 22:00 → 06:00)
+   * - shift_end_ts = shift_date + 1 day + scheduled_end_time
+   * 
+   * @param employeeId Employee ID
+   * @returns Active shift đang diễn ra NGAY BÂY GIỜ, hoặc null nếu không có
+   */
+  async findCurrentActiveShiftForGpsCheck(
+    employeeId: number,
+  ): Promise<EmployeeShiftSchema | null> {
+    // Raw SQL query - ĐỒNG BỘ với cron job
+    const query = `
+      WITH calculated_shifts AS (
+        SELECT 
+          es.*,
+          -- Tính shift_start_ts
+          (es.shift_date::text || ' ' || es.scheduled_start_time)::timestamp as shift_start_ts,
+          
+          -- Tính shift_end_ts (xử lý ca đêm)
+          CASE 
+            WHEN es.scheduled_end_time::time < es.scheduled_start_time::time 
+            THEN ((es.shift_date + INTERVAL '1 day')::date::text || ' ' || es.scheduled_end_time)::timestamp
+            ELSE (es.shift_date::text || ' ' || es.scheduled_end_time)::timestamp
+          END as shift_end_ts,
+          
+          -- Thời gian hiện tại VN
+          NOW() + INTERVAL '7 hours' as current_vn_time
+          
+        FROM employee_shifts es
+        WHERE 
+          es.employee_id = $1
+          -- Shift date trong khoảng [hôm qua, hôm nay] (xử lý ca đêm)
+          AND es.shift_date >= (NOW() + INTERVAL '7 hours')::date - INTERVAL '1 day'
+          AND es.shift_date <= (NOW() + INTERVAL '7 hours')::date
+          -- ✅ ĐÃ CHECK-IN
+          AND es.check_in_time IS NOT NULL
+          -- ✅ CHƯA CHECK-OUT
+          AND es.check_out_time IS NULL
+      )
+      SELECT 
+        id, employee_id, employee_code, department_id, shift_date,
+        work_schedule_id, scheduled_start_time, scheduled_end_time,
+        shift_type, check_in_time, check_in_record_id, check_out_time,
+        check_out_record_id, work_hours, overtime_hours, break_hours,
+        late_minutes, early_leave_minutes, presence_verified,
+        presence_verification_required, presence_verification_rounds_required,
+        presence_verification_rounds_completed, status, notes,
+        created_at, updated_at
+      FROM calculated_shifts
+      WHERE 
+        -- ✅ ĐANG TRONG CA (current_vn_time BETWEEN shift_start_ts AND shift_end_ts)
+        current_vn_time BETWEEN shift_start_ts AND shift_end_ts
+      ORDER BY shift_date DESC, scheduled_start_time DESC
+      LIMIT 1
+    `;
+
+    const result: any[] = await this.repository.query(query, [employeeId]);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    // Convert raw result to EmployeeShiftSchema entity
+    // Note: repository.create() returns the object itself (not array) when passed a single object
+    const entity = this.repository.create(result[0]);
+    return Array.isArray(entity) ? entity[0] : entity;
+  }
 }

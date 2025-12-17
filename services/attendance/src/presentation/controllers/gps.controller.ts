@@ -128,24 +128,32 @@ export class GpsController {
       `📍 [GPS-CHECK] Payload: lat=${dto.latitude}, lng=${dto.longitude}, accuracy=${dto.location_accuracy}m`,
     );
 
-    // Auto-find active shift from JWT token
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
+    // 🆕 DÙNG LOGIC GIỐNG HỆT CRON JOB
+    // Tìm shift hiện tại: đã check-in + chưa check-out + đang trong khoảng thời gian ca
     this.logger.debug(
-      `📍 [GPS-CHECK] Looking for active shift at ${currentTime} for employee ${user.employee_id}`,
+      `📍 [GPS-CHECK] Looking for CURRENT active shift (checked-in + not checked-out) for employee ${user.employee_id}`,
     );
 
     const activeShift =
-      await this.employeeShiftRepository.findActiveShiftByTime(
+      await this.employeeShiftRepository.findCurrentActiveShiftForGpsCheck(
         Number(user.employee_id),
-        now,
-        currentTime,
       );
 
     if (!activeShift) {
       this.logger.warn(
-        `📍 [GPS-CHECK] ❌ No active shift found for employee ${user.employee_id} at ${currentTime}`,
+        `📍 [GPS-CHECK] ❌ No active shift found for employee ${user.employee_id}`,
+      );
+      this.logger.warn(
+        `📍 [GPS-CHECK] ℹ️ Possible reasons:`,
+      );
+      this.logger.warn(
+        `   - Employee has not checked in yet (check_in_time IS NULL)`,
+      );
+      this.logger.warn(
+        `   - Employee already checked out (check_out_time IS NOT NULL)`,
+      );
+      this.logger.warn(
+        `   - Current time is outside shift time range`,
       );
       throw new BadRequestException(
         'No active shift found. Please check in first or verify your schedule.',
