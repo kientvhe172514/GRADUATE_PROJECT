@@ -39,7 +39,7 @@ import { HealthController } from './health.controller';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET', 'secretKey'),
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN', '15m'),
+          expiresIn: '1d', // ✅ FIXED: 1 day for background GPS check (no env var)
         },
       }),
       inject: [ConfigService],

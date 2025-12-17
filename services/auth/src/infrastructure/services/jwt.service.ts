@@ -35,7 +35,7 @@ export class JwtServiceImpl implements JwtServicePort {
       payload.managed_department_ids = managedDepartmentIds;
     }
 
-    return this.jwtService.sign(payload, { expiresIn: '15m' }); // 15 minutes
+    return this.jwtService.sign(payload, { expiresIn: '1d' }); // ✅ CHANGED: 1 day (for background GPS check)
   }
 
   generateRefreshToken(account: Account): string {
@@ -74,7 +74,7 @@ export class JwtServiceImpl implements JwtServicePort {
       permissions: permissions,
     };
     return {
-      access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
+      access_token: this.jwtService.sign(payload, { expiresIn: '1d' }), // ✅ CHANGED: 1 day
       refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
       user: {
         id: account.id!,
