@@ -73,6 +73,8 @@ export class ValidateEmployeeLocationUseCase {
       `🔍 [VALIDATE-LOCATION] Office coords: lat=${office_latitude}, lng=${office_longitude}`,
     );
 
+
+    
     // 2. Validate GPS using domain logic
     const maxDistance = Number(
       this.configService.get<number>('MAX_GPS_DISTANCE_METERS') || 200,
