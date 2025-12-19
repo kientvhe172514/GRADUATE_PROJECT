@@ -8,6 +8,19 @@ import {
 } from 'typeorm';
 
 @Entity('employee_shifts')
+// 🔒 UNIQUE constraint để prevent duplicate shifts
+@Index(
+  'UQ_employee_shift_time',
+  [
+    'employee_id',
+    'shift_date',
+    'scheduled_start_time',
+    'scheduled_end_time',
+    'shift_type',
+  ],
+  { unique: true },
+)
+// Performance indexes
 @Index(['employee_id', 'shift_date', 'shift_type'])
 @Index(['shift_date'])
 @Index(['status'])
