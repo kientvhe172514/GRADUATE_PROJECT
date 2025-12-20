@@ -22,9 +22,9 @@ export interface RequestFaceVerificationCommand {
   session_token: string;
   check_type: 'check_in' | 'check_out';
   shift_date: Date;
-  // GPS data
-  latitude?: number;
-  longitude?: number;
+  // GPS data (REQUIRED)
+  latitude: number;
+  longitude: number;
   location_accuracy?: number;
   // Device info
   device_id?: string;
@@ -85,29 +85,33 @@ export class RequestFaceVerificationUseCase {
     const { office_latitude, office_longitude, max_distance_meters } =
       await this.getOfficeCoordinates(command.employee_id);
 
-    // Step 3: Validate GPS (if provided)
-    let gpsValidated = false;
-    let distanceFromOffice: number | undefined;
+    // Step 3: Validate GPS (REQUIRED for check-in/checkout)
+    const gpsResult = this.validateGpsUseCase.execute({
+      latitude: command.latitude,
+      longitude: command.longitude,
+      location_accuracy: command.location_accuracy,
+      office_latitude,
+      office_longitude,
+      max_distance_meters,
+    });
 
-    if (command.latitude && command.longitude) {
-      const gpsResult = this.validateGpsUseCase.execute({
-        latitude: command.latitude,
-        longitude: command.longitude,
-        location_accuracy: command.location_accuracy,
-        office_latitude,
-        office_longitude,
-        max_distance_meters,
-      });
+    const gpsValidated = gpsResult.is_valid;
+    const distanceFromOffice = gpsResult.distance_from_office_meters;
 
-      gpsValidated = gpsResult.is_valid;
-      distanceFromOffice = gpsResult.distance_from_office_meters;
-
-      if (!gpsValidated) {
-        this.logger.warn(
-          `GPS validation failed for employee ${command.employee_code}: ${gpsResult.message}`,
-        );
-      }
+    if (!gpsValidated) {
+      this.logger.warn(
+        `❌ GPS validation FAILED for employee ${command.employee_code}: ${gpsResult.message}`,
+      );
+      // ❌ REJECT check-in/out if GPS is invalid
+      return {
+        success: false,
+        message: `GPS validation failed: ${gpsResult.message}`,
+      };
     }
+
+    this.logger.log(
+      `✅ GPS validation PASSED for employee ${command.employee_code}: distance=${gpsResult.distance_from_office_meters.toFixed(2)}m`,
+    );
 
     // Prevent numeric overflow when writing to DB columns with limited precision
     // attendance_check_records.distance_from_office_meters is decimal(7,2) -> max 99999.99

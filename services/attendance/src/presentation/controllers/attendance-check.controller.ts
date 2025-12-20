@@ -92,21 +92,21 @@ class RequestFaceVerificationDto {
   @IsNotEmpty()
   shift_date: Date;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 10.762622,
-    description: 'GPS latitude (optional but recommended)',
+    description: 'GPS latitude (REQUIRED for check-in/checkout)',
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  latitude?: number;
+  latitude: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 106.660172,
-    description: 'GPS longitude (optional but recommended)',
+    description: 'GPS longitude (REQUIRED for check-in/checkout)',
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  longitude?: number;
+  longitude: number;
 
   @ApiPropertyOptional({ example: 15, description: 'GPS accuracy in meters' })
   @IsOptional()

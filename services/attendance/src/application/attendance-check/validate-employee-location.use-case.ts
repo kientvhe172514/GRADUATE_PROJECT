@@ -182,6 +182,7 @@ export class ValidateEmployeeLocationUseCase {
 
   /**
    * Get office coordinates from Employee Service (via RPC) or fallback to config
+   * Uses standard RPC pattern 'employee.get' (returns wrapped response)
    */
   private async getOfficeCoordinates(employeeId: number): Promise<{
     office_latitude: number;
@@ -196,39 +197,44 @@ export class ValidateEmployeeLocationUseCase {
     );
 
     try {
-      const resp = await firstValueFrom(
+      // Query Employee Service using standard RPC pattern 'employee.get' (returns wrapped response)
+      const response = await firstValueFrom(
         this.employeeClient
-          .send('get_employee_detail', { employee_id: employeeId })
+          .send('employee.get', { id: employeeId })
           .pipe(
             timeout(2500),
             catchError((error) => {
               this.logger.debug(
-                `Employee Service RPC failed: ${error.message}`,
+                `Employee Service RPC failed: ${error?.message || 'Unknown error'}`,
               );
               return of(null);
             }),
           ),
       );
 
+      // Extract employee from wrapped response: { status, statusCode, message, data }
+      const employee = response?.data;
+
       if (
-        resp &&
-        resp.department &&
-        resp.department.office_latitude &&
-        resp.department.office_longitude
+        employee &&
+        employee.department &&
+        employee.department.office_latitude &&
+        employee.department.office_longitude
       ) {
-        office_latitude = Number(resp.department.office_latitude);
-        office_longitude = Number(resp.department.office_longitude);
+        office_latitude = Number(employee.department.office_latitude);
+        office_longitude = Number(employee.department.office_longitude);
         this.logger.log(
-          `Using office coords from Employee Service for employee ${employeeId}: [${office_latitude}, ${office_longitude}]`,
+          `✅ Using office coordinates from Employee Service for employee ${employeeId}: ` +
+            `[${office_latitude}, ${office_longitude}]`,
         );
       } else {
         this.logger.debug(
-          `No office coords from Employee Service, using config defaults`,
+          `⚠️ No office coords from Employee Service, using config defaults`,
         );
       }
     } catch (error) {
       this.logger.warn(
-        `Could not fetch employee detail from Employee Service: ${error.message}. Using config defaults.`,
+        `❌ Could not fetch employee detail from Employee Service: ${(error as Error).message}. Using config defaults.`,
       );
     }
 

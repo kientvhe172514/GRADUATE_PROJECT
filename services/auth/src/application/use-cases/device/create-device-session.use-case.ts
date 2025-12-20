@@ -70,9 +70,20 @@ export class CreateDeviceSessionUseCase {
       existingDevice.login_count += 1;
       existingDevice.failed_login_attempts = 0;
 
-      // ✅ FIX: Update employee_id if provided (in case it was missing before)
-      if (dto.employee_id && !existingDevice.employee_id) {
-        console.log('🔧 [FIX] Updating missing employee_id:', {
+      // ✅ FIX: ALWAYS update account_id and employee_id when user logs in
+      // Device can be shared or used by different employees (e.g., factory floor tablet)
+      if (dto.account_id && dto.account_id !== existingDevice.account_id) {
+        console.log('🔧 [UPDATE] Updating account_id (device ownership changed):', {
+          old_account_id: existingDevice.account_id,
+          new_account_id: dto.account_id,
+          old_employee_id: existingDevice.employee_id,
+          new_employee_id: dto.employee_id,
+        });
+        existingDevice.account_id = dto.account_id;
+      }
+
+      if (dto.employee_id && dto.employee_id !== existingDevice.employee_id) {
+        console.log('🔧 [UPDATE] Updating employee_id (device user changed):', {
           old: existingDevice.employee_id,
           new: dto.employee_id,
         });
