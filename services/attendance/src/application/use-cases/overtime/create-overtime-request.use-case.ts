@@ -109,20 +109,21 @@ export class CreateOvertimeRequestUseCase {
       const ws = (workSchedule as any).work_schedule;
       console.log('🔍 [OVERTIME] work_schedule relation found:', JSON.stringify(ws, null, 2));
       
-      if (ws.scheduled_start_time && ws.scheduled_end_time) {
-        console.log(`🔍 [OVERTIME] Checking overlap with work_schedule: ${ws.scheduled_start_time} - ${ws.scheduled_end_time}`);
+      // ✅ FIX: Use correct field names from work_schedules table
+      if (ws.start_time && ws.end_time) {
+        console.log(`🔍 [OVERTIME] Checking overlap with work_schedule: ${ws.start_time} - ${ws.end_time}`);
         
-        const [wsStartHour, wsStartMin] = ws.scheduled_start_time
+        const [wsStartHour, wsStartMin] = ws.start_time
           .split(':')
           .map(Number);
-        const [wsEndHour, wsEndMin] = ws.scheduled_end_time.split(':').map(Number);
+        const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
         const wsStart = new Date(overtimeDate);
         wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
         let wsEnd = new Date(overtimeDate);
         wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
 
-        // If scheduled_end_time is earlier than start_time -> overnight shift
+        // If end_time is earlier than start_time -> overnight shift
         if (wsEnd <= wsStart) {
           wsEnd = new Date(wsEnd.getTime() + 24 * 60 * 60 * 1000);
         }
@@ -140,12 +141,12 @@ export class CreateOvertimeRequestUseCase {
         if (hasOverlapWithAssignedSchedule) {
           throw new BusinessException(
             ErrorCodes.INVALID_INPUT,
-            `Overtime time overlaps with your assigned work schedule (${ws.scheduled_start_time} - ${ws.scheduled_end_time}). Please choose a different time.`,
+            `Overtime time overlaps with your assigned work schedule (${ws.start_time} - ${ws.end_time}). Please choose a different time.`,
             400,
           );
         }
       } else {
-        console.log('⚠️ [OVERTIME] work_schedule relation found but missing scheduled_start_time or scheduled_end_time');
+        console.log('⚠️ [OVERTIME] work_schedule relation found but missing start_time or end_time');
       }
     } else {
       console.log('⚠️ [OVERTIME] No work_schedule relation found in workSchedule');
