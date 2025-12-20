@@ -44,14 +44,8 @@ export class AssignManagerToDepartmentUseCase {
       throw new EmployeeNotFoundException(dto.manager_id);
     }
 
-    // Check if employee has position_id = 3 (Manager position)
-    if (employee.position_id !== 3) {
-      throw new BusinessException(
-        ErrorCodes.VALIDATION_ERROR,
-        'Employee must have Manager position (position_id = 3) to be assigned as department manager',
-        400
-      );
-    }
+    // ✅ REMOVED: Position validation - Allow any employee to be assigned as manager
+    // Previously required position_id = 3 (Manager position)
 
     // Check if employee is ACTIVE
     if (employee.status !== 'ACTIVE') {

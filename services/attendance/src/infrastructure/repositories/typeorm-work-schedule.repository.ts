@@ -92,6 +92,8 @@ export class TypeOrmEmployeeWorkScheduleRepository
 
     const schema = await this.repository
       .createQueryBuilder('ews')
+      // include work_schedule relation to allow callers to inspect scheduled times
+      .leftJoinAndSelect('ews.work_schedule', 'ws')
       .where('ews.employee_id = :employeeId', { employeeId })
       .andWhere('ews.effective_from <= :date', { date: dateStr })
       .andWhere('(ews.effective_to IS NULL OR ews.effective_to >= :date)', {

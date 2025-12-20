@@ -101,6 +101,41 @@ export class CreateOvertimeRequestUseCase {
         overtimeDate,
       );
 
+    // If there's an assigned work schedule for this date, also check the schedule's regular times
+    // to prevent requesting OT that overlaps with the assigned schedule (even if shifts not yet created)
+    if (workSchedule && (workSchedule as any).work_schedule) {
+      const ws = (workSchedule as any).work_schedule;
+      if (ws.scheduled_start_time && ws.scheduled_end_time) {
+        const [wsStartHour, wsStartMin] = ws.scheduled_start_time
+          .split(':')
+          .map(Number);
+        const [wsEndHour, wsEndMin] = ws.scheduled_end_time.split(':').map(Number);
+
+        const wsStart = new Date(overtimeDate);
+        wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
+        let wsEnd = new Date(overtimeDate);
+        wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
+
+        // If scheduled_end_time is earlier than start_time -> overnight shift
+        if (wsEnd <= wsStart) {
+          wsEnd = new Date(wsEnd.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        const hasOverlapWithAssignedSchedule =
+          (overtimeStart >= wsStart && overtimeStart < wsEnd) ||
+          (overtimeEnd > wsStart && overtimeEnd <= wsEnd) ||
+          (overtimeStart <= wsStart && overtimeEnd >= wsEnd);
+
+        if (hasOverlapWithAssignedSchedule) {
+          throw new BusinessException(
+            ErrorCodes.INVALID_INPUT,
+            `Overtime time overlaps with your assigned work schedule (${ws.scheduled_start_time} - ${ws.scheduled_end_time}). Please choose a different time.`,
+            400,
+          );
+        }
+      }
+    }
+
     if (workSchedule && workSchedule.schedule_overrides) {
       const overrides = Array.isArray(workSchedule.schedule_overrides)
         ? workSchedule.schedule_overrides

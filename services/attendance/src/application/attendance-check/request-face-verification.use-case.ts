@@ -96,7 +96,7 @@ export class RequestFaceVerificationUseCase {
     });
 
     const gpsValidated = gpsResult.is_valid;
-    const distanceFromOffice = gpsResult.distance_from_office_meters;
+    let distanceFromOffice: number | undefined = gpsResult.distance_from_office_meters;
 
     if (!gpsValidated) {
       this.logger.warn(
