@@ -39,6 +39,7 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
         d.id as department_id_rel,
         d.department_code,
         d.department_name,
+        d.manager_id,
         d.office_address,
         d.office_latitude,
         d.office_longitude,
@@ -60,6 +61,7 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
         id: row.department_id_rel,
         department_code: row.department_code,
         department_name: row.department_name,
+        manager_id: row.manager_id, // ✅ Manager ID (employee_id of department head)
         office_address: row.office_address,
         office_latitude: row.office_latitude,
         office_longitude: row.office_longitude,
