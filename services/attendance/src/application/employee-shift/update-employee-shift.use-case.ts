@@ -187,7 +187,7 @@ export class UpdateEmployeeShiftUseCase {
         `
         SELECT 
           COUNT(*) as total_rounds,
-          SUM(CASE WHEN validation_result = 'VALID' THEN 1 ELSE 0 END) as valid_rounds
+          SUM(CASE WHEN is_valid = true AND validation_status = 'VALID' THEN 1 ELSE 0 END) as valid_rounds
         FROM presence_verification_rounds
         WHERE shift_id = $1
         `,
