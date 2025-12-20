@@ -94,65 +94,57 @@ export class CreateOvertimeRequestUseCase {
       }
     }
 
-    // Check schedule_overrides in employee_work_schedules
-    const workSchedule =
-      await this.employeeWorkScheduleRepo.findByEmployeeIdAndDate(
+    // Check ALL assigned work schedules for this date (employee can have multiple schedules)
+    const workSchedules =
+      await this.employeeWorkScheduleRepo.findAllByEmployeeIdAndDate(
         currentUser.employee_id!,
         overtimeDate,
       );
 
-    console.log('🔍 [OVERTIME] workSchedule:', JSON.stringify(workSchedule, null, 2));
+    console.log(`🔍 [OVERTIME] Found ${workSchedules.length} active work schedule(s) for date ${overtimeDate.toISOString().split('T')[0]}`);
 
-    // If there's an assigned work schedule for this date, also check the schedule's regular times
-    // to prevent requesting OT that overlaps with the assigned schedule (even if shifts not yet created)
-    if (workSchedule && (workSchedule as any).work_schedule) {
-      const ws = (workSchedule as any).work_schedule;
-      console.log('🔍 [OVERTIME] work_schedule relation found:', JSON.stringify(ws, null, 2));
+    // Check overlap with each assigned work schedule
+    for (const workSchedule of workSchedules) {
+      console.log(`🔍 [OVERTIME] Checking work_schedule ID: ${workSchedule.work_schedule_id}`);
       
-      // ✅ FIX: Use correct field names from work_schedules table
-      if (ws.start_time && ws.end_time) {
-        console.log(`🔍 [OVERTIME] Checking overlap with work_schedule: ${ws.start_time} - ${ws.end_time}`);
+      if ((workSchedule as any).work_schedule) {
+        const ws = (workSchedule as any).work_schedule;
+        console.log(`🔍 [OVERTIME] Schedule: ${ws.schedule_name} (${ws.start_time} - ${ws.end_time})`);
         
-        const [wsStartHour, wsStartMin] = ws.start_time
-          .split(':')
-          .map(Number);
-        const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
+        if (ws.start_time && ws.end_time) {
+          const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
+          const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
-        const wsStart = new Date(overtimeDate);
-        wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
-        let wsEnd = new Date(overtimeDate);
-        wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
+          const wsStart = new Date(overtimeDate);
+          wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
+          let wsEnd = new Date(overtimeDate);
+          wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
 
-        // If end_time is earlier than start_time -> overnight shift
-        if (wsEnd <= wsStart) {
-          wsEnd = new Date(wsEnd.getTime() + 24 * 60 * 60 * 1000);
+          // If end_time is earlier than start_time -> overnight shift
+          if (wsEnd <= wsStart) {
+            wsEnd = new Date(wsEnd.getTime() + 24 * 60 * 60 * 1000);
+          }
+
+          const hasOverlapWithAssignedSchedule =
+            (overtimeStart >= wsStart && overtimeStart < wsEnd) ||
+            (overtimeEnd > wsStart && overtimeEnd <= wsEnd) ||
+            (overtimeStart <= wsStart && overtimeEnd >= wsEnd);
+
+          console.log(`🔍 [OVERTIME] Overlap check: ${hasOverlapWithAssignedSchedule} (OT: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()} vs Schedule: ${wsStart.toISOString()} - ${wsEnd.toISOString()})`);
+
+          if (hasOverlapWithAssignedSchedule) {
+            throw new BusinessException(
+              ErrorCodes.INVALID_INPUT,
+              `Overtime time overlaps with your assigned work schedule "${ws.schedule_name}" (${ws.start_time} - ${ws.end_time}). Please choose a different time.`,
+              400,
+            );
+          }
         }
-
-        console.log(`🔍 [OVERTIME] Work schedule time range: ${wsStart.toISOString()} - ${wsEnd.toISOString()}`);
-        console.log(`🔍 [OVERTIME] Overtime time range: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}`);
-
-        const hasOverlapWithAssignedSchedule =
-          (overtimeStart >= wsStart && overtimeStart < wsEnd) ||
-          (overtimeEnd > wsStart && overtimeEnd <= wsEnd) ||
-          (overtimeStart <= wsStart && overtimeEnd >= wsEnd);
-
-        console.log(`🔍 [OVERTIME] Has overlap: ${hasOverlapWithAssignedSchedule}`);
-
-        if (hasOverlapWithAssignedSchedule) {
-          throw new BusinessException(
-            ErrorCodes.INVALID_INPUT,
-            `Overtime time overlaps with your assigned work schedule (${ws.start_time} - ${ws.end_time}). Please choose a different time.`,
-            400,
-          );
-        }
-      } else {
-        console.log('⚠️ [OVERTIME] work_schedule relation found but missing start_time or end_time');
       }
-    } else {
-      console.log('⚠️ [OVERTIME] No work_schedule relation found in workSchedule');
     }
 
-    if (workSchedule && workSchedule.schedule_overrides) {
+    // Check schedule_overrides in any of the work schedules
+    for (const workSchedule of workSchedules) {
       const overrides = Array.isArray(workSchedule.schedule_overrides)
         ? workSchedule.schedule_overrides
         : [];

@@ -105,6 +105,31 @@ export class TypeOrmEmployeeWorkScheduleRepository
     return schema ? EmployeeWorkScheduleMapper.toDomain(schema) : null;
   }
 
+  /**
+   * Find ALL active work schedules for an employee on a specific date
+   * Used for overtime validation to check overlap with all assigned schedules
+   */
+  async findAllByEmployeeIdAndDate(
+    employeeId: number,
+    date: Date,
+  ): Promise<EmployeeWorkSchedule[]> {
+    const dateStr = date.toISOString().split('T')[0];
+
+    const schemas = await this.repository
+      .createQueryBuilder('ews')
+      // include work_schedule relation to allow callers to inspect scheduled times
+      .leftJoinAndSelect('ews.work_schedule', 'ws')
+      .where('ews.employee_id = :employeeId', { employeeId })
+      .andWhere('ews.effective_from <= :date', { date: dateStr })
+      .andWhere('(ews.effective_to IS NULL OR ews.effective_to >= :date)', {
+        date: dateStr,
+      })
+      .orderBy('ews.effective_from', 'DESC')
+      .getMany();
+
+    return schemas.map((schema) => EmployeeWorkScheduleMapper.toDomain(schema));
+  }
+
   async findAssignmentsByScheduleId(
     scheduleId: number,
   ): Promise<EmployeeWorkSchedule[]> {
