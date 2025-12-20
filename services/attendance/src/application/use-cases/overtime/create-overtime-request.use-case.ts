@@ -101,11 +101,17 @@ export class CreateOvertimeRequestUseCase {
         overtimeDate,
       );
 
+    console.log('🔍 [OVERTIME] workSchedule:', JSON.stringify(workSchedule, null, 2));
+
     // If there's an assigned work schedule for this date, also check the schedule's regular times
     // to prevent requesting OT that overlaps with the assigned schedule (even if shifts not yet created)
     if (workSchedule && (workSchedule as any).work_schedule) {
       const ws = (workSchedule as any).work_schedule;
+      console.log('🔍 [OVERTIME] work_schedule relation found:', JSON.stringify(ws, null, 2));
+      
       if (ws.scheduled_start_time && ws.scheduled_end_time) {
+        console.log(`🔍 [OVERTIME] Checking overlap with work_schedule: ${ws.scheduled_start_time} - ${ws.scheduled_end_time}`);
+        
         const [wsStartHour, wsStartMin] = ws.scheduled_start_time
           .split(':')
           .map(Number);
@@ -121,10 +127,15 @@ export class CreateOvertimeRequestUseCase {
           wsEnd = new Date(wsEnd.getTime() + 24 * 60 * 60 * 1000);
         }
 
+        console.log(`🔍 [OVERTIME] Work schedule time range: ${wsStart.toISOString()} - ${wsEnd.toISOString()}`);
+        console.log(`🔍 [OVERTIME] Overtime time range: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}`);
+
         const hasOverlapWithAssignedSchedule =
           (overtimeStart >= wsStart && overtimeStart < wsEnd) ||
           (overtimeEnd > wsStart && overtimeEnd <= wsEnd) ||
           (overtimeStart <= wsStart && overtimeEnd >= wsEnd);
+
+        console.log(`🔍 [OVERTIME] Has overlap: ${hasOverlapWithAssignedSchedule}`);
 
         if (hasOverlapWithAssignedSchedule) {
           throw new BusinessException(
@@ -133,7 +144,11 @@ export class CreateOvertimeRequestUseCase {
             400,
           );
         }
+      } else {
+        console.log('⚠️ [OVERTIME] work_schedule relation found but missing scheduled_start_time or scheduled_end_time');
       }
+    } else {
+      console.log('⚠️ [OVERTIME] No work_schedule relation found in workSchedule');
     }
 
     if (workSchedule && workSchedule.schedule_overrides) {
