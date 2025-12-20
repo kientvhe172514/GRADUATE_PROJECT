@@ -165,9 +165,90 @@ export class UpdateEmployeeShiftUseCase {
       );
     }
 
+    // 🔍 CHECK ROUNDS AND UPDATE STATUS AFTER CHECKOUT
+    await this.checkRoundsAndUpdateStatus(command.shift_id, shift);
+
     this.logger.log(
       `✅ Shift ${command.shift_id} check-out completed. Work hours: ${actualWorkHours.toFixed(2)}`,
     );
+  }
+
+  /**
+   * Check if employee completed required GPS rounds and update shift status
+   * Called immediately after checkout
+   */
+  private async checkRoundsAndUpdateStatus(
+    shiftId: number,
+    shift: any,
+  ): Promise<void> {
+    try {
+      // Query presence_verification_rounds to count completed rounds
+      const roundsQuery = await this.dataSource.query(
+        `
+        SELECT 
+          COUNT(*) as total_rounds,
+          SUM(CASE WHEN validation_result = 'VALID' THEN 1 ELSE 0 END) as valid_rounds
+        FROM presence_verification_rounds
+        WHERE shift_id = $1
+        `,
+        [shiftId],
+      );
+
+      const roundsCompleted = parseInt(roundsQuery[0]?.total_rounds || '0');
+      const validRounds = parseInt(roundsQuery[0]?.valid_rounds || '0');
+      const roundsRequired = shift.presence_verification_rounds_required || 0;
+
+      this.logger.log(
+        `📊 Rounds check for shift ${shiftId}: completed=${roundsCompleted}, required=${roundsRequired}, valid=${validRounds}`,
+      );
+
+      // Determine shift status based on rounds
+      if (roundsRequired === 0) {
+        // No rounds required → COMPLETED
+        await this.employeeShiftRepository.update(shiftId, {
+          status: 'COMPLETED',
+        });
+        this.logger.log(
+          `✅ Shift ${shiftId} marked COMPLETED (no rounds required)`,
+        );
+      } else if (roundsCompleted >= roundsRequired) {
+        // Check if valid rounds percentage is acceptable (>= 80%)
+        const validPercentage =
+          roundsCompleted > 0 ? (validRounds / roundsCompleted) * 100 : 0;
+
+        if (validPercentage >= 80) {
+          await this.employeeShiftRepository.update(shiftId, {
+            status: 'COMPLETED',
+          });
+          this.logger.log(
+            `✅ Shift ${shiftId} marked COMPLETED (${roundsCompleted}/${roundsRequired} rounds, ${validPercentage.toFixed(1)}% valid)`,
+          );
+        } else {
+          await this.employeeShiftRepository.update(shiftId, {
+            status: 'ABSENT',
+            notes: `Vắng mặt: Tỷ lệ GPS verification hợp lệ thấp (${validPercentage.toFixed(1)}%). Đã hoàn thành: ${validRounds}/${roundsCompleted} rounds hợp lệ.`,
+          });
+          this.logger.warn(
+            `⚠️ Shift ${shiftId} marked ABSENT (low valid percentage: ${validPercentage.toFixed(1)}%)`,
+          );
+        }
+      } else {
+        // Insufficient rounds → ABSENT
+        await this.employeeShiftRepository.update(shiftId, {
+          status: 'ABSENT',
+          notes: `Vắng mặt: Không đủ số lần GPS verification. Đã hoàn thành: ${roundsCompleted}/${roundsRequired} rounds. Nhân viên có thể đã rời khỏi văn phòng trước khi hoàn thành ca làm việc.`,
+        });
+        this.logger.warn(
+          `❌ Shift ${shiftId} marked ABSENT (insufficient rounds: ${roundsCompleted}/${roundsRequired})`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to check rounds and update status for shift ${shiftId}`,
+        error,
+      );
+      // Don't throw error, allow checkout to complete
+    }
   }
 
   /**
