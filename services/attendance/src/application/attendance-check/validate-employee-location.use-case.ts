@@ -126,9 +126,55 @@ export class ValidateEmployeeLocationUseCase {
       this.logger.error(error.stack);
     }
 
-    // 4. Publish domain event
+    // 4. Get employee details and manager info for notification
+    this.logger.debug(
+      `🔍 [VALIDATE-LOCATION] Fetching employee details via RPC...`,
+    );
+    
+    let employeeData: any = null;
+    let managerData: any = null;
+    
+    try {
+      const employeeResponse = await this.employeeClient
+        .send('employee.get', { id: Number(employeeId) })
+        .toPromise();
+      
+      employeeData = employeeResponse?.data;
+      
+      if (employeeData?.department?.manager_id) {
+        this.logger.debug(
+          `🔍 [VALIDATE-LOCATION] Fetching manager details (ID: ${employeeData.department.manager_id})...`,
+        );
+        
+        const managerResponse = await this.employeeClient
+          .send('employee.get', { id: employeeData.department.manager_id })
+          .toPromise();
+        
+        managerData = managerResponse?.data;
+        
+        this.logger.log(
+          `🔍 [VALIDATE-LOCATION] ✅ Found manager: ${managerData?.full_name} (employee_id: ${managerData?.id}) for employee ${employeeData?.full_name}`,
+        );
+      } else {
+        this.logger.warn(
+          `🔍 [VALIDATE-LOCATION] ⚠️ No manager found for employee ${employeeId}'s department`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `🔍 [VALIDATE-LOCATION] ❌ Failed to fetch employee/manager details: ${error.message}`,
+      );
+    }
+
+    // 5. Publish domain event
     const eventPayload = {
       employeeId: Number(employeeId),
+      employeeCode: employeeData?.employee_code,
+      employeeName: employeeData?.full_name,
+      departmentId: employeeData?.department_id,
+      departmentName: employeeData?.department?.department_name,
+      managerId: managerData?.id, // ✅ Manager's employee_id from employees table
+      managerName: managerData?.full_name,
       shiftId: Number(shiftId),
       latitude,
       longitude,
@@ -157,6 +203,9 @@ export class ValidateEmployeeLocationUseCase {
         );
         this.logger.log(
           `🔍 [VALIDATE-LOCATION] ⚠️ Published event: attendance.location_out_of_range for employee ${employeeId}`,
+        );
+        this.logger.log(
+          `🔍 [VALIDATE-LOCATION] 📧 Will notify employee ${employeeData?.full_name} and manager ${managerData?.full_name || 'N/A'}`,
         );
         this.logger.debug(
           `🔍 [VALIDATE-LOCATION] Event payload: ${JSON.stringify(eventPayload)}`,

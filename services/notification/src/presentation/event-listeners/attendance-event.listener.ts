@@ -373,8 +373,9 @@ export class AttendanceEventListener {
   }
 
   /**
-   * Lắng nghe event khi GPS invalid (ngoài phạm vi)
-   * Gửi ALERT notification để nhân viên biết
+   * Listen to GPS out of range event
+   * Send ALERT notification to employee (PUSH + IN_APP)
+   * Send notification to manager (WEB) for monitoring
    */
   @EventPattern('attendance.location_out_of_range')
   async handleLocationOutOfRange(@Payload() event: any): Promise<void> {
@@ -384,15 +385,16 @@ export class AttendanceEventListener {
     try {
       const distance = Math.round(event.validation?.distance_from_office_meters || 0);
       
+      // 📱 1. Send notification to EMPLOYEE (PUSH + IN_APP)
       console.log(`⚠️ [AttendanceEventListener] Preparing notification for employee ${event.employeeId}`);
       console.log(`⚠️ [AttendanceEventListener] Distance from office: ${distance}m`);
       
-      const dto: SendNotificationDto = {
+      const employeeDto: SendNotificationDto = {
         recipientId: event.employeeId,
         notificationType: NotificationType.ATTENDANCE_VIOLATION,
         priority: Priority.HIGH,
         title: '⚠️ Location Alert',
-        message: `You are outside the office area (${distance}m away). Please return to the work zone!`,
+        message: `You are outside the office area (${distance}m away). Please return to the work zone immediately!`,
         channels: [ChannelType.PUSH, ChannelType.IN_APP],
         metadata: {
           eventType: 'attendance.location_out_of_range',
@@ -404,10 +406,44 @@ export class AttendanceEventListener {
         },
       };
 
-      console.log(`⚠️ [AttendanceEventListener] Sending notification DTO:`, JSON.stringify(dto, null, 2));
-
-      await this.sendNotificationUseCase.execute(dto);
+      console.log(`⚠️ [AttendanceEventListener] Sending notification to employee:`, JSON.stringify(employeeDto, null, 2));
+      await this.sendNotificationUseCase.execute(employeeDto);
       console.log(`✅ [AttendanceEventListener] Location violation alert sent to employee ${event.employeeId}`);
+
+      // 💼 2. Send notification to MANAGER (WEB) if exists
+      if (event.managerId) {
+        console.log(`💼 [AttendanceEventListener] Preparing notification for manager (employee_id: ${event.managerId})`);
+        console.log(`💼 [AttendanceEventListener] Manager: ${event.managerName} | Employee: ${event.employeeName}`);
+        
+        const managerDto: SendNotificationDto = {
+          recipientId: event.managerId, // ✅ Manager's employee_id from employees table
+          notificationType: NotificationType.ATTENDANCE_VIOLATION,
+          priority: Priority.HIGH,
+          title: `⚠️ Employee ${event.employeeName} is Out of Office Area`,
+          message: `Employee ${event.employeeName} (${event.employeeCode}) is currently outside the office area (${distance}m away). Department: ${event.departmentName || 'N/A'}. Please check and take action.`,
+          channels: [ChannelType.WEB], // ✅ Send via WEB channel only for manager
+          metadata: {
+            eventType: 'attendance.location_out_of_range',
+            shiftId: event.shiftId,
+            employeeId: event.employeeId,
+            employeeCode: event.employeeCode,
+            employeeName: event.employeeName,
+            departmentId: event.departmentId,
+            departmentName: event.departmentName,
+            distance: distance,
+            latitude: event.latitude,
+            longitude: event.longitude,
+            timestamp: event.timestamp,
+            notificationTarget: 'MANAGER',
+          },
+        };
+
+        console.log(`💼 [AttendanceEventListener] Sending notification to manager:`, JSON.stringify(managerDto, null, 2));
+        await this.sendNotificationUseCase.execute(managerDto);
+        console.log(`✅ [AttendanceEventListener] Location violation alert sent to manager ${event.managerName} (employee_id: ${event.managerId})`);
+      } else {
+        console.log(`⚠️ [AttendanceEventListener] No manager found for employee ${event.employeeId} - skipping manager notification`);
+      }
     } catch (error) {
       console.error('❌ [AttendanceEventListener] Error handling location out of range:', error);
       console.error('❌ [AttendanceEventListener] Error stack:', error.stack);
