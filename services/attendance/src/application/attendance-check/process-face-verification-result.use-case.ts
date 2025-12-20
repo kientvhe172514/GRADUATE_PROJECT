@@ -129,7 +129,7 @@ export class ProcessFaceVerificationResultUseCase {
         } else if (checkType === 'check_out') {
           // ✅ VALIDATE GPS ROUNDS BEFORE ALLOWING CHECK-OUT
           if (shift.presence_verification_required) {
-            // Query presence_verification_rounds to calculate VALID percentage
+            // Query presence_verification_rounds to get completed rounds data
             const gpsRounds = await this.dataSource.query(
               `
               SELECT 
@@ -141,14 +141,14 @@ export class ProcessFaceVerificationResultUseCase {
               [attendanceCheck.shift_id],
             );
 
-            const totalRounds = parseInt(gpsRounds[0]?.total_rounds || '0');
+            const roundsCompleted = parseInt(gpsRounds[0]?.total_rounds || '0');
             const validRounds = parseInt(gpsRounds[0]?.valid_rounds || '0');
             const roundsRequired =
               shift.presence_verification_rounds_required || 0;
 
             // Calculate % GPS VALID (số lần GPS hợp lệ / tổng số lần check)
             const gpsValidPercentage =
-              totalRounds > 0 ? (validRounds / totalRounds) * 100 : 0;
+              roundsCompleted > 0 ? (validRounds / roundsCompleted) * 100 : 0;
 
             // ✅ Query min_gps_verification_percentage from config table
             const configResult = await this.dataSource.query(
@@ -174,82 +174,98 @@ export class ProcessFaceVerificationResultUseCase {
             this.logger.log(
               `🔍 GPS Validation for checkout (shift_id=${attendanceCheck.shift_id}):
                - Rounds required: ${roundsRequired}
-               - Total checks done: ${totalRounds}
+               - Rounds completed: ${roundsCompleted}
                - Valid checks: ${validRounds}
                - Valid percentage: ${gpsValidPercentage.toFixed(1)}%
                - Required minimum valid %: ${minValidPercentage}%`,
             );
 
-            // ✅ CHECK 1: Phải check ĐỦ SỐ LẦN
-            if (totalRounds < roundsRequired) {
+            // ✅ CHECK 1: Phải hoàn thành ĐỦ SỐ ROUNDS YÊU CẦU
+            if (roundsCompleted < roundsRequired) {
+              // ❌ MARK SHIFT AS ABSENT - Chưa đủ số rounds GPS check
+              await this.employeeShiftRepository.update(
+                attendanceCheck.shift_id,
+                {
+                  status: 'ABSENT',
+                  notes: `Vắng mặt: Không đủ số lần GPS verification. Đã hoàn thành: ${roundsCompleted}/${roundsRequired} rounds. Nhân viên có thể đã rời khỏi văn phòng trước khi hoàn thành ca làm việc.`,
+                },
+              );
+
               await this.attendanceCheckRepository.updateFaceVerification(
                 event.attendance_check_id,
                 {
                   face_verified: finalVerified,
                   face_confidence: event.face_confidence,
                   is_valid: false,
-                  notes: `Cannot check-out: Insufficient GPS checks (${totalRounds}/${roundsRequired}). Please wait for more GPS checks.`,
+                  notes: `Check-out rejected: Insufficient GPS rounds completed (${roundsCompleted}/${roundsRequired}). Shift marked as ABSENT.`,
                 },
               );
 
               this.logger.warn(
-                `❌ CHECK-OUT REJECTED for shift ${attendanceCheck.shift_id}: Insufficient GPS checks (${totalRounds}/${roundsRequired})`,
+                `❌ SHIFT MARKED ABSENT (shift_id=${attendanceCheck.shift_id}): Insufficient GPS rounds (${roundsCompleted}/${roundsRequired})`,
               );
 
-              this.notificationClient.emit('attendance.check_out.rejected', {
+              this.notificationClient.emit('attendance.shift.marked_absent', {
                 employeeId: event.employee_id,
                 attendanceCheckId: event.attendance_check_id,
                 shiftId: attendanceCheck.shift_id,
-                reason: 'GPS_CHECKS_INCOMPLETE',
-                totalRounds,
-                validRounds,
+                reason: 'GPS_ROUNDS_INCOMPLETE',
+                roundsCompleted,
                 roundsRequired,
-                gpsValidPercentage: gpsValidPercentage.toFixed(1),
-                minValidPercentageRequired: minValidPercentage,
-                message: `Không thể checkout: Chưa đủ số lần GPS check. Đã check: ${totalRounds}/${roundsRequired} lần. Vui lòng đợi hệ thống check GPS thêm.`,
+                message: `Ca làm việc của bạn đã bị đánh dấu VẮNG MẶT do không đủ số lần xác minh GPS. Đã hoàn thành: ${roundsCompleted}/${roundsRequired} lần. Vui lòng liên hệ HR để được hỗ trợ.`,
               });
 
-              return; // ❌ STOP
+              return; // ❌ STOP - Don't allow checkout
             }
 
-            // ✅ CHECK 2: TRONG SỐ LẦN ĐÃ CHECK phải có ít nhất X% hợp lệ
+            // ✅ CHECK 2: TRONG SỐ ROUNDS ĐÃ HOÀN THÀNH phải có ít nhất X% hợp lệ
             if (gpsValidPercentage < minValidPercentage) {
+              // ❌ MARK SHIFT AS ABSENT - Tỷ lệ GPS hợp lệ không đạt
+              await this.employeeShiftRepository.update(
+                attendanceCheck.shift_id,
+                {
+                  status: 'ABSENT',
+                  notes: `Vắng mặt: Tỷ lệ GPS hợp lệ không đạt yêu cầu. Đã check: ${roundsCompleted} lần, hợp lệ: ${validRounds} lần (${gpsValidPercentage.toFixed(1)}%). Yêu cầu tối thiểu: ${minValidPercentage}%. Nhân viên có thể đã không ở văn phòng trong suốt ca làm việc.`,
+                },
+              );
+
               await this.attendanceCheckRepository.updateFaceVerification(
                 event.attendance_check_id,
                 {
                   face_verified: finalVerified,
                   face_confidence: event.face_confidence,
                   is_valid: false,
-                  notes: `Cannot check-out: GPS valid percentage too low (${validRounds}/${totalRounds} = ${gpsValidPercentage.toFixed(1)}%). Required: ${minValidPercentage}%`,
+                  notes: `Check-out rejected: GPS valid percentage too low (${validRounds}/${roundsCompleted} = ${gpsValidPercentage.toFixed(1)}%). Required: ${minValidPercentage}%. Shift marked as ABSENT.`,
                 },
               );
 
               this.logger.warn(
-                `❌ CHECK-OUT REJECTED for shift ${attendanceCheck.shift_id}: GPS valid percentage insufficient (${gpsValidPercentage.toFixed(1)}% < ${minValidPercentage}%)`,
+                `❌ SHIFT MARKED ABSENT (shift_id=${attendanceCheck.shift_id}): GPS valid percentage insufficient (${gpsValidPercentage.toFixed(1)}% < ${minValidPercentage}%)`,
               );
 
-              this.notificationClient.emit('attendance.check_out.rejected', {
+              this.notificationClient.emit('attendance.shift.marked_absent', {
                 employeeId: event.employee_id,
                 attendanceCheckId: event.attendance_check_id,
                 shiftId: attendanceCheck.shift_id,
                 reason: 'GPS_VALID_PERCENTAGE_TOO_LOW',
-                totalRounds,
+                roundsCompleted,
                 validRounds,
                 roundsRequired,
                 gpsValidPercentage: gpsValidPercentage.toFixed(1),
                 minValidPercentageRequired: minValidPercentage,
-                message: `Không thể checkout: Tỷ lệ GPS hợp lệ không đủ. Đã check: ${totalRounds} lần, hợp lệ: ${validRounds} lần (${gpsValidPercentage.toFixed(1)}%). Yêu cầu: ${minValidPercentage}%`,
+                message: `Ca làm việc của bạn đã bị đánh dấu VẮNG MẶT do tỷ lệ GPS hợp lệ không đạt. Đã check: ${roundsCompleted} lần, hợp lệ: ${validRounds} lần (${gpsValidPercentage.toFixed(1)}%). Yêu cầu: ${minValidPercentage}%. Vui lòng liên hệ HR để được hỗ trợ.`,
               });
 
-              return; // ❌ STOP
+              return; // ❌ STOP - Don't allow checkout
             }
 
-            // ✅ PASSED ALL CHECKS
+            // ✅ PASSED ALL GPS CHECKS
             this.logger.log(
-              `✅ GPS Validation PASSED: ${totalRounds}/${roundsRequired} checks, ${gpsValidPercentage.toFixed(1)}% valid (>= ${minValidPercentage}%)`,
+              `✅ GPS Validation PASSED: ${roundsCompleted}/${roundsRequired} rounds completed, ${validRounds} valid (${gpsValidPercentage.toFixed(1)}% >= ${minValidPercentage}%)`,
             );
           }
           
+          // ✅ GPS validation passed (or not required) → Now set COMPLETED and calculate work hours
           if (shift.check_in_time) {
             // Calculate work hours and overtime based on scheduled shift duration
             const { actualWorkHours, overtimeHours } =
@@ -268,11 +284,10 @@ export class ProcessFaceVerificationResultUseCase {
               shift.scheduled_end_time,
             );
 
+            // ✅ NOW set status to COMPLETED (after GPS validation passed)
             await this.employeeShiftRepository.update(
               attendanceCheck.shift_id,
               {
-                check_out_time: event.verification_time,
-                check_out_record_id: event.attendance_check_id,
                 work_hours: actualWorkHours,
                 overtime_hours: overtimeHours,
                 early_leave_minutes: earlyLeaveMinutes,

@@ -10,7 +10,7 @@ import { DataSource } from 'typeorm';
  *
  * LOGIC:
  * 1. Find shifts with status = ABSENT but have check_in_time (late check-in happened after marking)
- * 2. Revert status from ABSENT to IN_PROGRESS or COMPLETED (depending on check_out_time)
+ * 2. Revert status from ABSENT to IN_PROGRESS (do NOT auto-set COMPLETED - requires GPS validation)
  * 3. Create audit log / edit log to track the change
  * 4. Update violation status to RESOLVED_LATE_CHECKIN
  *
@@ -18,6 +18,8 @@ import { DataSource } from 'typeorm';
  * - Employee may check in after the absent marker job ran
  * - We need to reconcile the system state to reflect actual attendance
  * - Provides audit trail for late arrivals vs true absences
+ *
+ * ⚠️ NOTE: Status COMPLETED is only set after GPS validation passes in process-face-verification-result
  */
 @Injectable()
 export class AttendanceReconciliationProcessor {
@@ -105,17 +107,20 @@ export class AttendanceReconciliationProcessor {
 
   /**
    * Reconcile a single shift: update status and create audit log
+   * ⚠️ NOTE: Only reconcile shifts that were marked ABSENT due to late check-in
+   * Do NOT auto-set COMPLETED here - must validate GPS rounds first
    */
   private async reconcileShift(shift: any): Promise<void> {
-    // Determine new status based on check_out_time
-    const newStatus = shift.check_out_time ? 'COMPLETED' : 'IN_PROGRESS';
+    // ✅ If has check-in but still ABSENT → Change to IN_PROGRESS
+    // ❌ Do NOT auto-set COMPLETED here - need GPS validation
+    const newStatus = 'IN_PROGRESS';
 
     await this.dataSource.query(
       `
       UPDATE employee_shifts
       SET 
         status = $1::VARCHAR,
-        notes = COALESCE(notes, '') || ' [Reconciled from ABSENT to ' || $1::VARCHAR || ' due to late check-in at ' || NOW() || ']',
+        notes = COALESCE(notes, '') || ' [Reconciled from ABSENT to ' || $1::VARCHAR || ' due to late check-in detected at ' || NOW() || ']',
         updated_at = NOW()
       WHERE id = $2
     `,

@@ -103,10 +103,12 @@ export class UpdateEmployeeShiftUseCase {
       throw new Error('Cannot check-out without check-in');
     }
 
+    // ⚠️ DON'T set status to COMPLETED here
+    // Will be set ONLY after GPS validation passes in process-face-verification-result
     await this.employeeShiftRepository.update(command.shift_id, {
       check_out_time: command.check_out_time,
       check_out_record_id: command.check_record_id,
-      status: 'COMPLETED',
+      // status will be updated after GPS validation
     });
 
     // Calculate work hours

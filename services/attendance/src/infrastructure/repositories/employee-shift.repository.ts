@@ -184,7 +184,7 @@ export class EmployeeShiftRepository {
     const [currentHour, currentMinute] = currentTime.split(':').map(Number);
     const currentMinutes = currentHour * 60 + currentMinute;
 
-    let candidateShifts: Array<{
+    const candidateShifts: Array<{
       shift: EmployeeShiftSchema;
       priority: number;
       diff: number;
@@ -227,29 +227,26 @@ export class EmployeeShiftRepository {
 
       // ✅ BUSINESS RULES:
       // Check-in: 2h before to 1h after shift start (e.g., 8h shift → 6h-9h)
-      // Check-out: 30min before to 1h after shift end (e.g., 12h end → 11:30-13h)
+      // Check-out: Allow anytime after shift start for completed shifts
 
       const checkInStart = startMinutes - 120; // 2h before start
       const checkInEnd = startMinutes + 60; // 1h after start
-      const checkOutStart = endMinutes - 30; // 30min before end
-      const checkOutEnd = endMinutes + 60; // 1h after end
 
-      // Case 1: Shift has check-in but no check-out → Priority for check-out
+      // ⭐ PRIORITY 1: Shift đã check-in nhưng chưa check-out → Highest priority for check-out
+      // Ưu tiên checkout ca này bất kể thời điểm hiện tại, miễn là đã check-in
       if (shift.check_in_time && !shift.check_out_time) {
-        if (
-          adjustedCurrentMinutes >= checkOutStart &&
-          adjustedCurrentMinutes <= checkOutEnd
-        ) {
+        // Allow checkout anytime after check-in, with extended grace period
+        if (adjustedCurrentMinutes >= startMinutes) {
           candidateShifts.push({
             shift,
-            priority: 100, // Highest priority - continue existing shift for check-out
+            priority: 100, // Highest priority - MUST complete current shift first
             diff: Math.abs(adjustedCurrentMinutes - endMinutes),
           });
         }
-        continue; // Don't consider for check-in
+        continue; // Don't consider this shift for check-in
       }
 
-      // Case 2: Shift has NO check-in → Available for check-in
+      // ⭐ PRIORITY 2: Shift chưa có check-in → Available for check-in
       if (!shift.check_in_time) {
         if (
           adjustedCurrentMinutes >= checkInStart &&
