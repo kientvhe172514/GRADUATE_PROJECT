@@ -215,6 +215,25 @@ export class ValidateEmployeeLocationUseCase {
       // Extract employee from wrapped response: { status, statusCode, message, data }
       const employee = response?.data;
 
+      // 🔧 DEBUG: Log full response to diagnose issue
+      this.logger.debug(
+        `🔍 [RPC] Employee Service response for employee ${employeeId}:`,
+        JSON.stringify({
+          hasResponse: !!response,
+          hasData: !!employee,
+          hasDepartment: !!(employee?.department),
+          departmentId: employee?.department_id,
+          department: employee?.department
+            ? {
+                id: employee.department.id,
+                name: employee.department.department_name,
+                office_latitude: employee.department.office_latitude,
+                office_longitude: employee.department.office_longitude,
+              }
+            : null,
+        }),
+      );
+
       if (
         employee &&
         employee.department &&
@@ -228,8 +247,10 @@ export class ValidateEmployeeLocationUseCase {
             `[${office_latitude}, ${office_longitude}]`,
         );
       } else {
-        this.logger.debug(
-          `⚠️ No office coords from Employee Service, using config defaults`,
+        this.logger.warn(
+          `⚠️ No office coords from Employee Service for employee ${employeeId}. ` +
+            `Reason: ${!response ? 'No response' : !employee ? 'No employee data' : !employee.department ? 'No department' : 'No office coordinates'}. ` +
+            `Using config defaults: [${office_latitude}, ${office_longitude}]`,
         );
       }
     } catch (error) {

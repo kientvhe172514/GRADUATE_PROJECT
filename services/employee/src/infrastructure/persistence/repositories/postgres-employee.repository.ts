@@ -33,13 +33,41 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
 
   async findById(id: number): Promise<Employee | null> {
     // Manual left join with department to avoid foreign key constraint issues
-    const entity = await this.repository
-      .createQueryBuilder('employee')
-      .leftJoinAndSelect('Department', 'department', 'department.id = employee.department_id')
-      .where('employee.id = :id', { id })
-      .getOne();
+    const result = await this.repository.query(`
+      SELECT 
+        e.*,
+        d.id as department_id_rel,
+        d.department_code,
+        d.department_name,
+        d.office_address,
+        d.office_latitude,
+        d.office_longitude,
+        d.office_radius_meters
+      FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
+      WHERE e.id = $1
+    `, [id]);
     
-    return entity ? EmployeeMapper.toDomain(entity) : null;
+    if (!result || result.length === 0) return null;
+    
+    const row = result[0];
+    const employeeEntity = new EmployeeEntity();
+    Object.assign(employeeEntity, row);
+    
+    // Map department relation if exists
+    if (row.department_id) {
+      employeeEntity.department = {
+        id: row.department_id_rel,
+        department_code: row.department_code,
+        department_name: row.department_name,
+        office_address: row.office_address,
+        office_latitude: row.office_latitude,
+        office_longitude: row.office_longitude,
+        office_radius_meters: row.office_radius_meters,
+      };
+    }
+    
+    return EmployeeMapper.toDomain(employeeEntity);
   }
 
   async update(id: number, employee: Partial<Employee>): Promise<Employee> {
