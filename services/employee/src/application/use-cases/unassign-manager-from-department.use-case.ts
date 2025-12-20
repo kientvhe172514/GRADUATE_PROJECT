@@ -34,21 +34,20 @@ export class UnassignManagerFromDepartmentUseCase {
       );
     }
 
-    // Update department - set manager_id to undefined to remove it
+    // Update department - set manager_id to undefined (will be stored as NULL in DB)
     const updatedDepartment = await this.departmentRepository.update(departmentId, {
-      ...department,
       manager_id: undefined,
       updated_at: new Date(),
     });
 
-    // Also clear manager's current department (set employee.department_id to null)
-    // Safe-guard: only attempt if there was a manager
+    // Also clear manager's department assignment (set employee.department_id to undefined -> NULL)
+    // This removes the manager from the department entirely
     if (department.manager_id) {
       const manager = await this.employeeRepository.findById(department.manager_id);
-      if (manager) {
+      if (manager && manager.department_id === departmentId) {
+        // Only clear if manager's current department matches the one being unassigned
         await this.employeeRepository.update(department.manager_id, {
-          ...manager,
-          department_id: undefined,
+          department_id: undefined, // Employee repo handles undefined -> null conversion
           updated_at: new Date(),
         });
       }

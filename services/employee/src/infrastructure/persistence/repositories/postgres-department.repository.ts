@@ -30,7 +30,31 @@ export class PostgresDepartmentRepository implements DepartmentRepositoryPort {
   }
 
   async update(id: number, department: Partial<Department>): Promise<Department> {
-    await this.repository.update(id, { ...department, updated_at: new Date() });
+    const updateFields: any = { updated_at: new Date() };
+
+    // Copy defined fields
+    if (department.department_code !== undefined) updateFields.department_code = department.department_code;
+    if (department.department_name !== undefined) updateFields.department_name = department.department_name;
+    if (department.description !== undefined) updateFields.description = department.description;
+    if (department.parent_department_id !== undefined) updateFields.parent_department_id = department.parent_department_id;
+    if (department.level !== undefined) updateFields.level = department.level;
+    if (department.path !== undefined) updateFields.path = department.path;
+    if (department.manager_id !== undefined) updateFields.manager_id = department.manager_id;
+    if (department.office_address !== undefined) updateFields.office_address = department.office_address;
+    if (department.office_latitude !== undefined) updateFields.office_latitude = department.office_latitude;
+    if (department.office_longitude !== undefined) updateFields.office_longitude = department.office_longitude;
+    if (department.office_radius_meters !== undefined) updateFields.office_radius_meters = department.office_radius_meters;
+    if (department.status !== undefined) updateFields.status = department.status;
+
+    // Handle null assignment for nullable fields (when explicitly passed as undefined with 'in' check)
+    if ('manager_id' in department && department.manager_id === undefined) {
+      updateFields.manager_id = null;
+    }
+    if ('parent_department_id' in department && department.parent_department_id === undefined) {
+      updateFields.parent_department_id = null;
+    }
+
+    await this.repository.update(id, updateFields);
     const updated = await this.repository.findOne({ where: { id } });
     return DepartmentMapper.toDomain(updated!);
   }
