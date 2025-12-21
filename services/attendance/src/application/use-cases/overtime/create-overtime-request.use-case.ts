@@ -11,27 +11,29 @@ import { TypeOrmEmployeeWorkScheduleRepository } from '../../../infrastructure/r
 import { CreateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
- * Parse datetime string - IGNORE timezone, extract time as-is
- * Frontend sends: "2025-12-22T13:20:00.000Z" 
- * Backend treats as: 13:20 (ignore the Z suffix, just read the numbers)
+ * Parse datetime string - Keep as UTC for comparison
+ * Frontend sends: "2025-12-22T02:36:00.000Z" (UTC time to compare with shifts)
+ * Backend extracts: 02:36 and creates UTC Date object
+ * All comparisons happen in UTC timezone
  */
 function parseDateTime(dateTimeStr: string): Date {
-  // Extract time parts from ISO string (ignore timezone)
-  // "2025-12-22T13:20:00.000Z" -> year=2025, month=12, day=22, hour=13, minute=20
+  // Extract time parts from ISO string
   const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
   if (!match) {
     throw new Error(`Invalid datetime format: ${dateTimeStr}`);
   }
   
   const [, year, month, day, hour, minute, second] = match;
-  // Create Date object with extracted time (no timezone conversion)
+  // Create UTC Date object (use Date.UTC)
   return new Date(
-    parseInt(year),
-    parseInt(month) - 1, // JavaScript months are 0-indexed
-    parseInt(day),
-    parseInt(hour),
-    parseInt(minute),
-    parseInt(second),
+    Date.UTC(
+      parseInt(year),
+      parseInt(month) - 1, // JavaScript months are 0-indexed
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second),
+    )
   );
 }
 
@@ -75,7 +77,7 @@ export class CreateOvertimeRequestUseCase {
     );
 
     if (existingShift) {
-      // Parse scheduled shift times
+      // Parse scheduled shift times and create UTC Date objects for comparison
       const [startHour, startMin] = existingShift.scheduled_start_time
         .split(':')
         .map(Number);
@@ -83,10 +85,23 @@ export class CreateOvertimeRequestUseCase {
         .split(':')
         .map(Number);
 
-      const shiftStart = new Date(overtimeDate);
-      shiftStart.setHours(startHour, startMin, 0, 0);
-      const shiftEnd = new Date(overtimeDate);
-      shiftEnd.setHours(endHour, endMin, 0, 0);
+      // Create UTC Date objects for shift times (same date as overtime)
+      const shiftStart = new Date(Date.UTC(
+        overtimeDate.getUTCFullYear(),
+        overtimeDate.getUTCMonth(),
+        overtimeDate.getUTCDate(),
+        startHour,
+        startMin,
+        0,
+      ));
+      const shiftEnd = new Date(Date.UTC(
+        overtimeDate.getUTCFullYear(),
+        overtimeDate.getUTCMonth(),
+        overtimeDate.getUTCDate(),
+        endHour,
+        endMin,
+        0,
+      ));
 
       // Check if overtime time overlaps with regular shift
       const hasOverlap =
@@ -124,13 +139,24 @@ export class CreateOvertimeRequestUseCase {
           const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
           const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
-          // Work schedule times are stored as TIME in Vietnam timezone (e.g., '13:30:00')
-          // Build full datetime using the overtime date
-          const wsStart = new Date(overtimeDate);
-          wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
+          // Create UTC Date objects for work schedule times
+          let wsStart = new Date(Date.UTC(
+            overtimeDate.getUTCFullYear(),
+            overtimeDate.getUTCMonth(),
+            overtimeDate.getUTCDate(),
+            wsStartHour,
+            wsStartMin,
+            0,
+          ));
           
-          let wsEnd = new Date(overtimeDate);
-          wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
+          let wsEnd = new Date(Date.UTC(
+            overtimeDate.getUTCFullYear(),
+            overtimeDate.getUTCMonth(),
+            overtimeDate.getUTCDate(),
+            wsEndHour,
+            wsEndMin,
+            0,
+          ));
 
           // If end_time is earlier than start_time -> overnight shift
           if (wsEnd <= wsStart) {
@@ -182,8 +208,9 @@ export class CreateOvertimeRequestUseCase {
 
         // Check OVERTIME type overrides
         if (override.type === 'OVERTIME' && override.overtime_start_time && override.overtime_end_time) {
-          const overrideStart = new Date(`${override.from_date}T${override.overtime_start_time}`);
-          const overrideEnd = new Date(`${override.from_date}T${override.overtime_end_time}`);
+          // Parse override times using the same UTC approach
+          const overrideStart = parseDateTime(`${override.from_date}T${override.overtime_start_time}`);
+          const overrideEnd = parseDateTime(`${override.from_date}T${override.overtime_end_time}`);
 
           const hasOverlap = (
             (overtimeStart >= overrideStart && overtimeStart < overrideEnd) ||
@@ -215,13 +242,24 @@ export class CreateOvertimeRequestUseCase {
             const [osStartHour, osStartMin] = overrideSchedule.start_time.split(':').map(Number);
             const [osEndHour, osEndMin] = overrideSchedule.end_time.split(':').map(Number);
 
-            // Work schedule times are in Vietnam timezone
-            // Build Date objects in Vietnam time for comparison
-            const osStart = new Date(overtimeDate);
-            osStart.setHours(osStartHour, osStartMin, 0, 0);
+            // Create UTC Date objects for override schedule times
+            const osStart = new Date(Date.UTC(
+              overtimeDate.getUTCFullYear(),
+              overtimeDate.getUTCMonth(),
+              overtimeDate.getUTCDate(),
+              osStartHour,
+              osStartMin,
+              0,
+            ));
             
-            let osEnd = new Date(overtimeDate);
-            osEnd.setHours(osEndHour, osEndMin, 0, 0);
+            let osEnd = new Date(Date.UTC(
+              overtimeDate.getUTCFullYear(),
+              overtimeDate.getUTCMonth(),
+              overtimeDate.getUTCDate(),
+              osEndHour,
+              osEndMin,
+              0,
+            ));
 
             // If end_time is earlier than start_time -> overnight shift
             if (osEnd <= osStart) {

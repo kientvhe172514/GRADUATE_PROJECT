@@ -11,27 +11,29 @@ import { TypeOrmEmployeeWorkScheduleRepository } from '../../../infrastructure/r
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
- * Parse datetime string - IGNORE timezone, extract time as-is
- * Frontend sends: "2025-12-22T13:20:00.000Z" 
- * Backend treats as: 13:20 (ignore the Z suffix, just read the numbers)
+ * Parse datetime string - Keep as UTC for comparison
+ * Frontend sends: "2025-12-22T02:36:00.000Z" (UTC time to compare with shifts)
+ * Backend extracts: 02:36 and creates UTC Date object
+ * All comparisons happen in UTC timezone
  */
 function parseDateTime(dateTimeStr: string): Date {
-  // Extract time parts from ISO string (ignore timezone)
-  // "2025-12-22T13:20:00.000Z" -> year=2025, month=12, day=22, hour=13, minute=20
+  // Extract time parts from ISO string
   const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
   if (!match) {
     throw new Error(`Invalid datetime format: ${dateTimeStr}`);
   }
   
   const [, year, month, day, hour, minute, second] = match;
-  // Create Date object with extracted time (no timezone conversion)
+  // Create UTC Date object (use Date.UTC)
   return new Date(
-    parseInt(year),
-    parseInt(month) - 1, // JavaScript months are 0-indexed
-    parseInt(day),
-    parseInt(hour),
-    parseInt(minute),
-    parseInt(second),
+    Date.UTC(
+      parseInt(year),
+      parseInt(month) - 1, // JavaScript months are 0-indexed
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second),
+    )
   );
 }
 
@@ -120,7 +122,7 @@ export class UpdateOvertimeRequestUseCase {
         );
 
       if (existingShift) {
-        // Parse scheduled shift times
+        // Parse scheduled shift times and create UTC Date objects for comparison
         const [startHour, startMin] = existingShift.scheduled_start_time
           .split(':')
           .map(Number);
@@ -128,13 +130,26 @@ export class UpdateOvertimeRequestUseCase {
           .split(':')
           .map(Number);
 
-        const shiftStart = new Date(overtimeDate);
-        shiftStart.setHours(startHour, startMin, 0, 0);
-        const shiftEnd = new Date(overtimeDate);
-        shiftEnd.setHours(endHour, endMin, 0, 0);
+        // Create UTC Date objects for shift times (same date as overtime)
+        const shiftStart = new Date(Date.UTC(
+          overtimeDate.getUTCFullYear(),
+          overtimeDate.getUTCMonth(),
+          overtimeDate.getUTCDate(),
+          startHour,
+          startMin,
+          0,
+        ));
+        const shiftEnd = new Date(Date.UTC(
+          overtimeDate.getUTCFullYear(),
+          overtimeDate.getUTCMonth(),
+          overtimeDate.getUTCDate(),
+          endHour,
+          endMin,
+          0,
+        ));
 
-        console.log(`⏰ [UPDATE-OVERTIME] Shift check - shiftStart: ${shiftStart.toISOString()} (${shiftStart.toString()}), shiftEnd: ${shiftEnd.toISOString()} (${shiftEnd.toString()})`);
-        console.log(`⏰ [UPDATE-OVERTIME] Overtime - newStartTime: ${newStartTime.toISOString()} (${newStartTime.toString()}), newEndTime: ${newEndTime.toISOString()} (${newEndTime.toString()})`);
+        console.log(`⏰ [UPDATE-OVERTIME] Shift check - shiftStart: ${shiftStart.toISOString()}, shiftEnd: ${shiftEnd.toISOString()}`);
+        console.log(`⏰ [UPDATE-OVERTIME] Overtime - newStartTime: ${newStartTime.toISOString()}, newEndTime: ${newEndTime.toISOString()}`);
 
         // Check if overtime time overlaps with regular shift
         const hasOverlap =
