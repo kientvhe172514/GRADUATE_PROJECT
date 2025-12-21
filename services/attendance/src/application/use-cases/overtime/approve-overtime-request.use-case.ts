@@ -93,6 +93,15 @@ export class ApproveOvertimeRequestUseCase {
         : new Date(request.overtime_date);
     overtimeDate.setHours(0, 0, 0, 0);
 
+    // ✅ NEW: Check if overtime date has already passed
+    if (overtimeDate < today) {
+      throw new BusinessException(
+        ErrorCodes.BAD_REQUEST,
+        `Cannot approve overtime request: overtime date has already passed (${overtimeDate.toISOString().split('T')[0]}). Past overtime requests cannot be approved.`,
+        400,
+      );
+    }
+
     const isToday = overtimeDate.getTime() === today.getTime();
     const isFuture = overtimeDate > today;
 

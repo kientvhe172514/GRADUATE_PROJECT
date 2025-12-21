@@ -58,6 +58,23 @@ export class ApproveLeaveUseCase {
       );
     }
 
+    // 3.1. ✅ NEW: Check if leave period has already passed
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+    
+    const endDate = leaveRecord.end_date instanceof Date 
+      ? leaveRecord.end_date 
+      : new Date(leaveRecord.end_date);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (endDate < today) {
+      throw new BusinessException(
+        ErrorCodes.BAD_REQUEST,
+        `Cannot approve leave request: leave period has already ended (${endDate.toISOString().split('T')[0]}). Past leave requests cannot be approved.`,
+        400,
+      );
+    }
+
     // 4. Get leave type to check if it deducts from balance
     const leaveTypeInfo = await this.leaveTypeRepository.findById(leaveRecord.leave_type_id);
 
