@@ -250,7 +250,14 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
       // Add joined fields
       (employee as any).department_name = row.department_name;
       (employee as any).position_name = row.position_name;
-      (employee as any).suggested_role = row.suggested_role;
+      // Create position object if position_id exists
+      if (row.position_id) {
+        (employee as any).position = {
+          id: row.position_id,
+          position_name: row.position_name,
+          suggested_role: row.suggested_role,
+        };
+      }
       return employee;
     });
 
