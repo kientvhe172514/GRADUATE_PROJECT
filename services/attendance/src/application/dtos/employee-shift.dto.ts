@@ -5,6 +5,7 @@ import {
   EmployeeShift,
   EmployeeShiftProps,
   ShiftStatus,
+  ShiftType,
 } from '../../domain/entities/employee-shift.entity';
 
 export class EmployeeShiftFilterDto {
@@ -97,6 +98,9 @@ export class EmployeeShiftDto {
   @ApiProperty({ enum: ShiftStatus })
   status: ShiftStatus;
 
+  @ApiProperty({ enum: ShiftType, description: 'REGULAR or OVERTIME' })
+  shift_type: ShiftType;
+
   @ApiPropertyOptional()
   notes?: string;
 
@@ -118,6 +122,7 @@ export class EmployeeShiftDto {
     this.late_minutes = props.late_minutes ?? 0;
     this.early_leave_minutes = props.early_leave_minutes ?? 0;
     this.status = props.status ?? ShiftStatus.SCHEDULED;
+    this.shift_type = props.shift_type ?? ShiftType.REGULAR;
     this.notes = props.notes;
   }
 }
