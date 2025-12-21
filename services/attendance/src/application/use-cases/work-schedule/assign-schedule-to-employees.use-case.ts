@@ -80,7 +80,10 @@ export class AssignScheduleToEmployeesUseCase {
       // Filter to only assignments that overlap with new date range
       const overlappingAssignments = existingAssignments.filter(
         (assignment) => {
-          const assignProps = assignment.toJSON();
+          // Handle both domain entity and plain object
+          const assignProps = typeof (assignment as any).toJSON === 'function'
+            ? (assignment as any).toJSON()
+            : assignment;
           const assignStart = assignProps.effective_from;
           const assignEnd = assignProps.effective_to;
           const newStart = effectiveFromDate;
@@ -95,7 +98,10 @@ export class AssignScheduleToEmployeesUseCase {
 
       // For each overlapping assignment, check if work hours conflict
       for (const existing of overlappingAssignments) {
-        const existingProps = existing.toJSON();
+        // Handle both domain entity and plain object
+        const existingProps = typeof (existing as any).toJSON === 'function'
+          ? (existing as any).toJSON()
+          : existing;
         // Allow assigning the same schedule again if time ranges do not overlap.
         // We only block when time ranges overlap regardless of schedule id.
 
