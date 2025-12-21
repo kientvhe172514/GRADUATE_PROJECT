@@ -41,17 +41,26 @@ export class GetEmployeeShiftCalendarUseCase {
       this.logger.log(`✅ Loaded ${employeeMap.size} total employees`);
 
       // Step 1.5: Filter out management roles using position.suggested_role
-      // Exclude: DEPARTMENT_HEAD, HR, ADMIN (only show regular EMPLOYEE)
-      const excludedSuggestedRoles = ['DEPARTMENT_HEAD', 'HR', 'ADMIN'];
+      // Exclude: DEPARTMENT_MANAGER, HR_MANAGER, ADMIN (only show regular EMPLOYEE)
+      const excludedSuggestedRoles = ['DEPARTMENT_MANAGER', 'HR_MANAGER', 'ADMIN', 'DEPARTMENT_HEAD', 'HR'];
+      
+      this.logger.log(`🔍 Starting position filter. Total employees: ${employeeMap.size}`);
       
       const employeeFilteredByPosition = Array.from(employeeMap.entries())
-        .filter(([_, emp]) => {
+        .filter(([id, emp]) => {
           // If no position data, include by default
           if (!emp.position || !emp.position.suggested_role) {
+            this.logger.debug(`Employee ${id} (${emp.full_name}): No position data, INCLUDED`);
             return true;
           }
+          
+          const isExcluded = excludedSuggestedRoles.includes(emp.position.suggested_role);
+          this.logger.debug(
+            `Employee ${id} (${emp.full_name}): suggested_role=${emp.position.suggested_role}, ${isExcluded ? 'EXCLUDED' : 'INCLUDED'}`
+          );
+          
           // Exclude management roles
-          return !excludedSuggestedRoles.includes(emp.position.suggested_role);
+          return !isExcluded;
         });
       
       this.logger.log(
