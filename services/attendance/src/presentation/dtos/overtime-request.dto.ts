@@ -81,6 +81,13 @@ export class OvertimeQueryDto {
   @IsEnum(OvertimeStatus)
   status?: string;
 
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  department_id?: number;
+
   @ApiPropertyOptional({ example: 10 })
   @IsOptional()
   @IsNumber()

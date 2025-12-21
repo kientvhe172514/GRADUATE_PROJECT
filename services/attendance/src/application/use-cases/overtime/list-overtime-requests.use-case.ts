@@ -64,11 +64,11 @@ export class ListOvertimeRequestsUseCase {
         employee_code: employee?.employee_code ?? null,
         employee_name: employee?.full_name ?? null,
         employee_email: employee?.email ?? null,
-        department_id: employee?.department_id ?? null,
+        department_id: employee?.department_id ? Number(employee.department_id) : null,
       };
     });
 
-    // ✅ NEW: Filter by department_id if provided
+    // ✅ Filter by department_id if provided
     if (query.department_id) {
       enrichedRequests = enrichedRequests.filter(
         (request) => request.department_id === query.department_id,
