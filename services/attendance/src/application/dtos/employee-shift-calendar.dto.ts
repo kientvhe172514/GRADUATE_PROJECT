@@ -41,6 +41,23 @@ export class EmployeeShiftCalendarQueryDto {
   employee_name?: string;
 
   @ApiPropertyOptional({
+    type: [String],
+    example: ['EMPLOYEE'],
+    description:
+      'Filter by employee roles. If not provided, returns only EMPLOYEE role (excludes DEPARTMENT_HEAD, HR, ADMIN). ' +
+      'To include all roles, pass all role values explicitly.',
+  })
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    return [value];
+  })
+  roles?: string[];
+
+  @ApiPropertyOptional({
     example: 20,
     description: 'Number of records per page (default: 20)',
     default: 20,

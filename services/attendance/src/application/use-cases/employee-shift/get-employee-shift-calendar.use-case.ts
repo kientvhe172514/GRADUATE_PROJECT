@@ -40,13 +40,33 @@ export class GetEmployeeShiftCalendarUseCase {
       let employeeMap = await this.employeeServiceClient.getAllEmployees();
       this.logger.log(`✅ Loaded ${employeeMap.size} total employees`);
 
-      let targetEmployeeIds: number[] | undefined;
+      // Step 1.5: Filter by role (default to EMPLOYEE only, exclude management roles)
+      const allowedRoles = query.roles && query.roles.length > 0 
+        ? query.roles 
+        : ['EMPLOYEE']; // Default: only show EMPLOYEE role
+      
+      const roleFilteredEmployeeIds = Array.from(employeeMap.entries())
+        .filter(([_, emp]) => allowedRoles.includes(emp.role || 'EMPLOYEE'))
+        .map(([id, _]) => id);
+      
+      this.logger.log(
+        `🔍 After role filter (${allowedRoles.join(', ')}): ${roleFilteredEmployeeIds.length} employees`,
+      );
+
+      if (roleFilteredEmployeeIds.length === 0) {
+        return ApiResponseDto.success(
+          { data: [], total: 0 },
+          'No employees found with specified roles',
+        );
+      }
+
+      let targetEmployeeIds: number[] | undefined = roleFilteredEmployeeIds;
 
       // Step 2: Apply filters on employees
       if (query.employee_ids && query.employee_ids.length > 0) {
-        // Filter by provided employee IDs
+        // Filter by provided employee IDs (intersect with role-filtered IDs)
         const numericEmployeeIds = query.employee_ids.map((id) => Number(id));
-        targetEmployeeIds = numericEmployeeIds;
+        targetEmployeeIds = numericEmployeeIds.filter(id => roleFilteredEmployeeIds.includes(id));
         
         this.logger.log(`🔍 Filtering by employee_ids: [${targetEmployeeIds.join(', ')}]`);
       }

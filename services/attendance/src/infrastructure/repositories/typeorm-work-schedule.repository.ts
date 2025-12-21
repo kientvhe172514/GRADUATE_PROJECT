@@ -154,9 +154,10 @@ export class TypeOrmEmployeeWorkScheduleRepository
       const domain = EmployeeWorkScheduleMapper.toDomain(schema);
       
       // If has schedule_overrides with override_work_schedule_id, fetch those schedules
-      if (domain.schedule_overrides && Array.isArray(domain.schedule_overrides)) {
-        const enrichedOverrides = await Promise.all(
-          domain.schedule_overrides.map(async (override: any) => {
+      let enrichedOverrides = domain.schedule_overrides || [];
+      if (enrichedOverrides && Array.isArray(enrichedOverrides) && enrichedOverrides.length > 0) {
+        enrichedOverrides = await Promise.all(
+          enrichedOverrides.map(async (override: any) => {
             if (override.type === 'SCHEDULE_CHANGE' && override.override_work_schedule_id) {
               const overrideSchedule = await this.findWorkScheduleById(override.override_work_schedule_id);
               if (overrideSchedule) {
@@ -179,14 +180,19 @@ export class TypeOrmEmployeeWorkScheduleRepository
             return override;
           }),
         );
-        
-        (domain as any).schedule_overrides = enrichedOverrides;
       }
       
-      result.push(domain);
+      // Return plain object with enriched overrides instead of modifying domain entity
+      const plainObject = {
+        ...domain.toJSON(),
+        work_schedule: (domain as any).work_schedule,
+        schedule_overrides: enrichedOverrides,
+      };
+      
+      result.push(plainObject as any);
     }
     
-    return result;
+    return result as any;
   }
 
   async findById(id: number): Promise<EmployeeWorkSchedule | null> {
