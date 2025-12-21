@@ -57,7 +57,7 @@ export class ListOvertimeRequestsUseCase {
     }
 
     // Enrich overtime requests with employee information
-    const enrichedRequests = requests.map((request) => {
+    let enrichedRequests = requests.map((request) => {
       const employee = employeeMap.get(request.employee_id);
       return {
         ...request,
@@ -67,6 +67,16 @@ export class ListOvertimeRequestsUseCase {
         department_id: employee?.department_id ?? null,
       };
     });
+
+    // ✅ NEW: Filter by department_id if provided
+    if (query.department_id) {
+      enrichedRequests = enrichedRequests.filter(
+        (request) => request.department_id === query.department_id,
+      );
+      this.logger.log(
+        `🔍 Filtered to ${enrichedRequests.length} requests for department ${query.department_id}`,
+      );
+    }
 
     return ApiResponseDto.success(
       {

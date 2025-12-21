@@ -288,6 +288,8 @@ export class ProcessFaceVerificationResultUseCase {
             await this.employeeShiftRepository.update(
               attendanceCheck.shift_id,
               {
+                check_out_time: event.verification_time, // ✅ FIX: Update check_out_time
+                check_out_record_id: event.attendance_check_id, // ✅ FIX: Link to attendance check record
                 work_hours: actualWorkHours,
                 overtime_hours: overtimeHours,
                 early_leave_minutes: earlyLeaveMinutes,

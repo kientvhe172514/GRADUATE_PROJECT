@@ -87,6 +87,12 @@ export class OvertimeQueryDto {
   @IsEnum(OvertimeStatus)
   status?: OvertimeStatus;
 
+  @ApiPropertyOptional({ description: 'Department ID filter', example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  department_id?: number;
+
   @ApiPropertyOptional({ example: 20, default: 50 })
   @IsOptional()
   @IsInt()

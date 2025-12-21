@@ -18,6 +18,7 @@ export class GetPendingOvertimeRequestsUseCase {
   async execute(
     limit = 50,
     offset = 0,
+    department_id?: number,
   ): Promise<ApiResponseDto<{ data: any[]; total: number }>> {
     const requests = await this.overtimeRepo.findPendingRequests(limit, offset);
 
@@ -47,7 +48,7 @@ export class GetPendingOvertimeRequestsUseCase {
     }
 
     // Enrich overtime requests with employee information
-    const enrichedRequests = requests.map((request) => {
+    let enrichedRequests = requests.map((request) => {
       const employee = employeeMap.get(request.employee_id);
       return {
         ...request,
@@ -57,6 +58,16 @@ export class GetPendingOvertimeRequestsUseCase {
         department_id: employee?.department_id ?? null,
       };
     });
+
+    // ✅ NEW: Filter by department_id if provided
+    if (department_id) {
+      enrichedRequests = enrichedRequests.filter(
+        (request) => request.department_id === department_id,
+      );
+      this.logger.log(
+        `🔍 Filtered to ${enrichedRequests.length} pending requests for department ${department_id}`,
+      );
+    }
 
     return ApiResponseDto.success(
       { data: enrichedRequests, total: enrichedRequests.length },

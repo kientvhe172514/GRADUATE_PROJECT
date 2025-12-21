@@ -26,7 +26,9 @@ export class GetEmployeesAttendanceReportUseCase {
     const { start_date, end_date } = this.calculateDateRange(query);
 
     // 2. Determine if we can use monthly_summaries (fast path) or need to calculate on-the-fly (slow path)
-    const canUsePreCalculated = this.canUseMonthlyPreCalculated(query.period);
+    // ✅ FIX: Only use pre-calculated if the date range is full months
+    const canUsePreCalculated = this.canUseMonthlyPreCalculated(query.period) 
+      && this.isFullMonthRange(start_date, end_date);
     
     if (canUsePreCalculated) {
       return this.executeWithPreCalculatedSummaries(query, start_date, end_date);
@@ -298,6 +300,34 @@ export class GetEmployeesAttendanceReportUseCase {
       period === ReportPeriod.QUARTER ||
       period === ReportPeriod.YEAR
     );
+  }
+
+  /**
+   * ✅ NEW: Check if date range covers full months only
+   * Pre-calculated summaries are aggregated by FULL MONTH, so partial month ranges are invalid
+   * 
+   * Examples:
+   * - 2025-12-01 to 2025-12-31 → TRUE (full December)
+   * - 2025-11-01 to 2025-12-31 → TRUE (full November + full December)
+   * - 2025-12-01 to 2025-12-15 → FALSE (partial December)
+   * - 2025-11-15 to 2025-12-15 → FALSE (partial November + partial December)
+   */
+  private isFullMonthRange(start_date: string, end_date: string): boolean {
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+
+    // Check if start_date is the 1st of the month
+    if (start.getDate() !== 1) {
+      return false;
+    }
+
+    // Check if end_date is the last day of the month
+    const lastDayOfMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0);
+    if (end.getDate() !== lastDayOfMonth.getDate()) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

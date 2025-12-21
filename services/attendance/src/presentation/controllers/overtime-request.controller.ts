@@ -99,8 +99,9 @@ export class OvertimeRequestController {
   async getPendingRequests(
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 50,
     @Query('offset', new ParseIntPipe({ optional: true })) offset = 0,
+    @Query('department_id', new ParseIntPipe({ optional: true })) department_id?: number,
   ): Promise<ApiResponseDto<{ data: any[]; total: number }>> {
-    return this.getPendingOvertimeRequestsUseCase.execute(limit, offset);
+    return this.getPendingOvertimeRequestsUseCase.execute(limit, offset, department_id);
   }
 
   @Get(':id')
