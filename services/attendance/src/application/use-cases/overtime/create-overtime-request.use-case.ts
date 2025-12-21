@@ -151,9 +151,22 @@ export class CreateOvertimeRequestUseCase {
 
       const dateStr = overtimeDate.toISOString().split('T')[0];
       
+      console.log(`🔍 [OVERTIME] Checking ${overrides.length} override(s) for date ${dateStr}`);
+      
       for (const override of overrides) {
-        // Check if override is for this date
-        if (override.from_date !== dateStr) continue;
+        console.log(`🔍 [OVERTIME] Override: type=${override.type}, from_date=${override.from_date}, to_date=${override.to_date}`);
+        
+        // Check if override date range includes the overtime date
+        const overrideFromDate = override.from_date; // "2025-12-23"
+        const overrideToDate = override.to_date || override.from_date; // "2025-12-23"
+        
+        // Check if overtime date is within override date range
+        if (dateStr < overrideFromDate || dateStr > overrideToDate) {
+          console.log(`🔍 [OVERTIME] Override date range (${overrideFromDate} - ${overrideToDate}) does not include ${dateStr}, skipping`);
+          continue;
+        }
+        
+        console.log(`🔍 [OVERTIME] Override date range matches! Checking overlap...`);
 
         // Check OVERTIME type overrides
         if (override.type === 'OVERTIME' && override.overtime_start_time && override.overtime_end_time) {
@@ -177,10 +190,14 @@ export class CreateOvertimeRequestUseCase {
 
         // Check SCHEDULE_CHANGE type overrides (temporary schedule change)
         if (override.type === 'SCHEDULE_CHANGE' && override.override_work_schedule_id) {
+          console.log(`🔍 [OVERTIME] SCHEDULE_CHANGE detected, fetching override_work_schedule_id: ${override.override_work_schedule_id}`);
+          
           // Need to fetch the override schedule details to check time overlap
           const overrideSchedule = await this.employeeWorkScheduleRepo.findWorkScheduleById(
             override.override_work_schedule_id,
           );
+
+          console.log(`🔍 [OVERTIME] Override schedule fetched: ${overrideSchedule ? `${overrideSchedule.schedule_name} (${overrideSchedule.start_time} - ${overrideSchedule.end_time})` : 'NOT FOUND'}`);
 
           if (overrideSchedule && overrideSchedule.start_time && overrideSchedule.end_time) {
             const [osStartHour, osStartMin] = overrideSchedule.start_time.split(':').map(Number);
@@ -196,11 +213,15 @@ export class CreateOvertimeRequestUseCase {
               osEnd = new Date(osEnd.getTime() + 24 * 60 * 60 * 1000);
             }
 
+            console.log(`🔍 [OVERTIME] Checking overlap: OT (${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}) vs Override Schedule (${osStart.toISOString()} - ${osEnd.toISOString()})`);
+
             const hasOverlapWithOverrideSchedule = (
               (overtimeStart >= osStart && overtimeStart < osEnd) ||
               (overtimeEnd > osStart && overtimeEnd <= osEnd) ||
               (overtimeStart <= osStart && overtimeEnd >= osEnd)
             );
+
+            console.log(`🔍 [OVERTIME] Has overlap: ${hasOverlapWithOverrideSchedule}`);
 
             if (hasOverlapWithOverrideSchedule) {
               throw new BusinessException(
