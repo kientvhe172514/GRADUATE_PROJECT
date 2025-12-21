@@ -40,17 +40,48 @@ export class GetEmployeeShiftCalendarUseCase {
       let employeeMap = await this.employeeServiceClient.getAllEmployees();
       this.logger.log(`✅ Loaded ${employeeMap.size} total employees`);
 
-      // Step 1.5: Filter by role (default to EMPLOYEE only, exclude management roles)
-      const allowedRoles = query.roles && query.roles.length > 0 
-        ? query.roles 
-        : ['EMPLOYEE']; // Default: only show EMPLOYEE role
+      // Step 1.5: Filter out management roles using position.suggested_role
+      // Exclude: DEPARTMENT_HEAD, HR, ADMIN (only show regular EMPLOYEE)
+      const excludedSuggestedRoles = ['DEPARTMENT_HEAD', 'HR', 'ADMIN'];
       
-      const roleFilteredEmployeeIds = Array.from(employeeMap.entries())
-        .filter(([_, emp]) => allowedRoles.includes(emp.role || 'EMPLOYEE'))
-        .map(([id, _]) => id);
+      const employeeFilteredByPosition = Array.from(employeeMap.entries())
+        .filter(([_, emp]) => {
+          // If no position data, include by default
+          if (!emp.position || !emp.position.suggested_role) {
+            return true;
+          }
+          // Exclude management roles
+          return !excludedSuggestedRoles.includes(emp.position.suggested_role);
+        });
       
       this.logger.log(
-        `🔍 After role filter (${allowedRoles.join(', ')}): ${roleFilteredEmployeeIds.length} employees`,
+        `🔍 After position filter (excluded ${excludedSuggestedRoles.join(', ')}): ${employeeFilteredByPosition.length} employees`,
+      );
+
+      if (employeeFilteredByPosition.length === 0) {
+        return ApiResponseDto.success(
+          { data: [], total: 0 },
+          'No regular employees found',
+        );
+      }
+
+      // Apply additional role filter if specified in query
+      let roleFilteredEmployeeIds: number[];
+      if (query.roles && query.roles.length > 0) {
+        roleFilteredEmployeeIds = employeeFilteredByPosition
+          .filter(([_, emp]) => query.roles!.includes(emp.role || 'EMPLOYEE'))
+          .map(([id, _]) => id);
+        
+        this.logger.log(
+          `🔍 After role filter (${query.roles.join(', ')}): ${roleFilteredEmployeeIds.length} employees`,
+        );
+      } else {
+        // No additional role filter, use all position-filtered employees
+        roleFilteredEmployeeIds = employeeFilteredByPosition.map(([id, _]) => id);
+      }
+      
+      this.logger.log(
+        `🔍 Final employee count after filters: ${roleFilteredEmployeeIds.length} employees`,
       );
 
       if (roleFilteredEmployeeIds.length === 0) {

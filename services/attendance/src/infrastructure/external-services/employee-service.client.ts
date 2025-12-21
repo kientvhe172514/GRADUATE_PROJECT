@@ -11,6 +11,11 @@ export interface EmployeeInfo {
   department_name?: string;
   position_id?: number;
   role?: string;
+  position?: {
+    id: number;
+    position_name: string;
+    suggested_role: string;
+  };
 }
 
 @Injectable()
@@ -54,6 +59,11 @@ export class EmployeeServiceClient {
         department_name: employee.department_name,
         position_id: employee.position_id,
         role: employee.role,
+        position: employee.position ? {
+          id: employee.position.id,
+          position_name: employee.position.position_name,
+          suggested_role: employee.position.suggested_role,
+        } : undefined,
       };
     } catch (error) {
       this.logger.error(`❌ Failed to fetch employee ${employeeId}:`, error);
@@ -106,6 +116,11 @@ export class EmployeeServiceClient {
           department_name: employee.department_name,
           position_id: employee.position_id,
           role: employee.role,
+          position: employee.position ? {
+            id: employee.position.id,
+            position_name: employee.position.position_name,
+            suggested_role: employee.position.suggested_role,
+          } : undefined,
         });
       });
 
@@ -182,6 +197,11 @@ export class EmployeeServiceClient {
           department_name: employee.department_name,
           position_id: employee.position_id,
           role: employee.role,
+          position: employee.position ? {
+            id: employee.position.id,
+            position_name: employee.position.position_name,
+            suggested_role: employee.position.suggested_role,
+          } : undefined,
         });
       });
 
