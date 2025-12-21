@@ -435,9 +435,97 @@ export class AttendanceCheckController {
         `   ⚠️ GPS outside geofence! Distance: ${Math.round(gpsResult.distance_from_office_meters)}m (max: ${maxDistanceMeters}m)`,
       );
 
-      // Gửi alert notification (handler: attendance.location_out_of_range)
-      this.notificationClient.emit('attendance.location_out_of_range', {
+      // ========== LOOKUP DEPARTMENT HEAD (MANAGER) ==========
+      // Flow: employee.department_id → department.manager_id → department_head (employee)
+      let departmentHeadId: number | null = null;
+      let departmentHeadInfo: any = null;
+
+      this.logger.log(
+        `🔍 [GPS-WEBHOOK] === STARTING DEPARTMENT HEAD LOOKUP FOR EMPLOYEE ${employeeId} ===`,
+      );
+
+      try {
+        const empAny = employee as any;
+
+        // Step 1: Get department_id
+        const deptId =
+          empAny?.department?.id || empAny?.department_id || null;
+        this.logger.log(
+          `🔍 [GPS-WEBHOOK] Step 1 - Employee department_id: ${deptId}`,
+        );
+
+        if (!deptId) {
+          this.logger.warn(
+            `⚠️ [GPS-WEBHOOK] Employee ${employeeId} has no department_id — cannot find department head`,
+          );
+        } else {
+          // Step 2: Get manager_id from department (this is the department head's employee_id)
+          const managerIdFromDept = empAny?.department?.manager_id || null;
+          this.logger.log(
+            `🔍 [GPS-WEBHOOK] Step 2 - Department ${deptId} manager_id: ${managerIdFromDept}`,
+          );
+
+          if (!managerIdFromDept) {
+            this.logger.warn(
+              `⚠️ [GPS-WEBHOOK] Department ${deptId} has no manager_id (department head not assigned)`,
+            );
+          } else {
+            departmentHeadId = Number(managerIdFromDept);
+            this.logger.log(
+              `✅ [GPS-WEBHOOK] Step 3 - Found department head employee_id: ${departmentHeadId}`,
+            );
+
+            // Step 3: Fetch department head employee details (for email)
+            try {
+              departmentHeadInfo =
+                await this.employeeServiceClient.getEmployeeById(
+                  departmentHeadId,
+                );
+              this.logger.log(
+                `✅ [GPS-WEBHOOK] Step 4 - Department head info fetched:`,
+              );
+              this.logger.log(
+                `   - ID: ${departmentHeadInfo?.id}`,
+              );
+              this.logger.log(
+                `   - Code: ${departmentHeadInfo?.employee_code}`,
+              );
+              this.logger.log(
+                `   - Name: ${departmentHeadInfo?.full_name}`,
+              );
+              this.logger.log(
+                `   - Email: ${departmentHeadInfo?.email}`,
+              );
+            } catch (fetchErr) {
+              this.logger.error(
+                `❌ [GPS-WEBHOOK] Failed to fetch department head details for employee_id=${departmentHeadId}: ${fetchErr}`,
+              );
+            }
+          }
+        }
+      } catch (err) {
+        this.logger.error(
+          `❌ [GPS-WEBHOOK] Error during department head lookup: ${err}`,
+        );
+      }
+
+      this.logger.log(
+        `🔍 [GPS-WEBHOOK] === DEPARTMENT HEAD LOOKUP COMPLETE: ${departmentHeadId ? `Found (ID=${departmentHeadId})` : 'NOT FOUND'} ===`,
+      );
+
+      // ========== EMIT EMPLOYEE NOTIFICATION + MANAGER WEB NOTIFICATION ==========
+      const outOfRangePayload: any = {
         employeeId: employeeId,
+        employeeCode: (employee as any)?.employee_code,
+        employeeName: (employee as any)?.full_name,
+        departmentId:
+          (employee as any)?.department?.id ||
+          (employee as any)?.department_id,
+        departmentName:
+          (employee as any)?.department?.department_name ||
+          (employee as any)?.department_name,
+        managerId: departmentHeadId, // ✅ This will be used for WEB notification in Notification Service
+        managerName: departmentHeadInfo?.full_name || null,
         shiftId: activeShift.id,
         latitude: dto.latitude,
         longitude: dto.longitude,
@@ -447,7 +535,79 @@ export class AttendanceCheckController {
           distance_from_office_meters: gpsResult.distance_from_office_meters,
           max_distance_meters: maxDistanceMeters,
         },
-      });
+      };
+
+      this.logger.log(
+        `📬 [GPS-WEBHOOK] Emitting attendance.location_out_of_range for EMPLOYEE alert + MANAGER WEB notification`,
+      );
+      this.logger.debug(
+        `📬 [GPS-WEBHOOK] Payload: ${JSON.stringify(outOfRangePayload)}`,
+      );
+      this.notificationClient.emit(
+        'attendance.location_out_of_range',
+        outOfRangePayload,
+      );
+
+      // ========== EMIT DEPARTMENT HEAD EMAIL NOTIFICATION ==========
+      if (departmentHeadId && departmentHeadInfo?.email) {
+        try {
+          const distance = Math.round(gpsResult.distance_from_office_meters);
+          const managerEmailPayload = {
+            recipientId: departmentHeadId,
+            recipientEmail: departmentHeadInfo.email,
+            recipientName: departmentHeadInfo.full_name,
+            notificationType: 'ATTENDANCE_VIOLATION',
+            priority: 'HIGH',
+            title: `⚠️ Location Alert: ${(employee as any)?.full_name} outside office area`,
+            message: `Employee ${(employee as any)?.full_name} (${(employee as any)?.employee_code}) from ${(employee as any)?.department?.department_name || 'your department'} is currently ${distance}m away from office (maximum allowed: ${maxDistanceMeters}m). ShiftId: ${activeShift.id}. Please take appropriate action.`,
+            channels: ['EMAIL'],
+            metadata: {
+              eventType: 'attendance.location_out_of_range',
+              shiftId: activeShift.id,
+              employeeId: employeeId,
+              employeeCode: (employee as any)?.employee_code,
+              employeeName: (employee as any)?.full_name,
+              departmentId:
+                (employee as any)?.department?.id ||
+                (employee as any)?.department_id,
+              departmentName:
+                (employee as any)?.department?.department_name ||
+                (employee as any)?.department_name,
+              distance: distance,
+              maxDistance: maxDistanceMeters,
+              latitude: dto.latitude,
+              longitude: dto.longitude,
+              timestamp: new Date().toISOString(),
+              notificationTarget: 'DEPARTMENT_HEAD',
+            },
+          };
+
+          this.logger.log(
+            `� [GPS-WEBHOOK] === SENDING EMAIL TO DEPARTMENT HEAD ===`,
+          );
+          this.logger.log(
+            `📧 [GPS-WEBHOOK] Recipient: ${departmentHeadInfo.full_name} (${departmentHeadInfo.email})`,
+          );
+          this.logger.log(`📧 [GPS-WEBHOOK] Subject: ${managerEmailPayload.title}`);
+          this.logger.debug(
+            `📧 [GPS-WEBHOOK] Full payload: ${JSON.stringify(managerEmailPayload)}`,
+          );
+
+          this.notificationClient.emit('notification.send', managerEmailPayload);
+
+          this.logger.log(
+            `✅ [GPS-WEBHOOK] Department head email notification emitted successfully`,
+          );
+        } catch (err) {
+          this.logger.error(
+            `❌ [GPS-WEBHOOK] Failed to emit department head email notification: ${err}`,
+          );
+        }
+      } else {
+        this.logger.warn(
+          `⚠️ [GPS-WEBHOOK] Cannot send department head email: ${!departmentHeadId ? 'departmentHeadId is null' : 'departmentHeadInfo.email is missing'}`,
+        );
+      }
     }
 
     return {

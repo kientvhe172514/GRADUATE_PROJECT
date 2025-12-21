@@ -9,6 +9,14 @@ export interface EmployeeInfo {
   full_name: string;
   department_id?: number;
   department_name?: string;
+  department?: {
+    id: number;
+    department_name?: string;
+    manager_id?: number | null;
+    office_latitude?: number | string;
+    office_longitude?: number | string;
+    office_radius_meters?: number | string;
+  };
   position_id?: number;
   role?: string;
   position?: {
@@ -57,13 +65,26 @@ export class EmployeeServiceClient {
         full_name: employee.full_name,
         department_id: employee.department_id,
         department_name: employee.department_name,
+        // Pass through nested department if present (contains manager_id and office coords)
+        department: employee.department
+          ? {
+              id: employee.department.id,
+              department_name: employee.department.department_name,
+              manager_id: employee.department.manager_id ?? null,
+              office_latitude: employee.department.office_latitude,
+              office_longitude: employee.department.office_longitude,
+              office_radius_meters: employee.department.office_radius_meters,
+            }
+          : undefined,
         position_id: employee.position_id,
         role: employee.role,
-        position: employee.position ? {
-          id: employee.position.id,
-          position_name: employee.position.position_name,
-          suggested_role: employee.position.suggested_role,
-        } : undefined,
+        position: employee.position
+          ? {
+              id: employee.position.id,
+              position_name: employee.position.position_name,
+              suggested_role: employee.position.suggested_role,
+            }
+          : undefined,
       };
     } catch (error) {
       this.logger.error(`❌ Failed to fetch employee ${employeeId}:`, error);
