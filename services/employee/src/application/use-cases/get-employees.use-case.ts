@@ -62,6 +62,11 @@ export class GetEmployeesUseCase {
         department_name: employee.department_name || null,
         position_id: employee.position_id,
         position_name: employee.position_name || null,
+        position: employee.position ? {
+          id: employee.position.id,
+          position_name: employee.position.position_name,
+          suggested_role: employee.position.suggested_role,
+        } : undefined,
         status: employee.status,
         onboarding_status: employee.onboarding_status,
         created_at: employee.created_at!,

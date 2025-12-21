@@ -85,7 +85,11 @@ export class ApproveOvertimeRequestUseCase {
     // Check if overtime is TODAY or FUTURE
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const overtimeDate = new Date(request.overtime_date);
+    
+    // Parse overtime_date (could be string or Date)
+    const overtimeDate = typeof request.overtime_date === 'string' 
+      ? new Date(request.overtime_date) 
+      : new Date(request.overtime_date);
     overtimeDate.setHours(0, 0, 0, 0);
     
     const isToday = overtimeDate.getTime() === today.getTime();
@@ -95,8 +99,12 @@ export class ApproveOvertimeRequestUseCase {
 
     if (isToday) {
       // TODAY: Create shift immediately (need GPS tracking now)
+      const overtimeDateStr = typeof request.overtime_date === 'string' 
+        ? request.overtime_date 
+        : request.overtime_date.toISOString().split('T')[0];
+      
       console.log(
-        `[APPROVE-OT] Creating IMMEDIATE shift for TODAY (${request.overtime_date.toISOString()})`,
+        `[APPROVE-OT] Creating IMMEDIATE shift for TODAY (${overtimeDateStr})`,
       );
 
       const gpsChecksRequired =

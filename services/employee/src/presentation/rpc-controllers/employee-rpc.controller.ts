@@ -258,7 +258,7 @@ export class EmployeeRpcController {
       });
 
       if (result.data && result.data.employees) {
-        const employees = result.data.employees.map((emp) => ({
+        const employees = result.data.employees.map((emp: any) => ({
           id: emp.id,
           employee_id: emp.id, // For backward compatibility
           employee_code: emp.employee_code,
@@ -268,6 +268,11 @@ export class EmployeeRpcController {
           department_name: emp.department_name,
           position_id: emp.position_id,
           status: emp.status,
+          position: emp.position ? {
+            id: emp.position.id,
+            position_name: emp.position.position_name,
+            suggested_role: emp.position.suggested_role,
+          } : undefined,
         }));
 
         this.logger.log(`✅ [RPC] Found ${employees.length} total employees`);
