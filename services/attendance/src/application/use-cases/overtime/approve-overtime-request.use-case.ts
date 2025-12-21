@@ -85,13 +85,14 @@ export class ApproveOvertimeRequestUseCase {
     // Check if overtime is TODAY or FUTURE
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Parse overtime_date (could be string or Date)
-    const overtimeDate = typeof request.overtime_date === 'string' 
-      ? new Date(request.overtime_date) 
-      : new Date(request.overtime_date);
+    const overtimeDate =
+      typeof request.overtime_date === 'string'
+        ? new Date(request.overtime_date)
+        : new Date(request.overtime_date);
     overtimeDate.setHours(0, 0, 0, 0);
-    
+
     const isToday = overtimeDate.getTime() === today.getTime();
     const isFuture = overtimeDate > today;
 
@@ -99,10 +100,11 @@ export class ApproveOvertimeRequestUseCase {
 
     if (isToday) {
       // TODAY: Create shift immediately (need GPS tracking now)
-      const overtimeDateStr = typeof request.overtime_date === 'string' 
-        ? request.overtime_date 
-        : request.overtime_date.toISOString().split('T')[0];
-      
+      const overtimeDateStr =
+        typeof request.overtime_date === 'string'
+          ? request.overtime_date
+          : request.overtime_date.toISOString().split('T')[0];
+
       console.log(
         `[APPROVE-OT] Creating IMMEDIATE shift for TODAY (${overtimeDateStr})`,
       );
@@ -118,7 +120,7 @@ export class ApproveOvertimeRequestUseCase {
         employee_id: request.employee_id,
         employee_code,
         department_id,
-        shift_date: request.overtime_date,
+        shift_date: overtimeDate, // ✅ FIX: Use parsed Date object
         scheduled_start_time: startTime,
         scheduled_end_time: endTime,
         shift_type: 'OVERTIME',
@@ -129,15 +131,20 @@ export class ApproveOvertimeRequestUseCase {
       console.log(`[APPROVE-OT] Created shift ID: ${otShift.id}`);
     } else if (isFuture) {
       // FUTURE: Add to schedule_overrides (cronjob will create shift later)
+      const futureDateStr =
+        typeof request.overtime_date === 'string'
+          ? request.overtime_date
+          : request.overtime_date.toISOString().split('T')[0];
+
       console.log(
-        `[APPROVE-OT] Adding OVERRIDE for FUTURE date (${request.overtime_date.toISOString()})`,
+        `[APPROVE-OT] Adding OVERRIDE for FUTURE date (${futureDateStr})`,
       );
 
       // Find active work schedule assignment for this employee
       const workSchedule =
         await this.employeeWorkScheduleRepo.findByEmployeeIdAndDate(
           request.employee_id,
-          request.overtime_date,
+          overtimeDate, // ✅ FIX: Use parsed Date object
         );
 
       if (!workSchedule) {
@@ -156,8 +163,8 @@ export class ApproveOvertimeRequestUseCase {
       const newOverride = {
         id: `ot-${Date.now()}`, // Unique string ID
         type: ScheduleOverrideType.OVERTIME,
-        from_date: request.overtime_date.toISOString().split('T')[0],
-        to_date: request.overtime_date.toISOString().split('T')[0],
+        from_date: futureDateStr, // ✅ FIX: Use formatted string
+        to_date: futureDateStr, // ✅ FIX: Use formatted string
         overtime_start_time: startTime,
         overtime_end_time: endTime,
         reason: request.reason || 'Approved overtime request',
