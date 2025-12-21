@@ -28,7 +28,7 @@ export class AuthEventListener {
         event.companyEmail && event.companyEmail !== event.email;
 
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.employeeId, // ✅ Use employeeId (not userId/account_id)
         recipientEmail: event.email, // Send to this email (personal or company)
         recipientName: event.fullName,
         notificationType: NotificationType.PASSWORD_RESET,
@@ -98,7 +98,7 @@ export class AuthEventListener {
     );
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.employeeId, //  Use employeeId
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.HIGH,
         title: '🔐 Password Changed',
@@ -193,7 +193,7 @@ export class AuthEventListener {
     console.log('📬 [AuthEventListener] Received auth.login-success:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.employeeId, //  Use employeeId
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.LOW,
         title: '✅ Login Successful',
@@ -227,7 +227,7 @@ export class AuthEventListener {
     );
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.employeeId, //  Use employeeId
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.URGENT,
         title: '⚠️ Suspicious Login Detected',
@@ -258,7 +258,7 @@ export class AuthEventListener {
     console.log('📬 [AuthEventListener] Received auth.account-locked:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId,
+        recipientId: event.employeeId, //  Use employeeId
         notificationType: NotificationType.PASSWORD_RESET,
         priority: Priority.URGENT,
         title: '🔒 Account Locked',

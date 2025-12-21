@@ -248,17 +248,18 @@ export class NotificationController {
     unreadOnly: boolean,
     @Query('channelFilter') channelFilter?: ChannelType,
   ): Promise<ApiResponseDto<any>> {
-    // Check if user exists (user.sub is the userId from JWT via API Gateway headers)
-    if (!user || !user.sub) {
+    // Check if user exists and has employee_id
+    if (!user || !user.employee_id) {
       throw new UnauthorizedException(
-        'User not authenticated - missing user info from API Gateway',
+        'User not authenticated or no employee ID found',
       );
     }
 
-    const userId = user.sub; // From JWT token via API Gateway headers (user.sub = userId)
-    console.log('📋 [GET Notifications] Fetching notifications for userId:', userId);
+    const employeeId = user.employee_id; // Use employee_id as recipient_id (consistent with how notifications are sent)
+    console.log('📋 [GET Notifications] Fetching notifications for employeeId:', employeeId);
+    console.log('📋 [GET Notifications] Query params:', { limit, offset, unreadOnly, channelFilter });
 
-    const result = await this.getUserNotificationsUseCase.execute(userId, {
+    const result = await this.getUserNotificationsUseCase.execute(employeeId, {
       limit,
       offset,
       unreadOnly,
@@ -288,8 +289,8 @@ export class NotificationController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<null>> {
-    const userId = user.sub;
-    await this.markAsReadUseCase.execute(id, userId);
+    const employeeId = user.employee_id;
+    await this.markAsReadUseCase.execute(id, employeeId);
 
     return ApiResponseDto.success(null, 'Notification marked as read');
   }
@@ -310,8 +311,8 @@ export class NotificationController {
     },
   })
   async markAllAsRead(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<null>> {
-    const userId = user.sub;
-    await this.markAllAsReadUseCase.execute(userId);
+    const employeeId = user.employee_id;
+    await this.markAllAsReadUseCase.execute(employeeId);
 
     return ApiResponseDto.success(null, 'All notifications marked as read');
   }
@@ -375,14 +376,14 @@ export class NotificationController {
   async getMyNotificationStatistics(
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<NotificationStatisticsResponseDto>> {
-    if (!user || !user.sub) {
+    if (!user || !user.employee_id) {
       throw new UnauthorizedException(
-        'User not authenticated - missing user info from API Gateway',
+        'User not authenticated or no employee ID found',
       );
     }
 
-    const userId = user.sub;
-    const statistics = await this.getMyNotificationStatisticsUseCase.execute(userId);
+    const employeeId = user.employee_id;
+    const statistics = await this.getMyNotificationStatisticsUseCase.execute(employeeId);
 
     return ApiResponseDto.success(statistics, 'Notification statistics retrieved successfully');
   }
@@ -411,14 +412,14 @@ export class NotificationController {
     },
   })
   async getMyUnreadCount(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<UnreadCountResponseDto>> {
-    if (!user || !user.sub) {
+    if (!user || !user.employee_id) {
       throw new UnauthorizedException(
-        'User not authenticated - missing user info from API Gateway',
+        'User not authenticated or no employee ID found',
       );
     }
 
-    const userId = user.sub;
-    const unreadCount = await this.getUnreadCountUseCase.execute(userId);
+    const employeeId = user.employee_id;
+    const unreadCount = await this.getUnreadCountUseCase.execute(employeeId);
 
     return ApiResponseDto.success(unreadCount, 'Unread count retrieved successfully');
   }
@@ -524,14 +525,14 @@ export class NotificationController {
     @Body() dto: BulkMarkAsReadDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<{ marked_count: number }>> {
-    if (!user || !user.sub) {
+    if (!user || !user.employee_id) {
       throw new UnauthorizedException(
-        'User not authenticated - missing user info from API Gateway',
+        'User not authenticated or no employee ID found',
       );
     }
 
-    const userId = user.sub;
-    const result = await this.bulkMarkAsReadUseCase.execute(dto, userId);
+    const employeeId = user.employee_id;
+    const result = await this.bulkMarkAsReadUseCase.execute(dto, employeeId);
 
     return ApiResponseDto.success(result, 'Notifications marked as read successfully');
   }
@@ -557,14 +558,14 @@ export class NotificationController {
   async deleteMyReadNotifications(
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<{ deleted_count: number }>> {
-    if (!user || !user.sub) {
+    if (!user || !user.employee_id) {
       throw new UnauthorizedException(
-        'User not authenticated - missing user info from API Gateway',
+        'User not authenticated or no employee ID found',
       );
     }
 
-    const userId = user.sub;
-    const result = await this.deleteMyReadNotificationsUseCase.execute(userId);
+    const employeeId = user.employee_id;
+    const result = await this.deleteMyReadNotificationsUseCase.execute(employeeId);
 
     return ApiResponseDto.success(result, 'Read notifications deleted successfully');
   }

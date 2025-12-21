@@ -151,6 +151,7 @@ export class CreateAccountUseCase {
       const emailToSend = dto.personal_email || savedAccount.email;
       const userRegisteredEvent = {
         userId: savedAccount.id!,
+        employeeId: savedAccount.employee_id, // ✅ Add employee_id for notification service
         email: emailToSend, // Send credentials to this email (personal or company)
         companyEmail: savedAccount.email, // Username for login
         fullName: dto.full_name,

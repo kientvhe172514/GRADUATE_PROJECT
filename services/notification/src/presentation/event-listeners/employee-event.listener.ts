@@ -19,7 +19,7 @@ export class EmployeeEventListener {
     
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.HIGH,
         title: '🎉 Welcome to the Team!',
@@ -47,7 +47,7 @@ export class EmployeeEventListener {
     console.log('📬 [EmployeeEventListener] Received employee.updated:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.MEDIUM,
         title: '📝 Profile Updated',
@@ -73,7 +73,7 @@ export class EmployeeEventListener {
     console.log('📬 [EmployeeEventListener] Received employee.deactivated:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.URGENT,
         title: '⚠️ Account Deactivated',
@@ -99,7 +99,7 @@ export class EmployeeEventListener {
     console.log('📬 [EmployeeEventListener] Received employee.promoted:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.HIGH,
         title: '🎊 Congratulations on Your Promotion!',
@@ -126,7 +126,7 @@ export class EmployeeEventListener {
     console.log('📬 [EmployeeEventListener] Received employee.department-changed:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.MEDIUM,
         title: '🏢 Department Transfer',
@@ -153,7 +153,7 @@ export class EmployeeEventListener {
     console.log('📬 [EmployeeEventListener] Received employee.contract-expiring:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.SYSTEM_ANNOUNCEMENT,
         priority: Priority.HIGH,
         title: '⏰ Contract Expiring Soon',

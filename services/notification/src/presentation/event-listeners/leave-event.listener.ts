@@ -42,7 +42,7 @@ export class LeaveEventListener {
         }
       } else {
         // Default: send to employee
-        recipientIds = [event.userId || event.employeeId];
+        recipientIds = [event.employeeId]; //  Use employeeId only
       }
 
       // Send notification to all recipients
@@ -101,7 +101,7 @@ export class LeaveEventListener {
         recipientIds = [event.employeeId];
       } else {
         // Default: send to employee
-        recipientIds = [event.userId || event.employeeId];
+        recipientIds = [event.employeeId]; //  Use employeeId only
       }
 
       // Get employee info for better notification
@@ -146,7 +146,7 @@ export class LeaveEventListener {
         recipientIds = [event.employeeId];
       } else {
         // Default: send to employee
-        recipientIds = [event.userId || event.employeeId];
+        recipientIds = [event.employeeId]; //  Use employeeId only
       }
 
       // Get employee info for better notification
@@ -183,7 +183,7 @@ export class LeaveEventListener {
   async handleLeaveCancelled(@Payload() event: any): Promise<void> {
     console.log('📬 [LeaveEventListener] Received leave.cancelled:', event);
     try {
-      const recipientId = event.userId || event.employeeId;
+      const recipientId = event.employeeId; //  Use employeeId only
       
       // Get employee info for better notification
       const employeeInfo = await this.employeeServiceClient.getEmployeeById(recipientId);
@@ -239,7 +239,7 @@ export class LeaveEventListener {
         }
       } else {
         // Default: send to employee
-        recipientIds = [event.userId || event.employeeId];
+        recipientIds = [event.employeeId]; //  Use employeeId only
       }
 
       // Send notification to all recipients

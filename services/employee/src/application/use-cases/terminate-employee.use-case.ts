@@ -29,6 +29,7 @@ export class TerminateEmployeeUseCase {
 
     this.eventPublisher.publish('employee_terminated', {
       employee_id: id,
+      employeeId: id, // ✅ Add alias
       termination_date: dto.termination_date,
       termination_reason: dto.termination_reason,
     });

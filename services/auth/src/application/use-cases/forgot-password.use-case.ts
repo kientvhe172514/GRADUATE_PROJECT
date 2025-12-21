@@ -77,6 +77,7 @@ export class ForgotPasswordUseCase {
     // Step 6: Publish event to Notification service to send email with new password
     await this.publisher.publish('auth.password-reset', {
       account_id: account.id,
+      employee_id: account.employee_id, // ✅ Add employee_id for notification service
       email: account.email,
       full_name: account.full_name,
       new_password: newPassword, // Send plain password to email (one-time only)

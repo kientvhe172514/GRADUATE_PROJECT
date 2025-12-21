@@ -19,7 +19,7 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received attendance.checked-in:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.ATTENDANCE_REMINDER,
         priority: Priority.LOW,
         title: 'Check-in Successful',
@@ -44,7 +44,7 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received attendance.checked-out:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.ATTENDANCE_REMINDER,
         priority: Priority.LOW,
         title: 'Check-out Successful',
@@ -69,7 +69,7 @@ export class AttendanceEventListener {
     console.log('📬 [AttendanceEventListener] Received attendance.late:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.ATTENDANCE_LATE_WARNING,
         priority: Priority.MEDIUM,
         title: 'Late Arrival Alert',

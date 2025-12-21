@@ -17,7 +17,7 @@ export class FaceVerificationEventListener {
     console.log('📬 [FaceVerificationEventListener] Received face.verification-success:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.FACE_VERIFICATION_REQUEST,
         priority: Priority.LOW,
         title: '✅ Face Verification Successful',
@@ -42,7 +42,7 @@ export class FaceVerificationEventListener {
     console.log('📬 [FaceVerificationEventListener] Received face.verification-failed:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.FACE_VERIFICATION_REQUEST,
         priority: Priority.URGENT,
         title: '⚠️ Face Verification Failed',
@@ -68,7 +68,7 @@ export class FaceVerificationEventListener {
     console.log('📬 [FaceVerificationEventListener] Received face.multiple-failed-attempts:', event);
     try {
       const dto: SendNotificationDto = {
-        recipientId: event.userId || event.employeeId,
+        recipientId: event.employeeId, //  Use employeeId only
         notificationType: NotificationType.FACE_VERIFICATION_REQUEST,
         priority: Priority.URGENT,
         title: '🚨 Multiple Failed Verification Attempts',

@@ -5,6 +5,9 @@ export class EmployeeCreatedEventDto {
   @ApiProperty()
   id: number;
 
+  @ApiProperty({ description: 'Alias for id - for consistency with other services' })
+  employeeId: number; // ✅ Add alias for notification service
+
   @ApiProperty()
   employee_code: string;
 
@@ -34,6 +37,7 @@ export class EmployeeCreatedEventDto {
 
   constructor(employee: Employee, suggestedRole: string = 'EMPLOYEE') {
     this.id = employee.id!;
+    this.employeeId = employee.id!; // ✅ Set alias
     this.employee_code = employee.employee_code;
     this.full_name = employee.full_name;
     this.email = employee.email;

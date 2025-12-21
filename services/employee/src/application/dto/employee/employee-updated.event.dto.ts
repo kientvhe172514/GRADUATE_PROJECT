@@ -2,6 +2,7 @@ import { Employee } from 'domain/entities/employee.entity';
 
 export class EmployeeUpdatedEventDto {
   employee_id: number;
+  employeeId: number; // ✅ Alias for consistency
   account_id?: number;
   employee_code: string;
   full_name: string;
@@ -14,6 +15,7 @@ export class EmployeeUpdatedEventDto {
 
   constructor(employee: Employee) {
     this.employee_id = employee.id!;
+    this.employeeId = employee.id!; // ✅ Set alias
     this.account_id = employee.account_id;
     this.employee_code = employee.employee_code;
     this.full_name = employee.full_name;
