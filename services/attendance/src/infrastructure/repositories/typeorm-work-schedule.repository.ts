@@ -184,7 +184,11 @@ export class TypeOrmEmployeeWorkScheduleRepository
       
       // Return plain object with enriched overrides instead of modifying domain entity
       const plainObject = {
-        ...domain.toJSON(),
+        id: domain.id,
+        employee_id: domain.employee_id,
+        work_schedule_id: domain.work_schedule_id,
+        effective_from: domain.effective_from,
+        effective_to: domain.effective_to,
         work_schedule: (domain as any).work_schedule,
         schedule_overrides: enrichedOverrides,
       };
