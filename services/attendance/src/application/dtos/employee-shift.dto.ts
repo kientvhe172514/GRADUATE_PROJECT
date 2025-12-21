@@ -28,12 +28,12 @@ export class EmployeeShiftFilterDto {
   @Type(() => Number)
   employee_id?: number;
 
-  @ApiPropertyOptional({ example: 10, default: 20 })
+  @ApiPropertyOptional({ example: 20, default: 1000, description: 'Number of items per page (max 10000)' })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Type(() => Number)
-  limit = 20;
+  limit = 1000;
 
   @ApiPropertyOptional({ example: 10, description: 'Filter by department ID' })
   @IsOptional()
