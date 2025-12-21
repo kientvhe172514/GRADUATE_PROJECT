@@ -246,7 +246,11 @@ export class EmployeeWorkScheduleDto {
   constructor(
     entity: EmployeeWorkSchedule & { work_schedule?: WorkScheduleInfo },
   ) {
-    const props = entity.toJSON();
+    // Handle both domain entity and plain object
+    const props = typeof (entity as any).toJSON === 'function' 
+      ? (entity as any).toJSON() 
+      : entity;
+      
     this.id = props.id;
     this.employee_id = props.employee_id;
     this.work_schedule_id = props.work_schedule_id;
