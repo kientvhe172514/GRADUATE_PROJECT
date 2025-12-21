@@ -94,6 +94,7 @@ export class UpdateOvertimeRequestUseCase {
           : request.overtime_date;
 
       console.log(`🕐 [UPDATE-OVERTIME] Request time: ${newStartTime.toISOString()} - ${newEndTime.toISOString()}`);
+      console.log(`📅 [UPDATE-OVERTIME] overtimeDate from DB: ${request.overtime_date}, parsed: ${overtimeDate.toISOString()}, local: ${overtimeDate.toString()}`);
 
       // Check if there's already a REGULAR shift on this date
       const existingShift =
@@ -116,11 +117,16 @@ export class UpdateOvertimeRequestUseCase {
         const shiftEnd = new Date(overtimeDate);
         shiftEnd.setHours(endHour, endMin, 0, 0);
 
+        console.log(`⏰ [UPDATE-OVERTIME] Shift check - shiftStart: ${shiftStart.toISOString()} (${shiftStart.toString()}), shiftEnd: ${shiftEnd.toISOString()} (${shiftEnd.toString()})`);
+        console.log(`⏰ [UPDATE-OVERTIME] Overtime - newStartTime: ${newStartTime.toISOString()} (${newStartTime.toString()}), newEndTime: ${newEndTime.toISOString()} (${newEndTime.toString()})`);
+
         // Check if overtime time overlaps with regular shift
         const hasOverlap =
           (newStartTime >= shiftStart && newStartTime < shiftEnd) ||
           (newEndTime > shiftStart && newEndTime <= shiftEnd) ||
           (newStartTime <= shiftStart && newEndTime >= shiftEnd);
+
+        console.log(`⏰ [UPDATE-OVERTIME] hasOverlap: ${hasOverlap}`);
 
         if (hasOverlap) {
           throw new BusinessException(
