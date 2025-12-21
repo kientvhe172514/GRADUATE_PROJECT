@@ -289,6 +289,12 @@ export class NotificationController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
   ): Promise<ApiResponseDto<null>> {
+    if (!user || !user.employee_id) {
+      throw new UnauthorizedException(
+        'User not authenticated or no employee ID found',
+      );
+    }
+
     const employeeId = user.employee_id;
     await this.markAsReadUseCase.execute(id, employeeId);
 
@@ -311,6 +317,12 @@ export class NotificationController {
     },
   })
   async markAllAsRead(@CurrentUser() user: JwtPayload): Promise<ApiResponseDto<null>> {
+    if (!user || !user.employee_id) {
+      throw new UnauthorizedException(
+        'User not authenticated or no employee ID found',
+      );
+    }
+
     const employeeId = user.employee_id;
     await this.markAllAsReadUseCase.execute(employeeId);
 
