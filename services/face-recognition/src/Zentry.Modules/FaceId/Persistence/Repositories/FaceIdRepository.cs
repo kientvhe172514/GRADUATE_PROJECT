@@ -48,6 +48,65 @@ public class FaceIdRepository : IFaceIdRepository
             .AnyAsync(e => e.UserId == userId, cancellationToken);
     }
 
+    /// <summary>
+    /// Check if the given face embedding is already registered for another user
+    /// This prevents one person from registering their face for multiple user accounts
+    /// </summary>
+    public async Task<(bool IsDuplicate, int? ExistingUserId, float Similarity)> CheckDuplicateFaceAsync(
+        float[] embedding,
+        int? excludeUserId = null,
+        float similarityThreshold = 0.85f,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Normalize query embedding
+            var query = new float[embedding.Length];
+            Array.Copy(embedding, query, embedding.Length);
+            NormalizeL2Vector(query);
+
+            // Get all face embeddings from database (excluding the specified user if any)
+            var allEmbeddings = await _dbContext.FaceEmbeddings
+                .AsNoTracking()
+                .Where(e => !excludeUserId.HasValue || e.UserId != excludeUserId.Value)
+                .Select(e => new { e.UserId, e.EncryptedEmbedding })
+                .ToListAsync(cancellationToken);
+
+            // Check similarity with each existing embedding
+            foreach (var item in allEmbeddings)
+            {
+                // Decrypt and convert to float array
+                var decrypted = _crypto.Decrypt(item.EncryptedEmbedding);
+                var stored = new float[decrypted.Length / 4];
+                Buffer.BlockCopy(decrypted, 0, stored, 0, decrypted.Length);
+
+                // Normalize stored embedding
+                NormalizeL2Vector(stored);
+
+                // Calculate similarity
+                var similarity = CalculateCosineSimilarity(stored, query);
+
+                // If similarity exceeds threshold, this is a duplicate
+                if (similarity >= similarityThreshold)
+                {
+                    Console.WriteLine($"⚠️ [FaceIdRepository] DUPLICATE FACE DETECTED!");
+                    Console.WriteLine($"   New embedding matches existing userId: {item.UserId}");
+                    Console.WriteLine($"   Similarity: {similarity:F4} (threshold: {similarityThreshold:F4})");
+                    return (true, item.UserId, similarity);
+                }
+            }
+
+            // No duplicate found
+            return (false, null, 0);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [FaceIdRepository] Error checking duplicate face: {ex.Message}");
+            // In case of error, allow registration (fail open for availability)
+            return (false, null, 0);
+        }
+    }
+
     public async Task<FaceEmbedding> CreateAsync(int userId, float[] embedding,
         CancellationToken cancellationToken = default)
     {

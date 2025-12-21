@@ -12,6 +12,21 @@ public interface IFaceIdRepository : IRepository<FaceEmbedding, Guid>
         CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Check if the given face embedding is already registered for another user
+    /// </summary>
+    /// <param name="embedding">Face embedding to check</param>
+    /// <param name="excludeUserId">User ID to exclude from check (for update scenarios)</param>
+    /// <param name="similarityThreshold">Minimum similarity to consider as duplicate (default 0.85)</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Tuple of (IsDuplicate, ExistingUserId, Similarity)</returns>
+    Task<(bool IsDuplicate, int? ExistingUserId, float Similarity)> CheckDuplicateFaceAsync(
+        float[] embedding, 
+        int? excludeUserId = null, 
+        float similarityThreshold = 0.85f,
+        CancellationToken cancellationToken = default);
+    
     Task<FaceEmbedding> CreateAsync(int userId, float[] embedding, CancellationToken cancellationToken = default);
     Task<FaceEmbedding> UpdateAsync(int userId, float[] embedding, CancellationToken cancellationToken = default);
 

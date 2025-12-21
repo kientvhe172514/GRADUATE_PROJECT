@@ -30,8 +30,31 @@ public class RegisterFaceIdCommandHandler : ICommandHandler<RegisterFaceIdComman
                     Message = "User already has a registered Face ID. Use update instead."
                 };
 
+            // ✅ NEW: Check if this face embedding already exists for another user
+            var (isDuplicate, existingUserId, similarity) = await _faceIdRepository.CheckDuplicateFaceAsync(
+                command.EmbeddingArray, 
+                excludeUserId: null, 
+                similarityThreshold: 0.85f, 
+                cancellationToken);
+
+            if (isDuplicate)
+            {
+                Console.WriteLine($"❌ [RegisterFaceIdCommandHandler] DUPLICATE FACE REJECTED!");
+                Console.WriteLine($"   Attempted userId: {command.UserId}");
+                Console.WriteLine($"   Face already registered for userId: {existingUserId}");
+                Console.WriteLine($"   Similarity: {similarity:F4}");
+                
+                return new RegisterFaceIdResponse
+                {
+                    Success = false,
+                    Message = $"This face is already registered for another user (User ID: {existingUserId}). Each person can only register one account. Similarity: {similarity:F2}"
+                };
+            }
+
             // Save embedding to database (now accepts float[] directly)
             await _faceIdRepository.CreateAsync(command.UserId, command.EmbeddingArray, cancellationToken);
+
+            Console.WriteLine($"✅ [RegisterFaceIdCommandHandler] Face registered successfully for userId: {command.UserId}");
 
             // ❌ COMMENT: Update user's face ID status - Service auth/employee riêng xử lý
             // TODO: Gọi API sang service auth/employee để update face status qua HTTP/RabbitMQ
@@ -46,6 +69,7 @@ public class RegisterFaceIdCommandHandler : ICommandHandler<RegisterFaceIdComman
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ [RegisterFaceIdCommandHandler] Exception: {ex.Message}");
             return new RegisterFaceIdResponse
             {
                 Success = false,
