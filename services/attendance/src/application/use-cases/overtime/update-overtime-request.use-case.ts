@@ -12,20 +12,10 @@ import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
  * Parse datetime string with timezone support
- * FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
- * If no timezone, assume Vietnam time (UTC+7)
+ * Frontend should send datetime in Vietnam timezone: 2025-12-23T14:30:00+07:00
+ * This will be automatically converted to UTC by JavaScript Date constructor
  */
 function parseDateTime(dateTimeStr: string): Date {
-  // If already has timezone (+07:00, Z, etc.), parse normally
-  if (dateTimeStr.includes('+') || dateTimeStr.includes('Z')) {
-    return new Date(dateTimeStr);
-  }
-  // No timezone -> assume Vietnam time (UTC+7)
-  // Add +07:00 to the string
-  if (dateTimeStr.includes('T')) {
-    return new Date(dateTimeStr + '+07:00');
-  }
-  // Fallback: parse as-is
   return new Date(dateTimeStr);
 }
 
@@ -103,6 +93,8 @@ export class UpdateOvertimeRequestUseCase {
           ? new Date(request.overtime_date)
           : request.overtime_date;
 
+      console.log(`🕐 [UPDATE-OVERTIME] Request time: ${newStartTime.toISOString()} - ${newEndTime.toISOString()}`);
+
       // Check if there's already a REGULAR shift on this date
       const existingShift =
         await this.shiftRepo.findRegularShiftByEmployeeAndDate(
@@ -160,8 +152,10 @@ export class UpdateOvertimeRequestUseCase {
             const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
             const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
+            // Work schedule times are stored as TIME in Vietnam timezone
             const wsStart = new Date(overtimeDate);
             wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
+            
             let wsEnd = new Date(overtimeDate);
             wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
 

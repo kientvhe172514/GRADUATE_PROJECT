@@ -12,20 +12,10 @@ import { CreateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
  * Parse datetime string with timezone support
- * FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
- * If no timezone, assume Vietnam time (UTC+7)
+ * Frontend should send datetime in Vietnam timezone: 2025-12-23T14:30:00+07:00
+ * This will be automatically converted to UTC by JavaScript Date constructor
  */
 function parseDateTime(dateTimeStr: string): Date {
-  // If already has timezone (+07:00, Z, etc.), parse normally
-  if (dateTimeStr.includes('+') || dateTimeStr.includes('Z')) {
-    return new Date(dateTimeStr);
-  }
-  // No timezone -> assume Vietnam time (UTC+7)
-  // Add +07:00 to the string
-  if (dateTimeStr.includes('T')) {
-    return new Date(dateTimeStr + '+07:00');
-  }
-  // Fallback: parse as-is
   return new Date(dateTimeStr);
 }
 
@@ -54,10 +44,13 @@ export class CreateOvertimeRequestUseCase {
     }
 
     // Parse times to check for conflicts
-    // FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
+    // Frontend sends datetime in Vietnam timezone: 2025-12-23T14:30:00+07:00
+    // JavaScript will automatically convert to UTC internally
     const overtimeStart = parseDateTime(dto.start_time);
     const overtimeEnd = parseDateTime(dto.end_time);
     const overtimeDate = new Date(dto.overtime_date);
+
+    console.log(`🕐 [OVERTIME] Request time: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}`);
 
     // Check if there's already a REGULAR shift on this date
     const existingShift = await this.shiftRepo.findRegularShiftByEmployeeAndDate(
@@ -115,8 +108,11 @@ export class CreateOvertimeRequestUseCase {
           const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
           const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
+          // Work schedule times are stored as TIME in Vietnam timezone (e.g., '13:30:00')
+          // Build full datetime using the overtime date
           const wsStart = new Date(overtimeDate);
           wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
+          
           let wsEnd = new Date(overtimeDate);
           wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
 
@@ -203,8 +199,11 @@ export class CreateOvertimeRequestUseCase {
             const [osStartHour, osStartMin] = overrideSchedule.start_time.split(':').map(Number);
             const [osEndHour, osEndMin] = overrideSchedule.end_time.split(':').map(Number);
 
+            // Work schedule times are in Vietnam timezone
+            // Build Date objects in Vietnam time for comparison
             const osStart = new Date(overtimeDate);
             osStart.setHours(osStartHour, osStartMin, 0, 0);
+            
             let osEnd = new Date(overtimeDate);
             osEnd.setHours(osEndHour, osEndMin, 0, 0);
 
@@ -213,15 +212,14 @@ export class CreateOvertimeRequestUseCase {
               osEnd = new Date(osEnd.getTime() + 24 * 60 * 60 * 1000);
             }
 
-            console.log(`🔍 [OVERTIME] Checking overlap: OT (${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}) vs Override Schedule (${osStart.toISOString()} - ${osEnd.toISOString()})`);
+            console.log(`� [OVERTIME-TZ] Override Schedule VN: ${osStart.toISOString()} - ${osEnd.toISOString()}`);
 
-            const hasOverlapWithOverrideSchedule = (
+            const hasOverlapWithOverrideSchedule =
               (overtimeStart >= osStart && overtimeStart < osEnd) ||
               (overtimeEnd > osStart && overtimeEnd <= osEnd) ||
-              (overtimeStart <= osStart && overtimeEnd >= osEnd)
-            );
+              (overtimeStart <= osStart && overtimeEnd >= osEnd);
 
-            console.log(`🔍 [OVERTIME] Has overlap: ${hasOverlapWithOverrideSchedule}`);
+            console.log(`🔍 [OVERTIME] Has overlap with override: ${hasOverlapWithOverrideSchedule}`);
 
             if (hasOverlapWithOverrideSchedule) {
               throw new BusinessException(
