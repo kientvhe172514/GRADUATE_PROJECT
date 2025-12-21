@@ -11,12 +11,28 @@ import { TypeOrmEmployeeWorkScheduleRepository } from '../../../infrastructure/r
 import { UpdateOvertimeRequestDto } from '../../dtos/overtime-request.dto';
 
 /**
- * Parse datetime string with timezone support
- * Frontend should send datetime in Vietnam timezone: 2025-12-23T14:30:00+07:00
- * This will be automatically converted to UTC by JavaScript Date constructor
+ * Parse datetime string - IGNORE timezone, extract time as-is
+ * Frontend sends: "2025-12-22T13:20:00.000Z" 
+ * Backend treats as: 13:20 (ignore the Z suffix, just read the numbers)
  */
 function parseDateTime(dateTimeStr: string): Date {
-  return new Date(dateTimeStr);
+  // Extract time parts from ISO string (ignore timezone)
+  // "2025-12-22T13:20:00.000Z" -> year=2025, month=12, day=22, hour=13, minute=20
+  const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  if (!match) {
+    throw new Error(`Invalid datetime format: ${dateTimeStr}`);
+  }
+  
+  const [, year, month, day, hour, minute, second] = match;
+  // Create Date object with extracted time (no timezone conversion)
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1, // JavaScript months are 0-indexed
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second),
+  );
 }
 
 @Injectable()
@@ -234,7 +250,10 @@ export class UpdateOvertimeRequestUseCase {
     }
 
     // Parse datetime with timezone support
-    // FE should send ISO8601 with timezone: 2025-11-17T09:38:00.000Z
+    // Frontend sends: "2025-12-22T13:20:00.000Z" (ignore Z, treat as VN time 13:20)
+    // parseDateTime creates: Date(2025,11,22,13,20) = 13:20 VN local time
+    // PostgreSQL timestamptz stores: 13:20 VN → 06:20 UTC (auto convert)
+    // When reading: 06:20 UTC → 13:20 VN (auto convert back)
     const updateData: any = {};
 
     if (dto.start_time) {
