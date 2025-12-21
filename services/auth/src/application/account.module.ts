@@ -11,6 +11,7 @@ import { AdminController } from '../presentation/controllers/admin.controller';
 import { VerifyController } from '../presentation/controllers/verify.controller';
 import { JwtStrategy } from '../infrastructure/auth/jwt.strategy';
 import { EmployeeCreatedListener } from '../presentation/event-listeners/employee-created.listener';
+import { EmployeeUpdatedListener } from '../presentation/event-listeners/employee-updated.listener';
 import { EmployeePositionAssignedListener } from '../presentation/event-listeners/employee-position-assigned.listener';
 import { EmployeePositionRemovedListener } from '../presentation/event-listeners/employee-position-removed.listener';
 import { EmployeeDepartmentAssignedListener } from '../presentation/event-listeners/employee-department-assigned.listener';
@@ -51,6 +52,7 @@ import { BcryptService } from '../infrastructure/services/bcrypt.service';
 import { RabbitMQEventPublisher } from '../infrastructure/messaging/rabbitmq-event.publisher';
 import { RabbitMQEventSubscriber } from '../infrastructure/messaging/rabbitmq-event.subscriber';
 import { EmployeeCreatedHandler } from './handlers/employee-created.handler';
+import { EmployeeUpdatedHandler } from './handlers/employee-updated.handler';
 import { EmployeePositionAssignedHandler } from './handlers/employee-position-assigned.handler';
 import { EmployeePositionRemovedHandler } from './handlers/employee-position-removed.handler';
 import { EmployeeDepartmentAssignedHandler } from './handlers/employee-department-assigned.handler';
@@ -169,6 +171,7 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     DeviceController,
     AccountMessageController,
     EmployeeCreatedListener,
+    EmployeeUpdatedListener,
     EmployeePositionAssignedListener,
     EmployeePositionRemovedListener,
     EmployeeDepartmentAssignedListener,
@@ -199,6 +202,7 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
     GetAllDevicesUseCase,
     CheckActiveShiftForDeviceChangeUseCase,
     EmployeeCreatedHandler,
+    EmployeeUpdatedHandler,
     EmployeePositionAssignedHandler,
     EmployeePositionRemovedHandler,
     EmployeeDepartmentAssignedHandler,

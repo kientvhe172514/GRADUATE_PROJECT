@@ -150,31 +150,67 @@ export class CreateOvertimeRequestUseCase {
         : [];
 
       const dateStr = overtimeDate.toISOString().split('T')[0];
-      const conflictOverride = overrides.find((override: any) => {
+      
+      for (const override of overrides) {
         // Check if override is for this date
-        if (override.from_date !== dateStr) return false;
+        if (override.from_date !== dateStr) continue;
 
-        // Only check OVERTIME type overrides (ignore SCHEDULE_CHANGE, ON_LEAVE)
+        // Check OVERTIME type overrides
         if (override.type === 'OVERTIME' && override.overtime_start_time && override.overtime_end_time) {
           const overrideStart = new Date(`${override.from_date}T${override.overtime_start_time}`);
           const overrideEnd = new Date(`${override.from_date}T${override.overtime_end_time}`);
 
-          return (
+          const hasOverlap = (
             (overtimeStart >= overrideStart && overtimeStart < overrideEnd) ||
             (overtimeEnd > overrideStart && overtimeEnd <= overrideEnd) ||
             (overtimeStart <= overrideStart && overtimeEnd >= overrideEnd)
           );
+
+          if (hasOverlap) {
+            throw new BusinessException(
+              ErrorCodes.INVALID_INPUT,
+              `Overtime time conflicts with another overtime on ${override.from_date} (${override.overtime_start_time} - ${override.overtime_end_time}). Please check your work schedule.`,
+              400,
+            );
+          }
         }
 
-        return false;
-      });
+        // Check SCHEDULE_CHANGE type overrides (temporary schedule change)
+        if (override.type === 'SCHEDULE_CHANGE' && override.override_work_schedule_id) {
+          // Need to fetch the override schedule details to check time overlap
+          const overrideSchedule = await this.employeeWorkScheduleRepo.findWorkScheduleById(
+            override.override_work_schedule_id,
+          );
 
-      if (conflictOverride) {
-        throw new BusinessException(
-          ErrorCodes.INVALID_INPUT,
-          `Overtime time conflicts with another overtime request on ${conflictOverride.from_date}. Please check your work schedule.`,
-          400,
-        );
+          if (overrideSchedule && overrideSchedule.start_time && overrideSchedule.end_time) {
+            const [osStartHour, osStartMin] = overrideSchedule.start_time.split(':').map(Number);
+            const [osEndHour, osEndMin] = overrideSchedule.end_time.split(':').map(Number);
+
+            const osStart = new Date(overtimeDate);
+            osStart.setHours(osStartHour, osStartMin, 0, 0);
+            let osEnd = new Date(overtimeDate);
+            osEnd.setHours(osEndHour, osEndMin, 0, 0);
+
+            // If end_time is earlier than start_time -> overnight shift
+            if (osEnd <= osStart) {
+              osEnd = new Date(osEnd.getTime() + 24 * 60 * 60 * 1000);
+            }
+
+            const hasOverlapWithOverrideSchedule = (
+              (overtimeStart >= osStart && overtimeStart < osEnd) ||
+              (overtimeEnd > osStart && overtimeEnd <= osEnd) ||
+              (overtimeStart <= osStart && overtimeEnd >= osEnd)
+            );
+
+            if (hasOverlapWithOverrideSchedule) {
+              throw new BusinessException(
+                ErrorCodes.INVALID_INPUT,
+                `Overtime time overlaps with your temporary schedule change "${overrideSchedule.schedule_name}" (${overrideSchedule.start_time} - ${overrideSchedule.end_time}) on ${override.from_date}. Please choose a different time.`,
+                400,
+              );
+            }
+          }
+        }
       }
     }
 

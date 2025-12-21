@@ -147,7 +147,46 @@ export class TypeOrmEmployeeWorkScheduleRepository
       relations: ['work_schedule'],
       order: { effective_from: 'DESC' },
     });
-    return schemas.map(EmployeeWorkScheduleMapper.toDomain);
+    
+    // Populate override_work_schedule details for each assignment
+    const result: any[] = [];
+    for (const schema of schemas) {
+      const domain = EmployeeWorkScheduleMapper.toDomain(schema);
+      
+      // If has schedule_overrides with override_work_schedule_id, fetch those schedules
+      if (domain.schedule_overrides && Array.isArray(domain.schedule_overrides)) {
+        const enrichedOverrides = await Promise.all(
+          domain.schedule_overrides.map(async (override: any) => {
+            if (override.type === 'SCHEDULE_CHANGE' && override.override_work_schedule_id) {
+              const overrideSchedule = await this.findWorkScheduleById(override.override_work_schedule_id);
+              if (overrideSchedule) {
+                return {
+                  ...override,
+                  override_work_schedule: {
+                    id: overrideSchedule.id,
+                    schedule_name: overrideSchedule.schedule_name,
+                    schedule_type: overrideSchedule.schedule_type,
+                    start_time: overrideSchedule.start_time,
+                    end_time: overrideSchedule.end_time,
+                    break_duration_minutes: overrideSchedule.break_duration_minutes,
+                    late_tolerance_minutes: overrideSchedule.late_tolerance_minutes,
+                    early_leave_tolerance_minutes: overrideSchedule.early_leave_tolerance_minutes,
+                    status: overrideSchedule.status,
+                  },
+                };
+              }
+            }
+            return override;
+          }),
+        );
+        
+        (domain as any).schedule_overrides = enrichedOverrides;
+      }
+      
+      result.push(domain);
+    }
+    
+    return result;
   }
 
   async findById(id: number): Promise<EmployeeWorkSchedule | null> {
@@ -239,5 +278,15 @@ export class TypeOrmEmployeeWorkScheduleRepository
       ),
       total,
     };
+  }
+
+  /**
+   * Find work schedule by ID (for override validation)
+   * Returns basic schedule info needed for overlap checking
+   */
+  async findWorkScheduleById(scheduleId: number): Promise<WorkSchedule | null> {
+    const scheduleRepo = this.dataSource.getRepository(WorkScheduleSchema);
+    const schema = await scheduleRepo.findOneBy({ id: scheduleId });
+    return schema ? WorkScheduleMapper.toDomain(schema) : null;
   }
 }
