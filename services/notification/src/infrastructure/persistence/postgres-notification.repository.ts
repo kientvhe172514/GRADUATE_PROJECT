@@ -36,6 +36,8 @@ export class PostgresNotificationRepository
       channelFilter?: string;
     },
   ): Promise<Notification[]> {
+    console.log('🔍 [REPO] findByRecipientId called with:', { recipientId, options });
+    
     const query = this.repository
       .createQueryBuilder('notification')
       .where('notification.recipient_id = :recipientId', { recipientId })
@@ -47,6 +49,7 @@ export class PostgresNotificationRepository
 
     // Filter by channel - check if notification's channels array contains the filter channel
     if (options?.channelFilter) {
+      console.log('🔍 [REPO] Adding channelFilter:', options.channelFilter);
       query.andWhere(
         `EXISTS (
           SELECT 1 FROM jsonb_array_elements_text(notification.channels) AS channel
@@ -64,7 +67,15 @@ export class PostgresNotificationRepository
       query.skip(options.offset);
     }
 
+    const sqlQuery = query.getSql();
+    const params = query.getParameters();
+    console.log('🔍 [REPO] Final SQL:', sqlQuery);
+    console.log('🔍 [REPO] Parameters:', params);
+
     const schemas = await query.getMany();
+    console.log('🔍 [REPO] Found schemas:', schemas.length);
+    console.log('🔍 [REPO] First schema channels:', schemas[0]?.channels);
+    
     return schemas.map(NotificationMapper.toDomain);
   }
 
