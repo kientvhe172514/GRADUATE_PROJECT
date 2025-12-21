@@ -410,37 +410,46 @@ export class AttendanceEventListener {
       await this.sendNotificationUseCase.execute(employeeDto);
       console.log(`✅ [AttendanceEventListener] Location violation alert sent to employee ${event.employeeId}`);
 
-      // 💼 2. Send notification to MANAGER (WEB) if exists
+      // 💼 2. Send notification to MANAGER (WEB + EMAIL) if exists
       if (event.managerId) {
         console.log(`💼 [AttendanceEventListener] Preparing notification for manager (employee_id: ${event.managerId})`);
         console.log(`💼 [AttendanceEventListener] Manager: ${event.managerName} | Employee: ${event.employeeName}`);
         
-        const managerDto: SendNotificationDto = {
-          recipientId: event.managerId, // ✅ Manager's employee_id from employees table
-          notificationType: NotificationType.ATTENDANCE_VIOLATION,
-          priority: Priority.HIGH,
-          title: `⚠️ Employee ${event.employeeName} is Out of Office Area`,
-          message: `Employee ${event.employeeName} (${event.employeeCode}) is currently outside the office area (${distance}m away). Department: ${event.departmentName || 'N/A'}. Please check and take action.`,
-          channels: [ChannelType.WEB], // ✅ Send via WEB channel only for manager
-          metadata: {
-            eventType: 'attendance.location_out_of_range',
-            shiftId: event.shiftId,
-            employeeId: event.employeeId,
-            employeeCode: event.employeeCode,
-            employeeName: event.employeeName,
-            departmentId: event.departmentId,
-            departmentName: event.departmentName,
-            distance: distance,
-            latitude: event.latitude,
-            longitude: event.longitude,
-            timestamp: event.timestamp,
-            notificationTarget: 'MANAGER',
-          },
-        };
+        // Fetch manager data to get email address
+        const managerInfo = await this.employeeServiceClient.getEmployeeById(event.managerId);
+        
+        if (!managerInfo) {
+          console.warn(`⚠️ [AttendanceEventListener] Manager ${event.managerId} not found, skipping manager notification`);
+        } else {
+          const managerDto: SendNotificationDto = {
+            recipientId: event.managerId, // ✅ Manager's employee_id from employees table
+            recipientEmail: managerInfo.email,
+            recipientName: managerInfo.full_name,
+            notificationType: NotificationType.ATTENDANCE_VIOLATION,
+            priority: Priority.HIGH,
+            title: `⚠️ Employee ${event.employeeName} is Out of Office Area`,
+            message: `Employee ${event.employeeName} (${event.employeeCode}) is currently outside the office area (${distance}m away). Department: ${event.departmentName || 'N/A'}. Please check and take action.`,
+            channels: [ChannelType.WEB, ChannelType.EMAIL], // ✅ FIX: Send via WEB + EMAIL for manager
+            metadata: {
+              eventType: 'attendance.location_out_of_range',
+              shiftId: event.shiftId,
+              employeeId: event.employeeId,
+              employeeCode: event.employeeCode,
+              employeeName: event.employeeName,
+              departmentId: event.departmentId,
+              departmentName: event.departmentName,
+              distance: distance,
+              latitude: event.latitude,
+              longitude: event.longitude,
+              timestamp: event.timestamp,
+              notificationTarget: 'MANAGER',
+            },
+          };
 
-        console.log(`💼 [AttendanceEventListener] Sending notification to manager:`, JSON.stringify(managerDto, null, 2));
-        await this.sendNotificationUseCase.execute(managerDto);
-        console.log(`✅ [AttendanceEventListener] Location violation alert sent to manager ${event.managerName} (employee_id: ${event.managerId})`);
+          console.log(`💼 [AttendanceEventListener] Sending notification to manager:`, JSON.stringify(managerDto, null, 2));
+          await this.sendNotificationUseCase.execute(managerDto);
+          console.log(`✅ [AttendanceEventListener] Location violation alert sent to manager ${event.managerName} (employee_id: ${event.managerId}, email: ${managerInfo.email})`);
+        }
       } else {
         console.log(`⚠️ [AttendanceEventListener] No manager found for employee ${event.employeeId} - skipping manager notification`);
       }
