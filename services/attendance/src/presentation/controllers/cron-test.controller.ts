@@ -1,10 +1,11 @@
-import { Controller, Post, Req, Logger } from '@nestjs/common';
+import { Controller, Post, Req, Logger, Query } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Public } from '@graduate-project/shared-common';
 import { ScheduledGpsCheckProcessor } from '../../infrastructure/cron/scheduled-gps-check.processor';
@@ -37,13 +38,24 @@ export class CronTestController {
     summary: '🧪 Test GPS Check Cron (Manual Trigger)',
     description:
       'Manually trigger GPS check for all active shifts. ' +
-      'This will send GPS check requests to all employees currently in their shifts.',
+      'Use useRandomDelay=false for immediate testing (default), or useRandomDelay=true to simulate cron behavior with random delays.',
+  })
+  @ApiQuery({
+    name: 'useRandomDelay',
+    required: false,
+    type: Boolean,
+    description:
+      'false = Send GPS requests immediately (for testing). true = Random delay 0-60 minutes (like cron)',
+    example: false,
   })
   @ApiResponse({
     status: 200,
     description: 'GPS check triggered successfully. Check logs for details.',
   })
-  async testGpsCheck(@Req() req: Request) {
+  async testGpsCheck(
+    @Req() req: Request,
+    @Query('useRandomDelay') useRandomDelay?: string,
+  ) {
     // Debug: log incoming headers and extracted user (internal troubleshooting only)
     const r = req as Request & { user?: unknown };
     this.logger.debug(
@@ -53,11 +65,18 @@ export class CronTestController {
       'Extracted user on request: ' + JSON.stringify(r.user ?? null),
     );
 
-    await this.gpsCheckProcessor.triggerGpsCheckForActiveShifts();
+    // Convert query param to boolean
+    const useRandom = useRandomDelay === 'true';
+
+    const result = await this.gpsCheckProcessor.triggerManually(useRandom);
+
     return {
       success: true,
-      message: 'GPS check triggered. Check server logs for execution details.',
+      message: useRandom
+        ? 'GPS check scheduled with random delays. Check server logs for timing.'
+        : 'GPS check requests sent immediately.',
       timestamp: new Date().toISOString(),
+      ...result,
     };
   }
 

@@ -4,22 +4,31 @@ import { ClientProxy } from '@nestjs/microservices';
 import { DataSource } from 'typeorm';
 
 /**
- * Scheduled GPS Check Processor - IMPROVED VERSION
+ * Scheduled GPS Check Processor - RANDOM DELAY VERSION
  *
  * Mục đích: Tự động request GPS check từ mobile app trong giờ làm việc
  *
  * IMPROVEMENTS:
- * 1. ✅ Dynamic scheduling: Chạy mỗi 15 phút thay vì fix cứng mỗi giờ
- * 2. ✅ Smart checking: Query shift configuration để biết cần check bao nhiêu lần
- * 3. ✅ Avoid over-checking: Track số lần đã check hôm nay, chỉ check khi cần
- * 4. ✅ Flexible: Dựa trên gps_check_configurations để tính toán
+ * 1. ✅ Cron mỗi 1 TIẾNG (thay vì 15 phút)
+ * 2. ✅ Random delay 0-60 phút cho mỗi nhân viên
+ * 3. ✅ Smart checking: Query shift configuration để biết cần check bao nhiêu lần
+ * 4. ✅ Avoid over-checking: Track số lần đã check hôm nay, chỉ check khi cần
+ * 5. ✅ Load balancing: Request phân tán đều trong 1 tiếng
+ * 6. ✅ Unpredictable: Nhân viên không đoán được khi nào sẽ bị check
  *
  * Flow:
- * 1. Chạy mỗi 15 phút
+ * 1. Cron chạy mỗi 1 tiếng (00:00, 01:00, 02:00,...)
  * 2. Tìm nhân viên đang trong ca làm
  * 3. Check xem đã đủ số lần GPS check chưa (dựa vào config)
- * 4. Nếu chưa đủ → Gửi request GPS check
- * 5. Mobile app tự động gửi GPS lên server
+ * 4. Nếu chưa đủ → Schedule GPS request với random delay (0-60 phút)
+ * 5. Mobile app tự động gửi GPS lên server khi nhận request
+ *
+ * Example:
+ * - Cron trigger lúc 9:00 AM
+ * - Employee A: Random 5 phút → GPS request lúc 9:05
+ * - Employee B: Random 23 phút → GPS request lúc 9:23
+ * - Employee C: Random 47 phút → GPS request lúc 9:47
+ * → Mỗi người nhận request ở thời điểm khác nhau, khó đoán!
  */
 @Injectable()
 export class ScheduledGpsCheckProcessor {
@@ -32,12 +41,14 @@ export class ScheduledGpsCheckProcessor {
   ) {}
 
   /**
-   * Chạy mỗi 15 phút để check GPS cho nhân viên đang trong ca
+   * Chạy mỗi 1 TIẾNG để check GPS cho nhân viên đang trong ca
    *
-   * IMPROVED: Không còn fix cứng mỗi giờ, giờ chạy thường xuyên hơn
-   * và có logic thông minh để quyết định có cần check GPS không
+   * IMPROVED: Random delay cho mỗi nhân viên (0-60 phút)
+   * → Tránh tất cả nhân viên gửi GPS cùng lúc
+   * → Khó đoán cho nhân viên
+   * → Giảm tải server
    */
-  @Cron('*/15 * * * *', {
+  @Cron('0 * * * *', {
     name: 'scheduled-gps-check',
     timeZone: 'Asia/Ho_Chi_Minh',
   })
@@ -60,18 +71,30 @@ export class ScheduledGpsCheckProcessor {
         `📊 [GPS-CHECK] Found ${activeEmployees.length} employees in active shifts`,
       );
 
-      // Gửi request GPS check cho từng nhân viên
+      // Gửi request GPS check cho từng nhân viên với RANDOM DELAY
       let successCount = 0;
       let failCount = 0;
 
       for (const emp of activeEmployees) {
         try {
-          this.requestGpsCheck(emp);
+          // 🎲 Random delay 0-60 phút (0-3600 giây)
+          const randomDelayMs = Math.floor(Math.random() * 60 * 60 * 1000);
+          const delayMinutes = Math.floor(randomDelayMs / 60000);
+
+          this.logger.debug(
+            `⏱️  Employee ${emp.employee_code} will receive GPS request in ${delayMinutes} minutes`,
+          );
+
+          // Schedule request với delay
+          setTimeout(() => {
+            this.requestGpsCheck(emp);
+          }, randomDelayMs);
+
           successCount++;
         } catch (error) {
           failCount++;
           this.logger.error(
-            `❌ Failed to request GPS check for employee ${emp.employee_id}: ${error.message}`,
+            `❌ Failed to schedule GPS check for employee ${emp.employee_id}: ${error.message}`,
           );
         }
       }
@@ -214,37 +237,73 @@ ORDER BY employee_id;
   /**
    * Manual trigger cho testing/admin panel
    *
-   * Usage: Gọi từ controller hoặc admin dashboard
+   * @param useRandomDelay - true = random delay như cron (default), false = gửi ngay lập tức cho TEST
+   *
+   * Usage:
+   * - Testing: triggerManually(false) → Gửi ngay, không random
+   * - Production: triggerManually(true) → Random như cron tự động
    */
-  async triggerManually(): Promise<{
+  async triggerManually(useRandomDelay: boolean = false): Promise<{
     sent: number;
     failed: number;
     employees: any[];
+    scheduledTimes?: { employeeCode: string; delayMinutes: number }[];
   }> {
-    this.logger.log('🔧 [MANUAL] Manually triggered GPS check');
+    this.logger.log(
+      `🔧 [MANUAL] Manually triggered GPS check (Random delay: ${useRandomDelay})`,
+    );
 
     const employees = await this.findEmployeesInActiveShift();
 
     let successCount = 0;
     let failCount = 0;
+    const scheduledTimes: { employeeCode: string; delayMinutes: number }[] = [];
 
     for (const emp of employees) {
       try {
-        this.requestGpsCheck(emp);
+        if (useRandomDelay) {
+          // 🎲 Random delay như cron tự động
+          const randomDelayMs = Math.floor(Math.random() * 60 * 60 * 1000);
+          const delayMinutes = Math.floor(randomDelayMs / 60000);
+
+          scheduledTimes.push({
+            employeeCode: emp.employee_code,
+            delayMinutes,
+          });
+
+          this.logger.debug(
+            `⏱️  Employee ${emp.employee_code} will receive GPS request in ${delayMinutes} minutes`,
+          );
+
+          setTimeout(() => {
+            this.requestGpsCheck(emp);
+          }, randomDelayMs);
+        } else {
+          // ⚡ Gửi ngay lập tức cho TEST
+          this.requestGpsCheck(emp);
+        }
+
         successCount++;
       } catch {
         failCount++;
       }
     }
 
-    return {
+    const result: any = {
       sent: successCount,
       failed: failCount,
       employees: employees.map((e) => ({
         employeeId: e.employee_id,
+        employeeCode: e.employee_code,
         fullName: e.full_name,
         shiftName: e.shift_name,
       })),
     };
+
+    if (useRandomDelay) {
+      result.scheduledTimes = scheduledTimes;
+    }
+
+    return result;
   }
 }
