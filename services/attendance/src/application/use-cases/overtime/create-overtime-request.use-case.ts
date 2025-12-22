@@ -139,14 +139,15 @@ export class CreateOvertimeRequestUseCase {
           const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
           const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
-          // Create UTC Date objects for work schedule times
+          // Both work schedule times and overtime times are in VN timezone (UTC+7)
+          // Compare them directly without timezone conversion
           let wsStart = new Date(Date.UTC(
             overtimeDate.getUTCFullYear(),
             overtimeDate.getUTCMonth(),
             overtimeDate.getUTCDate(),
             wsStartHour,
             wsStartMin,
-            0,
+            0
           ));
           
           let wsEnd = new Date(Date.UTC(
@@ -155,7 +156,7 @@ export class CreateOvertimeRequestUseCase {
             overtimeDate.getUTCDate(),
             wsEndHour,
             wsEndMin,
-            0,
+            0
           ));
 
           // If end_time is earlier than start_time -> overnight shift
