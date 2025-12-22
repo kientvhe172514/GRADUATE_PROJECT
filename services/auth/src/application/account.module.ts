@@ -162,6 +162,28 @@ import { EmployeeRpcService } from '../infrastructure/services/employee-rpc.serv
         },
         inject: [ConfigService],
       },
+      {
+        name: 'REPORTING_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => {
+          const rabbitmqUrl = configService.getOrThrow<string>('RABBITMQ_URL');
+          const reportingQueue = configService.get<string>(
+            'RABBITMQ_REPORTING_QUEUE',
+            'reporting_rpc_queue',
+          );
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [rabbitmqUrl] as string[],
+              queue: reportingQueue,
+              queueOptions: {
+                durable: true,
+              },
+            },
+          };
+        },
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [

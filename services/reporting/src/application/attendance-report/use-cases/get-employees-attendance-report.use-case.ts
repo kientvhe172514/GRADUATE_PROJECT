@@ -412,6 +412,8 @@ export class GetEmployeesAttendanceReportUseCase {
     params.push(query.limit!, offset);
     this.logger.log(`📊 Executing summary query (FAST PATH) with ${params.length} params`);
     this.logger.log(`🔎 Filters: ${filters.join(' AND ')}`);
+    this.logger.log(`🔎 SQL Query: ${summaryQuery.replace(/\s+/g, ' ')}`);
+    this.logger.log(`🔎 Params: ${JSON.stringify(params)}`);
 
     const results = await this.dataSource.query(summaryQuery, params);
     this.logger.log(`✅ Query returned ${results.length} employees (FAST PATH)`);
