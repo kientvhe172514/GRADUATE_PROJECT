@@ -306,7 +306,10 @@ export class GetEmployeeAttendanceReportUseCase {
     const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     // 10. Calculate attendance rate
-    const expectedWorkingDays = totalDays - totalHolidays - totalLeaveDays;
+    // Attendance rate = (Actual working days / Expected working days) * 100
+    // Expected working days = Days employee was supposed to work (excluding weekends/holidays)
+    // This includes absent days but NOT leave days (leave is approved absence)
+    const expectedWorkingDays = totalWorkingDays + totalAbsentDays;
     const attendanceRate =
       expectedWorkingDays > 0
         ? Number(((totalWorkingDays / expectedWorkingDays) * 100).toFixed(2))
