@@ -115,6 +115,26 @@ data:
             action: replace
             target_label: kubernetes_service_name
 
+      # Node Exporter - Hardware and OS metrics
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - monitoring
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: node-exporter-srv
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: node
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
       - job_name: 'infrastructure'
         kubernetes_sd_configs:
           - role: service
@@ -151,8 +171,91 @@ data:
               summary: "High response time detected"
               description: "Service {{ $labels.service }} 95th percentile response time is above 2s"
 
+      # ========== NODE RESOURCE ALERTS ==========
+      - name: node.rules
+        rules:
+          # Node CPU Usage
+          - alert: NodeCPUUsageHigh
+            expr: 100 - (avg by (node) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "🔥 Node {{ $labels.node }} CPU usage high"
+              description: "Node {{ $labels.node }} CPU usage is {{ $value | humanize }}% (threshold: 80%)"
+
+          - alert: NodeCPUUsageCritical
+            expr: 100 - (avg by (node) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Node {{ $labels.node }} CPU CRITICAL"
+              description: "Node {{ $labels.node }} CPU usage is {{ $value | humanize }}% (threshold: 95%) - IMMEDIATE ACTION REQUIRED"
+
+          # Node Memory Usage
+          - alert: NodeMemoryUsageHigh
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "🔥 Node {{ $labels.node }} memory usage high"
+              description: "Node {{ $labels.node }} memory usage is {{ $value | humanize }}% (threshold: 80%)"
+
+          - alert: NodeMemoryUsageCritical
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Node {{ $labels.node }} memory CRITICAL"
+              description: "Node {{ $labels.node }} memory usage is {{ $value | humanize }}% (threshold: 90%) - RISK OF OOM"
+
+          # Node Disk Usage
+          - alert: NodeDiskUsageHigh
+            expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "💾 Node {{ $labels.node }} disk usage high"
+              description: "Node {{ $labels.node }} disk usage is {{ $value | humanize }}% (threshold: 80%)"
+
+          - alert: NodeDiskUsageCritical
+            expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "🚨 Node {{ $labels.node }} disk CRITICAL"
+              description: "Node {{ $labels.node }} disk usage is {{ $value | humanize }}% (threshold: 90%) - CLEANUP REQUIRED"
+
+          # Node Load Average
+          - alert: NodeLoadAverageHigh
+            expr: node_load5 / count(node_cpu_seconds_total{mode="idle"}) without (cpu, mode) > 1.5
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "⚡ Node {{ $labels.node }} load average high"
+              description: "Node {{ $labels.node }} 5-min load average is {{ $value | humanize }} (threshold: 1.5x CPU cores)"
+
+          # Node Network Errors
+          - alert: NodeNetworkErrors
+            expr: rate(node_network_receive_errs_total[5m]) > 10 or rate(node_network_transmit_errs_total[5m]) > 10
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "📡 Node {{ $labels.node }} network errors"
+              description: "Node {{ $labels.node }} is experiencing network errors ({{ $value | humanize }} errors/sec)"
+
+      # ========== POD RESOURCE ALERTS ==========
+      - name: pod.rules
+        rules:
           - alert: PodCPUUsageHigh
-            expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod) > 0.8
+            expr: sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) by (pod, namespace) > 0.8
             for: 5m
             labels:
               severity: warning

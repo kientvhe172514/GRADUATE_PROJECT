@@ -1,0 +1,88 @@
+# Node Exporter - Collect hardware and OS metrics from nodes
+# Runs as DaemonSet (one pod per node)
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter-srv
+  namespace: monitoring
+  labels:
+    app: node-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+spec:
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+  clusterIP: None  # Headless service for DaemonSet
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      hostNetwork: true  # Access host network for accurate metrics
+      hostPID: true      # Access host process info
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter:v1.7.0
+        args:
+          - '--path.procfs=/host/proc'
+          - '--path.sysfs=/host/sys'
+          - '--path.rootfs=/host/root'
+          - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+          - '--collector.netclass.ignored-devices=^(veth.*|cali.*|docker.*|br.*)$$'
+          - '--collector.netdev.device-exclude=^(veth.*|cali.*|docker.*|br.*)$$'
+          - '--no-collector.ipvs'  # Disable if not using IPVS
+        ports:
+        - containerPort: 9100
+          name: metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: root
+          mountPath: /host/root
+          mountPropagation: HostToContainer
+          readOnly: true
+        securityContext:
+          privileged: true  # Required to access host metrics
+      tolerations:
+      - operator: Exists  # Run on all nodes including master
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: root
+        hostPath:
+          path: /
