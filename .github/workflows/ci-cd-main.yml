@@ -418,21 +418,11 @@ jobs:
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-config.yaml
             kubectl apply -f infra/k8s/shared/messaging/redis/redis-sentinel-statefulset.yaml
             
-            # Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager, Fluentd)
+            # Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager)
             echo "📊 Deploying Monitoring Stack..."
             
             # ⚠️ KHÔNG XÓA PVC - Giữ lại data của Prometheus và Grafana
             # kubectl delete pvc prometheus-storage grafana-storage -n monitoring --ignore-not-found=true
-            
-            # Check if Elasticsearch StatefulSet exists and has different volumeClaimTemplates
-            if kubectl get statefulset elasticsearch -n monitoring &>/dev/null; then
-              CURRENT_SC=$(kubectl get statefulset elasticsearch -n monitoring -o jsonpath='{.spec.volumeClaimTemplates[0].spec.storageClassName}')
-              if [ "$CURRENT_SC" != "local-path" ]; then
-                echo "⚠️ Elasticsearch storage class changed ($CURRENT_SC -> local-path), recreating StatefulSet..."
-                kubectl delete statefulset elasticsearch -n monitoring --ignore-not-found=true
-                kubectl delete pvc elasticsearch-data-elasticsearch-0 -n monitoring --ignore-not-found=true
-              fi
-            fi
             
             # Apply monitoring stack (PVCs sẽ giữ nguyên nếu đã tồn tại)
             kubectl apply -f infra/k8s/shared/monitoring/ --recursive
@@ -442,8 +432,6 @@ jobs:
             kubectl rollout restart deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus deployment not found"
             kubectl rollout restart deployment/grafana-depl -n monitoring || echo "⚠️ Grafana deployment not found"
             kubectl rollout restart deployment/alertmanager-depl -n monitoring || echo "⚠️ Alertmanager deployment not found"
-            kubectl rollout restart statefulset/elasticsearch -n monitoring || echo "⚠️ Elasticsearch statefulset not found"
-            kubectl rollout restart daemonset/fluentd-daemonset -n monitoring || echo "⚠️ Fluentd daemonset not found"
             
             # Xóa pods Error/Completed/Failed (không tự terminate)
             echo "🧹 Cleaning up old pods..."
@@ -458,10 +446,7 @@ jobs:
             kubectl wait --for=condition=ready pod -l app=rabbitmq -n infrastructure --timeout=5m || echo "⚠️ RabbitMQ not ready"
             kubectl wait --for=condition=ready pod -l app=redis,role=master -n infrastructure --timeout=5m || echo "⚠️ Redis master not ready"
             
-            # Wait for monitoring deployments - Elasticsearch FIRST (Fluentd depends on it)
-            echo "⏳ Waiting for Elasticsearch to be ready..."
-            kubectl wait --for=condition=ready pod -l app=elasticsearch -n monitoring --timeout=5m || echo "⚠️ Elasticsearch not ready"
-            
+            # Wait for monitoring deployments
             echo "⏳ Waiting for monitoring stack..."
             kubectl wait --for=condition=available --timeout=3m deployment/prometheus-depl -n monitoring || echo "⚠️ Prometheus not ready"
             kubectl wait --for=condition=available --timeout=3m deployment/grafana-depl -n monitoring || echo "⚠️ Grafana not ready"
