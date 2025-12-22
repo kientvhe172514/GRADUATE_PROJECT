@@ -32,7 +32,7 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
   }
 
   async findById(id: number): Promise<Employee | null> {
-    // Manual left join with department to avoid foreign key constraint issues
+    // Manual left join with department and position to avoid foreign key constraint issues
     const result = await this.repository.query(`
       SELECT 
         e.*,
@@ -43,9 +43,13 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
         d.office_address,
         d.office_latitude,
         d.office_longitude,
-        d.office_radius_meters
+        d.office_radius_meters,
+        p.id as position_id_rel,
+        p.position_name,
+        p.suggested_role
       FROM employees e
       LEFT JOIN departments d ON d.id = e.department_id
+      LEFT JOIN positions p ON p.id = e.position_id
       WHERE e.id = $1
     `, [id]);
     
@@ -66,6 +70,15 @@ export class PostgresEmployeeRepository implements EmployeeRepositoryPort {
         office_latitude: row.office_latitude,
         office_longitude: row.office_longitude,
         office_radius_meters: row.office_radius_meters,
+      };
+    }
+    
+    // Map position relation if exists
+    if (row.position_id) {
+      employeeEntity.position = {
+        id: row.position_id_rel,
+        position_name: row.position_name,
+        suggested_role: row.suggested_role,
       };
     }
     

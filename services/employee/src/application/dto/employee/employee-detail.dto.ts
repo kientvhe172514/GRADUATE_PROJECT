@@ -101,7 +101,14 @@ export class EmployeeDetailDto {
     allowed_check_in_radius_meters?: number;
   };
 
-  constructor(employee: Employee & { department?: any }) {
+  @ApiProperty({ required: false })
+  position?: {
+    id: number;
+    position_name: string;
+    suggested_role: string;
+  };
+
+  constructor(employee: Employee & { department?: any; position?: any }) {
     this.id = employee.id!;
     this.account_id = employee.account_id;
     this.employee_code = employee.employee_code;
@@ -133,5 +140,6 @@ export class EmployeeDetailDto {
     this.created_by = employee.created_by;
     this.updated_by = employee.updated_by;
     this.department = employee.department;
+    this.position = employee.position;
   }
 }

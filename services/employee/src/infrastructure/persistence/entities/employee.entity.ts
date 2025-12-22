@@ -31,4 +31,5 @@ export class EmployeeEntity {
   updated_by?: number;
   // Relations
   department?: any;
+  position?: any;
 }
