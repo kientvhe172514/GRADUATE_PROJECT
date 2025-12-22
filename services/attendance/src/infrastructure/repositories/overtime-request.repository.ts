@@ -125,6 +125,31 @@ export class OvertimeRequestRepository extends Repository<OvertimeRequestSchema>
     });
   }
 
+  /**
+   * Find overlapping overtime requests for a specific employee on a specific date
+   * Used to prevent duplicate/overlapping overtime requests
+   */
+  async findOverlappingRequests(
+    employeeId: number,
+    overtimeDate: Date,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<OvertimeRequestSchema[]> {
+    // Query overtime requests on the same date with PENDING or APPROVED status
+    const dateStr = overtimeDate.toISOString().split('T')[0];
+    
+    return this.createQueryBuilder('ot')
+      .where('ot.employee_id = :employeeId', { employeeId })
+      .andWhere('ot.overtime_date::date = :dateStr::date', { dateStr })
+      .andWhere('ot.status IN (:...statuses)', { statuses: ['PENDING', 'APPROVED'] })
+      .andWhere(
+        // Check time overlap: (start1 < end2 AND end1 > start2)
+        '(ot.start_time < :endTime AND ot.end_time > :startTime)',
+        { startTime, endTime }
+      )
+      .getMany();
+  }
+
   async getTotalOvertimeHours(
     employeeId: number,
     startDate: Date,

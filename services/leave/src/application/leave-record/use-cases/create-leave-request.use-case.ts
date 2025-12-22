@@ -93,6 +93,9 @@ export class CreateLeaveRequestUseCase {
     const startDate = new Date(dto.start_date);
     const endDate = new Date(dto.end_date);
 
+    console.log(`📅 [CREATE LEAVE DEBUG] Employee ID: ${employeeId}`);
+    console.log(`📅 [CREATE LEAVE DEBUG] Requested dates: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+
     if (startDate > endDate) {
       throw new BusinessException(
         ErrorCodes.INVALID_LEAVE_DATE_RANGE,
@@ -101,21 +104,39 @@ export class CreateLeaveRequestUseCase {
       );
     }
 
-    // 3. Check for overlapping leave requests
-    const overlappingLeaves = await this.leaveRecordRepository.findByDateRange(
+    // 3. Check for overlapping leave requests (PENDING or APPROVED)
+    console.log(`🔍 [CREATE LEAVE DEBUG] Checking for overlapping leaves...`);
+    const overlappingLeaves = await this.leaveRecordRepository.findOverlappingLeaves(
+      employeeId,
       startDate,
       endDate,
     );
-    const hasOverlap = overlappingLeaves.some(
-      (leave) =>
-        leave.employee_id === employeeId &&
-        (leave.status === 'PENDING' || leave.status === 'APPROVED'),
-    );
 
-    if (hasOverlap) {
+    console.log(`🔍 [CREATE LEAVE DEBUG] Found ${overlappingLeaves.length} overlapping leave(s)`);
+    if (overlappingLeaves.length > 0) {
+      overlappingLeaves.forEach((leave, index) => {
+        const leaveStart = leave.start_date instanceof Date
+          ? leave.start_date.toISOString().split('T')[0]
+          : new Date(leave.start_date).toISOString().split('T')[0];
+        const leaveEnd = leave.end_date instanceof Date
+          ? leave.end_date.toISOString().split('T')[0]
+          : new Date(leave.end_date).toISOString().split('T')[0];
+        console.log(`  ${index + 1}. Leave ID: ${leave.id}, Status: ${leave.status}, Dates: ${leaveStart} to ${leaveEnd}`);
+      });
+    }
+
+    if (overlappingLeaves.length > 0) {
+      const existing = overlappingLeaves[0];
+      const existingStart = existing.start_date instanceof Date
+        ? existing.start_date.toISOString().split('T')[0]
+        : new Date(existing.start_date).toISOString().split('T')[0];
+      const existingEnd = existing.end_date instanceof Date
+        ? existing.end_date.toISOString().split('T')[0]
+        : new Date(existing.end_date).toISOString().split('T')[0];
+
       throw new BusinessException(
         ErrorCodes.LEAVE_REQUEST_OVERLAPS,
-        'You already have a pending or approved leave request during this period',
+        `You already have a ${existing.status.toLowerCase()} leave request that overlaps with this period (${existingStart} to ${existingEnd}). Please cancel or modify the existing request first.`,
         400,
       );
     }

@@ -70,6 +70,26 @@ export class CreateOvertimeRequestUseCase {
 
     console.log(`🕐 [OVERTIME] Request time: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}`);
 
+    // Check if there's already a PENDING or APPROVED overtime request that overlaps
+    const overlappingOvertimes = await this.overtimeRepo.findOverlappingRequests(
+      currentUser.employee_id!,
+      overtimeDate,
+      overtimeStart,
+      overtimeEnd,
+    );
+
+    if (overlappingOvertimes.length > 0) {
+      const existing = overlappingOvertimes[0];
+      const existingStart = new Date(existing.start_time).toISOString().split('T')[1].substring(0, 5);
+      const existingEnd = new Date(existing.end_time).toISOString().split('T')[1].substring(0, 5);
+      
+      throw new BusinessException(
+        ErrorCodes.INVALID_INPUT,
+        `You already have a ${existing.status.toLowerCase()} overtime request that overlaps with this time (${existingStart} - ${existingEnd}). Please cancel or modify the existing request first.`,
+        400,
+      );
+    }
+
     // Check if there's already a REGULAR shift on this date
     const existingShift = await this.shiftRepo.findRegularShiftByEmployeeAndDate(
       currentUser.employee_id!,

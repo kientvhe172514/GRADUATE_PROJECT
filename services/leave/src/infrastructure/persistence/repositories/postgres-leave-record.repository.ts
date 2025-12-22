@@ -46,6 +46,34 @@ export class PostgresLeaveRecordRepository implements ILeaveRecordRepository {
       .getMany();
   }
 
+  /**
+   * Find overlapping leave requests for a specific employee
+   * Used to prevent duplicate/overlapping leave requests
+   * Overlap logic: new_start <= existing_end AND new_end >= existing_start
+   */
+  async findOverlappingLeaves(
+    employeeId: number,
+    startDate: Date,
+    endDate: Date,
+    excludeLeaveId?: number,
+  ): Promise<LeaveRecordEntity[]> {
+    const query = this.repository
+      .createQueryBuilder('leave_record')
+      .where('leave_record.employee_id = :employeeId', { employeeId })
+      .andWhere('leave_record.start_date <= :endDate', { endDate })
+      .andWhere('leave_record.end_date >= :startDate', { startDate })
+      .andWhere('leave_record.status IN (:...statuses)', {
+        statuses: ['PENDING', 'APPROVED'],
+      });
+
+    // Exclude current leave record when updating
+    if (excludeLeaveId) {
+      query.andWhere('leave_record.id != :excludeLeaveId', { excludeLeaveId });
+    }
+
+    return query.getMany();
+  }
+
   async create(record: Partial<LeaveRecordEntity>): Promise<LeaveRecordEntity> {
     const entity = this.repository.create(record);
     return this.repository.save(entity);

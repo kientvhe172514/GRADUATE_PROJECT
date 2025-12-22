@@ -37,6 +37,13 @@ export class UpdateLeaveRequestUseCase {
       );
     }
 
+    console.log(`📝 [UPDATE LEAVE DEBUG] Updating Leave ID: ${id}, Employee ID: ${leaveRecord.employee_id}`);
+    console.log(`📝 [UPDATE LEAVE DEBUG] Current dates: ${leaveRecord.start_date instanceof Date ? leaveRecord.start_date.toISOString().split('T')[0] : new Date(leaveRecord.start_date).toISOString().split('T')[0]} to ${leaveRecord.end_date instanceof Date ? leaveRecord.end_date.toISOString().split('T')[0] : new Date(leaveRecord.end_date).toISOString().split('T')[0]}`);
+    console.log(`📝 [UPDATE LEAVE DEBUG] New dates in DTO:`, {
+      start_date: dto.start_date || '(unchanged)',
+      end_date: dto.end_date || '(unchanged)',
+    });
+
     // 3. Validate date range if dates are being updated
     if (dto.start_date && dto.end_date) {
       const startDate = new Date(dto.start_date);
@@ -46,6 +53,94 @@ export class UpdateLeaveRequestUseCase {
         throw new BusinessException(
           ErrorCodes.INVALID_LEAVE_DATE_RANGE,
           'Start date must be before or equal to end date',
+          400,
+        );
+      }
+
+      // Check for overlapping leave requests (exclude current leave)
+      console.log(`🔍 [UPDATE LEAVE DEBUG] Checking overlaps for new date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]} (excluding Leave ID: ${id})`);
+      const overlappingLeaves = await this.leaveRecordRepository.findOverlappingLeaves(
+        leaveRecord.employee_id,
+        startDate,
+        endDate,
+        id, // Exclude current leave record
+      );
+
+      console.log(`🔍 [UPDATE LEAVE DEBUG] Found ${overlappingLeaves.length} overlapping leave(s)`);
+      if (overlappingLeaves.length > 0) {
+        overlappingLeaves.forEach((leave, index) => {
+          const leaveStart = leave.start_date instanceof Date
+            ? leave.start_date.toISOString().split('T')[0]
+            : new Date(leave.start_date).toISOString().split('T')[0];
+          const leaveEnd = leave.end_date instanceof Date
+            ? leave.end_date.toISOString().split('T')[0]
+            : new Date(leave.end_date).toISOString().split('T')[0];
+          console.log(`  ${index + 1}. Leave ID: ${leave.id}, Status: ${leave.status}, Dates: ${leaveStart} to ${leaveEnd}`);
+        });
+      }
+
+      if (overlappingLeaves.length > 0) {
+        const existing = overlappingLeaves[0];
+        const existingStart = existing.start_date instanceof Date
+          ? existing.start_date.toISOString().split('T')[0]
+          : new Date(existing.start_date).toISOString().split('T')[0];
+        const existingEnd = existing.end_date instanceof Date
+          ? existing.end_date.toISOString().split('T')[0]
+          : new Date(existing.end_date).toISOString().split('T')[0];
+
+        throw new BusinessException(
+          ErrorCodes.LEAVE_REQUEST_OVERLAPS,
+          `Cannot update: The new dates overlap with another ${existing.status.toLowerCase()} leave request (${existingStart} to ${existingEnd}). Please choose different dates.`,
+          400,
+        );
+      }
+    } else if (dto.start_date || dto.end_date) {
+      // Only one date provided - need to validate against the other existing date
+      const startDate = dto.start_date ? new Date(dto.start_date) : leaveRecord.start_date;
+      const endDate = dto.end_date ? new Date(dto.end_date) : leaveRecord.end_date;
+
+      if (startDate > endDate) {
+        throw new BusinessException(
+          ErrorCodes.INVALID_LEAVE_DATE_RANGE,
+          'Start date must be before or equal to end date',
+          400,
+        );
+      }
+
+      // Check for overlapping leave requests (exclude current leave)
+      console.log(`🔍 [UPDATE LEAVE DEBUG] Checking overlaps for partial date update: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]} (excluding Leave ID: ${id})`);
+      const overlappingLeaves = await this.leaveRecordRepository.findOverlappingLeaves(
+        leaveRecord.employee_id,
+        startDate,
+        endDate,
+        id,
+      );
+
+      console.log(`🔍 [UPDATE LEAVE DEBUG] Found ${overlappingLeaves.length} overlapping leave(s)`);
+      if (overlappingLeaves.length > 0) {
+        overlappingLeaves.forEach((leave, index) => {
+          const leaveStart = leave.start_date instanceof Date
+            ? leave.start_date.toISOString().split('T')[0]
+            : new Date(leave.start_date).toISOString().split('T')[0];
+          const leaveEnd = leave.end_date instanceof Date
+            ? leave.end_date.toISOString().split('T')[0]
+            : new Date(leave.end_date).toISOString().split('T')[0];
+          console.log(`  ${index + 1}. Leave ID: ${leave.id}, Status: ${leave.status}, Dates: ${leaveStart} to ${leaveEnd}`);
+        });
+      }
+
+      if (overlappingLeaves.length > 0) {
+        const existing = overlappingLeaves[0];
+        const existingStart = existing.start_date instanceof Date
+          ? existing.start_date.toISOString().split('T')[0]
+          : new Date(existing.start_date).toISOString().split('T')[0];
+        const existingEnd = existing.end_date instanceof Date
+          ? existing.end_date.toISOString().split('T')[0]
+          : new Date(existing.end_date).toISOString().split('T')[0];
+
+        throw new BusinessException(
+          ErrorCodes.LEAVE_REQUEST_OVERLAPS,
+          `Cannot update: The new dates overlap with another ${existing.status.toLowerCase()} leave request (${existingStart} to ${existingEnd}). Please choose different dates.`,
           400,
         );
       }
