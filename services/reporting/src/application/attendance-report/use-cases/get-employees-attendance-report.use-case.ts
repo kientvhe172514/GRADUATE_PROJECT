@@ -24,16 +24,24 @@ export class GetEmployeesAttendanceReportUseCase {
   async execute(
     query: EmployeesAttendanceReportQueryDto,
   ): Promise<EmployeesAttendanceReportResponseDto> {
+    this.logger.log('🚀 Starting GetEmployeesAttendanceReportUseCase.execute');
+    this.logger.log(`📊 Query params: ${JSON.stringify(query)}`);
+    
     // 1. Calculate date range
     const { start_date, end_date } = this.calculateDateRange(query);
+    this.logger.log(`📅 Date range: ${start_date} to ${end_date}`);
 
     // 2. Determine if we can use monthly_summaries (fast path) or need to calculate on-the-fly (slow path)
     // ✅ Only use pre-calculated if the date range is full months
     const canUsePreCalculated = this.isFullMonthRange(start_date, end_date);
+    this.logger.log(`🔍 Can use pre-calculated summaries: ${canUsePreCalculated}`);
     
     if (canUsePreCalculated) {
+      this.logger.log('⚡ Using FAST PATH (pre-calculated monthly summaries)');
       return this.executeWithPreCalculatedSummaries(query, start_date, end_date);
     }
+
+    this.logger.log('🐢 Using SLOW PATH (real-time calculation from shifts)');
 
     // 3. Build filter conditions for real-time calculation
     const whereConditions: string[] = [
@@ -63,11 +71,13 @@ export class GetEmployeesAttendanceReportUseCase {
     
     // ✅ Filter only EMPLOYEE role (exclude ADMIN, MANAGER, HR, etc.)
     // Get role_id for EMPLOYEE role from roles_cache
+    this.logger.log('🔑 Fetching EMPLOYEE role_id from roles_cache...');
     const [employeeRole] = await this.dataSource.query(
       `SELECT role_id FROM roles_cache WHERE code = 'EMPLOYEE' AND status = 'ACTIVE' LIMIT 1`,
     );
     
     if (employeeRole) {
+      this.logger.log(`✅ Found EMPLOYEE role_id: ${employeeRole.role_id}`);
       employeeFilters.push(`e.role_id = $${employeeParams.length + 1}`);
       employeeParams.push(employeeRole.role_id);
     } else {
@@ -174,13 +184,17 @@ export class GetEmployeesAttendanceReportUseCase {
     `;
 
     employeeParams.push(query.limit!, offset);
+    this.logger.log(`📊 Executing aggregate query with ${employeeParams.length} params`);
+    this.logger.log(`🔎 Employee filters: ${employeeFilters.join(' AND ')}`);
     const results = await this.dataSource.query(aggregateQuery, employeeParams);
+    this.logger.log(`✅ Query returned ${results.length} employees`);
 
     // 4. Get leave days for each employee
     const employeeIds = results.map((r: any) => r.employee_id);
     let leaveDaysMap = new Map<number, number>();
 
     if (employeeIds.length > 0) {
+      this.logger.log(`📞 Calling Leave Service for ${employeeIds.length} employees...`);
       try {
         const leaveData = await firstValueFrom(
           this.leaveService.send(
@@ -194,13 +208,18 @@ export class GetEmployeesAttendanceReportUseCase {
         );
 
         if (leaveData && Array.isArray(leaveData)) {
+          this.logger.log(`✅ Leave Service returned data for ${leaveData.length} employees`);
           leaveDaysMap = new Map(
             leaveData.map((item: any) => [item.employee_id, item.total_leave_days || 0]),
           );
+        } else {
+          this.logger.warn('⚠️ Leave Service returned invalid data');
         }
       } catch (error) {
-        console.warn('Failed to fetch leave data:', error);
+        this.logger.error('❌ Failed to fetch leave data:', error);
       }
+    } else {
+      this.logger.log('ℹ️ No employees to fetch leave data for');
     }
 
     // 5. Calculate manday for each employee
@@ -239,8 +258,9 @@ export class GetEmployeesAttendanceReportUseCase {
     `;
     const [countResult] = await this.dataSource.query(countQuery, employeeParams.slice(0, -2));
     const total = Number(countResult?.total || 0);
+    this.logger.log(`📊 Total employees matching filters: ${total}`);
 
-    return {
+    const response = {
       data,
       total,
       page: query.page!,
@@ -249,6 +269,9 @@ export class GetEmployeesAttendanceReportUseCase {
       start_date,
       end_date,
     };
+    
+    this.logger.log(`✅ Returning response with ${data.length} employees (page ${query.page}/${response.total_pages})`);
+    return response;
   }
 
   private calculateDateRange(query: EmployeesAttendanceReportQueryDto): {
@@ -311,6 +334,7 @@ export class GetEmployeesAttendanceReportUseCase {
     start_date: string,
     end_date: string,
   ): Promise<EmployeesAttendanceReportResponseDto> {
+    this.logger.log('⚡ Executing FAST PATH with pre-calculated summaries');
     const offset = (query.page! - 1) * query.limit!;
 
     // Build filters
@@ -322,11 +346,13 @@ export class GetEmployeesAttendanceReportUseCase {
     );
 
     // ✅ Filter only EMPLOYEE role (exclude ADMIN, MANAGER, HR, etc.)
+    this.logger.log('🔑 Fetching EMPLOYEE role_id from roles_cache (FAST PATH)...');
     const [employeeRole] = await this.dataSource.query(
       `SELECT role_id FROM roles_cache WHERE code = 'EMPLOYEE' AND status = 'ACTIVE' LIMIT 1`,
     );
     
     if (employeeRole) {
+      this.logger.log(`✅ Found EMPLOYEE role_id: ${employeeRole.role_id} (FAST PATH)`);
       filters.push(`ec.role_id = $${params.length + 1}`);
       params.push(employeeRole.role_id);
     } else {
@@ -384,8 +410,11 @@ export class GetEmployeesAttendanceReportUseCase {
     `;
 
     params.push(query.limit!, offset);
+    this.logger.log(`📊 Executing summary query (FAST PATH) with ${params.length} params`);
+    this.logger.log(`🔎 Filters: ${filters.join(' AND ')}`);
 
     const results = await this.dataSource.query(summaryQuery, params);
+    this.logger.log(`✅ Query returned ${results.length} employees (FAST PATH)`);
 
     // Get total count
     const countQuery = `
@@ -397,6 +426,7 @@ export class GetEmployeesAttendanceReportUseCase {
 
     const countParams = params.slice(0, params.length - 2); // Remove LIMIT/OFFSET params
     const [{ total }] = await this.dataSource.query(countQuery, countParams);
+    this.logger.log(`📊 Total employees matching filters (FAST PATH): ${total}`);
 
     // Map to response DTO
     const data: EmployeeAttendanceSummaryDto[] = results.map((row: any) => ({
@@ -416,7 +446,7 @@ export class GetEmployeesAttendanceReportUseCase {
       attendance_rate: parseFloat(row.attendance_rate) || 0,
     }));
 
-    return {
+    const response = {
       data,
       total,
       page: query.page!,
@@ -425,5 +455,8 @@ export class GetEmployeesAttendanceReportUseCase {
       start_date,
       end_date,
     };
+    
+    this.logger.log(`✅ Returning FAST PATH response with ${data.length} employees (page ${query.page}/${response.total_pages})`);
+    return response;
   }
 }
