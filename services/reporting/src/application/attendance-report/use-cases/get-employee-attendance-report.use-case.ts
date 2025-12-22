@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -346,8 +346,26 @@ export class GetEmployeeAttendanceReportUseCase {
     start_date: string;
     end_date: string;
   } {
+    // Helper function to format date without timezone issues
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // Use provided start_date and end_date, or default to current month
     if (query.start_date && query.end_date) {
+      // Validate that start_date <= end_date
+      const startDate = new Date(query.start_date);
+      const endDate = new Date(query.end_date);
+      
+      if (startDate > endDate) {
+        throw new BadRequestException(
+          `Invalid date range: start_date (${query.start_date}) must be before or equal to end_date (${query.end_date})`,
+        );
+      }
+
       return {
         start_date: query.start_date,
         end_date: query.end_date,
@@ -360,8 +378,8 @@ export class GetEmployeeAttendanceReportUseCase {
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     return {
-      start_date: start.toISOString().split('T')[0],
-      end_date: end.toISOString().split('T')[0],
+      start_date: formatDate(start),
+      end_date: formatDate(end),
     };
   }
 }
