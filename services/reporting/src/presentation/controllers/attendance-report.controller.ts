@@ -28,7 +28,7 @@ export class AttendanceReportController {
       Get aggregated attendance report for multiple employees.
       
       **Features:**
-      - Filter by period (DAY, WEEK, MONTH, QUARTER, YEAR, CUSTOM)
+      - Filter by date range (start_date and end_date)
       - Filter by department
       - Search by employee name or code
       - Pagination support
@@ -99,7 +99,7 @@ export class AttendanceReportController {
       Get comprehensive daily attendance report for a single employee.
       
       **Features:**
-      - Filter by period (DAY, WEEK, MONTH, QUARTER, YEAR, CUSTOM)
+      - Filter by date range (start_date and end_date)
       - Daily breakdown of attendance
       - Complete employee information
       - Summary statistics

@@ -12,11 +12,6 @@ export enum ReportPeriod {
 }
 
 export class EmployeesAttendanceReportQueryDto {
-  @ApiPropertyOptional({ enum: ReportPeriod, default: ReportPeriod.MONTH })
-  @IsEnum(ReportPeriod)
-  @IsOptional()
-  period?: ReportPeriod = ReportPeriod.MONTH;
-
   @ApiPropertyOptional({ description: 'Start date (YYYY-MM-DD)', example: '2025-01-01' })
   @IsDateString()
   @IsOptional()
@@ -130,11 +125,6 @@ export class EmployeeAttendanceReportQueryDto {
   @IsInt()
   @Type(() => Number)
   employee_id: number;
-
-  @ApiPropertyOptional({ enum: ReportPeriod, default: ReportPeriod.MONTH })
-  @IsEnum(ReportPeriod)
-  @IsOptional()
-  period?: ReportPeriod = ReportPeriod.MONTH;
 
   @ApiPropertyOptional({ description: 'Start date (YYYY-MM-DD)', example: '2025-01-01' })
   @IsDateString()

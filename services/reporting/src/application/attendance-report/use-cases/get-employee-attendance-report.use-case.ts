@@ -269,7 +269,7 @@ export class GetEmployeeAttendanceReportUseCase {
         join_date: employee.join_date,
       },
       period: {
-        type: query.period || ReportPeriod.MONTH,
+        type: 'CUSTOM',
         start_date,
         end_date,
         total_days: totalDays,
@@ -302,44 +302,18 @@ export class GetEmployeeAttendanceReportUseCase {
     }
 
     const now = new Date();
-    let start: Date;
-    let end: Date;
-
-    switch (query.period) {
-      case ReportPeriod.DAY:
-        start = new Date(now);
-        end = new Date(now);
-        break;
-
-      case ReportPeriod.WEEK:
-        const dayOfWeek = now.getDay();
-        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        start = new Date(now);
-        start.setDate(now.getDate() + diffToMonday);
-        end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        break;
-
-      case ReportPeriod.MONTH:
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-
-      case ReportPeriod.QUARTER:
-        const quarter = Math.floor(now.getMonth() / 3);
-        start = new Date(now.getFullYear(), quarter * 3, 1);
-        end = new Date(now.getFullYear(), quarter * 3 + 3, 0);
-        break;
-
-      case ReportPeriod.YEAR:
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
-        break;
-
-      default:
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // Use provided start_date and end_date, or default to current month
+    if (query.start_date && query.end_date) {
+      return {
+        start_date: query.start_date,
+        end_date: query.end_date,
+      };
     }
+
+    // Default to current month if no dates provided
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     return {
       start_date: start.toISOString().split('T')[0],

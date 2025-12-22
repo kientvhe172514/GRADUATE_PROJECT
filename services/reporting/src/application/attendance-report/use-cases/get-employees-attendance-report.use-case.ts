@@ -22,13 +22,12 @@ export class GetEmployeesAttendanceReportUseCase {
   async execute(
     query: EmployeesAttendanceReportQueryDto,
   ): Promise<EmployeesAttendanceReportResponseDto> {
-    // 1. Calculate date range based on period
+    // 1. Calculate date range
     const { start_date, end_date } = this.calculateDateRange(query);
 
     // 2. Determine if we can use monthly_summaries (fast path) or need to calculate on-the-fly (slow path)
-    // ✅ FIX: Only use pre-calculated if the date range is full months
-    const canUsePreCalculated = this.canUseMonthlyPreCalculated(query.period) 
-      && this.isFullMonthRange(start_date, end_date);
+    // ✅ Only use pre-calculated if the date range is full months
+    const canUsePreCalculated = this.isFullMonthRange(start_date, end_date);
     
     if (canUsePreCalculated) {
       return this.executeWithPreCalculatedSummaries(query, start_date, end_date);
@@ -227,7 +226,7 @@ export class GetEmployeesAttendanceReportUseCase {
       page: query.page!,
       limit: query.limit!,
       total_pages: Math.ceil(total / query.limit!),
-      period: query.period || ReportPeriod.MONTH,
+      period: 'CUSTOM',
       start_date,
       end_date,
     };
@@ -237,6 +236,7 @@ export class GetEmployeesAttendanceReportUseCase {
     start_date: string;
     end_date: string;
   } {
+    // Use provided start_date and end_date, or default to current month
     if (query.start_date && query.end_date) {
       return {
         start_date: query.start_date,
@@ -244,45 +244,10 @@ export class GetEmployeesAttendanceReportUseCase {
       };
     }
 
+    // Default to current month if no dates provided
     const now = new Date();
-    let start: Date;
-    let end: Date;
-
-    switch (query.period) {
-      case ReportPeriod.DAY:
-        start = new Date(now);
-        end = new Date(now);
-        break;
-
-      case ReportPeriod.WEEK:
-        const dayOfWeek = now.getDay();
-        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        start = new Date(now);
-        start.setDate(now.getDate() + diffToMonday);
-        end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        break;
-
-      case ReportPeriod.MONTH:
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-
-      case ReportPeriod.QUARTER:
-        const quarter = Math.floor(now.getMonth() / 3);
-        start = new Date(now.getFullYear(), quarter * 3, 1);
-        end = new Date(now.getFullYear(), quarter * 3 + 3, 0);
-        break;
-
-      case ReportPeriod.YEAR:
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
-        break;
-
-      default:
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    }
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     return {
       start_date: start.toISOString().split('T')[0],
@@ -291,19 +256,7 @@ export class GetEmployeesAttendanceReportUseCase {
   }
 
   /**
-   * Check if we can use pre-calculated monthly summaries
-   * Supports MONTH, QUARTER, YEAR periods
-   */
-  private canUseMonthlyPreCalculated(period?: string): boolean {
-    return (
-      period === ReportPeriod.MONTH ||
-      period === ReportPeriod.QUARTER ||
-      period === ReportPeriod.YEAR
-    );
-  }
-
-  /**
-   * ✅ NEW: Check if date range covers full months only
+   * Check if date range covers full months only
    * Pre-calculated summaries are aggregated by FULL MONTH, so partial month ranges are invalid
    * 
    * Examples:
@@ -434,7 +387,7 @@ export class GetEmployeesAttendanceReportUseCase {
       page: query.page!,
       limit: query.limit!,
       total_pages: Math.ceil(total / query.limit!),
-      period: query.period || 'MONTH',
+      period: 'CUSTOM',
       start_date,
       end_date,
     };

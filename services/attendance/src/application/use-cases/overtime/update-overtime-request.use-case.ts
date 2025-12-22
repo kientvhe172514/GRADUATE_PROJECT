@@ -131,22 +131,26 @@ export class UpdateOvertimeRequestUseCase {
           .map(Number);
 
         // Create UTC Date objects for shift times (same date as overtime)
-        const shiftStart = new Date(Date.UTC(
-          overtimeDate.getUTCFullYear(),
-          overtimeDate.getUTCMonth(),
-          overtimeDate.getUTCDate(),
-          startHour,
-          startMin,
-          0,
-        ));
-        const shiftEnd = new Date(Date.UTC(
-          overtimeDate.getUTCFullYear(),
-          overtimeDate.getUTCMonth(),
-          overtimeDate.getUTCDate(),
-          endHour,
-          endMin,
-          0,
-        ));
+        const shiftStart = new Date(
+          Date.UTC(
+            overtimeDate.getUTCFullYear(),
+            overtimeDate.getUTCMonth(),
+            overtimeDate.getUTCDate(),
+            startHour,
+            startMin,
+            0,
+          ),
+        );
+        const shiftEnd = new Date(
+          Date.UTC(
+            overtimeDate.getUTCFullYear(),
+            overtimeDate.getUTCMonth(),
+            overtimeDate.getUTCDate(),
+            endHour,
+            endMin,
+            0,
+          ),
+        );
 
         console.log(`⏰ [UPDATE-OVERTIME] Shift check - shiftStart: ${shiftStart.toISOString()}, shiftEnd: ${shiftEnd.toISOString()}`);
         console.log(`⏰ [UPDATE-OVERTIME] Overtime - newStartTime: ${newStartTime.toISOString()}, newEndTime: ${newEndTime.toISOString()}`);
@@ -189,12 +193,29 @@ export class UpdateOvertimeRequestUseCase {
             const [wsStartHour, wsStartMin] = ws.start_time.split(':').map(Number);
             const [wsEndHour, wsEndMin] = ws.end_time.split(':').map(Number);
 
-            // Work schedule times are stored as TIME in Vietnam timezone
-            const wsStart = new Date(overtimeDate);
-            wsStart.setHours(wsStartHour, wsStartMin, 0, 0);
-            
-            let wsEnd = new Date(overtimeDate);
-            wsEnd.setHours(wsEndHour, wsEndMin, 0, 0);
+            // Both work schedule times and overtime times are in VN timezone (UTC+7)
+            // Compare them directly without timezone conversion
+            const wsStart = new Date(
+              Date.UTC(
+                overtimeDate.getUTCFullYear(),
+                overtimeDate.getUTCMonth(),
+                overtimeDate.getUTCDate(),
+                wsStartHour,
+                wsStartMin,
+                0,
+              ),
+            );
+
+            let wsEnd = new Date(
+              Date.UTC(
+                overtimeDate.getUTCFullYear(),
+                overtimeDate.getUTCMonth(),
+                overtimeDate.getUTCDate(),
+                wsEndHour,
+                wsEndMin,
+                0,
+              ),
+            );
 
             // If end_time is earlier than start_time -> overnight shift
             if (wsEnd <= wsStart) {
@@ -237,10 +258,11 @@ export class UpdateOvertimeRequestUseCase {
             override.overtime_start_time &&
             override.overtime_end_time
           ) {
-            const overrideStart = new Date(
+            // Parse override times using the same UTC approach
+            const overrideStart = parseDateTime(
               `${override.from_date}T${override.overtime_start_time}`,
             );
-            const overrideEnd = new Date(
+            const overrideEnd = parseDateTime(
               `${override.from_date}T${override.overtime_end_time}`,
             );
 
