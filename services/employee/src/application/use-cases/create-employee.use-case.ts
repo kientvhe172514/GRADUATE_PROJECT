@@ -60,7 +60,22 @@ export class CreateEmployeeUseCase {
     Object.assign(employee, dto);
     employee.full_name = `${dto.first_name} ${dto.last_name}`;
 
+    console.log('📝 [CREATE EMPLOYEE DEBUG] DTO data:', {
+      department_id: dto.department_id,
+      position_id: dto.position_id,
+      manager_id: dto.manager_id,
+      has_department: !!dto.department_id,
+      has_position: !!dto.position_id,
+    });
+
     const savedEmployee = await this.employeeRepository.create(employee);
+    
+    console.log('💾 [CREATE EMPLOYEE DEBUG] Saved employee data:', {
+      id: savedEmployee.id,
+      department_id: savedEmployee.department_id,
+      position_id: savedEmployee.position_id,
+      manager_id: savedEmployee.manager_id,
+    });
     
     // Fetch position to get suggested_role for RBAC
     let suggestedRole = 'EMPLOYEE'; // Default role
