@@ -86,22 +86,26 @@ export class CreateOvertimeRequestUseCase {
         .map(Number);
 
       // Create UTC Date objects for shift times (same date as overtime)
-      const shiftStart = new Date(Date.UTC(
-        overtimeDate.getUTCFullYear(),
-        overtimeDate.getUTCMonth(),
-        overtimeDate.getUTCDate(),
-        startHour,
-        startMin,
-        0,
-      ));
-      const shiftEnd = new Date(Date.UTC(
-        overtimeDate.getUTCFullYear(),
-        overtimeDate.getUTCMonth(),
-        overtimeDate.getUTCDate(),
-        endHour,
-        endMin,
-        0,
-      ));
+      const shiftStart = new Date(
+        Date.UTC(
+          overtimeDate.getUTCFullYear(),
+          overtimeDate.getUTCMonth(),
+          overtimeDate.getUTCDate(),
+          startHour,
+          startMin,
+          0,
+        ),
+      );
+      const shiftEnd = new Date(
+        Date.UTC(
+          overtimeDate.getUTCFullYear(),
+          overtimeDate.getUTCMonth(),
+          overtimeDate.getUTCDate(),
+          endHour,
+          endMin,
+          0,
+        ),
+      );
 
       // Check if overtime time overlaps with regular shift
       const hasOverlap =
@@ -141,23 +145,27 @@ export class CreateOvertimeRequestUseCase {
 
           // Both work schedule times and overtime times are in VN timezone (UTC+7)
           // Compare them directly without timezone conversion
-          let wsStart = new Date(Date.UTC(
-            overtimeDate.getUTCFullYear(),
-            overtimeDate.getUTCMonth(),
-            overtimeDate.getUTCDate(),
-            wsStartHour,
-            wsStartMin,
-            0,
-          ));
-          
-          let wsEnd = new Date(Date.UTC(
-            overtimeDate.getUTCFullYear(),
-            overtimeDate.getUTCMonth(),
-            overtimeDate.getUTCDate(),
-            wsEndHour,
-            wsEndMin,
-            0,
-          ));
+          const wsStart = new Date(
+            Date.UTC(
+              overtimeDate.getUTCFullYear(),
+              overtimeDate.getUTCMonth(),
+              overtimeDate.getUTCDate(),
+              wsStartHour,
+              wsStartMin,
+              0,
+            ),
+          );
+
+          let wsEnd = new Date(
+            Date.UTC(
+              overtimeDate.getUTCFullYear(),
+              overtimeDate.getUTCMonth(),
+              overtimeDate.getUTCDate(),
+              wsEndHour,
+              wsEndMin,
+              0,
+            ),
+          );
 
           // If end_time is earlier than start_time -> overnight shift
           if (wsEnd <= wsStart) {
