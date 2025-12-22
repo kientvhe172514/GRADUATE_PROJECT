@@ -147,7 +147,7 @@ export class CreateOvertimeRequestUseCase {
             overtimeDate.getUTCDate(),
             wsStartHour,
             wsStartMin,
-            0
+            0,
           ));
           
           let wsEnd = new Date(Date.UTC(
@@ -156,7 +156,7 @@ export class CreateOvertimeRequestUseCase {
             overtimeDate.getUTCDate(),
             wsEndHour,
             wsEndMin,
-            0
+            0,
           ));
 
           // If end_time is earlier than start_time -> overnight shift
