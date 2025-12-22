@@ -123,10 +123,25 @@ export class UpdateEmployeeShiftUseCase {
       shift.scheduled_end_time,
       command.check_out_time,
     );
+
+    // Handle overnight shifts: if scheduled_end < scheduled_start, end is next day
+    const scheduledStart = this.parseTimeString(
+      shift.scheduled_start_time,
+      command.check_out_time,
+    );
+    let adjustedScheduledEnd = scheduledEnd;
+    if (scheduledEnd.getTime() < scheduledStart.getTime()) {
+      // Add 24 hours to end time for overnight shifts
+      adjustedScheduledEnd = new Date(
+        scheduledEnd.getTime() + 24 * 60 * 60 * 1000,
+      );
+    }
+
     const earlyLeaveMinutes = Math.max(
       0,
       Math.floor(
-        (scheduledEnd.getTime() - command.check_out_time.getTime()) / 60000,
+        (adjustedScheduledEnd.getTime() - command.check_out_time.getTime()) /
+          60000,
       ),
     );
 
@@ -134,7 +149,8 @@ export class UpdateEmployeeShiftUseCase {
     const overtimeMinutes = Math.max(
       0,
       Math.floor(
-        (command.check_out_time.getTime() - scheduledEnd.getTime()) / 60000,
+        (command.check_out_time.getTime() - adjustedScheduledEnd.getTime()) /
+          60000,
       ),
     );
     const overtimeHours = overtimeMinutes / 60;
@@ -286,12 +302,21 @@ export class UpdateEmployeeShiftUseCase {
   }
 
   /**
-   * Parse time string (HH:MM) and combine with date
+   * Parse time string (HH:MM:SS or HH:MM) and combine with date
+   * Uses Date.UTC to avoid timezone conversion issues
    */
   private parseTimeString(timeStr: string, referenceDate: Date): Date {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const result = new Date(referenceDate);
-    result.setHours(hours, minutes, 0, 0);
-    return result;
+    const timeParts = timeStr.split(':').map(Number);
+    const hours = timeParts[0];
+    const minutes = timeParts[1];
+    const seconds = timeParts[2] || 0;
+
+    // Extract date components from reference date
+    const year = referenceDate.getFullYear();
+    const month = referenceDate.getMonth();
+    const day = referenceDate.getDate();
+
+    // Create new Date using UTC to avoid timezone conversion
+    return new Date(Date.UTC(year, month, day, hours, minutes, seconds));
   }
 }
