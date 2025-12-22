@@ -61,7 +61,7 @@ export class GetEmployeeAttendanceReportUseCase {
       throw new NotFoundException(`Employee with ID ${query.employee_id} not found`);
     }
 
-    // 3. Get daily attendance records
+    // 3. Get daily attendance records (ALL shifts per day)
     const dailyQuery = `
       SELECT 
         es.shift_date::date as date,
@@ -76,11 +76,12 @@ export class GetEmployeeAttendanceReportUseCase {
         es.work_hours,
         es.overtime_hours,
         es.status,
-        es.shift_type
+        es.shift_type,
+        es.shift_id
       FROM employee_shifts_cache es
       WHERE es.employee_id = $1
         AND es.shift_date BETWEEN $2 AND $3
-      ORDER BY es.shift_date
+      ORDER BY es.shift_date, es.scheduled_start_time, es.shift_id
     `;
 
     const shifts: ShiftQueryResult[] = await this.dataSource.query(dailyQuery, [
@@ -149,13 +150,31 @@ export class GetEmployeeAttendanceReportUseCase {
       holidayMap.set(dateKey, h.holiday_name);
     });
 
-    // 8. Build daily records
+    // 8. Build daily records (support multiple shifts per day)
     const dailyRecords: DailyAttendanceDetailDto[] = [];
     const start = new Date(start_date);
     const end = new Date(end_date);
-    const shiftMap = new Map<string, ShiftQueryResult>(
-      shifts.map((s) => [s.date.toISOString().split('T')[0], s]),
-    );
+    
+    // Helper function to format date without timezone issues
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    // Group shifts by date (support multiple shifts per day)
+    const shiftsByDate = new Map<string, ShiftQueryResult[]>();
+    shifts.forEach((shift) => {
+      // Use formatDate instead of toISOString to avoid timezone conversion
+      const dateKey = shift.date instanceof Date 
+        ? formatDate(shift.date)
+        : String(shift.date).split('T')[0];
+      if (!shiftsByDate.has(dateKey)) {
+        shiftsByDate.set(dateKey, []);
+      }
+      shiftsByDate.get(dateKey)!.push(shift);
+    });
 
     let totalWorkingDays = 0;
     let totalWorkingHours = 0;
@@ -168,82 +187,119 @@ export class GetEmployeeAttendanceReportUseCase {
     let totalManday = 0;
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toISOString().split('T')[0];
-      const shift = shiftMap.get(dateKey);
+      const dateKey = formatDate(d);
+      const dayShifts = shiftsByDate.get(dateKey) || [];
       const leave = leaveMap.get(dateKey);
       const holidayName = holidayMap.get(dateKey);
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
 
-      let checkInStatus = 'ABSENT';
-      let checkOutStatus = 'ABSENT';
-      let manday = 0;
+      // If multiple shifts in a day, create multiple records OR aggregate them
+      if (dayShifts.length > 0) {
+        // OPTION 1: Create separate record for each shift
+        dayShifts.forEach((shift) => {
+          let checkInStatus = 'ABSENT';
+          let checkOutStatus = 'ABSENT';
+          let manday = 0;
 
-      if (holidayName) {
-        checkInStatus = 'HOLIDAY';
-        checkOutStatus = 'HOLIDAY';
-        totalHolidays++;
-      } else if (leave) {
-        checkInStatus = 'LEAVE';
-        checkOutStatus = 'LEAVE';
-        totalLeaveDays += leave.leave_days;
-        manday = leave.leave_days; // Count leave as manday
-      } else if (shift) {
-        if (shift.status === 'COMPLETED') {
-          checkInStatus = shift.late_minutes > 0 ? 'LATE' : 'ON_TIME';
-          checkOutStatus = shift.early_leave_minutes > 0 ? 'EARLY' : 'ON_TIME';
-          totalWorkingDays++;
-          totalWorkingHours += Number(shift.work_hours) || 0;
-          manday = 1; // Full working day
+          if (shift.status === 'COMPLETED') {
+            checkInStatus = shift.late_minutes > 0 ? 'LATE' : 'ON_TIME';
+            checkOutStatus = shift.early_leave_minutes > 0 ? 'EARLY' : 'ON_TIME';
+            totalWorkingDays++;
+            totalWorkingHours += Number(shift.work_hours) || 0;
+            manday = 1; // Full working day per shift
 
-          if (shift.late_minutes > 0) totalLateCount++;
-          if (shift.early_leave_minutes > 0) totalEarlyLeaveCount++;
-        } else if (shift.status === 'ABSENT') {
-          checkInStatus = 'ABSENT';
-          checkOutStatus = 'ABSENT';
-          totalAbsentDays++;
-        } else if (shift.status === 'ON_LEAVE') {
+            if (shift.late_minutes > 0) totalLateCount++;
+            if (shift.early_leave_minutes > 0) totalEarlyLeaveCount++;
+          } else if (shift.status === 'ABSENT') {
+            checkInStatus = 'ABSENT';
+            checkOutStatus = 'ABSENT';
+            totalAbsentDays++;
+          } else if (shift.status === 'ON_LEAVE') {
+            checkInStatus = 'LEAVE';
+            checkOutStatus = 'LEAVE';
+          }
+
+          if (shift.overtime_hours > 0) {
+            totalOvertimeHours += Number(shift.overtime_hours);
+          }
+
+          totalManday += manday;
+
+          dailyRecords.push({
+            date: dateKey,
+            day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
+            shift_name: shift.shift_name,
+            scheduled_start_time: shift.scheduled_start_time,
+            scheduled_end_time: shift.scheduled_end_time,
+            check_in_time: shift.check_in_time
+              ? new Date(shift.check_in_time).toISOString()
+              : undefined,
+            check_in_status: checkInStatus,
+            late_minutes: shift.late_minutes > 0 ? Number(shift.late_minutes) : undefined,
+            check_out_time: shift.check_out_time
+              ? new Date(shift.check_out_time).toISOString()
+              : undefined,
+            check_out_status: checkOutStatus,
+            early_leave_minutes:
+              shift.early_leave_minutes > 0 ? Number(shift.early_leave_minutes) : undefined,
+            working_hours: Number(shift.work_hours) || 0,
+            outside_office_time: undefined, // TODO: Implement GPS tracking analysis
+            leave_type: undefined,
+            leave_days: undefined,
+            is_holiday: false,
+            holiday_name: undefined,
+            overtime_hours: shift.overtime_hours > 0 ? Number(shift.overtime_hours) : undefined,
+            overtime_status: shift.shift_type === 'OVERTIME' ? 'APPROVED' : undefined,
+            manday: manday,
+            remarks: `${shift.status} - ${shift.shift_type}`,
+          });
+        });
+      } else {
+        // No shift for this day - check if holiday/leave/weekend/absent
+        let checkInStatus = 'ABSENT';
+        let checkOutStatus = 'ABSENT';
+        let manday = 0;
+
+        if (holidayName) {
+          checkInStatus = 'HOLIDAY';
+          checkOutStatus = 'HOLIDAY';
+          totalHolidays++;
+        } else if (leave) {
           checkInStatus = 'LEAVE';
           checkOutStatus = 'LEAVE';
+          totalLeaveDays += leave.leave_days;
+          manday = leave.leave_days; // Count leave as manday
+        } else if (!isWeekend) {
+          // Scheduled working day but no record
+          totalAbsentDays++;
         }
 
-        if (shift.overtime_hours > 0) {
-          totalOvertimeHours += Number(shift.overtime_hours);
-        }
-      } else if (!isWeekend) {
-        // Scheduled working day but no record
-        totalAbsentDays++;
+        totalManday += manday;
+
+        dailyRecords.push({
+          date: dateKey,
+          day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
+          shift_name: undefined,
+          scheduled_start_time: undefined,
+          scheduled_end_time: undefined,
+          check_in_time: undefined,
+          check_in_status: checkInStatus,
+          late_minutes: undefined,
+          check_out_time: undefined,
+          check_out_status: checkOutStatus,
+          early_leave_minutes: undefined,
+          working_hours: 0,
+          outside_office_time: undefined,
+          leave_type: leave?.leave_type,
+          leave_days: leave?.leave_days,
+          is_holiday: !!holidayName,
+          holiday_name: holidayName,
+          overtime_hours: undefined,
+          overtime_status: undefined,
+          manday: manday,
+          remarks: checkInStatus,
+        });
       }
-
-      totalManday += manday;
-
-      dailyRecords.push({
-        date: dateKey,
-        day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
-        shift_name: shift?.shift_name,
-        scheduled_start_time: shift?.scheduled_start_time,
-        scheduled_end_time: shift?.scheduled_end_time,
-        check_in_time: shift?.check_in_time
-          ? new Date(shift.check_in_time).toISOString()
-          : undefined,
-        check_in_status: checkInStatus,
-        late_minutes: shift && shift.late_minutes > 0 ? Number(shift.late_minutes) : undefined,
-        check_out_time: shift?.check_out_time
-          ? new Date(shift.check_out_time).toISOString()
-          : undefined,
-        check_out_status: checkOutStatus,
-        early_leave_minutes:
-          shift && shift.early_leave_minutes > 0 ? Number(shift.early_leave_minutes) : undefined,
-        working_hours: Number(shift?.work_hours) || 0,
-        outside_office_time: undefined, // TODO: Implement GPS tracking analysis
-        leave_type: leave?.leave_type,
-        leave_days: leave?.leave_days,
-        is_holiday: !!holidayName,
-        holiday_name: holidayName,
-        overtime_hours: shift && shift.overtime_hours > 0 ? Number(shift.overtime_hours) : undefined,
-        overtime_status: shift?.shift_type === 'OVERTIME' ? 'APPROVED' : undefined,
-        manday: manday,
-        remarks: shift?.status,
-      });
     }
 
     // 9. Calculate total days in period

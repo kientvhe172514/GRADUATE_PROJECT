@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Param, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ApiResponseDto, Permissions } from '@graduate-project/shared-common';
 import {
   EmployeesAttendanceReportQueryDto,
@@ -43,6 +43,48 @@ export class AttendanceReportController {
       - Manday calculation
       - Attendance rate percentage
     `,
+  })
+  @ApiQuery({
+    name: 'start_date',
+    required: false,
+    description: 'Start date in YYYY-MM-DD format (default: first day of current month)',
+    example: '2025-01-01',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'end_date',
+    required: false,
+    description: 'End date in YYYY-MM-DD format (default: last day of current month)',
+    example: '2025-01-31',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'department_id',
+    required: false,
+    description: 'Filter by department ID',
+    example: 2,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search by employee name or code',
+    example: 'John',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+    example: 1,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 20,
+    type: Number,
   })
   @ApiResponse({
     status: 200,
@@ -98,16 +140,21 @@ export class AttendanceReportController {
     description: `
       Get comprehensive daily attendance report for a single employee.
       
+      **Query Parameters:**
+      - start_date (optional): Start date in YYYY-MM-DD format (default: first day of current month)
+      - end_date (optional): End date in YYYY-MM-DD format (default: last day of current month)
+      
       **Features:**
       - Filter by date range (start_date and end_date)
-      - Daily breakdown of attendance
+      - Daily breakdown of attendance (supports multiple shifts per day)
       - Complete employee information
       - Summary statistics
       
       **Daily details include:**
+      - ALL shifts in a day (morning shift, afternoon shift, overtime, etc.)
       - Check-in/out times with status (ON_TIME, LATE, EARLY, ABSENT, HOLIDAY, LEAVE)
       - Late minutes and early leave minutes
-      - Working hours per day
+      - Working hours per day (sum of all shifts)
       - Leave information (type and days)
       - Holiday information
       - Overtime hours with approval status
@@ -121,6 +168,20 @@ export class AttendanceReportController {
     `,
   })
   @ApiParam({ name: 'employeeId', description: 'Employee ID', type: Number })
+  @ApiQuery({
+    name: 'start_date',
+    required: false,
+    description: 'Start date in YYYY-MM-DD format (default: first day of current month)',
+    example: '2025-01-01',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'end_date',
+    required: false,
+    description: 'End date in YYYY-MM-DD format (default: last day of current month)',
+    example: '2025-01-31',
+    type: String,
+  })
   @ApiResponse({
     status: 200,
     description: 'Employee attendance report retrieved successfully',
