@@ -20,7 +20,7 @@ export interface ValidateGpsResult {
 export class ValidateGpsUseCase {
   private readonly logger = new Logger(ValidateGpsUseCase.name);
   private readonly EARTH_RADIUS_KM = 6371;
-  private readonly MAX_ACCEPTABLE_ACCURACY_METERS = 50;
+  private readonly MAX_ACCEPTABLE_ACCURACY_METERS = 150;
 
   execute(command: ValidateGpsCommand): ValidateGpsResult {
     // ✅ VALIDATE: Check if GPS coordinates are valid numbers
