@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Monthly Summary Processor
@@ -11,14 +13,19 @@ import { DataSource } from 'typeorm';
  * Architecture:
  * 1. Query employee_shifts_cache for completed shifts
  * 2. Calculate aggregates (working days, hours, late, absent, etc.)
- * 3. Store in monthly_summaries table for fast access
- * 4. Report queries use this table instead of calculating on-the-fly
+ * 3. Fetch leave data from Leave Service
+ * 4. Store in monthly_summaries table for fast access
+ * 5. Report queries use this table instead of calculating on-the-fly
  */
 @Injectable()
 export class MonthlySummaryProcessor {
   private readonly logger = new Logger(MonthlySummaryProcessor.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @Inject('LEAVE_SERVICE')
+    private readonly leaveService: ClientProxy,
+  ) {}
 
   /**
    * Run at 01:00 AM Vietnam time (GMT+7) every day to generate summaries for previous complete months
@@ -141,6 +148,8 @@ export class MonthlySummaryProcessor {
           esc.employee_id,
           ec.employee_code,
           ec.full_name,
+          ec.account_id,
+          ec.role_id,
           ec.department_id,
           ec.department_name,
           esc.shift_date,
@@ -160,6 +169,8 @@ export class MonthlySummaryProcessor {
         -- Calculate statistics per employee for the month
         SELECT
           ms.employee_id,
+          COALESCE(ms.account_id, 0) as account_id,
+          COALESCE(ms.role_id, 0) as role_id,
           COALESCE(ms.employee_code, 'UNKNOWN') as employee_code,
           COALESCE(ms.full_name, 'Unknown Employee') as full_name,
           COALESCE(ms.department_id, 0) as department_id,
@@ -190,10 +201,10 @@ export class MonthlySummaryProcessor {
           -- Total late minutes
           COALESCE(SUM(CASE WHEN ms.late_minutes > 0 THEN ms.late_minutes ELSE 0 END), 0)::int as total_late_minutes
         FROM month_shifts ms
-        GROUP BY ms.employee_id, ms.employee_code, ms.full_name, ms.department_id, ms.department_name
+        GROUP BY ms.employee_id, ms.account_id, ms.role_id, ms.employee_code, ms.full_name, ms.department_id, ms.department_name
       )
       INSERT INTO monthly_summaries (
-        employee_id, employee_code, employee_name, department_id, department_name,
+        employee_id, account_id, role_id, employee_code, employee_name, department_id, department_name,
         year, month, total_work_days, actual_work_days, absent_days, leave_days, 
         holiday_days, total_work_hours, total_overtime_hours, total_leave_hours,
         late_count, early_leave_count, absent_count, total_late_minutes, 
@@ -201,6 +212,8 @@ export class MonthlySummaryProcessor {
       )
       SELECT
         es.employee_id,
+        es.account_id,
+        es.role_id,
         es.employee_code,
         es.full_name as employee_name,
         es.department_id,
@@ -234,6 +247,8 @@ export class MonthlySummaryProcessor {
         NOW() as generated_at
       FROM employee_stats es
       ON CONFLICT (employee_id, year, month) DO UPDATE SET
+        account_id = EXCLUDED.account_id,
+        role_id = EXCLUDED.role_id,
         employee_code = EXCLUDED.employee_code,
         employee_name = EXCLUDED.employee_name,
         department_id = EXCLUDED.department_id,
@@ -258,5 +273,130 @@ export class MonthlySummaryProcessor {
     this.logger.log(
       `✅ Generated summaries for ${year}-${String(month).padStart(2, '0')}`,
     );
+
+    // Step 2: Update leave_days from Leave Service
+    await this.updateLeaveDaysForMonth(year, month);
+
+    // Step 3: Update holiday_days from holidays_cache
+    await this.updateHolidayDaysForMonth(year, month);
+  }
+
+  /**
+   * Update leave_days in monthly_summaries by calling Leave Service
+   */
+  private async updateLeaveDaysForMonth(
+    year: number,
+    month: number,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `📞 Fetching leave data from Leave Service for ${year}-${String(month).padStart(2, '0')}`,
+      );
+
+      // Get all employees in this month's summary
+      const employees = await this.dataSource.query(
+        `SELECT DISTINCT employee_id FROM monthly_summaries WHERE year = $1 AND month = $2`,
+        [year, month],
+      );
+
+      if (employees.length === 0) {
+        this.logger.warn('No employees found in monthly summaries');
+        return;
+      }
+
+      const employeeIds = employees.map((e: any) => e.employee_id);
+
+      // Calculate date range for the month
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0); // Last day of month
+
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // Call Leave Service to get leave days for all employees
+      const leaveData = await firstValueFrom(
+        this.leaveService.send(
+          { cmd: 'get_employee_leave_days_bulk' },
+          {
+            employee_ids: employeeIds,
+            start_date: startDateStr,
+            end_date: endDateStr,
+          },
+        ),
+      );
+
+      if (leaveData && Array.isArray(leaveData)) {
+        // Update monthly_summaries with leave_days
+        for (const item of leaveData) {
+          if (item.employee_id && item.total_leave_days !== undefined) {
+            await this.dataSource.query(
+              `UPDATE monthly_summaries 
+               SET leave_days = $1, generated_at = NOW()
+               WHERE employee_id = $2 AND year = $3 AND month = $4`,
+              [item.total_leave_days, item.employee_id, year, month],
+            );
+          }
+        }
+
+        this.logger.log(
+          `✅ Updated leave_days for ${leaveData.length} employees`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to update leave data for ${year}-${month}:`,
+        error,
+      );
+      // Don't throw - continue with other processing
+    }
+  }
+
+  /**
+   * Update holiday_days in monthly_summaries from holidays_cache
+   */
+  private async updateHolidayDaysForMonth(
+    year: number,
+    month: number,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `📅 Calculating holiday days for ${year}-${String(month).padStart(2, '0')}`,
+      );
+
+      // Get count of holidays in this month
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      const [{ count }] = await this.dataSource.query(
+        `SELECT COUNT(*)::int as count 
+         FROM holidays_cache 
+         WHERE holiday_date BETWEEN $1 AND $2 
+           AND status = 'ACTIVE'`,
+        [startDateStr, endDateStr],
+      );
+
+      if (count > 0) {
+        // Update all summaries for this month with holiday count
+        await this.dataSource.query(
+          `UPDATE monthly_summaries 
+           SET holiday_days = $1, generated_at = NOW()
+           WHERE year = $2 AND month = $3`,
+          [count, year, month],
+        );
+
+        this.logger.log(
+          `✅ Updated holiday_days=${count} for all employees in ${year}-${month}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to update holiday data for ${year}-${month}:`,
+        error,
+      );
+      // Don't throw - continue with other processing
+    }
   }
 }

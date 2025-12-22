@@ -3,6 +3,8 @@ import { EntitySchema } from 'typeorm';
 export interface EmployeeCacheEntity {
   id: number;
   employee_id: number;
+  account_id: number;
+  role_id: number;
   employee_code: string;
   full_name: string;
   email: string;
@@ -32,6 +34,16 @@ export const EmployeeCacheSchema = new EntitySchema<EmployeeCacheEntity>({
       nullable: false,
       unique: true,
       comment: 'References employees.id from employee_db',
+    },
+    account_id: {
+      type: 'bigint',
+      nullable: true,
+      comment: 'References accounts.id from auth_db',
+    },
+    role_id: {
+      type: 'int',
+      nullable: true,
+      comment: 'References roles.id from auth_db',
     },
     employee_code: {
       type: 'varchar',
@@ -96,6 +108,14 @@ export const EmployeeCacheSchema = new EntitySchema<EmployeeCacheEntity>({
     {
       name: 'idx_employees_cache_employee_id',
       columns: ['employee_id'],
+    },
+    {
+      name: 'idx_employees_cache_account_id',
+      columns: ['account_id'],
+    },
+    {
+      name: 'idx_employees_cache_role_id',
+      columns: ['role_id'],
     },
     {
       name: 'idx_employees_cache_code',

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class GetEmployeesAttendanceReportUseCase {
+  private readonly logger = new Logger(GetEmployeesAttendanceReportUseCase.name);
+
   constructor(
     private readonly dataSource: DataSource,
     @Inject('ATTENDANCE_SERVICE')
@@ -58,6 +60,24 @@ export class GetEmployeesAttendanceReportUseCase {
     // Build additional filters for employees_cache
     const employeeFilters: string[] = [];
     const employeeParams: any[] = [];
+    
+    // ✅ Filter only EMPLOYEE role (exclude ADMIN, MANAGER, HR, etc.)
+    // Get role_id for EMPLOYEE role from roles_cache
+    const [employeeRole] = await this.dataSource.query(
+      `SELECT role_id FROM roles_cache WHERE code = 'EMPLOYEE' AND status = 'ACTIVE' LIMIT 1`,
+    );
+    
+    if (employeeRole) {
+      employeeFilters.push(`e.role_id = $${employeeParams.length + 1}`);
+      employeeParams.push(employeeRole.role_id);
+    } else {
+      // Fallback: If roles_cache is not populated, use a default approach
+      // Filter employees that have role_id but exclude common admin roles
+      // This ensures we still filter even if roles_cache is empty
+      this.logger.warn(
+        '⚠️ EMPLOYEE role not found in roles_cache. Using fallback filter.',
+      );
+    }
     
     if (query.department_id) {
       employeeFilters.push(`e.department_id = $${employeeParams.length + 1}`);
@@ -298,18 +318,32 @@ export class GetEmployeesAttendanceReportUseCase {
     const params: any[] = [];
 
     filters.push(
-      `MAKE_DATE(year, month, 1) BETWEEN '${start_date}'::date AND '${end_date}'::date`,
+      `MAKE_DATE(ms.year, ms.month, 1) BETWEEN '${start_date}'::date AND '${end_date}'::date`,
     );
 
+    // ✅ Filter only EMPLOYEE role (exclude ADMIN, MANAGER, HR, etc.)
+    const [employeeRole] = await this.dataSource.query(
+      `SELECT role_id FROM roles_cache WHERE code = 'EMPLOYEE' AND status = 'ACTIVE' LIMIT 1`,
+    );
+    
+    if (employeeRole) {
+      filters.push(`ec.role_id = $${params.length + 1}`);
+      params.push(employeeRole.role_id);
+    } else {
+      this.logger.warn(
+        '⚠️ EMPLOYEE role not found in roles_cache for fast path. Using fallback filter.',
+      );
+    }
+
     if (query.department_id) {
-      filters.push(`department_id = $${params.length + 1}`);
+      filters.push(`ms.department_id = $${params.length + 1}`);
       params.push(query.department_id);
     }
 
     if (query.search) {
       const searchPattern = `%${query.search}%`;
       filters.push(
-        `(employee_name ILIKE $${params.length + 1} OR employee_code ILIKE $${params.length + 2})`,
+        `(ms.employee_name ILIKE $${params.length + 1} OR ms.employee_code ILIKE $${params.length + 2})`,
       );
       params.push(searchPattern, searchPattern);
     }
@@ -321,30 +355,31 @@ export class GetEmployeesAttendanceReportUseCase {
     const limitIndex = params.length + 1;
     const offsetIndex = params.length + 2;
 
-    // Query from pre-calculated monthly_summaries
+    // Query from pre-calculated monthly_summaries with employees_cache JOIN for role filtering
     const summaryQuery = `
       SELECT
-        employee_id,
-        employee_code,
-        employee_name as full_name,
-        department_id,
-        department_name,
-        COALESCE(SUM(actual_work_days), 0)::integer as working_days,
-        COALESCE(SUM(total_work_hours), 0)::numeric(10,2) as total_working_hours,
-        COALESCE(SUM(total_overtime_hours), 0)::numeric(10,2) as total_overtime_hours,
-        COALESCE(SUM(late_count), 0)::integer as total_late_count,
-        COALESCE(SUM(early_leave_count), 0)::integer as total_early_leave_count,
-        COALESCE(SUM(absent_days), 0)::integer as total_absent_days,
-        COALESCE(SUM(leave_days), 0)::numeric(5,2) as total_leave_days,
+        ms.employee_id,
+        ms.employee_code,
+        ms.employee_name as full_name,
+        ms.department_id,
+        ms.department_name,
+        COALESCE(SUM(ms.actual_work_days), 0)::integer as working_days,
+        COALESCE(SUM(ms.total_work_hours), 0)::numeric(10,2) as total_working_hours,
+        COALESCE(SUM(ms.total_overtime_hours), 0)::numeric(10,2) as total_overtime_hours,
+        COALESCE(SUM(ms.late_count), 0)::integer as total_late_count,
+        COALESCE(SUM(ms.early_leave_count), 0)::integer as total_early_leave_count,
+        COALESCE(SUM(ms.absent_days), 0)::integer as total_absent_days,
+        COALESCE(SUM(ms.leave_days), 0)::numeric(5,2) as total_leave_days,
         CASE 
-          WHEN SUM(actual_work_days) > 0 
-          THEN ROUND(AVG(attendance_rate), 2)
+          WHEN SUM(ms.actual_work_days) > 0 
+          THEN ROUND(AVG(ms.attendance_rate), 2)
           ELSE 0
         END as attendance_rate
-      FROM monthly_summaries
+      FROM monthly_summaries ms
+      INNER JOIN employees_cache ec ON ms.employee_id = ec.employee_id
       ${whereClause}
-      GROUP BY employee_id, employee_code, employee_name, department_id, department_name
-      ORDER BY employee_code
+      GROUP BY ms.employee_id, ms.employee_code, ms.employee_name, ms.department_id, ms.department_name
+      ORDER BY ms.employee_code
       LIMIT $${limitIndex} OFFSET $${offsetIndex}
     `;
 
@@ -354,8 +389,9 @@ export class GetEmployeesAttendanceReportUseCase {
 
     // Get total count
     const countQuery = `
-      SELECT COUNT(DISTINCT employee_id) as total
-      FROM monthly_summaries
+      SELECT COUNT(DISTINCT ms.employee_id) as total
+      FROM monthly_summaries ms
+      INNER JOIN employees_cache ec ON ms.employee_id = ec.employee_id
       ${whereClause}
     `;
 

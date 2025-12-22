@@ -3,6 +3,8 @@ export class MonthlySummaryEntity {
   
   // Denormalized employee info
   employee_id: number;
+  account_id?: number; // References accounts.id from auth_db
+  role_id?: number; // References roles.id from auth_db
   employee_code: string;
   employee_name: string;
   department_id: number;

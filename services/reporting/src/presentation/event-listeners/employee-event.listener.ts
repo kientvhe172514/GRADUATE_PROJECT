@@ -311,6 +311,55 @@ export class EmployeeEventListener {
   }
 
   /**
+   * Handle account created event from auth service
+   * Updates employee cache with account_id and role_id
+   */
+  @EventPattern('account_created')
+  async handleAccountCreated(@Payload() data: any) {
+    this.logger.log(`📥 Received: account_created for employee_id=${data.employee_id}`);
+    
+    try {
+      await this.dataSource.query(
+        `UPDATE employees_cache SET
+          account_id = $2,
+          role_id = $3,
+          synced_at = NOW(),
+          updated_at = NOW()
+        WHERE employee_id = $1`,
+        [data.employee_id, data.id, data.role_id],
+      );
+      
+      this.logger.log(`✅ Updated account_id and role_id for employee ${data.employee_id}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update account for employee ${data.employee_id}:`, error);
+    }
+  }
+
+  /**
+   * Handle account updated event from auth service
+   * Updates employee cache with role_id changes
+   */
+  @EventPattern('account_updated')
+  async handleAccountUpdated(@Payload() data: any) {
+    this.logger.log(`📥 Received: account_updated for employee_id=${data.employee_id}`);
+    
+    try {
+      await this.dataSource.query(
+        `UPDATE employees_cache SET
+          role_id = $2,
+          synced_at = NOW(),
+          updated_at = NOW()
+        WHERE employee_id = $1`,
+        [data.employee_id, data.role_id],
+      );
+      
+      this.logger.log(`✅ Updated role_id for employee ${data.employee_id}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update role for employee ${data.employee_id}:`, error);
+    }
+  }
+
+  /**
    * Get cache statistics (for monitoring)
    */
   async getCacheStats() {

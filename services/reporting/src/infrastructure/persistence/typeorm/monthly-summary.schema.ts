@@ -7,6 +7,8 @@ export const MonthlySummarySchema = new EntitySchema<MonthlySummaryEntity>({
   columns: {
     id: { type: 'int', primary: true, generated: true },
     employee_id: { type: 'bigint' },
+    account_id: { type: 'bigint', nullable: true, comment: 'References accounts.id from auth_db' },
+    role_id: { type: 'int', nullable: true, comment: 'References roles.id from auth_db' },
     employee_code: { type: 'varchar', length: 50 },
     employee_name: { type: 'varchar', length: 255 },
     department_id: { type: 'int' },
@@ -32,6 +34,9 @@ export const MonthlySummarySchema = new EntitySchema<MonthlySummaryEntity>({
   indices: [
     { columns: ['employee_id', 'year', 'month'] },
     { columns: ['department_id', 'year', 'month'] },
+    { columns: ['account_id'] },
+    { columns: ['role_id'] },
+    { columns: ['role_id', 'year', 'month'] },
   ],
   uniques: [
     { columns: ['employee_id', 'year', 'month'] },
