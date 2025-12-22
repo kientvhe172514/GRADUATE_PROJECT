@@ -114,6 +114,35 @@ export class UpdateOvertimeRequestUseCase {
       console.log(`🕐 [UPDATE-OVERTIME] Request time: ${newStartTime.toISOString()} - ${newEndTime.toISOString()}`);
       console.log(`📅 [UPDATE-OVERTIME] overtimeDate from DB: ${request.overtime_date}, parsed: ${overtimeDate.toISOString()}, local: ${overtimeDate.toString()}`);
 
+      // Check if there's already a PENDING or APPROVED overtime request that overlaps (exclude current)
+      console.log(`🔍 [UPDATE-OVERTIME] Checking for overlapping overtime requests (excluding current ID: ${id})...`);
+      const overlappingOvertimes = await this.overtimeRepo.findOverlappingRequests(
+        currentUser.employee_id!,
+        overtimeDate,
+        newStartTime,
+        newEndTime,
+        id, // Exclude current overtime request
+      );
+
+      console.log(`🔍 [UPDATE-OVERTIME] Found ${overlappingOvertimes.length} overlapping overtime(s)`);
+      if (overlappingOvertimes.length > 0) {
+        overlappingOvertimes.forEach((ot, index) => {
+          const otStart = new Date(ot.start_time).toISOString().split('T')[1].substring(0, 5);
+          const otEnd = new Date(ot.end_time).toISOString().split('T')[1].substring(0, 5);
+          console.log(`  ${index + 1}. Overtime ID: ${ot.id}, Status: ${ot.status}, Time: ${otStart} - ${otEnd}`);
+        });
+
+        const existing = overlappingOvertimes[0];
+        const existingStart = new Date(existing.start_time).toISOString().split('T')[1].substring(0, 5);
+        const existingEnd = new Date(existing.end_time).toISOString().split('T')[1].substring(0, 5);
+        
+        throw new BusinessException(
+          ErrorCodes.INVALID_INPUT,
+          `Cannot update: The new time overlaps with another ${existing.status.toLowerCase()} overtime request (${existingStart} - ${existingEnd}). Please choose a different time or cancel the other request first.`,
+          400,
+        );
+      }
+
       // Check if there's already a REGULAR shift on this date
       const existingShift =
         await this.shiftRepo.findRegularShiftByEmployeeAndDate(

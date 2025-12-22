@@ -35,6 +35,9 @@ export class ListOvertimeRequestsUseCase {
       ...new Set(requests.map((request) => Number(request.employee_id))),
     ] as number[];
 
+    this.logger.log(`📋 Found ${requests.length} overtime requests with employee IDs: [${requests.map(r => r.employee_id).join(', ')}]`);
+    this.logger.log(`👥 Unique employee IDs to fetch: [${employeeIds.join(', ')}]`);
+
     // Fetch employee information in batch (one call to employee service)
     let employeeMap = new Map<number, EmployeeInfo>();
     if (employeeIds.length > 0) {
@@ -58,7 +61,13 @@ export class ListOvertimeRequestsUseCase {
 
     // Enrich overtime requests with employee information
     let enrichedRequests = requests.map((request) => {
-      const employee = employeeMap.get(request.employee_id);
+      const employeeId = Number(request.employee_id); // ✅ Convert to number for Map lookup
+      const employee = employeeMap.get(employeeId);
+      
+      if (!employee) {
+        this.logger.warn(`⚠️ No employee data found for employee_id=${request.employee_id} (converted to ${employeeId})`);
+      }
+      
       return {
         ...request,
         employee_code: employee?.employee_code ?? null,
@@ -68,11 +77,21 @@ export class ListOvertimeRequestsUseCase {
       };
     });
 
+    this.logger.debug(`📊 Enriched requests department_ids: [${enrichedRequests.map(r => `${r.employee_id}:${r.department_id}`).join(', ')}]`);
+
     // ✅ Filter by department_id if provided
     if (query.department_id) {
-      enrichedRequests = enrichedRequests.filter(
-        (request) => request.department_id === query.department_id,
-      );
+      const targetDeptId = Number(query.department_id);
+      this.logger.log(`🔍 Filtering by department_id: ${targetDeptId}`);
+      
+      enrichedRequests = enrichedRequests.filter((request) => {
+        const match = request.department_id === targetDeptId;
+        if (!match) {
+          this.logger.debug(`  ❌ Request employee_id=${request.employee_id}, dept=${request.department_id} != ${targetDeptId}`);
+        }
+        return match;
+      });
+      
       this.logger.log(
         `🔍 Filtered to ${enrichedRequests.length} requests for department ${query.department_id}`,
       );

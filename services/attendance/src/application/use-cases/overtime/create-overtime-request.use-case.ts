@@ -71,6 +71,7 @@ export class CreateOvertimeRequestUseCase {
     console.log(`🕐 [OVERTIME] Request time: ${overtimeStart.toISOString()} - ${overtimeEnd.toISOString()}`);
 
     // Check if there's already a PENDING or APPROVED overtime request that overlaps
+    console.log(`🔍 [CREATE-OVERTIME] Checking for overlapping overtime requests...`);
     const overlappingOvertimes = await this.overtimeRepo.findOverlappingRequests(
       currentUser.employee_id!,
       overtimeDate,
@@ -78,7 +79,14 @@ export class CreateOvertimeRequestUseCase {
       overtimeEnd,
     );
 
+    console.log(`🔍 [CREATE-OVERTIME] Found ${overlappingOvertimes.length} overlapping overtime(s)`);
     if (overlappingOvertimes.length > 0) {
+      overlappingOvertimes.forEach((ot, index) => {
+        const otStart = new Date(ot.start_time).toISOString().split('T')[1].substring(0, 5);
+        const otEnd = new Date(ot.end_time).toISOString().split('T')[1].substring(0, 5);
+        console.log(`  ${index + 1}. Overtime ID: ${ot.id}, Status: ${ot.status}, Time: ${otStart} - ${otEnd}`);
+      });
+
       const existing = overlappingOvertimes[0];
       const existingStart = new Date(existing.start_time).toISOString().split('T')[1].substring(0, 5);
       const existingEnd = new Date(existing.end_time).toISOString().split('T')[1].substring(0, 5);

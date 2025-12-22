@@ -134,11 +134,12 @@ export class OvertimeRequestRepository extends Repository<OvertimeRequestSchema>
     overtimeDate: Date,
     startTime: Date,
     endTime: Date,
+    excludeOvertimeId?: number,
   ): Promise<OvertimeRequestSchema[]> {
     // Query overtime requests on the same date with PENDING or APPROVED status
     const dateStr = overtimeDate.toISOString().split('T')[0];
     
-    return this.createQueryBuilder('ot')
+    const query = this.createQueryBuilder('ot')
       .where('ot.employee_id = :employeeId', { employeeId })
       .andWhere('ot.overtime_date::date = :dateStr::date', { dateStr })
       .andWhere('ot.status IN (:...statuses)', { statuses: ['PENDING', 'APPROVED'] })
@@ -146,8 +147,14 @@ export class OvertimeRequestRepository extends Repository<OvertimeRequestSchema>
         // Check time overlap: (start1 < end2 AND end1 > start2)
         '(ot.start_time < :endTime AND ot.end_time > :startTime)',
         { startTime, endTime }
-      )
-      .getMany();
+      );
+
+    // Exclude current overtime request when updating
+    if (excludeOvertimeId) {
+      query.andWhere('ot.id != :excludeOvertimeId', { excludeOvertimeId });
+    }
+
+    return query.getMany();
   }
 
   async getTotalOvertimeHours(
