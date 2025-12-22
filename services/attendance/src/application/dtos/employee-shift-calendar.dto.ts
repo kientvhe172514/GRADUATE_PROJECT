@@ -58,6 +58,20 @@ export class EmployeeShiftCalendarQueryDto {
   roles?: string[];
 
   @ApiPropertyOptional({
+    example: '2024-01-01',
+    description: 'Start date for shift range (YYYY-MM-DD). If not provided, defaults to 90 days ago.',
+  })
+  @IsOptional()
+  start_date?: string;
+
+  @ApiPropertyOptional({
+    example: '2024-12-31',
+    description: 'End date for shift range (YYYY-MM-DD). If not provided, defaults to today.',
+  })
+  @IsOptional()
+  end_date?: string;
+
+  @ApiPropertyOptional({
     example: 20,
     description: 'Number of records per page (default: 20)',
     default: 20,

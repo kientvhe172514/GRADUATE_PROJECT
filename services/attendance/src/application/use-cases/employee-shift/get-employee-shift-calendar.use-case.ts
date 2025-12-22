@@ -214,14 +214,35 @@ export class GetEmployeeShiftCalendarUseCase {
         `📊 Total employees: ${total}, Paginated: ${paginatedEmployeeIds.length}`,
       );
 
-      // Fetch shifts for paginated employees (from 30 days ago to TODAY only)
-      // Shifts only exist for today and past because cronjob creates shifts at 00:00 for current day
+      // Fetch shifts for paginated employees
+      // Use date range from query, or default to 90 days ago to today
       const today = new Date();
       today.setHours(23, 59, 59, 999); // End of today
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 30);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = today; // Up to end of today (tomorrow not yet created)
+      
+      let startDate: Date;
+      let endDate: Date;
+      
+      if (query.start_date) {
+        startDate = new Date(query.start_date);
+        startDate.setHours(0, 0, 0, 0);
+      } else {
+        // Default: 90 days ago (increased from 30 to get more historical data)
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 90);
+        startDate.setHours(0, 0, 0, 0);
+      }
+      
+      if (query.end_date) {
+        endDate = new Date(query.end_date);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Default: today
+        endDate = today;
+      }
+
+      this.logger.log(
+        `📅 Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`,
+      );
 
       let allShifts: any[] = [];
       if (paginatedEmployeeIds.length > 0) {

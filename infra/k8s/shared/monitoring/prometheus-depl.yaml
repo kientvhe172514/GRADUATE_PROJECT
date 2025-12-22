@@ -38,8 +38,11 @@ spec:
           - '--storage.tsdb.path=/prometheus/'
           - '--web.console.libraries=/etc/prometheus/console_libraries'
           - '--web.console.templates=/etc/prometheus/consoles'
-          - '--storage.tsdb.retention.time=7d'  # Optimized for test/dev (was 30d)
-          - '--storage.tsdb.retention.size=5GB'  # Add size limit
+          - '--storage.tsdb.retention.time=3d'       # Reduced from 7d to save space
+          - '--storage.tsdb.retention.size=4GB'      # Reduced from 5GB
+          - '--storage.tsdb.wal-compression'         # Enable WAL compression
+          - '--storage.tsdb.min-block-duration=2h'   # More frequent compaction
+          - '--storage.tsdb.max-block-duration=2h'   # Match min for faster cleanup
           - '--web.enable-lifecycle'
           - '--web.enable-admin-api'
           - '--web.external-url=http://prometheus.monitoring.svc:9090'
@@ -53,27 +56,27 @@ spec:
           mountPath: /prometheus/
         resources:
           requests:
-            memory: "256Mi"  # Increased: OOMKilled with 64Mi (WAL replay needs more)
-            cpu: "50m"       
+            memory: "512Mi"  # Increased for WAL replay (445 segments)
+            cpu: "100m"       
           limits:
-            memory: "512Mi"  # Increased: OOMKilled with 128Mi during WAL replay
-            cpu: "200m"
+            memory: "1Gi"    # Increased to handle large WAL replay
+            cpu: "500m"
         readinessProbe:
           httpGet:
             path: /-/ready
             port: 9090
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120  # Increased for WAL replay time
           periodSeconds: 15
           timeoutSeconds: 10
-          failureThreshold: 10
+          failureThreshold: 15      # More attempts during replay
         livenessProbe:
           httpGet:
             path: /-/healthy
             port: 9090
-          initialDelaySeconds: 120
+          initialDelaySeconds: 180  # Increased for WAL replay time
           periodSeconds: 30
           timeoutSeconds: 10
-          failureThreshold: 5
+          failureThreshold: 10      # More attempts during replay
       volumes:
       - name: prometheus-config
         configMap:
