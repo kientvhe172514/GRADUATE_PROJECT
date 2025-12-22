@@ -213,10 +213,25 @@ export class TypeOrmEmployeeWorkScheduleRepository
     assignment: Partial<EmployeeWorkSchedule>,
   ): Promise<EmployeeWorkSchedule> {
     const props = assignment.toJSON ? assignment.toJSON() : assignment;
-    await this.repository.update(id, {
-      effective_from: props.effective_from,
-      effective_to: props.effective_to,
-    });
+    
+    // Build update object dynamically based on provided fields
+    const updateData: any = {};
+    
+    if (props.effective_from !== undefined) {
+      updateData.effective_from = props.effective_from;
+    }
+    if (props.effective_to !== undefined) {
+      updateData.effective_to = props.effective_to;
+    }
+    if (props.schedule_overrides !== undefined) {
+      updateData.schedule_overrides = props.schedule_overrides;
+    }
+    
+    // Only call update if there are fields to update
+    if (Object.keys(updateData).length > 0) {
+      await this.repository.update(id, updateData);
+    }
+    
     const updated = await this.repository.findOne({ where: { id } });
     if (!updated) {
       throw new Error('Assignment not found after update');
