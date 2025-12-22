@@ -35,6 +35,18 @@ export class ProcessFaceVerificationResultUseCase {
         `employee_id=${event.employee_id}, face_verified=${event.face_verified}, confidence=${event.face_confidence}`,
     );
 
+    // ✅ Normalize verification_time to ensure correct timezone handling
+    // Face Verification service returns time without timezone info (e.g. "2025-12-22T18:00:35.2738107")
+    // JavaScript Date() may parse it incorrectly depending on server timezone
+    const verificationTimeStr = String(event.verification_time);
+    const verificationTime = new Date(verificationTimeStr);
+    
+    this.logger.log(
+      `🕐 Verification time: ${verificationTimeStr} → ` +
+      `UTC: ${verificationTime.toISOString()} → ` +
+      `VN: ${verificationTime.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`,
+    );
+
     // Validate confidence threshold
     const isValidConfidence = event.face_confidence >= this.MINIMUM_CONFIDENCE;
     const finalVerified = event.face_verified && isValidConfidence;
@@ -52,7 +64,7 @@ export class ProcessFaceVerificationResultUseCase {
       {
         face_verified: finalVerified,
         face_confidence: event.face_confidence,
-        verified_at: finalVerified ? event.verification_time : undefined,
+        verified_at: finalVerified ? verificationTime : undefined,
         is_valid: finalVerified,
         notes: event.error_message
           ? `Face verification failed: ${event.error_message}`
@@ -73,7 +85,7 @@ export class ProcessFaceVerificationResultUseCase {
         attendanceCheckId: event.attendance_check_id,
         checkType: 'check_in', // Will be updated below based on actual check_type
         confidence: event.face_confidence,
-        timestamp: event.verification_time.toISOString(),
+        timestamp: verificationTime.toISOString(),
       });
 
       // Get attendance check to find shift_id and check_type
@@ -100,19 +112,19 @@ export class ProcessFaceVerificationResultUseCase {
         if (checkType === 'check_in') {
           // Calculate late minutes
           const lateMinutes = this.calculateLateMinutes(
-            event.verification_time,
+            verificationTime,
             shift.shift_date,
             shift.scheduled_start_time,
           );
 
           await this.employeeShiftRepository.update(attendanceCheck.shift_id, {
-            check_in_time: event.verification_time,
+            check_in_time: verificationTime,
             check_in_record_id: event.attendance_check_id,
             late_minutes: lateMinutes,
             status: 'IN_PROGRESS',
           });
           this.logger.log(
-            `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${event.verification_time.toISOString()}, ` +
+            `✅ Updated shift ${attendanceCheck.shift_id}: check_in_time=${verificationTime.toISOString()}, ` +
               `late_minutes=${lateMinutes}, status=IN_PROGRESS`,
           );
 
@@ -121,7 +133,7 @@ export class ProcessFaceVerificationResultUseCase {
             employeeId: event.employee_id,
             attendanceCheckId: event.attendance_check_id,
             shiftId: attendanceCheck.shift_id,
-            checkInTime: event.verification_time.toISOString(),
+            checkInTime: verificationTime.toISOString(),
             lateMinutes: lateMinutes,
             scheduledStartTime: shift.scheduled_start_time,
             confidence: event.face_confidence,
@@ -271,7 +283,7 @@ export class ProcessFaceVerificationResultUseCase {
             const { actualWorkHours, overtimeHours } =
               this.calculateWorkAndOvertimeHours(
                 shift.check_in_time,
-                event.verification_time,
+                verificationTime,
                 shift.shift_date,
                 shift.scheduled_start_time,
                 shift.scheduled_end_time,
@@ -279,7 +291,7 @@ export class ProcessFaceVerificationResultUseCase {
 
             // Calculate early leave minutes
             const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
-              event.verification_time,
+              verificationTime,
               shift.shift_date,
               shift.scheduled_start_time,
               shift.scheduled_end_time,
@@ -289,7 +301,7 @@ export class ProcessFaceVerificationResultUseCase {
             await this.employeeShiftRepository.update(
               attendanceCheck.shift_id,
               {
-                check_out_time: event.verification_time, // ✅ FIX: Update check_out_time
+                check_out_time: verificationTime, // ✅ FIX: Update check_out_time
                 check_out_record_id: event.attendance_check_id, // ✅ FIX: Link to attendance check record
                 work_hours: actualWorkHours,
                 overtime_hours: overtimeHours,
@@ -298,7 +310,7 @@ export class ProcessFaceVerificationResultUseCase {
               },
             );
             this.logger.log(
-              `✅ Updated shift ${attendanceCheck.shift_id}: check_out_time=${event.verification_time.toISOString()}, ` +
+              `✅ Updated shift ${attendanceCheck.shift_id}: check_out_time=${verificationTime.toISOString()}, ` +
                 `work_hours=${actualWorkHours}h, overtime_hours=${overtimeHours}h, early_leave_minutes=${earlyLeaveMinutes}, status=COMPLETED`,
             );
 
@@ -307,7 +319,7 @@ export class ProcessFaceVerificationResultUseCase {
               employeeId: event.employee_id,
               attendanceCheckId: event.attendance_check_id,
               shiftId: attendanceCheck.shift_id,
-              checkOutTime: event.verification_time.toISOString(),
+              checkOutTime: verificationTime.toISOString(),
               workHours: actualWorkHours,
               overtimeHours: overtimeHours,
               earlyLeaveMinutes: earlyLeaveMinutes,
@@ -326,7 +338,7 @@ export class ProcessFaceVerificationResultUseCase {
               scheduledStartTime: shift.scheduled_start_time,
               scheduledEndTime: shift.scheduled_end_time,
               checkInTime: shift.check_in_time?.toISOString(),
-              checkOutTime: event.verification_time.toISOString(),
+              checkOutTime: verificationTime.toISOString(),
               workHours: actualWorkHours,
               overtimeHours: overtimeHours,
               lateMinutes: shift.late_minutes || 0,
@@ -352,8 +364,10 @@ export class ProcessFaceVerificationResultUseCase {
         attendanceCheckId: event.attendance_check_id,
         confidence: event.face_confidence,
         minimumRequired: this.MINIMUM_CONFIDENCE,
-        errorMessage: event.error_message || `Face confidence too low (${event.face_confidence} < ${this.MINIMUM_CONFIDENCE})`,
-        timestamp: event.verification_time.toISOString(),
+        errorMessage:
+          event.error_message ||
+          `Face confidence too low (${event.face_confidence} < ${this.MINIMUM_CONFIDENCE})`,
+        timestamp: verificationTime.toISOString(),
       });
 
       // TODO: Trigger alert to HR department
