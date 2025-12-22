@@ -86,14 +86,18 @@ export class ManualEditShiftUseCase {
   private calculateEarlyLeaveMinutes(
     checkOutTime: Date,
     shiftDate: Date,
+    scheduledStartTime: string,
     scheduledEndTime: string,
   ): number {
-    const [hours, minutes] = scheduledEndTime.split(':').map(Number);
+    // Parse scheduled times (format: "HH:mm:ss")
+    const [startHours, startMinutes] = scheduledStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = scheduledEndTime.split(':').map(Number);
+    
     let scheduledEnd = new Date(shiftDate);
-    scheduledEnd.setHours(hours, minutes, 0, 0);
+    scheduledEnd.setHours(endHours, endMinutes, 0, 0);
 
-    // Handle overnight shifts
-    if (checkOutTime < scheduledEnd && scheduledEnd.getHours() < 12) {
+    // Handle night shifts (end time < start time means next day)
+    if (endHours < startHours || (endHours === startHours && endMinutes < startMinutes)) {
       scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
     }
 
@@ -206,6 +210,7 @@ export class ManualEditShiftUseCase {
       const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
         finalCheckOutTime,
         shiftSchema.shift_date,
+        shiftSchema.scheduled_start_time,
         shiftSchema.scheduled_end_time,
       );
       if (earlyLeaveMinutes !== shiftSchema.early_leave_minutes) {

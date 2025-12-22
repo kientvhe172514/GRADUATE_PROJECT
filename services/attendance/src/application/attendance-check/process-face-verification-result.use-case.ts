@@ -281,6 +281,7 @@ export class ProcessFaceVerificationResultUseCase {
             const earlyLeaveMinutes = this.calculateEarlyLeaveMinutes(
               event.verification_time,
               shift.shift_date,
+              shift.scheduled_start_time,
               shift.scheduled_end_time,
             );
 
@@ -467,16 +468,18 @@ export class ProcessFaceVerificationResultUseCase {
   private calculateEarlyLeaveMinutes(
     checkOutTime: Date,
     shiftDate: Date,
+    scheduledStartTime: string,
     scheduledEndTime: string,
   ): number {
-    // Parse scheduled end time (format: "HH:mm:ss")
-    const [hours, minutes] = scheduledEndTime.split(':').map(Number);
+    // Parse scheduled times (format: "HH:mm:ss")
+    const [startHours, startMinutes] = scheduledStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = scheduledEndTime.split(':').map(Number);
+    
     let scheduledEnd = new Date(shiftDate);
-    scheduledEnd.setHours(hours, minutes, 0, 0);
+    scheduledEnd.setHours(endHours, endMinutes, 0, 0);
 
     // Handle night shifts (end time < start time means next day)
-    const [startHours] = scheduledEndTime.split(':').map(Number);
-    if (hours < startHours) {
+    if (endHours < startHours || (endHours === startHours && endMinutes < startMinutes)) {
       scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
     }
 
