@@ -294,14 +294,6 @@ export class GetEmployeeAttendanceReportUseCase {
     start_date: string;
     end_date: string;
   } {
-    if (query.start_date && query.end_date) {
-      return {
-        start_date: query.start_date,
-        end_date: query.end_date,
-      };
-    }
-
-    const now = new Date();
     // Use provided start_date and end_date, or default to current month
     if (query.start_date && query.end_date) {
       return {
