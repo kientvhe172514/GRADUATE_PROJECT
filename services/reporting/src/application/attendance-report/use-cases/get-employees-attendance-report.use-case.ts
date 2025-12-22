@@ -226,7 +226,6 @@ export class GetEmployeesAttendanceReportUseCase {
       page: query.page!,
       limit: query.limit!,
       total_pages: Math.ceil(total / query.limit!),
-      period: 'CUSTOM',
       start_date,
       end_date,
     };
@@ -387,7 +386,6 @@ export class GetEmployeesAttendanceReportUseCase {
       page: query.page!,
       limit: query.limit!,
       total_pages: Math.ceil(total / query.limit!),
-      period: 'CUSTOM',
       start_date,
       end_date,
     };

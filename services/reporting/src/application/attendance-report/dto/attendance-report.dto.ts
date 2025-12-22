@@ -110,9 +110,6 @@ export class EmployeesAttendanceReportResponseDto {
   @ApiProperty({ description: 'Total pages' })
   total_pages: number;
 
-  @ApiProperty({ description: 'Report period' })
-  period: string;
-
   @ApiProperty({ description: 'Start date' })
   start_date: string;
 
@@ -215,13 +212,14 @@ export class EmployeeAttendanceReportResponseDto {
     join_date: string;
   };
 
-  @ApiProperty({ description: 'Report period' })
-  period: {
-    type: string;
-    start_date: string;
-    end_date: string;
-    total_days: number;
-  };
+  @ApiProperty({ description: 'Start date' })
+  start_date: string;
+
+  @ApiProperty({ description: 'End date' })
+  end_date: string;
+
+  @ApiProperty({ description: 'Total days in report range' })
+  total_days: number;
 
   @ApiProperty({ description: 'Summary statistics' })
   summary: {

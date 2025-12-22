@@ -6,7 +6,6 @@ import {
   EmployeeAttendanceReportQueryDto,
   EmployeeAttendanceReportResponseDto,
   DailyAttendanceDetailDto,
-  ReportPeriod,
 } from '../dto/attendance-report.dto';
 
 interface ShiftQueryResult {
@@ -268,12 +267,9 @@ export class GetEmployeeAttendanceReportUseCase {
         position_name: employee.position_name,
         join_date: employee.join_date,
       },
-      period: {
-        type: 'CUSTOM',
-        start_date,
-        end_date,
-        total_days: totalDays,
-      },
+      start_date,
+      end_date,
+      total_days: totalDays,
       summary: {
         total_working_days: totalWorkingDays,
         total_working_hours: Number(totalWorkingHours.toFixed(2)),
