@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { WorkScheduleDto } from '../../dtos/work-schedule.dto';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { WORK_SCHEDULE_REPOSITORY } from '../../../application/tokens';
+import { WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 import {
   BusinessException,
   ErrorCodes,
@@ -13,7 +13,7 @@ export class GetWorkScheduleByIdUseCase {
   constructor(
     @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepository: IWorkScheduleRepository,
-  ) {}
+  ) { }
 
   async execute(id: number): Promise<ApiResponseDto<WorkScheduleDto>> {
     const workSchedule = await this.workScheduleRepository.findById(id);

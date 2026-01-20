@@ -7,7 +7,7 @@ import {
 import {
   WORK_SCHEDULE_REPOSITORY,
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
-} from '../../../application/tokens';
+} from '../../tokens';
 import {
   BusinessException,
   ErrorCodes,
@@ -32,7 +32,7 @@ export class AssignScheduleToEmployeesUseCase {
     private readonly employeeServiceClient: EmployeeServiceClient,
     @Inject('IEventPublisher')
     private readonly eventPublisher: IEventPublisher,
-  ) {}
+  ) { }
 
   async execute(
     scheduleId: number,

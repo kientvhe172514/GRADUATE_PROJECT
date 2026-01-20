@@ -1,9 +1,9 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { IEmployeeWorkScheduleRepository } from '../../application/ports/work-schedule.repository.port';
-import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../../application/tokens';
-import { ScheduleOverrideType, ScheduleOverrideStatus } from '../../application/dtos/schedule-override.dto';
-import { ProcessOnLeaveOverrideService } from '../../application/services/process-on-leave-override.service';
+import { IEmployeeWorkScheduleRepository } from '../ports/work-schedule.repository.port';
+import { EMPLOYEE_WORK_SCHEDULE_REPOSITORY } from '../tokens';
+import { ScheduleOverrideType, ScheduleOverrideStatus } from '../dtos/schedule-override.dto';
+import { ProcessOnLeaveOverrideService } from '../services/process-on-leave-override.service';
 
 interface LeaveApprovedEventPayload {
   leaveId: number;
@@ -33,7 +33,7 @@ export class LeaveApprovedEventListener {
     @Inject(EMPLOYEE_WORK_SCHEDULE_REPOSITORY)
     private readonly employeeWorkScheduleRepo: IEmployeeWorkScheduleRepository,
     private readonly processOnLeaveService: ProcessOnLeaveOverrideService,
-  ) {}
+  ) { }
 
   /**
    * Handle leave.approved event
@@ -64,7 +64,7 @@ export class LeaveApprovedEventListener {
       // Must check effective_from/effective_to range to select correct assignment
       const leaveStart = new Date(payload.startDate);
       const leaveEnd = new Date(payload.endDate);
-      
+
       const matchingAssignment = assignments.find((a) => {
         const assignStart = a.effective_from ? new Date(a.effective_from) : null;
         const assignEnd = a.effective_to ? new Date(a.effective_to) : null;

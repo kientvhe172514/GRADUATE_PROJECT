@@ -10,6 +10,8 @@ import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { LoggingInterceptor } from '@graduate-project/shared-common';
 
+
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);

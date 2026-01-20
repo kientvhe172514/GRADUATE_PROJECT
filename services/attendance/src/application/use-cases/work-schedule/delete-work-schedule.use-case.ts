@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { WORK_SCHEDULE_REPOSITORY } from '../../../application/tokens';
+import { WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 import {
   BusinessException,
   ErrorCodes,
@@ -15,7 +15,7 @@ export class DeleteWorkScheduleUseCase {
     @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepository: IWorkScheduleRepository,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async execute(
     id: number,

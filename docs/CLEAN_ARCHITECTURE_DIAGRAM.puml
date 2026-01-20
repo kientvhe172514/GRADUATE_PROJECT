@@ -1,0 +1,147 @@
+@startuml Clean Architecture - Detailed Dependencies
+
+!define PRESENTATION_COLOR #E1F5FE
+!define APPLICATION_COLOR #FFF9C4
+!define DOMAIN_COLOR #C8E6C9
+!define INFRASTRUCTURE_COLOR #FFCCBC
+
+skinparam rectangle {
+    BackgroundColor<<presentation>> PRESENTATION_COLOR
+    BorderColor<<presentation>> #01579B
+    BackgroundColor<<application>> APPLICATION_COLOR
+    BorderColor<<application>> #F57F17
+    BackgroundColor<<domain>> DOMAIN_COLOR
+    BorderColor<<domain>> #2E7D32
+    BackgroundColor<<infrastructure>> INFRASTRUCTURE_COLOR
+    BorderColor<<infrastructure>> #BF360C
+    BackgroundColor white
+    BorderColor black
+}
+
+skinparam defaultTextAlignment center
+skinparam ArrowColor #000000
+skinparam ArrowThickness 2
+
+package "**presentation**" <<presentation>> {
+    rectangle "controllers" as controllers
+    rectangle "event-listeners" as eventListeners
+}
+
+package "**application**" <<application>> {
+    rectangle "dto" as dto
+    rectangle "handlers" as handlers
+    rectangle "ports" as ports
+    rectangle "use-cases" as useCases
+}
+
+package "**domain**" <<domain>> {
+    rectangle "entities" as entities
+    rectangle "events" as events
+    rectangle "exceptions" as domainExceptions
+    rectangle "value-objects" as valueObjects
+}
+
+package "**infrastructure**" <<infrastructure>> {
+    rectangle "messaging" as messaging
+    rectangle "persistence" as persistence
+    rectangle "exceptions" as infraExceptions
+    rectangle "services" as services
+}
+
+' ========================================
+' PRESENTATION LAYER DEPENDENCIES
+' ========================================
+' controllers → use-cases (gọi use cases)
+controllers -[dashed,#FF5722]-> useCases : "calls"
+
+' controllers → dto (dùng DTO)
+controllers -[dashed,#FF5722]-> dto : "uses"
+
+' event-listeners → handlers (gọi handlers)
+eventListeners -[dashed,#FF5722]-> handlers : "calls"
+
+' ========================================
+' APPLICATION LAYER DEPENDENCIES
+' ========================================
+' use-cases → ports (depends on interfaces)
+useCases -[dashed,#FFA726]-> ports : "depends on\n(DIP)"
+
+' use-cases → entities (uses domain entities)
+useCases -[dashed,#FFA726]-> entities : "uses"
+
+' use-cases → events (emits domain events)
+useCases -[dashed,#FFA726]-> events : "emits"
+
+' use-cases → exceptions (throws domain exceptions)
+useCases -[dashed,#FFA726]-> domainExceptions : "throws"
+
+' handlers → useCases (calls use cases)
+handlers -[dashed,#FFA726]-> useCases : "calls"
+
+' handlers → entities (uses domain entities)
+handlers -[dashed,#FFA726]-> entities : "uses"
+
+' dto → entities (maps to/from entities)
+dto .[dashed,#FFA726].> entities : "maps"
+
+' ========================================
+' INFRASTRUCTURE LAYER DEPENDENCIES
+' ========================================
+' persistence → ports (implements repository interfaces)
+persistence -[dashed,#66BB6A]-> ports : "implements"
+
+' persistence → entities (maps to domain entities)
+persistence -[dashed,#66BB6A]-> entities : "maps to"
+
+' messaging → ports (implements event publisher interface)
+messaging -[dashed,#66BB6A]-> ports : "implements"
+
+' messaging → events (publishes domain events)
+messaging -[dashed,#66BB6A]-> events : "publishes"
+
+' services → ports (implements service interfaces)
+services -[dashed,#66BB6A]-> ports : "implements"
+
+' ========================================
+' NOTES
+' ========================================
+note right of controllers
+  **controllers/**
+  • Nhận HTTP request
+  • Gọi Use Cases
+  • Dùng DTO
+  • Trả response
+end note
+
+note right of useCases
+  **use-cases/**
+  • Business logic
+  • Gọi qua Port (interface)
+  • KHÔNG gọi thẳng Repository
+  • Uses Domain Entities
+end note
+
+note right of ports
+  **ports/**
+  • Repository interfaces
+  • Service interfaces
+  • Event publisher interface
+  • **DIP: Dependency Inversion**
+end note
+
+note right of entities
+  **entities/**
+  • Pure domain models
+  • NO dependencies
+  • NO @Entity decorator
+  • NO TypeORM
+end note
+
+note right of persistence
+  **persistence/**
+  • repositories/ (implements ports)
+  • typeorm/ (schemas)
+  • Maps Schema ↔ Entity
+end note
+
+@enduml

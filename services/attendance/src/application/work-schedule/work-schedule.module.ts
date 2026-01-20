@@ -24,7 +24,7 @@ import {
 import {
   WORK_SCHEDULE_REPOSITORY,
   EMPLOYEE_WORK_SCHEDULE_REPOSITORY,
-} from '../../application/tokens';
+} from '../tokens';
 import { ShiftGeneratorService } from '../services/shift-generator.service';
 import { ProcessOnLeaveOverrideService } from '../services/process-on-leave-override.service';
 import { EmployeeShiftRepository } from '../../infrastructure/repositories/employee-shift.repository';
@@ -138,4 +138,4 @@ import { IEventPublisher } from '../ports/event-publisher.port';
     ShiftGeneratorService,
   ],
 })
-export class WorkScheduleModule {}
+export class WorkScheduleModule { }

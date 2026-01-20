@@ -4,7 +4,7 @@ import {
   WorkScheduleDto,
 } from '../../dtos/work-schedule.dto';
 import { IWorkScheduleRepository } from '../../ports/work-schedule.repository.port';
-import { WORK_SCHEDULE_REPOSITORY } from '../../../application/tokens';
+import { WORK_SCHEDULE_REPOSITORY } from '../../tokens';
 import { WorkSchedule } from '../../../domain/entities/work-schedule.entity';
 import {
   BusinessException,
@@ -18,7 +18,7 @@ export class CreateWorkScheduleUseCase {
   constructor(
     @Inject(WORK_SCHEDULE_REPOSITORY)
     private readonly workScheduleRepository: IWorkScheduleRepository,
-  ) {}
+  ) { }
 
   async execute(
     dto: CreateWorkScheduleDto,

@@ -1,0 +1,1300 @@
+// DATABASE ERD DIAGRAM FOR GRADUATE PROJECT
+// Generated from TypeORM schemas
+// Use this file on https://dbdiagram.io/
+
+// ============================================
+// AUTH SERVICE DATABASE
+// ============================================
+
+// Bảng tài khoản người dùng - Lưu thông tin đăng nhập và xác thực
+// Đồng bộ dữ liệu từ Employee Service để cache thông tin nhân viên
+Table accounts {
+  id bigint [pk, increment] // ID tài khoản duy nhất
+  email varchar(255) [unique, not null] // Email đăng nhập (unique)
+  password_hash varchar(255) [not null] // Mật khẩu đã hash (bcrypt)
+  account_type varchar(50) [default: 'EMPLOYEE'] // Loại tài khoản: EMPLOYEE, ADMIN, SYSTEM
+  role_id int [not null, ref: > roles.id] // ID vai trò (foreign key đến roles)
+  role varchar(50) [note: 'Legacy field'] // Vai trò (legacy - sử dụng role_id)
+  employee_id bigint [ref: > employees.id] // ID nhân viên (link sang Employee Service)
+  employee_code varchar(50) // Mã nhân viên (cache từ Employee Service)
+  full_name varchar(255) // Họ tên đầy đủ (cache)
+  department_id int // ID phòng ban (cache)
+  department_name varchar(255) // Tên phòng ban (cache)
+  position_id int // ID vị trí (cache)
+  position_name varchar(255) // Tên vị trí (cache)
+  external_ids jsonb [default: '{}'] // ID từ hệ thống bên ngoài (SSO, LDAP...)
+  metadata jsonb [default: '{}'] // Thông tin bổ sung
+  data_synced_at timestamp // Thời điểm đồng bộ dữ liệu từ Employee Service
+  sync_version int [default: 1] // Phiên bản đồng bộ
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, LOCKED, SUSPENDED
+  failed_login_attempts int [default: 0] // Số lần đăng nhập thất bại liên tiếp
+  locked_until timestamp // Thời gian khóa tài khoản (nếu bị khóa tạm thời)
+  last_login_at timestamp // Lần đăng nhập cuối cùng
+  last_login_ip varchar(45) // IP đăng nhập cuối cùng
+  is_temporary_password boolean [default: false] // Đang dùng mật khẩu tạm thời (cần đổi)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    email
+    role_id
+    employee_id
+    status
+  }
+}
+
+// Bảng vai trò - Định nghĩa các vai trò trong hệ thống (RBAC)
+// Mỗi vai trò có level khác nhau để phân cấp quyền hạn
+Table roles {
+  id int [pk, increment] // ID vai trò
+  code varchar(100) [unique, not null] // Mã vai trò (unique): SUPER_ADMIN, HR_ADMIN, MANAGER...
+  name varchar(255) [not null] // Tên vai trò hiển thị
+  description text // Mô tả vai trò
+  level int [note: '1=SUPER_ADMIN, 2=HR_ADMIN, 3=HR_STAFF, 4=MANAGER, 5=EMPLOYEE'] // Cấp độ vai trò (càng nhỏ càng cao)
+  is_system_role boolean [default: false] // Vai trò hệ thống (không được xóa/sửa)
+  status varchar(20) [default: 'active'] // Trạng thái: active, inactive
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    code
+    status
+    level
+  }
+}
+
+// Bảng quyền - Định nghĩa các quyền hạn cụ thể
+// Quyền = Resource (tài nguyên) + Action (hành động) + Scope (phạm vi)
+Table permissions {
+  id int [pk, increment] // ID quyền
+  code varchar(255) [unique, not null] // Mã quyền (unique): employee:read:all, leave:approve:department
+  resource varchar(100) [not null] // Tài nguyên: employee, leave, attendance, report...
+  action varchar(100) [not null] // Hành động: create, read, update, delete, approve...
+  scope varchar(50) // Phạm vi: all (tất cả), own (của mình), department (phòng ban), team (nhóm)
+  description text // Mô tả quyền
+  is_system_permission boolean [default: false] // Quyền hệ thống (không được xóa/sửa)
+  status varchar(20) [default: 'active'] // Trạng thái: active, inactive
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    code
+    resource
+    status
+  }
+}
+
+// Bảng phân quyền vai trò - Mapping giữa Role và Permission
+// Một role có nhiều permission, một permission có thể thuộc nhiều role
+Table role_permissions {
+  id int [pk, increment] // ID mapping
+  role_id int [ref: > roles.id, not null] // ID vai trò
+  permission_id int [ref: > permissions.id, not null] // ID quyền
+  created_at timestamp [default: `now()`] // Ngày gán quyền
+  created_by bigint // Người gán quyền
+  
+  indexes {
+    role_id
+    permission_id
+    (role_id, permission_id) [unique] // Không được trùng lặp role-permission
+  }
+}
+
+// Bảng phân quyền tài khoản - Gán quyền trực tiếp cho tài khoản
+// Dùng để override hoặc thu hồi quyền của một tài khoản cụ thể
+Table account_permissions {
+  id int [pk, increment] // ID mapping
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản
+  permission_id int [ref: > permissions.id, not null] // ID quyền
+  is_granted boolean [default: true] // true = cấp quyền, false = thu hồi quyền
+  scope_constraints jsonb // Ràng buộc phạm vi: {department_ids: [1,2], employee_ids: [10,20]}
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    account_id
+    permission_id
+    (account_id, permission_id) [unique] // Không được trùng lặp account-permission
+  }
+}
+
+// Bảng refresh token - Lưu token để làm mới access token
+// Hỗ trợ đăng nhập từ nhiều thiết bị, theo dõi session
+Table refresh_tokens {
+  id bigint [pk, increment] // ID token
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản sở hữu token
+  token_hash varchar(255) [not null] // Token đã hash (không lưu plain text)
+  device_id varchar(255) // ID thiết bị (unique device identifier)
+  device_name varchar(255) // Tên thiết bị: iPhone 14 Pro, Samsung Galaxy...
+  device_os varchar(50) // Hệ điều hành: iOS 17.0, Android 13...
+  device_fingerprint text // Dấu vân tay thiết bị (browser fingerprint)
+  device_session_id bigint [ref: > device_sessions.id] // Link đến device session
+  ip_address varchar(45) // IP address khi tạo token
+  location jsonb // Vị trí địa lý: {city, country, lat, lon}
+  user_agent text // User agent string của browser/app
+  expires_at timestamp [not null] // Thời gian hết hạn
+  revoked_at timestamp // Thời gian thu hồi token (logout, đổi mật khẩu...)
+  last_used_at timestamp // Lần sử dụng cuối để làm mới token
+  created_at timestamp [default: `now()`] // Thời gian tạo token
+  
+  indexes {
+    account_id
+    token_hash
+    expires_at
+    device_session_id
+  }
+}
+
+// Bảng mật khẩu tạm thời - Lưu mật khẩu tạm cho tài khoản mới/reset
+// Bắt buộc người dùng đổi mật khẩu khi đăng nhập lần đầu
+Table temporary_passwords {
+  id int [pk, increment] // ID
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản
+  temp_password_hash varchar(255) [not null] // Mật khẩu tạm đã hash
+  expires_at timestamp [not null] // Thời gian hết hạn (thường 24-72h)
+  used_at timestamp // Thời điểm sử dụng mật khẩu tạm
+  must_change_password boolean [default: true] // Bắt buộc đổi mật khẩu sau khi dùng
+  created_at timestamp [default: `now()`] // Thời gian tạo
+  
+  indexes {
+    account_id
+    expires_at
+  }
+}
+
+// Bảng phiên thiết bị - Quản lý tất cả thiết bị đã đăng nhập
+// Theo dõi hoạt động, bảo mật, FCM token cho push notification
+Table device_sessions {
+  id bigint [pk, increment] // ID session
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản
+  employee_id bigint // ID nhân viên (cache)
+  device_id varchar(255) [unique, not null] // ID thiết bị duy nhất (UUID)
+  device_name varchar(255) // Tên thiết bị: "iPhone của Kiên"
+  device_os varchar(50) // OS: iOS 17.0, Android 13, Windows 11
+  device_model varchar(100) // Model: iPhone 14 Pro, Samsung Galaxy S23
+  device_fingerprint text // Fingerprint để nhận diện thiết bị
+  platform varchar(20) [not null, note: 'IOS, ANDROID, WEB'] // Platform: IOS, ANDROID, WEB
+  app_version varchar(50) // Phiên bản app: 1.2.3
+  is_trusted boolean [default: false] // Thiết bị đáng tin cậy (đã xác minh)
+  trusted_at timestamp // Thời điểm đánh dấu tin cậy
+  trusted_by bigint // Người đánh dấu tin cậy
+  trust_verification_method varchar(50) // Phương thức xác minh: OTP, EMAIL, SMS
+  first_login_at timestamp [default: `now()`] // Lần đăng nhập đầu tiên
+  last_login_at timestamp // Lần đăng nhập cuối
+  last_active_at timestamp // Hoạt động cuối cùng
+  login_count int [default: 1] // Tổng số lần đăng nhập
+  failed_login_attempts int [default: 0] // Số lần đăng nhập thất bại liên tiếp
+  last_failed_at timestamp // Thời điểm đăng nhập thất bại cuối
+  last_ip_address varchar(45) // IP address cuối cùng
+  last_location jsonb // Vị trí địa lý cuối: {city, country, lat, lon}
+  last_user_agent text // User agent cuối cùng
+  network_type varchar(20) // Loại mạng: WIFI, 4G, 5G, ETHERNET
+  fcm_token varchar(500) // Firebase Cloud Messaging token (push notification)
+  fcm_token_updated_at timestamp // Thời điểm cập nhật FCM token
+  fcm_token_status varchar(20) [default: 'ACTIVE'] // Trạng thái FCM: ACTIVE, INVALID, EXPIRED
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái session: ACTIVE, REVOKED, EXPIRED
+  revoked_at timestamp // Thời gian thu hồi session
+  revoked_by bigint // Người thu hồi session
+  revoke_reason text // Lý do thu hồi: logout, security_threat, password_changed
+  expires_at timestamp // Thời gian hết hạn session
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    account_id
+    employee_id
+    device_id
+    status
+    platform
+  }
+}
+
+// Bảng nhật ký hoạt động thiết bị - Ghi log mọi hoạt động của thiết bị
+// Phục vụ audit, phát hiện hành vi bất thường, phân tích bảo mật
+Table device_activity_logs {
+  id bigint [pk, increment] // ID log
+  device_session_id bigint [ref: > device_sessions.id] // ID session thiết bị
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản
+  activity_type varchar(50) [not null] // Loại hoạt động: LOGIN, LOGOUT, API_CALL, ATTENDANCE_CHECK, LOCATION_UPDATE
+  status varchar(20) [not null] // Trạng thái: SUCCESS, FAILED, BLOCKED
+  ip_address varchar(45) // IP address thực hiện hành động
+  location jsonb // Vị trí địa lý: {city, country, lat, lon}
+  user_agent text // User agent của browser/app
+  is_suspicious boolean [default: false] // Hoạt động đáng ngờ (phát hiện tự động)
+  suspicious_reason text // Lý do đánh dấu đáng ngờ: unusual_location, unusual_time, velocity_impossible
+  risk_score int // Điểm rủi ro (0-100): càng cao càng nguy hiểm
+  metadata jsonb // Dữ liệu bổ sung: {endpoint, response_time, error_code}
+  created_at timestamp [default: `now()`] // Thời gian xảy ra hoạt động
+  
+  indexes {
+    account_id
+    device_session_id
+    activity_type
+    status
+    created_at
+  }
+}
+
+// Bảng cảnh báo bảo mật thiết bị - Lưu các cảnh báo bảo mật
+// Tự động hoặc thủ công tạo cảnh báo khi phát hiện vấn đề
+Table device_security_alerts {
+  id int [pk, increment] // ID cảnh báo
+  device_session_id bigint [ref: > device_sessions.id] // ID session thiết bị
+  account_id bigint [ref: > accounts.id, not null] // ID tài khoản bị ảnh hưởng
+  alert_type varchar(50) [not null] // Loại cảnh báo: SUSPICIOUS_LOGIN, LOCATION_ANOMALY, MULTIPLE_FAILED_ATTEMPTS, ROOTED_DEVICE
+  severity varchar(20) [not null] // Mức độ nghiêm trọng: LOW, MEDIUM, HIGH, CRITICAL
+  title varchar(255) [not null] // Tiêu đề cảnh báo ngắn gọn
+  description text // Mô tả chi tiết cảnh báo
+  details jsonb // Chi tiết kỹ thuật: {ip, location, failed_count, detection_rules}
+  status varchar(20) [default: 'PENDING'] // Trạng thái: PENDING, INVESTIGATING, RESOLVED, FALSE_POSITIVE
+  resolved_at timestamp // Thời gian giải quyết cảnh báo
+  resolved_by bigint // Người giải quyết cảnh báo (admin/security team)
+  resolution_note text // Ghi chú giải quyết
+  auto_action_taken boolean [default: false] // Hành động tự động đã thực hiện (lock account, revoke session)
+  action_details jsonb // Chi tiết hành động: {action_type, reason, timestamp}
+  created_at timestamp [default: `now()`] // Thời gian phát hiện cảnh báo
+  
+  indexes {
+    account_id
+    device_session_id
+    status
+    severity
+  }
+}
+
+// Bảng API keys - Quản lý khóa API cho service-to-service authentication
+// Dùng cho các service backend gọi API của nhau
+Table api_keys {
+  id int [pk, increment] // ID API key
+  key_hash varchar(255) [unique, not null] // API key đã hash (không lưu plain text)
+  service_name varchar(255) [not null] // Tên service sở hữu key: employee-service, reporting-service
+  description text // Mô tả mục đích sử dụng key
+  status varchar(20) [default: 'active'] // Trạng thái: active, inactive, revoked
+  allowed_ips text // Danh sách IP được phép (comma separated)
+  rate_limit_per_hour int // Giới hạn số request/giờ
+  permissions text // Danh sách quyền (comma separated): employee:read, leave:approve
+  scope_constraints jsonb // Ràng buộc phạm vi: {department_ids: [1,2], resources: ['employees']}
+  last_used_at timestamp // Lần sử dụng cuối cùng
+  last_used_ip varchar(45) // IP sử dụng cuối cùng
+  usage_count bigint [default: 0] // Tổng số lần sử dụng
+  expires_at timestamp // Thời gian hết hạn (null = không hết hạn)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+  revoked_at timestamp // Thời gian thu hồi
+  revoked_by bigint // Người thu hồi
+  
+  indexes {
+    key_hash
+    service_name
+    status
+    expires_at
+  }
+}
+
+// Bảng nhật ký audit - Ghi log tất cả hành động quan trọng
+// Phục vụ audit trail, compliance, điều tra sự cố
+Table audit_logs {
+  id bigint [pk, increment] // ID log
+  account_id bigint [ref: > accounts.id] // ID tài khoản thực hiện hành động (null nếu system)
+  action varchar(100) [not null] // Hành động: LOGIN, CREATE_EMPLOYEE, APPROVE_LEAVE, UPDATE_ATTENDANCE
+  ip_address varchar(45) // IP thực hiện hành động
+  user_agent text // User agent
+  success boolean [not null] // Hành động thành công hay thất bại
+  error_message text // Thông báo lỗi (nếu thất bại)
+  metadata jsonb // Dữ liệu chi tiết: {entity_type, entity_id, old_value, new_value}
+  created_at timestamp [default: `now()`] // Thời gian thực hiện hành động
+  
+  indexes {
+    (account_id, created_at)
+    (action, created_at)
+    created_at
+  }
+}
+
+// ============================================
+// EMPLOYEE SERVICE DATABASE
+// ============================================
+
+// Bảng nhân viên - Lưu thông tin cá nhân và công việc của nhân viên
+// Là nguồn dữ liệu master cho các service khác (sync qua message queue)
+Table employees {
+  id bigint [pk, increment] // ID nhân viên (duy nhất)
+  account_id bigint [unique, ref: - accounts.id] // ID tài khoản đăng nhập (1-1 relationship)
+  employee_code varchar(50) [unique, not null] // Mã nhân viên (NV001, NV002...)
+  first_name varchar(100) [not null] // Tên
+  last_name varchar(100) [not null] // Họ
+  full_name varchar(255) [not null] // Họ và tên đầy đủ
+  date_of_birth date [not null] // Ngày sinh
+  gender varchar(10) [not null] // Giới tính: MALE, FEMALE, OTHER
+  national_id varchar(50) // Số CMND/CCCD
+  email varchar(255) [not null] // Email công ty (dùng để liên hệ)
+  phone_number varchar(20) // Số điện thoại
+  personal_email varchar(255) // Email cá nhân
+  address jsonb // Địa chỉ: {street, ward, district, city, country}
+  department_id int [ref: > departments.id] // ID phòng ban
+  position_id int [ref: > positions.id] // ID vị trí công việc
+  manager_id bigint [ref: > employees.id] // ID quản lý trực tiếp (self-reference)
+  hire_date date [not null] // Ngày vào làm
+  employment_type varchar(50) [not null] // Loại hợp đồng: FULL_TIME, PART_TIME, CONTRACT, INTERN
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, TERMINATED, ON_LEAVE
+  termination_date date // Ngày nghỉ việc
+  termination_reason text // Lý do nghỉ việc
+  emergency_contact jsonb // Liên hệ khẩn cấp: {name, relationship, phone, email}
+  onboarding_status varchar(50) [default: 'PENDING'] // Trạng thái onboarding: PENDING, IN_PROGRESS, COMPLETED
+  onboarding_completed_at timestamp // Thời điểm hoàn thành onboarding
+  profile_completion_percentage int [default: 0] // % hoàn thiện hồ sơ (0-100)
+  external_refs jsonb [default: '{}'] // Tham chiếu hệ thống ngoài: {hrm_id, payroll_id}
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by bigint // Người tạo
+  updated_by bigint // Người cập nhật
+}
+
+// Bảng phòng ban - Cơ cấu tổ chức công ty
+// Hỗ trợ cấu trúc cây (parent-child) cho phòng ban đa cấp
+Table departments {
+  id int [pk, increment] // ID phòng ban
+  department_code varchar(50) [unique, not null] // Mã phòng ban (IT, HR, SALES...)
+  department_name varchar(100) [not null] // Tên phòng ban
+  description text // Mô tả chức năng phòng ban
+  parent_department_id int [ref: > departments.id] // ID phòng ban cha (null = phòng ban gốc)
+  level int [default: 1] // Cấp độ trong cây (1 = root, 2 = con của root...)
+  path varchar(255) // Đường dẫn phân cấp: "/1/5/12" để query nhanh
+  manager_id bigint [ref: > employees.id] // ID trưởng phòng
+  office_address varchar(255) // Địa chỉ văn phòng (cho check-in GPS)
+  office_latitude decimal(10,8) // Vĩ độ văn phòng
+  office_longitude decimal(11,8) // Kinh độ văn phòng
+  office_radius_meters int [default: 100] // Bán kính cho phép check-in (mét)
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+}
+
+// Bảng vị trí công việc - Định nghĩa các chức danh trong công ty
+// Mỗi vị trí có level và suggested_role để map với RBAC
+Table positions {
+  id int [pk, increment] // ID vị trí
+  position_code varchar(50) [unique, not null] // Mã vị trí (DEV, QA, PM, HR...)
+  position_name varchar(100) [not null] // Tên vị trí: Developer, Tester, HR Manager
+  description text // Mô tả công việc và trách nhiệm
+  level int [not null] // Cấp bậc (1=Junior, 2=Middle, 3=Senior, 4=Lead, 5=Manager)
+  department_id int [ref: > departments.id] // Phòng ban mặc định cho vị trí này
+  suggested_role varchar(50) // Vai trò gợi ý trong RBAC: EMPLOYEE, MANAGER, HR_STAFF
+  salary_min decimal(15,2) // Mức lương tối thiểu (cho budget planning)
+  salary_max decimal(15,2) // Mức lương tối đa
+  currency varchar(3) [default: 'VND'] // Đơn vị tiền tệ: VND, USD
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, ARCHIVED
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+}
+
+// Bảng hợp đồng lao động - Quản lý hợp đồng của nhân viên
+// Một nhân viên có thể có nhiều hợp đồng theo thời gian (gia hạn, thay đổi)
+Table contracts {
+  id bigint [pk, increment] // ID hợp đồng
+  employee_id bigint [ref: > employees.id, not null] // ID nhân viên
+  contract_code varchar(50) [unique, not null] // Mã hợp đồng: HD-2024-001
+  contract_type varchar(50) [not null, note: 'PERMANENT, FIXED_TERM, PROBATION, INTERN, PART_TIME, SEASONAL'] // Loại hợp đồng
+  start_date date [not null] // Ngày bắt đầu hợp đồng
+  end_date date // Ngày kết thúc (null nếu vô thời hạn)
+  salary decimal(15,2) [not null] // Lương cơ bản
+  currency varchar(3) [default: 'VND'] // Đơn vị tiền tệ
+  allowances jsonb // Các khoản phụ cấp: {transport: 500000, lunch: 1000000, phone: 300000}
+  job_title varchar(255) [not null] // Chức danh trong hợp đồng
+  department_id bigint // ID phòng ban (tại thời điểm ký hợp đồng)
+  position_id bigint // ID vị trí (tại thời điểm ký hợp đồng)
+  working_hours_per_week int [not null] // Số giờ làm việc/tuần: 40, 48...
+  status varchar(20) [default: 'DRAFT', note: 'DRAFT, ACTIVE, EXPIRED, TERMINATED, SUSPENDED'] // Trạng thái hợp đồng
+  signed_at timestamp // Thời điểm ký hợp đồng
+  effective_date date [not null] // Ngày có hiệu lực
+  termination_date date // Ngày chấm dứt hợp đồng (nếu bị hủy sớm)
+  termination_reason text // Lý do chấm dứt
+  notice_period_days int // Thời gian báo trước khi nghỉ việc (ngày)
+  probation_end_date date // Ngày kết thúc thử việc (nếu là hợp đồng thử việc)
+  benefits jsonb // Quyền lợi: {health_insurance: true, annual_bonus: 13th_month}
+  notes text // Ghi chú bổ sung
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by_user_id bigint // Người tạo (HR)
+  
+  indexes {
+    employee_id
+    status
+  }
+}
+
+// Bảng hợp đồng điện tử - Lưu file hợp đồng đã số hóa và chữ ký số
+// Hỗ trợ version control khi hợp đồng được sửa đổi
+Table digital_contracts {
+  id bigint [pk, increment] // ID file hợp đồng
+  contract_id bigint [ref: > contracts.id, not null] // ID hợp đồng (trong bảng contracts)
+  file_url varchar(500) [not null] // URL file PDF trên S3/Azure Blob
+  file_name varchar(255) [not null] // Tên file gốc
+  file_hash varchar(64) [not null] // SHA256 hash để verify tính toàn vẹn
+  file_size bigint [not null] // Kích thước file (bytes)
+  mime_type varchar(100) [not null] // Loại file: application/pdf, image/png
+  version int [default: 1] // Phiên bản file (1, 2, 3... khi sửa đổi)
+  is_final boolean [default: false] // Phiên bản cuối cùng (đã ký đủ 2 bên)
+  previous_version_id bigint [ref: > digital_contracts.id] // ID phiên bản trước (để truy vết lịch sử)
+  employee_signed_at timestamp // Thời điểm nhân viên ký
+  employer_signed_at timestamp // Thời điểm công ty ký
+  employee_signature_ip varchar(45) // IP khi nhân viên ký (để audit)
+  employer_signature_ip varchar(45) // IP khi HR ký
+  employee_signature_data jsonb // Dữ liệu chữ ký nhân viên: {signature_image, certificate}
+  employer_signature_data jsonb // Dữ liệu chữ ký công ty
+  verification_code varchar(100) // Mã xác thực hợp đồng (QR code)
+  verified_at timestamp // Thời điểm xác thực
+  upload_source varchar(100) // Nguồn upload: WEB, MOBILE, SYSTEM
+  metadata jsonb // Metadata bổ sung
+  created_at timestamp [default: `now()`] // Ngày upload
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  created_by_user_id bigint // Người upload
+  
+  indexes {
+    contract_id
+  }
+}
+
+// Bảng tài liệu nhân viên - Lưu trữ các giấy tờ cá nhân
+// CMND, bằng cấp, chứng chỉ, CV, ảnh...
+Table employee_documents {
+  id bigint [pk, increment] // ID tài liệu
+  employee_id bigint [ref: > employees.id, not null] // ID nhân viên
+  document_type varchar(100) [not null, note: 'ID_CARD, PASSPORT, DRIVER_LICENSE, DEGREE, CERTIFICATE, RESUME, PHOTO, BANK_INFO, TAX_CODE, INSURANCE_CARD, OTHER'] // Loại tài liệu
+  document_category varchar(100) // Danh mục: IDENTIFICATION, EDUCATION, FINANCIAL, CERTIFICATION
+  document_name varchar(255) [not null] // Tên tài liệu: "Bằng Đại Học Bách Khoa 2020"
+  description text // Mô tả chi tiết
+  file_url varchar(500) [not null] // URL file trên storage
+  file_name varchar(255) [not null] // Tên file gốc
+  file_size bigint [not null] // Kích thước file (bytes)
+  mime_type varchar(100) [not null] // Loại file: application/pdf, image/jpeg
+  issue_date date // Ngày cấp (với CMND, bằng cấp...)
+  expiry_date date // Ngày hết hạn (với passport, bằng lái...)
+  issuer varchar(255) // Nơi cấp: "Công An TP.HCM", "Đại Học Bách Khoa"
+  document_number varchar(100) // Số giấy tờ: số CMND, số bằng...
+  is_verified boolean [default: false] // Đã xác minh chưa (HR check)
+  verified_at timestamp // Thời điểm xác minh
+  verified_by_user_id bigint // Người xác minh (HR)
+  verification_notes text // Ghi chú xác minh
+  is_confidential boolean [default: false] // Tài liệu bảo mật (chỉ HR/Admin xem được)
+  access_level varchar(50) // Cấp độ truy cập: PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED
+  tags text // Tags để search: "education,bachelor,it"
+  notes text // Ghi chú bổ sung
+  metadata jsonb // Metadata bổ sung
+  uploaded_by_user_id bigint [not null] // Người upload (nhân viên hoặc HR)
+  created_at timestamp [default: `now()`] // Ngày upload
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    employee_id
+    document_type
+  }
+}
+
+// Bảng bước onboarding - Theo dõi quá trình nhập môn nhân viên mới
+// Checklist các công việc cần làm khi nhân viên mới vào
+Table employee_onboarding_steps {
+  id int [pk, increment] // ID bước
+  employee_id bigint [ref: > employees.id, not null] // ID nhân viên mới
+  step_name varchar(100) [not null] // Tên bước: "Complete profile", "Training", "Equipment setup"
+  status varchar(20) [default: 'PENDING'] // Trạng thái: PENDING, IN_PROGRESS, COMPLETED, SKIPPED
+  notes text // Ghi chú về bước này
+  completed_at timestamp // Thời điểm hoàn thành
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    employee_id
+  }
+}
+
+// ============================================
+// ATTENDANCE SERVICE DATABASE  
+// ============================================
+
+// Bảng lịch làm việc - Template lịch làm việc cho các nhân viên
+// Định nghĩa khung giờ làm việc tiêu chuẩn (8h-17h, ca gãy, ca đêm...)
+Table work_schedules {
+  id int [pk, increment] // ID lịch làm việc
+  schedule_name varchar(100) [not null] // Tên lịch: "8h-17h Standard", "Shift 1", "Flexible"
+  schedule_type varchar(50) [not null] // Loại lịch: FIXED (cố định), FLEXIBLE (linh hoạt), SHIFT (ca)
+  work_days varchar(100) // Ngày làm việc: "MON,TUE,WED,THU,FRI" hoặc "ALL"
+  start_time time // Giờ bắt đầu: 08:00:00
+  end_time time // Giờ kết thúc: 17:00:00
+  break_duration_minutes int [default: 0] // Thời gian nghỉ giữa ca (phút): 60 = 1 tiếng nghỉ trưa
+  late_tolerance_minutes int [default: 15] // Cho phép đi muộn tối đa (phút) trước khi tính vi phạm
+  early_leave_tolerance_minutes int [default: 15] // Cho phép về sớm tối đa (phút) trước khi tính vi phạm
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE (đang dùng), INACTIVE (ngừng), ARCHIVED (lưu trữ)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  created_by int // Người tạo (admin/HR)
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  updated_by int // Người cập nhật
+  
+  indexes {
+    status
+  }
+}
+
+// Bảng lịch làm việc nhân viên - Gán lịch làm việc cho từng nhân viên
+// Hỗ trợ thay đổi lịch theo thời gian (effective_from/to) và override đặc biệt
+Table employee_work_schedules {
+  id int [pk, increment] // ID mapping
+  employee_id bigint [not null, note: 'References employees.id'] // ID nhân viên (cross-service reference)
+  employee_code varchar(50) // Mã nhân viên (cache từ Employee Service)
+  department_id int // ID phòng ban (cache)
+  work_schedule_id int [ref: > work_schedules.id, not null] // ID lịch làm việc được áp dụng
+  effective_from date [not null] // Ngày bắt đầu áp dụng lịch này
+  effective_to date // Ngày kết thúc áp dụng (null = vô thời hạn)
+  schedule_overrides jsonb [default: '[]'] // Override lịch cụ thể cho các ngày đặc biệt: [{date: '2024-12-25', type: 'HOLIDAY'}]
+  created_at timestamp [default: `now()`] // Ngày tạo
+  created_by bigint // Người tạo (manager/HR)
+  
+  indexes {
+    employee_id
+    work_schedule_id
+    (effective_from, effective_to)
+  }
+}
+
+// Bảng ca làm việc - Lưu từng ca làm việc của nhân viên theo ngày
+// Tự động tạo hàng ngày bởi cron job, tính toán giờ làm, giờ tăng ca, vi phạm
+Table employee_shifts {
+  id int [pk, increment] // ID ca làm việc
+  employee_id bigint [not null] // ID nhân viên
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  department_id int [not null] // ID phòng ban (cache)
+  shift_date date [not null] // Ngày làm việc
+  work_schedule_id int [ref: > work_schedules.id] // ID lịch làm việc được áp dụng
+  check_in_time timestamptz // Thời gian check-in thực tế
+  check_in_record_id int [ref: > attendance_check_records.id] // ID bản ghi check-in chi tiết
+  check_out_time timestamptz // Thời gian check-out thực tế
+  check_out_record_id int [ref: > attendance_check_records.id] // ID bản ghi check-out chi tiết
+  scheduled_start_time varchar(8) [not null] // Giờ bắt đầu dự kiến theo lịch: "08:00:00"
+  scheduled_end_time varchar(8) [not null] // Giờ kết thúc dự kiến theo lịch: "17:00:00"
+  work_hours decimal(5,2) [default: 0] // Số giờ làm việc thực tế (tính toán = check_out - check_in - break)
+  overtime_hours decimal(5,2) [default: 0] // Số giờ tăng ca (nếu làm quá scheduled_end_time)
+  break_hours decimal(5,2) [default: 1] // Thời gian nghỉ giữa ca (mặc định 1h nghỉ trưa)
+  late_minutes int [default: 0] // Số phút đi muộn (so với scheduled_start_time)
+  early_leave_minutes int [default: 0] // Số phút về sớm (so với scheduled_end_time)
+  presence_verification_required boolean [default: false] // Yêu cầu xác minh hiện diện định kỳ (GPS tracking trong ca)
+  presence_verified boolean [default: false] // Đã xác minh đủ số lần hiện diện chưa
+  presence_verification_rounds_completed int [default: 0] // Số lần xác minh GPS đã hoàn thành
+  presence_verification_rounds_required int [default: 0] // Số lần xác minh GPS yêu cầu (vd: 3 lần/ca)
+  status varchar(20) [default: 'SCHEDULED', note: 'SCHEDULED, IN_PROGRESS, COMPLETED, ON_LEAVE, ABSENT'] // Trạng thái ca
+  shift_type varchar(20) [default: 'REGULAR', note: 'REGULAR, OVERTIME'] // Loại ca: REGULAR (thường) hoặc OVERTIME (tăng ca)
+  approved_by int // Người duyệt (nếu có chỉnh sửa manual)
+  approved_at timestamptz // Thời gian duyệt chỉnh sửa
+  is_manually_edited boolean [default: false] // Đã chỉnh sửa thủ công chưa (HR sửa giờ)
+  created_at timestamp [default: `now()`] // Ngày tạo record
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    (employee_id, shift_date, shift_type)
+    shift_date
+    status
+    shift_type
+  }
+}
+
+// Bảng bản ghi chấm công - Lưu mọi lần check-in/check-out của nhân viên
+// Hỗ trợ nhiều phương thức xác thực: Beacon, GPS, Face Recognition
+Table attendance_check_records {
+  id int [pk, increment] // ID bản ghi chấm công
+  employee_id int [not null] // ID nhân viên
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  department_id int [not null] // ID phòng ban (cache)
+  shift_id int [ref: > employee_shifts.id] // ID ca làm việc (link đến employee_shifts)
+  check_timestamp timestamptz [not null] // Thời điểm chấm công (có timezone)
+  check_type varchar(20) [not null, note: 'CHECK_IN, CHECK_OUT, BREAK_START, BREAK_END'] // Loại chấm công
+  beacon_id int [ref: > beacons.id] // ID beacon (nếu check-in qua BLE beacon)
+  beacon_validated boolean [default: false] // Beacon đã được xác thực chưa
+  beacon_rssi int // Beacon RSSI signal strength (độ mạnh tín hiệu)
+  beacon_distance_meters decimal(5,2) // Khoảng cách ước tính từ beacon (mét)
+  latitude decimal(10,6) // Vĩ độ GPS
+  longitude decimal(10,6) // Kinh độ GPS
+  location_accuracy decimal(5,2) // Độ chính xác GPS (mét)
+  location_name varchar(200) // Tên địa điểm (reverse geocoding)
+  gps_validated boolean [default: false] // GPS đã được xác thực chưa (trong phạm vi office)
+  distance_from_office_meters decimal(7,2) // Khoảng cách từ vị trí check-in đến văn phòng (mét)
+  device_id varchar(100) // ID thiết bị chấm công
+  device_info jsonb // Thông tin thiết bị: {model, os, app_version}
+  ip_address varchar(45) // IP address khi chấm công
+  photo_url varchar(500) // URL ảnh chụp khi chấm công (để face verification)
+  face_verified boolean [default: false] // Khuôn mặt đã xác thực chưa (AI face recognition)
+  face_confidence decimal(3,2) // Độ tin cậy nhận diện khuôn mặt (0.00-1.00)
+  verified_at timestamptz // Thời điểm xác thực hoàn tất (cả beacon + GPS + face)
+  is_valid boolean [default: false] // Bản ghi chấm công hợp lệ chưa (pass tất cả validation)
+  validation_errors jsonb // Danh sách lỗi validation: [{type: 'GPS_OUT_OF_RANGE', message: '...'}]
+  is_manually_corrected boolean [default: false] // Đã chỉnh sửa thủ công chưa (HR sửa)
+  correction_reason text // Lý do chỉnh sửa
+  corrected_by int // Người chỉnh sửa (HR user ID)
+  corrected_at timestamptz // Thời điểm chỉnh sửa
+  notes text // Ghi chú bổ sung
+  created_at timestamptz [default: `now()`] // Ngày tạo record
+  
+  indexes {
+    (employee_id, check_timestamp)
+    check_timestamp
+    shift_id
+  }
+}
+
+// Bảng beacon - Quản lý thiết bị BLE beacon để check-in trong văn phòng
+// Sử dụng công nghệ iBeacon (iOS) / Eddystone (Android)
+Table beacons {
+  id int [pk, increment] // ID beacon
+  beacon_uuid uuid [not null] // UUID của beacon (chuẩn iBeacon/Eddystone)
+  beacon_major int [not null] // Major number (nhóm beacon, vd: theo tầng)
+  beacon_minor int [not null] // Minor number (beacon cụ thể trong nhóm)
+  beacon_name varchar(100) [not null] // Tên beacon: "Reception Desk", "Meeting Room 3A"
+  department_id int [not null] // ID phòng ban sở hữu beacon
+  location_name varchar(200) [not null] // Tên địa điểm: "Tầng 3 - Phòng IT"
+  floor varchar(50) // Tầng: "3rd Floor", "G"
+  building varchar(100) // Tòa nhà: "A Tower", "Main Building"
+  room_number varchar(20) // Số phòng: "3A-05"
+  latitude decimal(10,6) // Vĩ độ vị trí beacon
+  longitude decimal(10,6) // Kinh độ vị trí beacon
+  signal_range_meters decimal(5,2) [default: 10.0] // Phạm vi tín hiệu (mét) - thường 5-20m
+  rssi_threshold int [default: -70] // Ngưỡng RSSI tối thiểu để xác thực (-70 dBm)
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, MAINTENANCE
+  battery_level int // Mức pin beacon (0-100%)
+  last_heartbeat_at timestamptz // Lần gửi heartbeat cuối (kiểm tra beacon còn hoạt động)
+  created_at timestamptz [default: `now()`] // Ngày tạo
+  created_by int // Người tạo (IT/Admin)
+  updated_at timestamptz [default: `now()`] // Ngày cập nhật
+  updated_by int // Người cập nhật
+  
+  indexes {
+    (beacon_uuid, beacon_major, beacon_minor) [unique] // Unique combo để định danh beacon
+  }
+}
+
+// Bảng yêu cầu tăng ca - Nhân viên đăng ký làm thêm giờ
+// Cần phê duyệt từ manager trước khi làm, theo dõi giờ thực tế
+Table overtime_requests {
+  id int [pk, increment] // ID yêu cầu tăng ca
+  employee_id bigint [not null] // ID nhân viên đăng ký tăng ca
+  ot_shift_id int [ref: > employee_shifts.id] // ID ca tăng ca (link đến employee_shifts với shift_type=OVERTIME)
+  overtime_date date [not null] // Ngày tăng ca
+  start_time timestamptz [not null] // Giờ bắt đầu tăng ca dự kiến
+  end_time timestamptz [not null] // Giờ kết thúc tăng ca dự kiến
+  estimated_hours decimal(5,2) [not null] // Số giờ tăng ca ước tính
+  actual_hours decimal(5,2) // Số giờ tăng ca thực tế (sau khi check-out)
+  reason text [not null] // Lý do tăng ca: "Deadline dự án X", "Khẩn cấp khách hàng Y"
+  status varchar(20) [default: 'PENDING'] // Trạng thái: PENDING, APPROVED, REJECTED, COMPLETED, CANCELLED
+  requested_at timestamp [default: `now()`] // Thời điểm gửi yêu cầu
+  requested_by bigint // Người yêu cầu (thường là chính nhân viên)
+  approved_by bigint // Người phê duyệt (manager)
+  approved_at timestamp // Thời điểm phê duyệt
+  rejection_reason text // Lý do từ chối (nếu bị reject)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  created_by bigint // Người tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  updated_by bigint // Người cập nhật
+}
+
+// Bảng vi phạm chấm công - Ghi nhận các vi phạm tự động hoặc thủ công
+// Đi muộn, về sớm, thiếu GPS verification, khuôn mặt không khớp...
+Table violations {
+  id int [pk, increment] // ID vi phạm
+  employee_id bigint [not null] // ID nhân viên vi phạm
+  shift_id int [ref: > employee_shifts.id] // ID ca làm việc có vi phạm
+  violation_type varchar(50) [not null] // Loại vi phạm: LATE, EARLY_LEAVE, MISSING_CHECKOUT, GPS_ANOMALY, FACE_MISMATCH, ABSENT
+  severity varchar(20) [not null] // Mức độ: LOW (nhẹ), MEDIUM (trung bình), HIGH (nặng), CRITICAL (nghiêm trọng)
+  description text // Mô tả vi phạm chi tiết
+  evidence_data jsonb // Bằng chứng: {late_minutes: 30, gps_distance: 1500, photo_url: '...'}
+  detected_at timestamp [default: `now()`] // Thời điểm phát hiện vi phạm (tự động hoặc thủ công)
+  resolved boolean [default: false] // Đã giải quyết chưa (nhân viên giải trình + manager xác nhận)
+  resolved_by bigint // Người giải quyết (manager/HR)
+  resolved_at timestamp // Thời điểm giải quyết
+  resolution_notes text // Ghi chú giải quyết: "Đã xác nhận lý do hợp lý", "Cảnh cáo lần 1"
+  created_at timestamp [default: `now()`] // Ngày tạo
+  created_by bigint // Người tạo (system hoặc HR)
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    employee_id
+    shift_id
+    violation_type
+    detected_at
+  }
+}
+
+// Bảng cấu hình xác minh GPS - Định nghĩa chiến lược kiểm tra GPS trong ca
+// Hệ thống sẽ yêu cầu nhân viên gửi GPS định kỳ để chống gian lận
+Table gps_check_configurations {
+  id int [pk, increment] // ID cấu hình
+  config_name varchar(100) [unique, not null] // Tên cấu hình: "Standard Office", "Field Work", "Remote Work"
+  description text // Mô tả cấu hình
+  shift_type varchar(20) [default: 'REGULAR', note: 'REGULAR, OVERTIME, ALL'] // Áp dụng cho loại ca nào
+  check_strategy varchar(50) [default: 'INTERVAL_BASED', note: 'INTERVAL_BASED, FIXED_COUNT, DURATION_BASED, RANDOM'] // Chiến lược kiểm tra GPS
+  check_interval_hours decimal(4,2) [default: 2.5] // Khoảng cách giữa các lần kiểm tra (giờ) - vd: 2.5h = check 3 lần trong ca 8h
+  min_checks_per_shift int [default: 2] // Số lần check tối thiểu mỗi ca
+  max_checks_per_shift int [default: 12] // Số lần check tối đa mỗi ca
+  enable_random_timing boolean [default: true] // Bật random thời điểm check (tránh nhân viên đoán trước)
+  random_offset_minutes int [default: 15] // Độ lệch ngẫu nhiên (phút): ±15 phút
+  min_shift_duration_hours decimal(4,2) [default: 4.0] // Thời lượng ca tối thiểu để áp dụng GPS check
+  default_checks_count int [default: 3] // Số lần check mặc định nếu dùng FIXED_COUNT strategy
+  min_gps_verification_percentage decimal(5,2) [default: 60.0] // Tỉ lệ GPS verification tối thiểu (%) để pass
+  is_active boolean [default: true] // Cấu hình đang active chưa
+  is_default boolean [default: false] // Cấu hình mặc định (áp dụng khi không có config riêng)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  created_by bigint // Người tạo (admin/HR)
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  updated_by bigint // Người cập nhật
+  
+  indexes {
+    (shift_type, is_active)
+    (is_default, is_active)
+  }
+}
+
+// Bảng vòng xác minh hiện diện - Lưu từng lần gửi GPS trong ca
+// Nhân viên cần gửi GPS định kỳ để chứng minh đang ở văn phòng
+Table presence_verification_rounds {
+  id int [pk, increment] // ID vòng xác minh
+  shift_id int [ref: > employee_shifts.id, not null] // ID ca làm việc
+  employee_id int [not null] // ID nhân viên
+  round_number int [not null] // Số thứ tự vòng: 1, 2, 3...
+  latitude decimal(10,7) [not null] // Vĩ độ GPS nhân viên gửi
+  longitude decimal(10,7) [not null] // Kinh độ GPS nhân viên gửi
+  location_accuracy decimal(10,2) // Độ chính xác GPS (mét)
+  is_valid boolean [default: false] // GPS hợp lệ chưa (trong phạm vi cho phép)
+  distance_from_office_meters decimal(10,2) // Khoảng cách từ vị trí gửi đến văn phòng (mét)
+  distance_from_check_in_meters decimal(10,2) // Khoảng cách từ vị trí gửi đến điểm check-in (mét) - phát hiện di chuyển xa
+  validation_status varchar(20) [not null] // Trạng thái validation: VALID, OUT_OF_RANGE, LOW_ACCURACY, SUSPICIOUS
+  validation_reason text // Lý do validation: "Too far from office", "GPS accuracy too low"
+  device_id varchar(100) // ID thiết bị gửi GPS
+  battery_level int // Mức pin thiết bị (0-100%) - kiểm tra có tắt máy không
+  captured_at timestamp [not null] // Thời điểm chụp GPS (do client gửi lên)
+  created_at timestamp [default: `now()`] // Thời điểm server nhận được
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    (shift_id, round_number)
+    (employee_id, captured_at)
+  }
+}
+
+// Bảng phát hiện bất thường GPS - Lưu các hành vi GPS đáng ngờ
+// Tự động phát hiện bởi ML model hoặc rule-based system
+Table gps_anomaly_detections {
+  id int [pk, increment] // ID bất thường
+  employee_id int [not null] // ID nhân viên có hành vi đáng ngờ
+  shift_id int [ref: > employee_shifts.id] // ID ca làm việc liên quan
+  anomaly_type varchar(50) [not null] // Loại bất thường: LOCATION_JUMP (nhảy vị trí đột ngột), VELOCITY_IMPOSSIBLE (di chuyển quá nhanh), MOCK_LOCATION (GPS giả), CONSISTENT_PATTERN (pattern giống nhau mỗi ngày - nghi fake)
+  severity varchar(20) [not null] // Mức độ: LOW, MEDIUM, HIGH, CRITICAL
+  evidence_data jsonb // Bằng chứng: {locations: [{lat, lon, time}], velocity: 150, pattern_similarity: 0.98}
+  description text [not null] // Mô tả chi tiết bất thường
+  detected_at timestamp [not null] // Thời điểm phát hiện
+  auto_flagged boolean [default: false] // Tự động đánh dấu bởi hệ thống (AI/ML)
+  notified boolean [default: false] // Đã thông báo cho HR/manager chưa
+  requires_investigation boolean [default: false] // Cần điều tra thêm không
+  investigated_by int // Người điều tra (HR/security team)
+  investigated_at timestamp // Thời điểm điều tra
+  investigation_notes text // Ghi chú điều tra
+  investigation_result varchar(50) // Kết quả: CONFIRMED_FRAUD, FALSE_POSITIVE, TECHNICAL_ERROR
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    (employee_id, detected_at)
+    shift_id
+    (anomaly_type, severity)
+  }
+}
+
+// Bảng nhật ký sửa đổi chấm công - Audit trail khi HR sửa dữ liệu attendance
+// Bắt buộc lưu lại mọi thay đổi để compliance và truy vết
+Table attendance_edit_logs {
+  id int [pk, increment] // ID log
+  shift_id int [ref: > employee_shifts.id, not null] // ID ca bị sửa
+  employee_id bigint [not null] // ID nhân viên bị sửa attendance
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  shift_date date [not null] // Ngày ca bị sửa
+  edited_by_user_id bigint [not null] // ID người sửa (HR/admin)
+  edited_by_user_name varchar(255) [not null] // Tên người sửa
+  edited_by_role varchar(50) // Vai trò người sửa: HR_ADMIN, MANAGER, SUPER_ADMIN
+  field_changed varchar(100) [not null] // Trường bị sửa: check_in_time, check_out_time, work_hours, status
+  old_value text // Giá trị cũ (JSON string nếu phức tạp)
+  new_value text // Giá trị mới
+  edit_reason text // Lý do sửa: "Nhân viên quên check-out", "Lỗi hệ thống beacon", "Điều chỉnh sau phê duyệt"
+  ip_address varchar(45) // IP người sửa (để audit security)
+  edited_at timestamp [default: `now()`] // Thời điểm sửa
+  
+  indexes {
+    (shift_id, edited_at)
+    (employee_id, edited_at)
+    (edited_by_user_id, edited_at)
+  }
+}
+
+// ============================================
+// LEAVE SERVICE DATABASE
+// ============================================
+
+// Bảng loại nghỉ phép - Định nghĩa các loại phép trong công ty
+// Annual leave, sick leave, unpaid leave, maternity leave...
+Table leave_types {
+  id int [pk, increment] // ID loại phép
+  leave_type_code varchar(20) [unique, not null] // Mã loại phép: ANNUAL, SICK, UNPAID, MATERNITY, BEREAVEMENT
+  leave_type_name varchar(255) [not null] // Tên loại phép: "Phép năm", "Nghỉ ốm", "Nghỉ không lương"
+  description text // Mô tả chi tiết loại phép
+  is_paid boolean [default: true] // Có hưởng lương không
+  requires_approval boolean [default: true] // Cần phê duyệt trước không (sick leave có thể không cần)
+  requires_document boolean [default: false] // Yêu cầu chứng từ không (sick leave cần giấy bác sĩ)
+  deducts_from_balance boolean [default: true] // Trừ vào số ngày phép còn lại không
+  max_days_per_year decimal(5,2) // Tối đa bao nhiêu ngày/năm (12 ngày cho annual leave)
+  max_consecutive_days int // Tối đa bao nhiêu ngày liên tiếp (để tránh nghỉ dài quá)
+  min_notice_days int [default: 0] // Phải báo trước tối thiểu bao nhiêu ngày (annual: 3 ngày, sick: 0 ngày)
+  exclude_holidays boolean [default: true] // Loại trừ ngày lễ khi tính (nếu nghỉ qua Tết không tính ngày Tết)
+  exclude_weekends boolean [default: true] // Loại trừ cuối tuần khi tính (nghỉ T6-T2 chỉ tính T6)
+  allow_carry_over boolean [default: false] // Cho phép chuyển phép sang năm sau không
+  max_carry_over_days decimal(5,2) // Tối đa bao nhiêu ngày được chuyển (vd: 5 ngày)
+  carry_over_expiry_months int [default: 3] // Phép chuyển hết hạn sau bao nhiêu tháng (Q1 năm sau)
+  is_prorated boolean [default: true] // Tính theo tỉ lệ thời gian không (nhân viên mới vào giữa năm)
+  proration_basis varchar(20) [default: 'MONTHLY'] // Cơ sở tính tỉ lệ: MONTHLY (theo tháng), DAILY (theo ngày)
+  is_accrued boolean [default: false] // Phép tích lũy theo thời gian không (mỗi tháng được +1 ngày)
+  accrual_rate decimal(5,2) // Tỉ lệ tích lũy: 1.0 = 1 ngày/tháng
+  accrual_start_month int [default: 0] // Tháng bắt đầu tích lũy (0 = ngay lập tức)
+  color_hex varchar(7) [default: '#3B82F6'] // Màu hiển thị trên calendar: #FF5733
+  icon varchar(50) // Icon hiển thị: "beach", "hospital", "baby"
+  sort_order int [default: 0] // Thứ tự hiển thị (0 = hiển thị đầu tiên)
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+}
+
+// Bảng số dư phép của nhân viên - Theo dõi số ngày phép còn lại
+// Tự động tạo đầu năm hoặc khi nhân viên mới vào
+Table employee_leave_balances {
+  id int [pk, increment] // ID balance
+  employee_id bigint [not null] // ID nhân viên
+  leave_type_id int [ref: > leave_types.id, not null] // ID loại phép
+  year int [not null] // Năm áp dụng (2024, 2025...)
+  total_days decimal(5,2) [not null] // Tổng số ngày phép được hưởng (12 ngày annual leave)
+  used_days decimal(5,2) [default: 0] // Số ngày đã sử dụng (đã nghỉ và approved)
+  pending_days decimal(5,2) [default: 0] // Số ngày đang chờ duyệt (tạm khóa)
+  remaining_days decimal(5,2) [not null] // Số ngày còn lại = total - used - pending
+  carried_over_days decimal(5,2) [default: 0] // Số ngày chuyển từ năm trước
+  adjusted_days decimal(5,2) [default: 0] // Điều chỉnh (HR thêm/bớt): +2 ngày thưởng, -1 ngày phạt
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật (mỗi lần nghỉ phép)
+  
+  indexes {
+    (employee_id, year)
+    (employee_id, leave_type_id, year) [unique] // Unique: 1 nhân viên chỉ có 1 balance mỗi loại phép mỗi năm
+  }
+}
+
+// Bảng hồ sơ nghỉ phép - Lưu từng lần nhân viên đăng ký nghỉ phép
+// Workflow: Nhân viên tạo → Manager duyệt → Trừ balance → Sync sang Attendance
+Table leave_records {
+  id int [pk, increment] // ID hồ sơ nghỉ phép
+  employee_id bigint [not null] // ID nhân viên nghỉ
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  department_id int [not null] // ID phòng ban (cache)
+  leave_type_id int [ref: > leave_types.id, not null] // ID loại phép
+  start_date date [not null] // Ngày bắt đầu nghỉ
+  end_date date [not null] // Ngày kết thúc nghỉ (bao gồm ngày này)
+  total_calendar_days int [not null] // Tổng số ngày trên lịch (10 ngày)
+  total_working_days decimal(5,2) [not null] // Số ngày làm việc (trừ T7/CN và lễ): 7 ngày
+  total_leave_days decimal(5,2) [not null] // Số ngày trừ vào balance (có thể khác working_days nếu half day): 6.5 ngày
+  is_half_day_start boolean [default: false] // Nghỉ nửa ngày đầu (sáng/chiều)
+  is_half_day_end boolean [default: false] // Nghỉ nửa ngày cuối
+  reason text [not null] // Lý do nghỉ: "Đi du lịch Đà Lạt", "Bệnh cúm", "Chăm con ốm"
+  supporting_document_url varchar(500) // URL file chứng từ (giấy bác sĩ, đơn xin nghỉ...)
+  status varchar(20) [default: 'PENDING', note: 'PENDING, APPROVED, REJECTED, CANCELLED'] // Trạng thái đơn nghỉ
+  requested_at timestamp [default: `now()`] // Thời điểm gửi đơn
+  approval_level int [default: 1] // Cấp phê duyệt hiện tại (1=Manager, 2=Director, 3=CEO)
+  current_approver_id bigint // ID người đang giữ đơn để duyệt
+  approved_by bigint // ID người phê duyệt cuối cùng
+  approved_at timestamp // Thời điểm phê duyệt
+  rejection_reason text // Lý do từ chối: "Đã có 3 người nghỉ ngày này", "Deadline dự án"
+  cancelled_at timestamp // Thời điểm hủy đơn (nhân viên tự hủy hoặc HR hủy)
+  cancellation_reason text // Lý do hủy
+  metadata jsonb // Dữ liệu bổ sung: {approvers: [{id, name, level, approved_at}]}
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    employee_id
+    status
+    (start_date, end_date)
+    leave_type_id
+    requested_at
+  }
+}
+
+// Bảng giao dịch số dư phép - Lưu mọi thay đổi của leave balance
+// Audit trail cho mọi lần cộng/trừ phép
+Table leave_balance_transactions {
+  id bigint [pk, increment] // ID transaction
+  employee_id bigint [not null] // ID nhân viên
+  leave_type_id int [ref: > leave_types.id, not null] // ID loại phép
+  year int [not null] // Năm áp dụng
+  transaction_type varchar(50) [not null] // Loại transaction: INITIAL (khởi tạo đầu năm), DEDUCT (trừ khi nghỉ), REFUND (hoàn trả khi reject/cancel), ADJUSTMENT (HR điều chỉnh), CARRY_OVER (chuyển năm), ACCRUAL (tích lũy hàng tháng)
+  amount decimal(5,2) [not null] // Số ngày thay đổi (âm = trừ, dương = cộng): -2.5, +3.0
+  balance_before decimal(5,2) [not null] // Số dư trước khi thay đổi
+  balance_after decimal(5,2) [not null] // Số dư sau khi thay đổi
+  reference_type varchar(50) // Loại tham chiếu: LEAVE_RECORD, MANUAL_ADJUSTMENT
+  reference_id bigint // ID tham chiếu (leave_record.id hoặc adjustment_record.id)
+  description text // Mô tả: "Nghỉ phép từ 2024-12-01 đến 2024-12-03", "Thưởng 2 ngày phép cuối năm"
+  created_by bigint // Người tạo transaction (system hoặc HR)
+  created_at timestamp [default: `now()`] // Thời điểm giao dịch
+  
+  indexes {
+    (employee_id, created_at)
+    leave_type_id
+    year
+  }
+}
+
+// Bảng ngày lễ - Định nghĩa ngày nghỉ lễ hàng năm
+// Dùng để tính số ngày làm việc và loại trừ khỏi đơn nghỉ phép
+Table holidays {
+  id int [pk, increment] // ID ngày lễ
+  holiday_name varchar(255) [not null] // Tên ngày lễ: "Tết Nguyên Đán", "Quốc Khánh", "Giỗ Tổ Hùng Vương"
+  holiday_date date [not null] // Ngày lễ (2024-09-02)
+  holiday_type varchar(50) [not null] // Loại lễ: NATIONAL (quốc gia), COMPANY (nội bộ), REGIONAL (khu vực)
+  applies_to varchar(20) [default: 'ALL'] // Áp dụng cho: ALL (toàn công ty), DEPARTMENT (phòng ban), LOCATION (văn phòng)
+  department_ids text // Danh sách ID phòng ban (comma separated): "1,2,5"
+  location_ids text // Danh sách ID địa điểm: "HN,HCM"
+  is_recurring boolean [default: false] // Lặp lại hàng năm không (Tết dương lịch: true, Tết âm lịch: false do thay đổi)
+  recurring_month int // Tháng lặp lại (1 = tháng 1)
+  recurring_day int // Ngày lặp lại (1 = ngày 1)
+  recurring_rule varchar(50) // Quy tắc lặp: FIXED_DATE, LUNAR_CALENDAR, FLOATING (vd: thứ 2 đầu tiên của tháng 5)
+  is_mandatory boolean [default: true] // Bắt buộc nghỉ không (true = công ty đóng cửa)
+  is_paid boolean [default: true] // Có hưởng lương không
+  can_work_for_ot boolean [default: false] // Có thể làm để lấy tăng ca không (vài công ty cho làm ngày lễ x3 lương)
+  description text // Mô tả ngày lễ
+  year int [not null] // Năm áp dụng (2024, 2025...)
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, CANCELLED
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    holiday_date
+    year
+    holiday_type
+  }
+}
+
+// ============================================
+// NOTIFICATION SERVICE DATABASE
+// ============================================
+
+// Bảng thông báo - Lưu tất cả thông báo gửi cho nhân viên
+// Hỗ trợ đa kênh: Email, Push, SMS, In-App
+Table notifications {
+  id bigint [pk, increment] // ID thông báo
+  recipient_id bigint [not null] // ID nhân viên nhận thông báo
+  recipient_email varchar(255) // Email người nhận (cache)
+  recipient_name varchar(255) // Tên người nhận (cache)
+  title varchar(500) [not null] // Tiêu đề thông báo: "Đơn nghỉ phép được duyệt"
+  message text [not null] // Nội dung thông báo chi tiết
+  notification_type varchar(50) [not null] // Loại thông báo: LEAVE_APPROVED, ATTENDANCE_REMINDER, OVERTIME_REQUEST, PAYROLL_READY, SYSTEM_ALERT
+  priority varchar(20) [default: 'NORMAL'] // Độ ưu tiên: LOW, NORMAL, HIGH, URGENT
+  related_entity_type varchar(50) // Loại entity liên quan: LEAVE_RECORD, ATTENDANCE_SHIFT, OVERTIME_REQUEST
+  related_entity_id bigint // ID entity liên quan (để deep link vào app)
+  related_data jsonb // Dữ liệu bổ sung: {leave_dates, approver_name, reason}
+  channels jsonb [not null] // Kênh gửi: ["EMAIL", "PUSH", "IN_APP"] hoặc ["SMS"]
+  is_read boolean [default: false] // Đã đọc chưa (chỉ cho in-app notification)
+  read_at timestamp // Thời điểm đọc
+  email_sent boolean [default: false] // Đã gửi email chưa
+  email_sent_at timestamp // Thời điểm gửi email
+  push_sent boolean [default: false] // Đã gửi push notification chưa
+  push_sent_at timestamp // Thời điểm gửi push
+  sms_sent boolean [default: false] // Đã gửi SMS chưa
+  sms_sent_at timestamp // Thời điểm gửi SMS
+  metadata jsonb // Metadata: {campaign_id, ab_test_variant}
+  created_at timestamp [default: `now()`] // Ngày tạo thông báo
+  expires_at timestamp // Thời điểm hết hạn (auto-delete notification cũ)
+  
+  indexes {
+    (recipient_id, created_at)
+    (recipient_id, is_read)
+    notification_type
+    created_at
+  }
+}
+
+// Bảng FCM token - Lưu Firebase Cloud Messaging token để gửi push notification
+// Một nhân viên có nhiều token (nhiều thiết bị: iPhone + iPad)
+Table push_notification_tokens {
+  id int [pk, increment] // ID token
+  employee_id bigint [not null] // ID nhân viên sở hữu token
+  device_id varchar(255) [not null] // ID thiết bị (unique identifier)
+  device_session_id bigint [ref: > device_sessions.id] // Link đến device session (để biết thiết bị còn active không)
+  token varchar(500) [not null] // FCM registration token (chuỗi dài ~150 ký tự)
+  platform varchar(20) [not null] // Platform: IOS, ANDROID
+  is_active boolean [default: true] // Token còn active không (false = thiết bị đã logout hoặc xóa app)
+  last_used_at timestamp [default: `now()`] // Lần gửi push cuối cùng (để cleanup token cũ)
+  created_at timestamp [default: `now()`] // Ngày đăng ký token
+  
+  indexes {
+    (employee_id, device_id) [unique] // Một thiết bị chỉ có 1 token active
+    employee_id
+    token
+    device_session_id
+  }
+}
+
+// Bảng template thông báo - Định nghĩa template để tạo notification
+// Hỗ trợ biến động (placeholders) để fill dữ liệu động
+Table notification_templates {
+  id int [pk, increment] // ID template
+  template_code varchar(50) [unique, not null] // Mã template: LEAVE_APPROVED, ATTENDANCE_LATE_WARNING, PAYROLL_READY
+  template_name varchar(255) [not null] // Tên template: "Đơn nghỉ phép được duyệt"
+  notification_type varchar(50) [not null] // Loại notification (group templates)
+  title_template varchar(500) [not null] // Template tiêu đề: "{{approver_name}} đã duyệt đơn nghỉ phép của bạn"
+  message_template text [not null] // Template nội dung: "Đơn nghỉ phép từ {{start_date}} đến {{end_date}} đã được duyệt bởi {{approver_name}}"
+  email_subject_template varchar(500) // Template subject email
+  email_body_template text // Template body email (HTML)
+  default_channels jsonb [not null] // Kênh mặc định: ["EMAIL", "PUSH", "IN_APP"]
+  available_variables jsonb // Biến có sẵn: ["employee_name", "approver_name", "start_date", "end_date", "leave_type"]
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, INACTIVE, DRAFT
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+}
+
+// Bảng tùy chọn thông báo - Nhân viên tự cấu hình muốn nhận thông báo qua kênh nào
+// Mỗi loại notification có thể bật/tắt từng kênh riêng
+Table notification_preferences {
+  id int [pk, increment] // ID preference
+  employee_id bigint [not null] // ID nhân viên
+  notification_type varchar(50) [not null] // Loại thông báo: LEAVE_APPROVED, ATTENDANCE_REMINDER, OVERTIME_REQUEST
+  email_enabled boolean [default: true] // Nhận email không
+  push_enabled boolean [default: true] // Nhận push notification không
+  sms_enabled boolean [default: false] // Nhận SMS không (thường tắt vì tốn phí)
+  in_app_enabled boolean [default: true] // Hiển thị in-app không
+  do_not_disturb_start time // Giờ bắt đầu không làm phiền: 22:00 (không gửi push notification)
+  do_not_disturb_end time // Giờ kết thúc không làm phiền: 07:00
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    (employee_id, notification_type) [unique] // Một nhân viên chỉ có 1 preference cho mỗi loại thông báo
+    employee_id
+  }
+}
+
+// Bảng log gửi thông báo - Theo dõi chi tiết việc gửi notification qua từng kênh
+// Dùng để debug, retry khi fail, tracking delivery rate
+Table notification_delivery_logs {
+  id bigint [pk, increment] // ID log
+  notification_id bigint [ref: > notifications.id, not null] // ID thông báo gốc
+  channel varchar(20) [not null, note: 'EMAIL, SMS, PUSH, IN_APP'] // Kênh gửi
+  recipient varchar(255) [not null] // Địa chỉ người nhận: email, phone, FCM token
+  status varchar(20) [default: 'PENDING', note: 'PENDING, SENT, DELIVERED, FAILED, BOUNCED'] // Trạng thái gửi
+  external_message_id varchar(255) // Message ID từ provider (SendGrid, Twilio, FCM)
+  provider varchar(50) // Provider: SENDGRID, TWILIO, FCM, AWS_SES
+  sent_at timestamp // Thời điểm gửi đi
+  delivered_at timestamp // Thời điểm người nhận nhận được (webhook từ provider)
+  failed_at timestamp // Thời điểm fail
+  error_message text // Thông báo lỗi: "Invalid email", "FCM token expired"
+  retry_count int [default: 0] // Số lần retry (tối đa 3 lần)
+  last_retry_at timestamp // Lần retry cuối
+  metadata jsonb // Dữ liệu bổ sung từ provider
+  created_at timestamp [default: `now()`] // Ngày tạo log
+  
+  indexes {
+    notification_id
+    status
+    channel
+  }
+}
+
+// Bảng thông báo lịch trình - Tạo thông báo tự động theo lịch
+// Cron job sẽ chạy định kỳ để gửi notification
+Table scheduled_notifications {
+  id int [pk, increment] // ID schedule
+  schedule_type varchar(50) [not null] // Loại schedule: ONE_TIME (1 lần), RECURRING (lặp lại), CRON (theo biểu thức cron)
+  recipient_type varchar(20) [not null] // Loại người nhận: ALL (toàn công ty), DEPARTMENT (phòng ban), INDIVIDUAL (cá nhân), CUSTOM (danh sách tùy chọn)
+  recipient_ids jsonb // Danh sách ID người nhận: [101, 102, 103]
+  title varchar(500) [not null] // Tiêu đề thông báo
+  message text [not null] // Nội dung thông báo
+  notification_type varchar(50) [not null] // Loại thông báo
+  channels jsonb [not null] // Kênh gửi: ["EMAIL", "PUSH"]
+  scheduled_at timestamp // Thời điểm gửi (cho ONE_TIME)
+  cron_expression varchar(100) // Biểu thức cron: "0 9 * * MON" = 9h sáng thứ 2 hàng tuần
+  timezone varchar(50) [default: 'Asia/Ho_Chi_Minh'] // Múi giờ
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái: ACTIVE, PAUSED, COMPLETED, CANCELLED
+  last_run_at timestamp // Lần chạy cuối cùng
+  next_run_at timestamp // Lần chạy tiếp theo (tính từ cron expression)
+  created_by bigint [not null] // Người tạo schedule (HR/Admin)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    next_run_at
+    status
+  }
+}
+
+// ============================================
+// REPORTING SERVICE DATABASE
+// ============================================
+
+// Bảng cache nhân viên - Đồng bộ dữ liệu từ Employee Service
+// Tránh query cross-service, tăng tốc báo cáo
+Table employees_cache {
+  id bigint [pk, increment] // ID cache
+  employee_id bigint [unique, not null, note: 'References employees.id'] // ID nhân viên gốc (Employee Service)
+  employee_code varchar(50) [unique, not null] // Mã nhân viên (cache)
+  full_name varchar(255) [not null] // Họ tên đầy đủ (cache)
+  email varchar(255) // Email (cache)
+  department_id int // ID phòng ban (cache)
+  department_name varchar(255) // Tên phòng ban (cache)
+  position_id int // ID vị trí (cache)
+  position_name varchar(255) // Tên vị trí (cache)
+  join_date date // Ngày vào làm (cache)
+  status varchar(20) [default: 'ACTIVE'] // Trạng thái nhân viên (cache)
+  synced_at timestamp [default: `now()`] // Thời điểm đồng bộ dữ liệu từ Employee Service (qua message queue)
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    employee_id
+    employee_code
+    department_id
+  }
+}
+
+// Bảng timesheet entries - Đồng bộ chi tiết chấm công từ Attendance Service
+// Denormalized data để query báo cáo nhanh, tránh join nhiều bảng
+Table timesheet_entries {
+  id bigint [pk, increment] // ID entry
+  employee_id bigint [not null] // ID nhân viên
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  employee_name varchar(255) [not null] // Tên nhân viên (cache)
+  department_id int [not null] // ID phòng ban (cache)
+  department_name varchar(255) [not null] // Tên phòng ban (cache)
+  position_name varchar(255) // Tên vị trí (cache)
+  entry_date date [not null] // Ngày chấm công
+  year int [not null] // Năm (để query theo năm)
+  month int [not null] // Tháng (1-12)
+  week int [not null] // Tuần trong năm (1-53)
+  day_of_week int [not null] // Thứ trong tuần (1=Monday, 7=Sunday)
+  scheduled_hours decimal(5,2) [default: 0] // Số giờ dự kiến làm việc (8.0)
+  work_hours decimal(5,2) [default: 0] // Số giờ làm việc thực tế (7.5)
+  overtime_hours decimal(5,2) [default: 0] // Số giờ tăng ca (2.0)
+  leave_hours decimal(5,2) [default: 0] // Số giờ nghỉ phép (4.0 = nghỉ nửa ngày)
+  absent_hours decimal(5,2) [default: 0] // Số giờ vắng mặt (8.0 = vắng cả ngày)
+  status varchar(20) [not null] // Trạng thái: PRESENT (có mặt), LEAVE (nghỉ phép), ABSENT (vắng), HOLIDAY (lễ)
+  late_minutes int [default: 0] // Số phút đi muộn
+  early_leave_minutes int [default: 0] // Số phút về sớm
+  has_violation boolean [default: false] // Có vi phạm không
+  check_in_time timestamptz // Giờ check-in (cache)
+  check_out_time timestamptz // Giờ check-out (cache)
+  beacon_validated boolean [default: false] // Beacon validated (cache)
+  gps_validated boolean [default: false] // GPS validated (cache)
+  face_verified boolean [default: false] // Face verified (cache)
+  presence_verified boolean [default: false] // Presence verified (cache)
+  synced_at timestamp [default: `now()`] // Thời điểm đồng bộ từ Attendance Service
+  
+  indexes {
+    entry_date
+    (department_id, entry_date)
+    (year, month)
+    status
+    (employee_id, entry_date) [unique] // Một nhân viên chỉ có 1 entry mỗi ngày
+  }
+}
+
+// Bảng tổng hợp tháng - Tính toán sẵn KPI chấm công theo tháng
+// Tự động tạo vào đầu tháng sau, dùng cho báo cáo nhanh
+Table monthly_summaries {
+  id int [pk, increment] // ID summary
+  employee_id bigint [not null] // ID nhân viên
+  employee_code varchar(50) [not null] // Mã nhân viên (cache)
+  employee_name varchar(255) [not null] // Tên nhân viên (cache)
+  department_id int [not null] // ID phòng ban (cache)
+  department_name varchar(255) [not null] // Tên phòng ban (cache)
+  year int [not null] // Năm
+  month int [not null] // Tháng (1-12)
+  total_work_days int [not null] // Tổng số ngày làm việc trong tháng (22 ngày)
+  actual_work_days int [not null] // Số ngày thực tế đi làm (20 ngày)
+  absent_days int [not null] // Số ngày vắng mặt không phép (1 ngày)
+  leave_days decimal(5,2) [default: 0] // Số ngày nghỉ phép (1.5 ngày)
+  holiday_days int [default: 0] // Số ngày nghỉ lễ (1 ngày)
+  total_work_hours decimal(8,2) [default: 0] // Tổng giờ làm việc thực tế (160 giờ)
+  total_overtime_hours decimal(8,2) [default: 0] // Tổng giờ tăng ca (10 giờ)
+  total_leave_hours decimal(8,2) [default: 0] // Tổng giờ nghỉ phép (12 giờ)
+  late_count int [default: 0] // Số lần đi muộn (3 lần)
+  early_leave_count int [default: 0] // Số lần về sớm (2 lần)
+  absent_count int [default: 0] // Số lần vắng mặt (1 lần)
+  total_late_minutes int [default: 0] // Tổng phút đi muộn (45 phút)
+  attendance_rate decimal(5,2) // Tỉ lệ đi làm: (actual_work_days / total_work_days) * 100 = 90.91%
+  punctuality_rate decimal(5,2) // Tỉ lệ đúng giờ: (days without late/early) / actual_work_days * 100 = 75%
+  generated_at timestamp [default: `now()`] // Thời điểm tạo summary
+  
+  indexes {
+    (employee_id, year, month) [unique] // Một nhân viên chỉ có 1 summary mỗi tháng
+    (department_id, year, month)
+  }
+}
+
+// Bảng template báo cáo - Lưu cấu hình báo cáo tùy chỉnh
+// HR có thể tạo template riêng: chọn cột, filter, sort
+Table report_templates {
+  id int [pk, increment] // ID template
+  template_name varchar(255) [not null] // Tên template: "Báo cáo chấm công tháng IT", "Tổng hợp tăng ca quý 4"
+  template_type varchar(50) [not null] // Loại báo cáo: ATTENDANCE, LEAVE, OVERTIME, PAYROLL, VIOLATION
+  description text // Mô tả template
+  columns jsonb [not null] // Cột hiển thị: ["employee_code", "full_name", "work_hours", "late_count"]
+  filters jsonb // Bộ lọc: {department_id: [1,2], year: 2024, month: 12}
+  sort_by jsonb // Sắp xếp: [{field: "work_hours", order: "DESC"}]
+  output_format varchar(20) [default: 'XLSX'] // Định dạng export: XLSX, CSV, PDF
+  is_public boolean [default: false] // Template công khai (tất cả HR dùng được) hay riêng tư
+  created_by bigint [not null] // Người tạo template
+  created_at timestamp [default: `now()`] // Ngày tạo
+  updated_at timestamp [default: `now()`] // Ngày cập nhật
+  
+  indexes {
+    template_type
+    created_by
+  }
+}
+
+// Bảng batch export - Theo dõi quá trình export báo cáo lớn
+// Export async với queue, tránh timeout khi báo cáo nhiều dữ liệu
+Table export_batches {
+  id int [pk, increment] // ID batch
+  batch_id varchar(50) [unique, not null] // Mã batch: "EXP-2024120501" (unique identifier)
+  requested_by bigint [not null] // Người yêu cầu export
+  export_type varchar(50) [not null] // Loại export: TIMESHEET, MONTHLY_SUMMARY, LEAVE_REPORT, CUSTOM
+  start_date date // Ngày bắt đầu dữ liệu (2024-01-01)
+  end_date date // Ngày kết thúc dữ liệu (2024-12-31)
+  filters jsonb // Bộ lọc: {department_ids: [1,2,3], employee_codes: ["NV001", "NV002"]}
+  output_format varchar(20) [not null] // Định dạng file: XLSX, CSV, PDF
+  file_url varchar(500) // URL file đã export (S3/Azure Blob)
+  file_size int // Kích thước file (bytes)
+  status varchar(20) [default: 'PENDING'] // Trạng thái: PENDING, PROCESSING, COMPLETED, FAILED, EXPIRED
+  progress_percentage int [default: 0] // Tiến độ xử lý (0-100%)
+  total_records int [default: 0] // Tổng số bản ghi cần export
+  processed_records int [default: 0] // Số bản ghi đã xử lý
+  error_message text // Thông báo lỗi (nếu failed)
+  requested_at timestamp [default: `now()`] // Thời điểm yêu cầu
+  started_at timestamp // Thời điểm bắt đầu xử lý
+  completed_at timestamp // Thời điểm hoàn thành
+  expires_at timestamp // Thời điểm file hết hạn (7 ngày sau khi completed)
+  
+  indexes {
+    batch_id
+    requested_by
+    status
+    requested_at
+  }
+}

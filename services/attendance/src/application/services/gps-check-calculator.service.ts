@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   IGpsCheckConfigurationRepository,
   GPS_CHECK_CONFIGURATION_REPOSITORY,
-} from '../../application/ports/gps-check-configuration.repository.port';
+} from '../ports/gps-check-configuration.repository.port';
 
 @Injectable()
 export class GpsCheckCalculatorService {
@@ -11,7 +11,7 @@ export class GpsCheckCalculatorService {
   constructor(
     @Inject(GPS_CHECK_CONFIGURATION_REPOSITORY)
     private readonly configRepository: IGpsCheckConfigurationRepository,
-  ) {}
+  ) { }
 
   /**
    * Calculate required GPS checks for a shift based on configuration
